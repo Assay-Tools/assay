@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+{% block title %}Packages{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+
+    <div class="flex flex-col lg:flex-row gap-8">
+
+        {# ── Sidebar ── #}
+        <aside class="lg:w-64 flex-shrink-0">
+            <form method="get" action="/packages" class="space-y-6">
+                {# Search #}
+                <div>
+                    <label class="block text-xs font-medium text-gray-400 uppercase tracking-wider mb-2">Search</label>
+                    <input type="text" name="q" value="{{ q or '' }}" placeholder="Package name..."
+                           class="w-full bg-surface border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-accent">
+                </div>
+
+                {# Category filter #}
+                <div>
+                    <label class="block text-xs font-medium text-gray-400 uppercase tracking-wider mb-2">Category</label>
+                    <select name="category"
+                            class="w-full bg-surface border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-200 focus:outline-none focus:border-accent">
+                        <option value="">All categories</option>
+                        {% for cat in categories %}
+                        <option value="{{ cat.slug }}" {{ 'selected' if selected_category == cat.slug }}>
+                            {{ cat.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                {# MCP filter #}
+                <div>
+                    <label class="flex items-center gap-2 text-sm text-gray-300 cursor-pointer">
+                        <input type="checkbox" name="mcp" value="1"
+                               {{ 'checked' if filter_mcp }}
+                               class="rounded bg-surface border-gray-600 text-accent focus:ring-accent">
+                        Has MCP server
+                    </label>
+                </div>
+
+                {# Free tier filter #}
+                <div>
+                    <label class="flex items-center gap-2 text-sm text-gray-300 cursor-pointer">
+                        <input type="checkbox" name="free" value="1"
+                               {{ 'checked' if filter_free }}
+                               class="rounded bg-surface border-gray-600 text-accent focus:ring-accent">
+                        Free tier available
+                    </label>
+                </div>
+
+                {# Min score #}
+                <div>
+                    <label class="block text-xs font-medium text-gray-400 uppercase tracking-wider mb-2">
+                        Min AF Score: <span id="score-val">{{ min_score or 0 }}</span>
+                    </label>
+                    <input type="range" name="min_score" min="0" max="100" step="5"
+                           value="{{ min_score or 0 }}"
+                           oninput="document.getElementById('score-val').textContent = this.value"
+                           class="w-full accent-accent">
+                </div>
+
+                <button type="submit"
+                        class="w-full bg-accent hover:bg-accent/90 text-white py-2 rounded-lg text-sm font-medium transition">
+                    Apply Filters
+                </button>
+            </form>
+        </aside>
+
+        {# ── Main content ── #}
+        <div class="flex-1 min-w-0">
+            <div class="flex items-center justify-between mb-6">
+                <h1 class="text-2xl font-bold text-white">
+                    Packages
+                    {% if q %}
+                    <span class="text-gray-500 text-lg font-normal"> matching "{{ q }}"</span>
+                    {% endif %}
+                </h1>
+                <span class="text-sm text-gray-500">{{ total }} result{{ 's' if total != 1 }}</span>
+            </div>
+
+            {# Package cards #}
+            {% if packages %}
+            <div class="grid gap-4">
+                {% for pkg in packages %}
+                <a href="/packages/{{ pkg.id }}"
+                   class="bg-surface-raised border border-gray-800 rounded-xl p-5 hover:border-accent/50 transition group block">
+                    <div class="flex items-start justify-between gap-4">
+                        <div class="min-w-0 flex-1">
+                            <div class="flex items-center gap-3 mb-1">
+                                <h2 class="text-lg font-semibold text-white group-hover:text-accent transition truncate">
+                                    {{ pkg.name }}
+                                </h2>
+                                {% if pkg.category %}
+                                <span class="text-xs bg-surface-overlay text-gray-400 px-2 py-0.5 rounded-full whitespace-nowrap">
+                                    {{ pkg.category.name }}
+                                </span>
+                                {% endif %}
+                            </div>
+                            {% if pkg.what_it_does %}
+                            <p class="text-sm text-gray-400 line-clamp-2">{{ pkg.what_it_does }}</p>
+                            {% endif %}
+                            <div class="flex items-center gap-3 mt-2 text-xs text-gray-500">
+                                {% if pkg.interface and pkg.interface.has_mcp_server %}
+                                <span class="bg-accent/20 text-accent px-2 py-0.5 rounded">MCP</span>
+                                {% endif %}
+                                {% if pkg.pricing and pkg.pricing.free_tier_exists %}
+                                <span class="bg-green-900/30 text-green-400 px-2 py-0.5 rounded">Free tier</span>
+                                {% endif %}
+                                {% for tag in pkg.tags_list[:3] %}
+                                <span class="text-gray-600">{{ tag }}</span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {# AF Score badge #}
+                        <div class="flex-shrink-0">
+                            {% if pkg.af_score is not none %}
+                            <div class="w-14 h-14 rounded-xl flex items-center justify-center text-lg font-bold
+                                        {% if pkg.af_score >= 80 %}score-green
+                                        {% elif pkg.af_score >= 60 %}score-yellow
+                                        {% else %}score-red{% endif %}">
+                                {{ "%.0f"|format(pkg.af_score) }}
+                            </div>
+                            {% else %}
+                            <div class="w-14 h-14 rounded-xl flex items-center justify-center text-sm score-none">
+                                N/A
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+
+            {# Pagination #}
+            {% if total_pages > 1 %}
+            <nav class="flex items-center justify-center gap-2 mt-10">
+                {% if page > 1 %}
+                <a href="?{{ pagination_qs }}&page={{ page - 1 }}"
+                   class="px-3 py-1.5 rounded-lg bg-surface-raised border border-gray-700 text-sm text-gray-300 hover:border-accent transition">
+                    Prev
+                </a>
+                {% endif %}
+                {% for p in range(1, total_pages + 1) %}
+                    {% if p == page %}
+                    <span class="px-3 py-1.5 rounded-lg bg-accent text-white text-sm font-medium">{{ p }}</span>
+                    {% elif p <= 3 or p >= total_pages - 2 or (p >= page - 1 and p <= page + 1) %}
+                    <a href="?{{ pagination_qs }}&page={{ p }}"
+                       class="px-3 py-1.5 rounded-lg bg-surface-raised border border-gray-700 text-sm text-gray-300 hover:border-accent transition">
+                        {{ p }}
+                    </a>
+                    {% elif p == 4 or p == total_pages - 3 %}
+                    <span class="text-gray-600">&hellip;</span>
+                    {% endif %}
+                {% endfor %}
+                {% if page < total_pages %}
+                <a href="?{{ pagination_qs }}&page={{ page + 1 }}"
+                   class="px-3 py-1.5 rounded-lg bg-surface-raised border border-gray-700 text-sm text-gray-300 hover:border-accent transition">
+                    Next
+                </a>
+                {% endif %}
+            </nav>
+            {% endif %}
+
+            {% else %}
+            <div class="text-center py-20 text-gray-500">
+                <p class="text-lg">No packages found.</p>
+                <p class="text-sm mt-2">Try adjusting your filters or search query.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,304 @@
+{% extends "base.html" %}
+{% block title %}{{ package.name }}{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+
+    {# ── Header ── #}
+    <div class="flex items-start gap-6 mb-10">
+        {# AF Score badge — large #}
+        <div class="flex-shrink-0">
+            {% if package.af_score is not none %}
+            <div class="w-20 h-20 rounded-2xl flex items-center justify-center text-3xl font-bold
+                        {% if package.af_score >= 80 %}score-green
+                        {% elif package.af_score >= 60 %}score-yellow
+                        {% else %}score-red{% endif %}">
+                {{ "%.0f"|format(package.af_score) }}
+            </div>
+            <div class="text-xs text-gray-500 text-center mt-1">AF Score</div>
+            {% else %}
+            <div class="w-20 h-20 rounded-2xl flex items-center justify-center text-lg score-none">
+                N/A
+            </div>
+            <div class="text-xs text-gray-500 text-center mt-1">Not rated</div>
+            {% endif %}
+        </div>
+
+        <div class="min-w-0">
+            <h1 class="text-3xl font-bold text-white mb-1">{{ package.name }}</h1>
+            {% if package.what_it_does %}
+            <p class="text-gray-400 text-lg">{{ package.what_it_does }}</p>
+            {% endif %}
+
+            {# Links & meta #}
+            <div class="flex flex-wrap items-center gap-3 mt-3 text-sm">
+                {% if package.homepage %}
+                <a href="{{ package.homepage }}" target="_blank" rel="noopener"
+                   class="text-accent hover:underline">Homepage &nearr;</a>
+                {% endif %}
+                {% if package.repo_url %}
+                <a href="{{ package.repo_url }}" target="_blank" rel="noopener"
+                   class="text-accent hover:underline">Repo &nearr;</a>
+                {% endif %}
+                {% if package.category %}
+                <a href="/categories/{{ package.category_slug }}"
+                   class="bg-surface-overlay text-gray-400 px-2 py-0.5 rounded-full text-xs hover:text-white transition">
+                    {{ package.category.name }}
+                </a>
+                {% endif %}
+                {% for tag in package.tags_list %}
+                <span class="text-xs text-gray-600">{{ tag }}</span>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    {# ── Best when / Avoid when ── #}
+    {% if package.best_when or package.avoid_when %}
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-10">
+        {% if package.best_when %}
+        <div class="bg-green-900/20 border border-green-900/40 rounded-xl p-5">
+            <h3 class="text-sm font-medium text-green-400 uppercase tracking-wider mb-2">Best When</h3>
+            <p class="text-gray-300 text-sm">{{ package.best_when }}</p>
+        </div>
+        {% endif %}
+        {% if package.avoid_when %}
+        <div class="bg-red-900/20 border border-red-900/40 rounded-xl p-5">
+            <h3 class="text-sm font-medium text-red-400 uppercase tracking-wider mb-2">Avoid When</h3>
+            <p class="text-gray-300 text-sm">{{ package.avoid_when }}</p>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    {# ── Use Cases ── #}
+    {% set use_cases = package.use_cases_list %}
+    {% if use_cases %}
+    <section class="mb-8">
+        <h2 class="text-xl font-semibold text-white mb-3">Use Cases</h2>
+        <ul class="space-y-1.5">
+            {% for uc in use_cases %}
+            <li class="flex items-start gap-2 text-gray-300 text-sm">
+                <span class="text-accent mt-0.5">&#8226;</span>
+                {{ uc }}
+            </li>
+            {% endfor %}
+        </ul>
+    </section>
+    {% endif %}
+
+    {# ── Not For ── #}
+    {% set not_for = package.not_for_list %}
+    {% if not_for %}
+    <section class="mb-8">
+        <h2 class="text-xl font-semibold text-white mb-3">Not For</h2>
+        <ul class="space-y-1.5">
+            {% for item in not_for %}
+            <li class="flex items-start gap-2 text-gray-400 text-sm">
+                <span class="text-red-500 mt-0.5">&#8226;</span>
+                {{ item }}
+            </li>
+            {% endfor %}
+        </ul>
+    </section>
+    {% endif %}
+
+    {# ── Interface ── #}
+    {% if package.interface %}
+    <section class="mb-8">
+        <h2 class="text-xl font-semibold text-white mb-3">Interface</h2>
+        <div class="bg-surface-raised border border-gray-800 rounded-xl p-5">
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 text-sm">
+                {% set iface = package.interface %}
+                <div>
+                    <span class="text-gray-500">REST API</span>
+                    <div class="text-gray-200">{{ "Yes" if iface.has_rest_api else "No" }}</div>
+                </div>
+                <div>
+                    <span class="text-gray-500">GraphQL</span>
+                    <div class="text-gray-200">{{ "Yes" if iface.has_graphql else "No" }}</div>
+                </div>
+                <div>
+                    <span class="text-gray-500">gRPC</span>
+                    <div class="text-gray-200">{{ "Yes" if iface.has_grpc else "No" }}</div>
+                </div>
+                <div>
+                    <span class="text-gray-500">MCP Server</span>
+                    <div class="text-gray-200">
+                        {{ "Yes" if iface.has_mcp_server else "No" }}
+                        {% if iface.mcp_server_url %}
+                        <a href="{{ iface.mcp_server_url }}" target="_blank" class="text-accent text-xs ml-1">&nearr;</a>
+                        {% endif %}
+                    </div>
+                </div>
+                <div>
+                    <span class="text-gray-500">SDK</span>
+                    <div class="text-gray-200">{{ "Yes" if iface.has_sdk else "No" }}</div>
+                </div>
+                <div>
+                    <span class="text-gray-500">Webhooks</span>
+                    <div class="text-gray-200">{{ "Yes" if iface.webhooks else "No" }}</div>
+                </div>
+            </div>
+            {% if iface.openapi_spec_url %}
+            <div class="mt-3 text-sm">
+                <a href="{{ iface.openapi_spec_url }}" target="_blank" class="text-accent hover:underline">
+                    OpenAPI Spec &nearr;
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </section>
+    {% endif %}
+
+    {# ── Auth ── #}
+    {% if package.auth %}
+    <section class="mb-8">
+        <h2 class="text-xl font-semibold text-white mb-3">Authentication</h2>
+        <div class="bg-surface-raised border border-gray-800 rounded-xl p-5 text-sm">
+            {% set auth = package.auth %}
+            {% if auth.methods_list %}
+            <div class="mb-2">
+                <span class="text-gray-500">Methods:</span>
+                {% for m in auth.methods_list %}
+                <span class="inline-block bg-surface-overlay text-gray-300 px-2 py-0.5 rounded text-xs ml-1">{{ m }}</span>
+                {% endfor %}
+            </div>
+            {% endif %}
+            <div class="flex gap-6 text-gray-400">
+                <span>OAuth: {{ "Yes" if auth.oauth else "No" }}</span>
+                <span>Scopes: {{ "Yes" if auth.scopes else "No" }}</span>
+            </div>
+            {% if auth.notes %}
+            <p class="text-gray-500 mt-2">{{ auth.notes }}</p>
+            {% endif %}
+        </div>
+    </section>
+    {% endif %}
+
+    {# ── Pricing ── #}
+    {% if package.pricing %}
+    <section class="mb-8">
+        <h2 class="text-xl font-semibold text-white mb-3">Pricing</h2>
+        <div class="bg-surface-raised border border-gray-800 rounded-xl p-5 text-sm">
+            {% set pricing = package.pricing %}
+            <div class="flex flex-wrap gap-4 mb-2">
+                {% if pricing.model %}
+                <div><span class="text-gray-500">Model:</span> <span class="text-gray-200">{{ pricing.model }}</span></div>
+                {% endif %}
+                <div>
+                    <span class="text-gray-500">Free tier:</span>
+                    <span class="text-gray-200">{{ "Yes" if pricing.free_tier_exists else "No" }}</span>
+                </div>
+                <div>
+                    <span class="text-gray-500">Requires CC:</span>
+                    <span class="text-gray-200">{{ "Yes" if pricing.requires_credit_card else "No" }}</span>
+                </div>
+            </div>
+            {% if pricing.notes %}
+            <p class="text-gray-500 mt-2">{{ pricing.notes }}</p>
+            {% endif %}
+        </div>
+    </section>
+    {% endif %}
+
+    {# ── Agent Readiness ── #}
+    {% if package.agent_readiness %}
+    <section class="mb-8">
+        <h2 class="text-xl font-semibold text-white mb-3">Agent Readiness</h2>
+        <div class="bg-surface-raised border border-gray-800 rounded-xl p-5">
+            {% set ar = package.agent_readiness %}
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 text-sm mb-4">
+                {% if ar.mcp_server_quality is not none %}
+                <div>
+                    <span class="text-gray-500">MCP Quality</span>
+                    <div class="text-gray-200">{{ "%.1f"|format(ar.mcp_server_quality) }}</div>
+                </div>
+                {% endif %}
+                {% if ar.mcp_security_score is not none %}
+                <div>
+                    <span class="text-gray-500">MCP Security</span>
+                    <div class="text-gray-200">{{ "%.1f"|format(ar.mcp_security_score) }}</div>
+                </div>
+                {% endif %}
+                {% if ar.documentation_accuracy is not none %}
+                <div>
+                    <span class="text-gray-500">Doc Accuracy</span>
+                    <div class="text-gray-200">{{ "%.1f"|format(ar.documentation_accuracy) }}</div>
+                </div>
+                {% endif %}
+                {% if ar.error_message_quality %}
+                <div>
+                    <span class="text-gray-500">Error Messages</span>
+                    <div class="text-gray-200">{{ ar.error_message_quality }}</div>
+                </div>
+                {% endif %}
+                {% if ar.pagination_style %}
+                <div>
+                    <span class="text-gray-500">Pagination</span>
+                    <div class="text-gray-200">{{ ar.pagination_style }}</div>
+                </div>
+                {% endif %}
+                <div>
+                    <span class="text-gray-500">Idempotent</span>
+                    <div class="text-gray-200">
+                        {% if ar.idempotency_support is none %}Unknown
+                        {% elif ar.idempotency_support %}Yes
+                        {% else %}No{% endif %}
+                    </div>
+                </div>
+            </div>
+
+            {# Known Gotchas #}
+            {% set gotchas = ar.gotchas_list %}
+            {% if gotchas %}
+            <div class="border-t border-gray-800 pt-4">
+                <h3 class="text-sm font-medium text-yellow-400 uppercase tracking-wider mb-2">Known Gotchas</h3>
+                <ul class="space-y-1.5">
+                    {% for g in gotchas %}
+                    <li class="flex items-start gap-2 text-sm text-gray-400">
+                        <span class="text-yellow-500 mt-0.5">&#9888;</span>
+                        {{ g }}
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+        </div>
+    </section>
+    {% endif %}
+
+    {# ── Alternatives ── #}
+    {% set alternatives = package.alternatives_list %}
+    {% if alternatives %}
+    <section class="mb-8">
+        <h2 class="text-xl font-semibold text-white mb-3">Alternatives</h2>
+        <div class="flex flex-wrap gap-2">
+            {% for alt in alternatives %}
+            <a href="/packages/{{ alt }}"
+               class="bg-surface-raised border border-gray-800 text-gray-300 px-3 py-1.5 rounded-lg text-sm hover:border-accent/50 transition">
+                {{ alt }}
+            </a>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
+    {# ── API / Agent links ── #}
+    <section class="border-t border-gray-800 pt-8 mt-10">
+        <div class="flex flex-wrap gap-4 text-sm">
+            <a href="/api/v1/packages/{{ package.id }}"
+               class="text-accent hover:underline">API endpoint &nearr;</a>
+            <a href="/api/v1/packages/{{ package.id }}/agent-guide"
+               class="text-accent hover:underline">Agent guide &nearr;</a>
+            {% if package.version_evaluated %}
+            <span class="text-gray-600">Evaluated: v{{ package.version_evaluated }}</span>
+            {% endif %}
+            {% if package.last_evaluated %}
+            <span class="text-gray-600">Last evaluated: {{ package.last_evaluated.strftime('%Y-%m-%d') }}</span>
+            {% endif %}
+        </div>
+    </section>
+
+</div>
+{% endblock %}
