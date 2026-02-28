@@ -57,7 +57,7 @@ def list_packages(
     category: str | None = Query(None, description="Filter by category slug"),
     has_mcp: bool | None = Query(None, description="Filter packages with MCP server"),
     free_tier: bool | None = Query(None, description="Filter packages with a free tier"),
-    min_af_score: float | None = Query(None, ge=0, le=10, description="Minimum AF score"),
+    min_af_score: float | None = Query(None, ge=0, le=100, description="Minimum AF score"),
     compliance: str | None = Query(None, description="Required compliance (e.g. SOC2, HIPAA)"),
     sort: str = Query("af_score:desc", description="Sort field:direction (e.g. name:asc)"),
     limit: int = Query(20, ge=1, le=100),

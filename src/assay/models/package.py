@@ -318,9 +318,9 @@ class PackageAgentReadiness(Base):
     mcp_server_quality: Mapped[float | None] = mapped_column(Float)
     mcp_security_score: Mapped[float | None] = mapped_column(Float)
     documentation_accuracy: Mapped[float | None] = mapped_column(Float)
-    error_message_quality: Mapped[str | None] = mapped_column(String(50))  # "good", "poor", "unknown"
+    error_message_quality: Mapped[float | None] = mapped_column(Float)  # 0-100 score
     error_message_notes: Mapped[str | None] = mapped_column(Text)
-    idempotency_support: Mapped[bool | None] = mapped_column(Boolean)
+    idempotency_support: Mapped[str | None] = mapped_column(String(50))  # "full", "partial", "none", "unknown"
     idempotency_notes: Mapped[str | None] = mapped_column(Text)
     pagination_style: Mapped[str | None] = mapped_column(String(50))  # "cursor", "offset", "none"
     retry_guidance_documented: Mapped[bool | None] = mapped_column(Boolean)
