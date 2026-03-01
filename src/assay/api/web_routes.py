@@ -38,13 +38,13 @@ def index(request: Request, db: Session = Depends(get_db)):
         "avg_af_score": round(avg_af, 1) if avg_af is not None else None,
     }
 
-    # Categories with counts (eager load packages for count)
+    # Categories with counts (eager load packages for count), sorted by count desc
     categories = (
         db.query(Category)
         .options(joinedload(Category.packages))
-        .order_by(Category.name)
         .all()
     )
+    categories.sort(key=lambda c: c.package_count, reverse=True)
 
     # Top rated packages for showcase
     top_packages = (
@@ -212,9 +212,9 @@ def categories_list(request: Request, db: Session = Depends(get_db)):
     categories = (
         db.query(Category)
         .options(joinedload(Category.packages))
-        .order_by(Category.name)
         .all()
     )
+    categories.sort(key=lambda c: c.package_count, reverse=True)
 
     return templates.TemplateResponse(
         "pages/categories.html",
