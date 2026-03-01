@@ -8,14 +8,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends libpq-dev && rm
 # Install uv for fast dependency resolution
 RUN pip install uv
 
-# Copy dependency files first for better caching
-COPY pyproject.toml uv.lock ./
-
-# Install dependencies
-RUN uv pip install --system -e .
-
-# Copy application code
+# Copy everything needed for install
+COPY pyproject.toml uv.lock README.md ./
 COPY src/ src/
+
+# Install as a proper package (not editable)
+RUN uv pip install --system .
 
 # Expose port (Railway sets PORT env var)
 EXPOSE 8000
