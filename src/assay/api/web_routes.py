@@ -1,6 +1,7 @@
 """Web routes — server-rendered HTML pages for Assay."""
 
 import math
+from pathlib import Path
 from urllib.parse import urlencode
 
 from fastapi import APIRouter, Depends, Query, Request
@@ -12,7 +13,8 @@ from sqlalchemy.orm import Session, joinedload
 from assay.database import get_db
 from assay.models import Category, Package
 
-templates = Jinja2Templates(directory="src/assay/templates")
+_templates_dir = Path(__file__).parent.parent / "templates"
+templates = Jinja2Templates(directory=str(_templates_dir))
 
 router = APIRouter(tags=["web"])
 
@@ -281,9 +283,21 @@ def compare_packages(
             pkg_map = {p.id: p for p in packages}
             packages = [pkg_map[pid] for pid in id_list if pid in pkg_map]
 
+    # All package IDs for the autocomplete/selector
+    all_packages = (
+        db.query(Package.id, Package.name, Package.af_score)
+        .order_by(Package.name)
+        .all()
+    )
+
     return templates.TemplateResponse(
         "pages/compare.html",
-        {"request": request, "packages": packages, "ids_str": ids_str},
+        {
+            "request": request,
+            "packages": packages,
+            "ids_str": ids_str,
+            "all_packages": all_packages,
+        },
     )
 
 
