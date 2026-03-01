@@ -1,17 +1,22 @@
-"""Discovery Agent — finds MCP server packages from public sources."""
+"""Discovery Agent — orchestrates multiple discovery sources to find packages."""
 
 from __future__ import annotations
 
 import argparse
 import json
-import re
-import time
 from datetime import datetime, timezone
-
-import httpx
 
 from assay.database import SessionLocal, init_db
 from assay.models import Category, Package
+
+from .sources import (
+    DiscoveredPackage,
+    DiscoverySource,
+    GitHubAwesomeListSource,
+    GitHubSource,
+    MCPRegistrySource,
+    OpenClawSource,
+)
 
 # Pre-defined categories with display names and keyword hints for matching.
 CATEGORIES: dict[str, dict[str, str | list[str]]] = {
@@ -113,6 +118,13 @@ CATEGORIES: dict[str, dict[str, str | list[str]]] = {
                      "post", "feed", "reddit", "youtube", "tiktok", "mastodon",
                      "bluesky"],
     },
+    "agent-skills": {
+        "name": "Agent Skills",
+        "description": "Claude Code skills, agent capabilities, prompt templates, workflow automations",
+        "keywords": ["skill", "claude-code", "agent-skill", "openclaw", "prompt",
+                     "workflow", "automation", "slash-command", "capability", "tool",
+                     "extension", "plugin"],
+    },
     "other": {
         "name": "Other",
         "description": "Uncategorized packages",
@@ -120,15 +132,13 @@ CATEGORIES: dict[str, dict[str, str | list[str]]] = {
     },
 }
 
-
-def _slug_from_repo(full_name: str) -> str:
-    """Generate a package ID slug from a GitHub repo full name (owner/repo)."""
-    # Use just the repo name, not the owner
-    repo_name = full_name.split("/")[-1]
-    # Lowercase, keep alphanumerics and hyphens
-    slug = re.sub(r"[^a-z0-9-]", "-", repo_name.lower())
-    slug = re.sub(r"-+", "-", slug).strip("-")
-    return slug[:255]
+# Map source name strings to source classes
+SOURCE_CLASSES: dict[str, type[DiscoverySource]] = {
+    "github": GitHubSource,
+    "mcp_registry": MCPRegistrySource,
+    "skills": GitHubAwesomeListSource,
+    "openclaw": OpenClawSource,
+}
 
 
 def _guess_category(description: str | None, topics: list[str], name: str) -> str:
@@ -153,85 +163,40 @@ def _guess_category(description: str | None, topics: list[str], name: str) -> st
     return best_slug
 
 
+def _compute_priority(stars: int) -> str:
+    """Compute priority tier based on star count.
+
+    Tier 1 (high): stars >= 50
+    Tier 2 (low): stars >= 25 OR stars unknown (0 from registry)
+    Tier 3 (low): everything else
+    """
+    if stars >= 50:
+        return "high"
+    return "low"
+
+
+def _normalize_repo_url(url: str | None) -> str | None:
+    """Normalize a repo URL for deduplication (lowercase, strip trailing slashes and .git)."""
+    if not url:
+        return None
+    url = url.lower().rstrip("/")
+    if url.endswith(".git"):
+        url = url[:-4]
+    return url
+
+
 class DiscoveryAgent:
-    """Discovers MCP server repositories from GitHub and creates stub Package records."""
+    """Orchestrates multiple discovery sources to find and insert packages."""
 
-    SEARCH_QUERIES = [
-        "topic:mcp-server",
-        "mcp+server+in:name",
-        "mcp-server+in:name",
-    ]
-
-    GITHUB_API = "https://api.github.com/search/repositories"
-    # Unauthenticated GitHub search: 10 requests/minute
-    REQUEST_DELAY_SECONDS = 7.0
-
-    def __init__(self, limit: int = 250):
+    def __init__(
+        self,
+        limit: int = 500,
+        sources: list[DiscoverySource] | None = None,
+        package_type_filter: str | None = None,
+    ):
         self.limit = limit
-        self.client = httpx.Client(
-            headers={"Accept": "application/vnd.github+json"},
-            timeout=30.0,
-        )
-        # Track repos by URL to deduplicate across queries
-        self._seen_urls: set[str] = set()
-        self._repos: list[dict] = []
-
-    def search_github(self) -> list[dict]:
-        """Run all search queries against GitHub and return deduplicated repo list."""
-        for query in self.SEARCH_QUERIES:
-            if len(self._repos) >= self.limit:
-                break
-            self._run_query(query)
-        return self._repos[: self.limit]
-
-    def _run_query(self, query: str) -> None:
-        """Execute a single GitHub search query, paginating as needed."""
-        page = 1
-        per_page = min(100, self.limit)
-
-        while len(self._repos) < self.limit:
-            url = f"{self.GITHUB_API}?q={query}&sort=stars&order=desc&per_page={per_page}&page={page}"
-            print(f"  Searching: q={query} page={page} ...")
-
-            try:
-                resp = self.client.get(url)
-                if resp.status_code == 403:
-                    # Rate limited — wait and retry once
-                    retry_after = int(resp.headers.get("Retry-After", "60"))
-                    print(f"  Rate limited. Waiting {retry_after}s ...")
-                    time.sleep(retry_after)
-                    resp = self.client.get(url)
-
-                resp.raise_for_status()
-                data = resp.json()
-            except httpx.HTTPError as exc:
-                print(f"  HTTP error: {exc}")
-                break
-
-            items = data.get("items", [])
-            if not items:
-                break
-
-            for repo in items:
-                html_url = repo.get("html_url", "")
-                if html_url in self._seen_urls:
-                    continue
-                self._seen_urls.add(html_url)
-                self._repos.append(repo)
-                if len(self._repos) >= self.limit:
-                    break
-
-            # GitHub search only returns up to 1000 results (10 pages of 100)
-            if len(items) < per_page or page >= 10:
-                break
-
-            page += 1
-            print(f"  Respecting rate limit, waiting {self.REQUEST_DELAY_SECONDS}s ...")
-            time.sleep(self.REQUEST_DELAY_SECONDS)
-
-        # Delay between different queries
-        print(f"  Respecting rate limit, waiting {self.REQUEST_DELAY_SECONDS}s ...")
-        time.sleep(self.REQUEST_DELAY_SECONDS)
+        self.sources = sources or [cls() for cls in SOURCE_CLASSES.values()]
+        self.package_type_filter = package_type_filter
 
     def seed_categories(self, db) -> None:
         """Create Category records if they don't already exist."""
@@ -252,55 +217,99 @@ class DiscoveryAgent:
         else:
             print("  Categories already exist.")
 
-    def insert_packages(self, repos: list[dict], db) -> int:
+    def discover_all(self) -> list[DiscoveredPackage]:
+        """Run all sources and return deduplicated results."""
+        all_packages: list[DiscoveredPackage] = []
+        seen_repo_urls: set[str] = set()
+        seen_ids: set[str] = set()
+
+        for source in self.sources:
+            remaining = self.limit - len(all_packages)
+            if remaining <= 0:
+                break
+
+            print(f"\n--- Source: {source.source_name} ---")
+            try:
+                discovered = source.discover(limit=remaining)
+            except Exception as exc:
+                print(f"  ERROR: {source.source_name} failed: {exc}")
+                continue
+
+            added = 0
+            for pkg in discovered:
+                # Apply package_type filter if set
+                if self.package_type_filter and self.package_type_filter != "all":
+                    if pkg.package_type != self.package_type_filter:
+                        continue
+
+                # Deduplicate by normalized repo_url (primary) then by id (secondary)
+                norm_url = _normalize_repo_url(pkg.repo_url)
+                if norm_url and norm_url in seen_repo_urls:
+                    continue
+                if pkg.id in seen_ids:
+                    continue
+
+                if norm_url:
+                    seen_repo_urls.add(norm_url)
+                seen_ids.add(pkg.id)
+                all_packages.append(pkg)
+                added += 1
+
+                if len(all_packages) >= self.limit:
+                    break
+
+            print(f"  Added {added} unique packages from {source.source_name}.")
+
+        return all_packages[:self.limit]
+
+    def insert_packages(self, packages: list[DiscoveredPackage], db) -> int:
         """Create stub Package records. Returns count of newly inserted packages."""
         existing_ids = {p.id for p in db.query(Package.id).all()}
         inserted = 0
 
-        for repo in repos:
-            full_name = repo.get("full_name", "")
-            pkg_id = _slug_from_repo(full_name)
-
-            if pkg_id in existing_ids:
-                print(f"  SKIP (exists): {pkg_id}")
+        for pkg in packages:
+            if pkg.id in existing_ids:
+                print(f"  SKIP (exists): {pkg.id}")
                 continue
 
-            description = repo.get("description") or ""
-            topics = repo.get("topics", [])
-            stars = repo.get("stargazers_count", 0)
-            language = repo.get("language") or ""
-            html_url = repo.get("html_url", "")
+            category_slug = _guess_category(pkg.description, pkg.topics, pkg.name)
+            priority = _compute_priority(pkg.stars)
 
-            category_slug = _guess_category(description, topics, full_name)
-
-            pkg = Package(
-                id=pkg_id,
-                name=repo.get("name", pkg_id),
-                repo_url=html_url,
-                homepage=repo.get("homepage") or None,
+            db_pkg = Package(
+                id=pkg.id,
+                name=pkg.name,
+                repo_url=pkg.repo_url,
+                homepage=pkg.homepage,
                 category_slug=category_slug,
-                what_it_does=description[:500] if description else None,
-                tags=json.dumps(topics) if topics else None,
+                what_it_does=pkg.description,
+                tags=json.dumps(pkg.topics) if pkg.topics else None,
+                package_type=pkg.package_type,
+                discovery_source=pkg.discovery_source,
+                priority=priority,
+                stars=pkg.stars,
                 status="discovered",
             )
-            db.add(pkg)
-            existing_ids.add(pkg_id)
+            db.add(db_pkg)
+            existing_ids.add(pkg.id)
             inserted += 1
             print(
-                f"  ADD: {pkg_id:50s}  stars={stars:>6}  lang={language:>12}  "
-                f"cat={category_slug}"
+                f"  ADD: {pkg.id:50s}  stars={pkg.stars:>6}  type={pkg.package_type:>12}  "
+                f"src={pkg.discovery_source:>15}  pri={priority}  cat={category_slug}"
             )
 
         db.commit()
         return inserted
 
     def run(self) -> None:
-        """Full discovery pipeline: search, deduplicate, insert."""
+        """Full discovery pipeline: search all sources, deduplicate, insert."""
         print(f"=== Assay Discovery Agent ===")
-        print(f"Target: up to {self.limit} packages\n")
+        print(f"Target: up to {self.limit} packages")
+        print(f"Sources: {', '.join(s.source_name for s in self.sources)}")
+        if self.package_type_filter:
+            print(f"Type filter: {self.package_type_filter}")
 
         # 1. Initialize database
-        print("[1/4] Initializing database ...")
+        print("\n[1/4] Initializing database ...")
         init_db()
 
         # 2. Seed categories
@@ -309,14 +318,14 @@ class DiscoveryAgent:
         try:
             self.seed_categories(db)
 
-            # 3. Search GitHub
-            print(f"\n[3/4] Searching GitHub ...")
-            repos = self.search_github()
-            print(f"  Found {len(repos)} unique repositories.\n")
+            # 3. Discover from all sources
+            print(f"\n[3/4] Running discovery sources ...")
+            packages = self.discover_all()
+            print(f"\n  Total unique packages discovered: {len(packages)}")
 
             # 4. Insert packages
-            print(f"[4/4] Inserting package stubs ...")
-            inserted = self.insert_packages(repos, db)
+            print(f"\n[4/4] Inserting package stubs ...")
+            inserted = self.insert_packages(packages, db)
 
             # Summary
             total = db.query(Package).count()
@@ -326,20 +335,48 @@ class DiscoveryAgent:
 
         finally:
             db.close()
-            self.client.close()
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Assay Discovery Agent — find MCP server packages")
+    parser = argparse.ArgumentParser(description="Assay Discovery Agent — find packages from multiple sources")
     parser.add_argument(
         "--limit",
         type=int,
-        default=250,
-        help="Maximum number of packages to discover (default: 250)",
+        default=500,
+        help="Maximum number of packages to discover (default: 500)",
+    )
+    parser.add_argument(
+        "--source",
+        choices=["github", "mcp_registry", "skills", "openclaw", "all"],
+        default="all",
+        help="Discovery source to use (default: all)",
+    )
+    parser.add_argument(
+        "--type",
+        choices=["mcp_server", "skill", "all"],
+        default="all",
+        dest="package_type",
+        help="Package type to discover (default: all)",
     )
     args = parser.parse_args()
 
-    agent = DiscoveryAgent(limit=args.limit)
+    # Build source list
+    if args.source == "all":
+        sources = [cls() for cls in SOURCE_CLASSES.values()]
+    elif args.source == "skills":
+        # "skills" is a shorthand for both awesome-list and openclaw sources
+        sources = [GitHubAwesomeListSource(), OpenClawSource()]
+    else:
+        source_cls = SOURCE_CLASSES.get(args.source)
+        if source_cls:
+            sources = [source_cls()]
+        else:
+            print(f"Unknown source: {args.source}")
+            return
+
+    type_filter = args.package_type if args.package_type != "all" else None
+
+    agent = DiscoveryAgent(limit=args.limit, sources=sources, package_type_filter=type_filter)
     agent.run()
 
 

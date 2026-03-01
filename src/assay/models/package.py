@@ -35,6 +35,12 @@ class Package(Base):
     security_score: Mapped[float | None] = mapped_column(Float)  # Security (0-100)
     reliability_score: Mapped[float | None] = mapped_column(Float)  # Reliability (0-100)
 
+    # Discovery metadata
+    package_type: Mapped[str] = mapped_column(String(50), default="mcp_server")  # mcp_server, skill, api
+    discovery_source: Mapped[str | None] = mapped_column(String(100))  # github, mcp_registry, skills_sh, github_awesome, openclaw, community
+    priority: Mapped[str] = mapped_column(String(10), default="low")  # high, low
+    stars: Mapped[int | None] = mapped_column(Integer)  # GitHub star count
+
     # Status
     status: Mapped[str] = mapped_column(String(50), default="discovered")  # discovered, evaluated, published
     version_evaluated: Mapped[str | None] = mapped_column(String(100))
@@ -117,6 +123,9 @@ class Package(Base):
             "af_score": self.af_score,
             "security_score": self.security_score,
             "reliability_score": self.reliability_score,
+            "package_type": self.package_type,
+            "discovery_source": self.discovery_source,
+            "priority": self.priority,
             "status": self.status,
             "version_evaluated": self.version_evaluated,
             "last_evaluated": self.last_evaluated.isoformat() if self.last_evaluated else None,

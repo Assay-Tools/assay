@@ -87,6 +87,7 @@ def packages_list(
     request: Request,
     q: str = Query(None, description="Search query"),
     category: str = Query(None, description="Category slug filter"),
+    type: str = Query(None, description="Package type filter (mcp_server, skill)"),
     mcp: int = Query(None, description="MCP server filter (1=yes)"),
     free: int = Query(None, description="Free tier filter (1=yes)"),
     min_score: int = Query(0, ge=0, le=100, description="Minimum AF score"),
@@ -99,6 +100,10 @@ def packages_list(
         joinedload(Package.interface),
         joinedload(Package.pricing),
     )
+
+    # Package type filter
+    if type:
+        query = query.filter(Package.package_type == type)
 
     # Search
     if q:
@@ -153,6 +158,8 @@ def packages_list(
         qs_params["q"] = q
     if category:
         qs_params["category"] = category
+    if type:
+        qs_params["type"] = type
     if mcp:
         qs_params["mcp"] = "1"
     if free:
@@ -173,6 +180,7 @@ def packages_list(
             "q": q,
             "categories": categories,
             "selected_category": category,
+            "selected_type": type,
             "filter_mcp": bool(mcp),
             "filter_free": bool(free),
             "min_score": min_score,
@@ -358,12 +366,12 @@ def contribute(request: Request, db: Session = Depends(get_db)):
         "total_evaluated": total_evaluated,
     }
 
-    # Queue: unevaluated first, then stale, limited to 20
+    # Queue: unevaluated first (high priority, then low), then stale, limited to 20
     queue_packages = (
         db.query(Package)
         .options(joinedload(Package.category))
         .filter(Package.af_score.is_(None))
-        .order_by(Package.created_at.desc())
+        .order_by(Package.priority.asc(), Package.created_at.desc())
         .limit(20)
         .all()
     )
@@ -378,7 +386,7 @@ def contribute(request: Request, db: Session = Depends(get_db)):
                 Package.af_score.isnot(None),
                 Package.last_evaluated < stale_cutoff,
             )
-            .order_by(Package.last_evaluated.asc())
+            .order_by(Package.priority.asc(), Package.last_evaluated.asc())
             .limit(remaining)
             .all()
         )

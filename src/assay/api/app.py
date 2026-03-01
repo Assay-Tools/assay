@@ -78,6 +78,11 @@ def _run_migrations():
         ("package_agent_readiness", "version_stability", "FLOAT"),
         ("package_agent_readiness", "breaking_changes_history", "FLOAT"),
         ("package_agent_readiness", "error_recovery", "FLOAT"),
+        # Discovery pipeline columns
+        ("packages", "package_type", "VARCHAR(50) DEFAULT 'mcp_server'"),
+        ("packages", "discovery_source", "VARCHAR(100)"),
+        ("packages", "priority", "VARCHAR(10) DEFAULT 'low'"),
+        ("packages", "stars", "INTEGER"),
     ]
 
     dialect = "sqlite" if "sqlite" in str(engine.url) else "postgresql"
@@ -98,6 +103,12 @@ def _run_migrations():
             if not exists:
                 conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {column} {col_type}"))
                 logger.info("Added column %s.%s", table, column)
+
+        # Backfill discovery_source for existing packages
+        conn.execute(text("""
+            UPDATE packages SET discovery_source = 'github'
+            WHERE discovery_source IS NULL
+        """))
 
         # Backfill security_score from legacy mcp_security_score
         conn.execute(text("""

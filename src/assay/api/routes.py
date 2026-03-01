@@ -61,6 +61,7 @@ def list_packages(
     free_tier: bool | None = Query(None, description="Filter packages with a free tier"),
     min_af_score: float | None = Query(None, ge=0, le=100, description="Minimum AF score"),
     compliance: str | None = Query(None, description="Required compliance (e.g. SOC2, HIPAA)"),
+    type: str | None = Query(None, description="Filter by package type (mcp_server, skill)"),
     sort: str = Query("af_score:desc", description="Sort field:direction (e.g. name:asc)"),
     limit: int = Query(20, ge=1, le=100),
     offset: int = Query(0, ge=0),
@@ -70,6 +71,8 @@ def list_packages(
     q = _apply_eager(q)
 
     # Filters
+    if type:
+        q = q.filter(Package.package_type == type)
     if category:
         q = q.filter(Package.category_slug == category)
     if has_mcp is not None:
@@ -203,14 +206,27 @@ def compare_packages(
 def get_evaluation_queue(
     limit: int = Query(50, ge=1, le=200),
     include_stale: bool = Query(True, description="Include packages needing re-evaluation"),
+    package_type: str | None = Query(None, description="Filter by package type (mcp_server, skill)"),
+    priority: str | None = Query(None, description="Filter by priority (high, low)"),
     db: Session = Depends(get_db),
 ):
-    """Get packages needing evaluation — for community contributors."""
-    # Unevaluated packages
+    """Get packages needing evaluation — for community contributors.
+
+    Ordered by priority (high first), then by created_at desc.
+    """
+    # Unevaluated packages — high priority first, then by created_at
+    q = db.query(Package).filter(Package.af_score.is_(None))
+    if package_type:
+        q = q.filter(Package.package_type == package_type)
+    if priority:
+        q = q.filter(Package.priority == priority)
+
     unevaluated = (
-        db.query(Package)
-        .filter(Package.af_score.is_(None))
-        .order_by(Package.created_at.desc())
+        q.order_by(
+            # high priority first (h < l alphabetically)
+            Package.priority.asc(),
+            Package.created_at.desc(),
+        )
         .limit(limit)
         .all()
     )
@@ -221,6 +237,9 @@ def get_evaluation_queue(
             "name": p.name,
             "repo_url": p.repo_url,
             "category": p.category_slug,
+            "package_type": p.package_type,
+            "priority": p.priority,
+            "stars": p.stars,
             "status": "needs_evaluation",
         }
         for p in unevaluated
@@ -230,13 +249,17 @@ def get_evaluation_queue(
     if include_stale and len(results) < limit:
         stale_cutoff = datetime.now(timezone.utc) - timedelta(days=90)
         remaining = limit - len(results)
+        sq = db.query(Package).filter(
+            Package.af_score.isnot(None),
+            Package.last_evaluated < stale_cutoff,
+        )
+        if package_type:
+            sq = sq.filter(Package.package_type == package_type)
+        if priority:
+            sq = sq.filter(Package.priority == priority)
+
         stale = (
-            db.query(Package)
-            .filter(
-                Package.af_score.isnot(None),
-                Package.last_evaluated < stale_cutoff,
-            )
-            .order_by(Package.last_evaluated.asc())
+            sq.order_by(Package.priority.asc(), Package.last_evaluated.asc())
             .limit(remaining)
             .all()
         )
@@ -246,6 +269,9 @@ def get_evaluation_queue(
                 "name": p.name,
                 "repo_url": p.repo_url,
                 "category": p.category_slug,
+                "package_type": p.package_type,
+                "priority": p.priority,
+                "stars": p.stars,
                 "status": "needs_reevaluation",
                 "last_evaluated": p.last_evaluated.isoformat() if p.last_evaluated else None,
                 "current_af_score": p.af_score,
