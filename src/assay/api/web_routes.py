@@ -56,6 +56,16 @@ def index(request: Request, db: Session = Depends(get_db)):
         .all()
     )
 
+    # Recently evaluated packages
+    recent_packages = (
+        db.query(Package)
+        .options(joinedload(Package.category), joinedload(Package.interface))
+        .filter(Package.af_score.isnot(None))
+        .order_by(Package.created_at.desc())
+        .limit(6)
+        .all()
+    )
+
     return templates.TemplateResponse(
         "pages/index.html",
         {
@@ -63,6 +73,7 @@ def index(request: Request, db: Session = Depends(get_db)):
             "stats": stats,
             "categories": categories,
             "top_packages": top_packages,
+            "recent_packages": recent_packages,
         },
     )
 
@@ -211,10 +222,19 @@ def categories_list(request: Request, db: Session = Depends(get_db)):
     """Category directory."""
     categories = (
         db.query(Category)
-        .options(joinedload(Category.packages))
+        .options(joinedload(Category.packages).joinedload(Package.interface))
         .all()
     )
     categories.sort(key=lambda c: c.package_count, reverse=True)
+
+    # Compute avg AF score and MCP count per category
+    for cat in categories:
+        scored = [p.af_score for p in cat.packages if p.af_score is not None]
+        cat.avg_af_score = round(sum(scored) / len(scored), 0) if scored else None
+        cat.mcp_count = sum(
+            1 for p in cat.packages
+            if p.interface and p.interface.has_mcp_server
+        )
 
     return templates.TemplateResponse(
         "pages/categories.html",
