@@ -155,6 +155,7 @@ class Package(Base):
             "what_it_does": self.what_it_does,
             "best_when": self.best_when,
             "avoid_when": self.avoid_when,
+            "last_evaluated": self.last_evaluated.isoformat() if self.last_evaluated else None,
         }
         if self.interface:
             result["has_mcp"] = self.interface.has_mcp_server

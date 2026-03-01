@@ -22,6 +22,17 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from assay.database import SessionLocal, init_db
+from assay.evaluation.evaluator import (
+    AF_WEIGHTS,
+    AFScoreComponents,
+    RELIABILITY_WEIGHTS,
+    ReliabilityScoreComponents,
+    SECURITY_WEIGHTS,
+    SecurityScoreComponents,
+    compute_af_score,
+    compute_reliability_score,
+    compute_security_score,
+)
 from assay.models import (
     Category,
     EvaluationRun,
@@ -33,28 +44,6 @@ from assay.models import (
     PackagePricing,
     PackageRequirements,
 )
-
-
-def compute_af_score(readiness: dict) -> float:
-    """Compute AF score from component scores using the standard rubric."""
-    weights = {
-        "mcp_server_quality": 0.20,
-        "documentation_accuracy": 0.20,
-        "error_message_score": 0.15,
-        "auth_complexity_score": 0.15,
-        "rate_limit_score": 0.15,
-        "security_score": 0.15,
-    }
-    total = 0.0
-    weight_sum = 0.0
-    for key, weight in weights.items():
-        val = readiness.get(key)
-        if val is not None:
-            total += val * weight
-            weight_sum += weight
-    if weight_sum == 0:
-        return 0.0
-    return round(total / weight_sum, 1)
 
 
 def load_evaluation(data: dict, db) -> str:
@@ -189,18 +178,71 @@ def load_evaluation(data: dict, db) -> str:
         ar.retry_guidance_documented = ar_data.get("retry_guidance_documented")
         ar.known_agent_gotchas = json.dumps(ar_data.get("known_agent_gotchas", []))
 
-        # Compute AF score from components
-        score_components = {
-            "mcp_server_quality": ar_data.get("mcp_server_quality", 0),
-            "documentation_accuracy": ar_data.get("documentation_accuracy", 0),
-            "error_message_score": ar_data.get("error_message_score", 50),
-            "auth_complexity_score": ar_data.get("auth_complexity_score", 50),
-            "rate_limit_score": ar_data.get("rate_limit_score", 50),
-            "security_score": ar_data.get("security_score", 50),
-        }
-        af_score = compute_af_score(score_components)
-        ar.af_score = af_score
+    # AF Score — compute from af_score_components if present, else legacy fields
+    afc_data = data.get("af_score_components")
+    if afc_data:
+        afc = AFScoreComponents(**afc_data)
+        af_score = compute_af_score(afc)
+    elif ar_data:
+        # Legacy: build AF from old flat fields in agent_readiness
+        afc = AFScoreComponents(
+            mcp_score=ar_data.get("mcp_server_quality") or 0,
+            api_doc_score=ar_data.get("documentation_accuracy") or 0,
+            error_handling_score=ar_data.get("error_message_score") or 50,
+            auth_complexity_score=ar_data.get("auth_complexity_score") or 50,
+            rate_limit_clarity_score=ar_data.get("rate_limit_score") or 50,
+        )
+        af_score = compute_af_score(afc)
+    else:
+        af_score = None
+
+    # Security Score — compute from sub-components if present, else use top-level
+    sec_data = data.get("security_score_components")
+    if sec_data:
+        sec = SecurityScoreComponents(**sec_data)
+        security_score = compute_security_score(sec)
+        if ar_data:
+            ar.tls_enforcement = sec.tls_enforcement
+            ar.auth_strength = sec.auth_strength
+            ar.scope_granularity = sec.scope_granularity
+            ar.dependency_hygiene = sec.dependency_hygiene
+            ar.secret_handling = sec.secret_handling
+            ar.security_notes = sec.security_notes
+    else:
+        # Legacy: use top-level security_score from agent_readiness if present
+        security_score = ar_data.get("security_score") if ar_data else None
+
+    # Reliability Score — compute from sub-components if present
+    rel_data = data.get("reliability_score_components")
+    if rel_data:
+        rel = ReliabilityScoreComponents(**rel_data)
+        reliability_score = compute_reliability_score(rel)
+        if ar_data:
+            ar.uptime_documented = rel.uptime_documented
+            ar.version_stability = rel.version_stability
+            ar.breaking_changes_history = rel.breaking_changes_history
+            ar.error_recovery = rel.error_recovery
+    else:
+        reliability_score = None
+
+    # Persist composite scores
+    if ar_data:
+        if af_score is not None:
+            ar.af_score = af_score
+        if security_score is not None:
+            ar.security_score = security_score
+        if reliability_score is not None:
+            ar.reliability_score = reliability_score
+        # Also persist AF sub-component scores to agent_readiness
+        if afc_data:
+            ar.auth_complexity = afc_data.get("auth_complexity_score")
+            ar.rate_limit_clarity = afc_data.get("rate_limit_clarity_score")
+    if af_score is not None:
         pkg.af_score = af_score
+    if security_score is not None:
+        pkg.security_score = security_score
+    if reliability_score is not None:
+        pkg.reliability_score = reliability_score
 
     # Update MCP flag on package interface
     if iface_data.get("has_mcp_server"):
