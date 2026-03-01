@@ -13,26 +13,8 @@
     {% else %}
 
     {# ── Header ── #}
-    <div class="flex items-start gap-6 mb-10">
-        {# AF Score badge — large #}
-        <div class="flex-shrink-0">
-            {% if package.af_score is not none %}
-            <div class="w-20 h-20 rounded-2xl flex items-center justify-center text-3xl font-bold
-                        {% if package.af_score >= 80 %}score-green
-                        {% elif package.af_score >= 60 %}score-yellow
-                        {% else %}score-red{% endif %}">
-                {{ "%.0f"|format(package.af_score) }}
-            </div>
-            <div class="text-xs text-gray-500 text-center mt-1">AF Score</div>
-            {% else %}
-            <div class="w-20 h-20 rounded-2xl flex items-center justify-center text-lg score-none">
-                N/A
-            </div>
-            <div class="text-xs text-gray-500 text-center mt-1">Not rated</div>
-            {% endif %}
-        </div>
-
-        <div class="min-w-0">
+    <div class="mb-10">
+        <div class="mb-4">
             <h1 class="text-3xl font-bold text-white mb-1">{{ package.name }}</h1>
             {% if package.what_it_does %}
             <p class="text-gray-400 text-lg">{{ package.what_it_does }}</p>
@@ -59,43 +41,96 @@
                 {% endfor %}
             </div>
         </div>
+
+        {# ── Scorecard ── #}
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6">
+            {# Score macro #}
+            {% macro score_card(label, score, icon, sublabel) %}
+            <div class="bg-surface-raised border border-gray-800 rounded-xl p-5 text-center">
+                <div class="text-xs text-gray-500 uppercase tracking-wider mb-2">{{ icon }} {{ label }}</div>
+                {% if score is not none %}
+                <div class="text-4xl font-bold mb-1
+                            {% if score >= 80 %}text-green-400
+                            {% elif score >= 60 %}text-yellow-400
+                            {% else %}text-red-400{% endif %}">
+                    {{ "%.0f"|format(score) }}
+                </div>
+                <div class="text-xs text-gray-600">/ 100</div>
+                {% else %}
+                <div class="text-2xl font-bold text-gray-600 mb-1">N/A</div>
+                <div class="text-xs text-gray-700">Not evaluated</div>
+                {% endif %}
+                <div class="text-xs text-gray-500 mt-2">{{ sublabel }}</div>
+            </div>
+            {% endmacro %}
+
+            {{ score_card("Agent Friendliness", package.af_score, "&#9881;", "Can an agent use this?") }}
+            {{ score_card("Security", package.security_score, "&#128274;", "Is it safe for agents?") }}
+            {{ score_card("Reliability", package.reliability_score, "&#9889;", "Does it work consistently?") }}
+        </div>
     </div>
 
     {# ── Score Breakdown ── #}
     {% if package.agent_readiness %}
+    {% set ar = package.agent_readiness %}
     <section class="mb-10">
         <h2 class="text-xl font-semibold text-white mb-4">Score Breakdown</h2>
-        <div class="bg-surface-raised border border-gray-800 rounded-xl p-5 space-y-3">
-            {% set ar = package.agent_readiness %}
-            {% set scores = [
-                ("MCP Quality", ar.mcp_server_quality, 20),
-                ("Documentation", ar.documentation_accuracy, 20),
-                ("Error Messages", ar.error_message_quality, 15),
-                ("Security", ar.mcp_security_score, 15),
-            ] %}
-            {% for label, score, weight in scores %}
-            <div class="flex items-center gap-3">
-                <div class="w-32 text-sm text-gray-400 flex-shrink-0">{{ label }}</div>
-                <div class="flex-1 h-5 bg-surface rounded-full overflow-hidden">
-                    {% if score is not none %}
-                    <div class="h-full rounded-full transition-all
-                                {% if score >= 80 %}bg-green-600
-                                {% elif score >= 60 %}bg-yellow-600
-                                {% else %}bg-red-600{% endif %}"
-                         style="width: {{ score }}%"></div>
-                    {% endif %}
-                </div>
-                <div class="w-16 text-sm text-right flex-shrink-0">
-                    {% if score is not none %}
-                    <span class="text-gray-200">{{ "%.0f"|format(score) }}</span>
-                    <span class="text-gray-600 text-xs">/100</span>
-                    {% else %}
-                    <span class="text-gray-600">N/A</span>
-                    {% endif %}
-                </div>
-                <div class="w-10 text-xs text-gray-600 flex-shrink-0 text-right">{{ weight }}%</div>
+
+        {# Bar chart macro #}
+        {% macro score_bar(label, score) %}
+        <div class="flex items-center gap-3">
+            <div class="w-36 text-sm text-gray-400 flex-shrink-0">{{ label }}</div>
+            <div class="flex-1 h-4 bg-surface rounded-full overflow-hidden">
+                {% if score is not none %}
+                <div class="h-full rounded-full transition-all
+                            {% if score >= 80 %}bg-green-600
+                            {% elif score >= 60 %}bg-yellow-600
+                            {% else %}bg-red-600{% endif %}"
+                     style="width: {{ score }}%"></div>
+                {% endif %}
             </div>
-            {% endfor %}
+            <div class="w-12 text-sm text-right flex-shrink-0">
+                {% if score is not none %}
+                <span class="text-gray-200">{{ "%.0f"|format(score) }}</span>
+                {% else %}
+                <span class="text-gray-600">--</span>
+                {% endif %}
+            </div>
+        </div>
+        {% endmacro %}
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            {# Agent Friendliness breakdown #}
+            <div class="bg-surface-raised border border-gray-800 rounded-xl p-5 space-y-2.5">
+                <h3 class="text-sm font-medium text-gray-300 mb-3">&#9881; Agent Friendliness</h3>
+                {{ score_bar("MCP Quality", ar.mcp_server_quality) }}
+                {{ score_bar("Documentation", ar.documentation_accuracy) }}
+                {{ score_bar("Error Messages", ar.error_message_quality) }}
+                {{ score_bar("Auth Simplicity", ar.auth_complexity) }}
+                {{ score_bar("Rate Limits", ar.rate_limit_clarity) }}
+            </div>
+
+            {# Security breakdown #}
+            <div class="bg-surface-raised border border-gray-800 rounded-xl p-5 space-y-2.5">
+                <h3 class="text-sm font-medium text-gray-300 mb-3">&#128274; Security</h3>
+                {{ score_bar("TLS Enforcement", ar.tls_enforcement) }}
+                {{ score_bar("Auth Strength", ar.auth_strength) }}
+                {{ score_bar("Scope Granularity", ar.scope_granularity) }}
+                {{ score_bar("Dep. Hygiene", ar.dependency_hygiene) }}
+                {{ score_bar("Secret Handling", ar.secret_handling) }}
+                {% if ar.security_notes %}
+                <p class="text-xs text-gray-500 mt-2 border-t border-gray-800 pt-2">{{ ar.security_notes }}</p>
+                {% endif %}
+            </div>
+
+            {# Reliability breakdown #}
+            <div class="bg-surface-raised border border-gray-800 rounded-xl p-5 space-y-2.5">
+                <h3 class="text-sm font-medium text-gray-300 mb-3">&#9889; Reliability</h3>
+                {{ score_bar("Uptime/SLA", ar.uptime_documented) }}
+                {{ score_bar("Version Stability", ar.version_stability) }}
+                {{ score_bar("Breaking Changes", ar.breaking_changes_history) }}
+                {{ score_bar("Error Recovery", ar.error_recovery) }}
+            </div>
         </div>
     </section>
     {% endif %}
@@ -249,37 +284,13 @@
     </section>
     {% endif %}
 
-    {# ── Agent Readiness ── #}
+    {# ── Agent Metadata ── #}
     {% if package.agent_readiness %}
     <section class="mb-8">
-        <h2 class="text-xl font-semibold text-white mb-3">Agent Readiness</h2>
+        <h2 class="text-xl font-semibold text-white mb-3">Agent Metadata</h2>
         <div class="bg-surface-raised border border-gray-800 rounded-xl p-5">
             {% set ar = package.agent_readiness %}
             <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 text-sm mb-4">
-                {% if ar.mcp_server_quality is not none %}
-                <div>
-                    <span class="text-gray-500">MCP Quality</span>
-                    <div class="text-gray-200">{{ "%.1f"|format(ar.mcp_server_quality) }}</div>
-                </div>
-                {% endif %}
-                {% if ar.mcp_security_score is not none %}
-                <div>
-                    <span class="text-gray-500">MCP Security</span>
-                    <div class="text-gray-200">{{ "%.1f"|format(ar.mcp_security_score) }}</div>
-                </div>
-                {% endif %}
-                {% if ar.documentation_accuracy is not none %}
-                <div>
-                    <span class="text-gray-500">Doc Accuracy</span>
-                    <div class="text-gray-200">{{ "%.1f"|format(ar.documentation_accuracy) }}</div>
-                </div>
-                {% endif %}
-                {% if ar.error_message_quality is not none %}
-                <div>
-                    <span class="text-gray-500">Error Messages</span>
-                    <div class="text-gray-200">{{ "%.0f"|format(ar.error_message_quality) }}/100</div>
-                </div>
-                {% endif %}
                 {% if ar.pagination_style %}
                 <div>
                     <span class="text-gray-500">Pagination</span>
@@ -297,6 +308,16 @@
                         <span class="text-red-400">No</span>
                         {% else %}
                         {{ ar.idempotency_support|capitalize if ar.idempotency_support else 'Unknown' }}
+                        {% endif %}
+                    </div>
+                </div>
+                <div>
+                    <span class="text-gray-500">Retry Guidance</span>
+                    <div class="text-gray-200">
+                        {% if ar.retry_guidance_documented %}
+                        <span class="text-green-400">Documented</span>
+                        {% else %}
+                        <span class="text-gray-500">Not documented</span>
                         {% endif %}
                     </div>
                 </div>

@@ -96,14 +96,33 @@ class AgentReadinessEval(BaseModel):
 
 
 class AFScoreComponents(BaseModel):
-    """Individual dimension scores for AF Score rubric."""
+    """Agent Friendliness sub-scores (0-100 each)."""
 
-    mcp_score: float = 0  # 0-100: MCP server existence + quality
-    api_doc_score: float = 0  # 0-100: API documentation quality
-    error_handling_score: float = 0  # 0-100: Error handling quality
-    auth_complexity_score: float = 0  # 0-100: Auth simplicity (100=api_key, 70=oauth, 40=complex)
-    rate_limit_clarity_score: float = 0  # 0-100: Rate limit documentation clarity
-    security_posture_score: float = 0  # 0-100: Security posture
+    mcp_score: float = 0  # MCP server existence + quality
+    api_doc_score: float = 0  # API documentation quality
+    error_handling_score: float = 0  # Error handling quality
+    auth_complexity_score: float = 0  # Auth simplicity (100=api_key, 70=oauth, 40=complex)
+    rate_limit_clarity_score: float = 0  # Rate limit documentation clarity
+
+
+class SecurityScoreComponents(BaseModel):
+    """Security sub-scores (0-100 each)."""
+
+    tls_enforcement: float = 0  # TLS/HTTPS required
+    auth_strength: float = 0  # Auth mechanism strength
+    scope_granularity: float = 0  # Permission granularity
+    dependency_hygiene: float = 0  # Dependency health (CVEs, outdated deps)
+    secret_handling: float = 0  # How secrets/credentials are managed
+    security_notes: str | None = None
+
+
+class ReliabilityScoreComponents(BaseModel):
+    """Reliability sub-scores (0-100 each)."""
+
+    uptime_documented: float = 0  # SLA/uptime documentation
+    version_stability: float = 0  # Stable releases, semver adherence
+    breaking_changes_history: float = 0  # 100=no breaking changes, 0=frequent
+    error_recovery: float = 0  # Retry guidance, graceful degradation
 
 
 class PackageEvaluation(BaseModel):
@@ -129,6 +148,8 @@ class PackageEvaluation(BaseModel):
     requirements: RequirementsEval = Field(default_factory=RequirementsEval)
     agent_readiness: AgentReadinessEval = Field(default_factory=AgentReadinessEval)
     af_score_components: AFScoreComponents = Field(default_factory=AFScoreComponents)
+    security_score_components: SecurityScoreComponents = Field(default_factory=SecurityScoreComponents)
+    reliability_score_components: ReliabilityScoreComponents = Field(default_factory=ReliabilityScoreComponents)
 
 
 # ---------------------------------------------------------------------------
@@ -136,21 +157,47 @@ class PackageEvaluation(BaseModel):
 # ---------------------------------------------------------------------------
 
 AF_WEIGHTS = {
-    "mcp_score": 0.20,
-    "api_doc_score": 0.20,
-    "error_handling_score": 0.15,
+    "mcp_score": 0.25,
+    "api_doc_score": 0.25,
+    "error_handling_score": 0.20,
     "auth_complexity_score": 0.15,
     "rate_limit_clarity_score": 0.15,
-    "security_posture_score": 0.15,
+}
+
+SECURITY_WEIGHTS = {
+    "tls_enforcement": 0.20,
+    "auth_strength": 0.25,
+    "scope_granularity": 0.20,
+    "dependency_hygiene": 0.15,
+    "secret_handling": 0.20,
+}
+
+RELIABILITY_WEIGHTS = {
+    "uptime_documented": 0.25,
+    "version_stability": 0.25,
+    "breaking_changes_history": 0.25,
+    "error_recovery": 0.25,
 }
 
 
-def compute_af_score(components: AFScoreComponents) -> float:
-    """Weighted average of AF Score dimensions, normalized to 0-100."""
+def _weighted_score(components, weights: dict) -> float:
+    """Weighted average from component scores, normalized to 0-100."""
     total = 0.0
-    for dim, weight in AF_WEIGHTS.items():
+    for dim, weight in weights.items():
         total += getattr(components, dim) * weight
     return round(total, 1)
+
+
+def compute_af_score(components: AFScoreComponents) -> float:
+    return _weighted_score(components, AF_WEIGHTS)
+
+
+def compute_security_score(components: SecurityScoreComponents) -> float:
+    return _weighted_score(components, SECURITY_WEIGHTS)
+
+
+def compute_reliability_score(components: ReliabilityScoreComponents) -> float:
+    return _weighted_score(components, RELIABILITY_WEIGHTS)
 
 
 # ---------------------------------------------------------------------------
@@ -250,7 +297,8 @@ def fetch_package_manifest(
 
 SYSTEM_PROMPT = """\
 You are Assay's Evaluation Agent. You analyze software packages/services \
-and produce structured JSON evaluations of their agent-friendliness.
+and produce structured JSON evaluations across three dimensions: \
+Agent Friendliness, Security, and Reliability.
 
 You will receive information about a software package (README, repo metadata, \
 and optionally a package manifest). Your job is to fill out a complete evaluation.
@@ -258,10 +306,10 @@ and optionally a package manifest). Your job is to fill out a complete evaluatio
 IMPORTANT: Return ONLY valid JSON matching the schema below. No markdown fences, \
 no explanation text outside the JSON.
 
-For AF Score components, use these guidelines:
-- mcp_score (0-100): Does the package have an MCP server? How mature/well-documented is it? \
-  0=no MCP, 30=mentioned but immature, 60=exists and functional, 80-100=mature and well-documented.
-- api_doc_score (0-100): How good is the API documentation? \
+## AF Score Components (Agent Friendliness — can an agent use this effectively?)
+- mcp_score (0-100): MCP server existence + quality. \
+  0=no MCP, 30=mentioned but immature, 60=functional, 80-100=mature and well-documented.
+- api_doc_score (0-100): API documentation quality. \
   0=none, 30=minimal, 60=adequate, 80=good, 100=excellent with examples.
 - error_handling_score (0-100): How well does the package communicate errors? \
   0=unknown/poor, 50=adequate, 80=good structured errors, 100=excellent with codes and guidance.
@@ -269,8 +317,20 @@ For AF Score components, use these guidelines:
   100=simple API key, 70=OAuth2, 40=complex multi-step, 20=very complex.
 - rate_limit_clarity_score (0-100): How clearly are rate limits documented? \
   0=not mentioned, 50=mentioned but vague, 80=clear docs, 100=clear docs + headers.
-- security_posture_score (0-100): Overall security quality. \
-  Consider: TLS, auth strength, scope granularity, audit logging.
+
+## Security Score Components (is it safe for an agent to use this?)
+- tls_enforcement (0-100): 100=HTTPS required everywhere, 0=no TLS/allows HTTP.
+- auth_strength (0-100): 100=strong auth (API keys + scopes, OAuth2), 50=basic auth, 0=no auth.
+- scope_granularity (0-100): 100=fine-grained permission scopes, 50=coarse, 0=all-or-nothing.
+- dependency_hygiene (0-100): 100=clean deps, no known CVEs, 50=some issues, 0=severe vulnerabilities.
+- secret_handling (0-100): 100=secrets via env vars/vault, never logged, 0=secrets in code/URLs/logs.
+- security_notes: Brief text noting any specific security concerns or strengths.
+
+## Reliability Score Components (does it work consistently?)
+- uptime_documented (0-100): 100=published SLA + status page, 50=mentioned, 0=no info.
+- version_stability (0-100): 100=stable releases, semver, long deprecation, 50=some stability, 0=unstable.
+- breaking_changes_history (0-100): 100=no breaking changes/good migration guides, 0=frequent breaking.
+- error_recovery (0-100): 100=retry guidance, idempotent operations, 50=partial, 0=no recovery support.
 
 For category_slug, choose from common categories like:
 email, payments, ai-ml, databases, auth, monitoring, storage, \
@@ -418,6 +478,8 @@ class EvaluationAgent:
         """Write evaluation results to all related DB records. Returns AF score."""
 
         af_score = compute_af_score(evaluation.af_score_components)
+        security_score = compute_security_score(evaluation.security_score_components)
+        reliability_score = compute_reliability_score(evaluation.reliability_score_components)
 
         # -- Update Package core fields --
         package.what_it_does = evaluation.what_it_does
@@ -430,6 +492,8 @@ class EvaluationAgent:
         )
         package.tags = json.dumps(evaluation.tags) if evaluation.tags else None
         package.af_score = af_score
+        package.security_score = security_score
+        package.reliability_score = reliability_score
         package.status = "evaluated"
         package.last_evaluated = datetime.now(timezone.utc)
 
@@ -510,16 +574,38 @@ class EvaluationAgent:
 
         # -- Agent Readiness --
         ar = evaluation.agent_readiness
+        afc = evaluation.af_score_components
+        sec = evaluation.security_score_components
+        rel = evaluation.reliability_score_components
         if package.agent_readiness:
             par = package.agent_readiness
         else:
             par = PackageAgentReadiness(package_id=package.id)
             db.add(par)
+        # Top-level dimension scores
         par.af_score = af_score
+        par.security_score = security_score
+        par.reliability_score = reliability_score
+        # AF sub-components
         par.mcp_server_quality = ar.mcp_server_quality
         par.documentation_accuracy = ar.documentation_accuracy
         par.error_message_quality = ar.error_message_quality
         par.error_message_notes = ar.error_message_notes
+        par.auth_complexity = afc.auth_complexity_score
+        par.rate_limit_clarity = afc.rate_limit_clarity_score
+        # Security sub-components
+        par.tls_enforcement = sec.tls_enforcement
+        par.auth_strength = sec.auth_strength
+        par.scope_granularity = sec.scope_granularity
+        par.dependency_hygiene = sec.dependency_hygiene
+        par.secret_handling = sec.secret_handling
+        par.security_notes = sec.security_notes
+        # Reliability sub-components
+        par.uptime_documented = rel.uptime_documented
+        par.version_stability = rel.version_stability
+        par.breaking_changes_history = rel.breaking_changes_history
+        par.error_recovery = rel.error_recovery
+        # Metadata
         par.idempotency_support = ar.idempotency_support
         par.idempotency_notes = ar.idempotency_notes
         par.pagination_style = ar.pagination_style

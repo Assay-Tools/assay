@@ -30,9 +30,10 @@ class Package(Base):
     avoid_when: Mapped[str | None] = mapped_column(Text)
     alternatives: Mapped[str | None] = mapped_column(Text)  # JSON array
 
-    # Scores
-    af_score: Mapped[float | None] = mapped_column(Float)
-    fq_score: Mapped[float | None] = mapped_column(Float)
+    # Scores — multi-dimensional scorecard
+    af_score: Mapped[float | None] = mapped_column(Float)  # Agent Friendliness (0-100)
+    security_score: Mapped[float | None] = mapped_column(Float)  # Security (0-100)
+    reliability_score: Mapped[float | None] = mapped_column(Float)  # Reliability (0-100)
 
     # Status
     status: Mapped[str] = mapped_column(String(50), default="discovered")  # discovered, evaluated, published
@@ -114,7 +115,8 @@ class Package(Base):
             "avoid_when": self.avoid_when,
             "alternatives": self.alternatives_list,
             "af_score": self.af_score,
-            "fq_score": self.fq_score,
+            "security_score": self.security_score,
+            "reliability_score": self.reliability_score,
             "status": self.status,
             "version_evaluated": self.version_evaluated,
             "last_evaluated": self.last_evaluated.isoformat() if self.last_evaluated else None,
@@ -139,6 +141,8 @@ class Package(Base):
             "id": self.id,
             "name": self.name,
             "af_score": self.af_score,
+            "security_score": self.security_score,
+            "reliability_score": self.reliability_score,
             "what_it_does": self.what_it_does,
             "best_when": self.best_when,
             "avoid_when": self.avoid_when,
@@ -314,15 +318,39 @@ class PackageAgentReadiness(Base):
     package_id: Mapped[str] = mapped_column(
         String(255), ForeignKey("packages.id"), primary_key=True
     )
+
+    # --- Top-level dimension scores (0-100) ---
     af_score: Mapped[float | None] = mapped_column(Float)
+    security_score: Mapped[float | None] = mapped_column(Float)
+    reliability_score: Mapped[float | None] = mapped_column(Float)
+
+    # --- Agent Friendliness sub-components ---
     mcp_server_quality: Mapped[float | None] = mapped_column(Float)
-    mcp_security_score: Mapped[float | None] = mapped_column(Float)
     documentation_accuracy: Mapped[float | None] = mapped_column(Float)
     error_message_quality: Mapped[float | None] = mapped_column(Float)  # 0-100 score
     error_message_notes: Mapped[str | None] = mapped_column(Text)
-    idempotency_support: Mapped[str | None] = mapped_column(String(50))  # "full", "partial", "none", "unknown"
+    auth_complexity: Mapped[float | None] = mapped_column(Float)  # 0-100 (100=simple)
+    rate_limit_clarity: Mapped[float | None] = mapped_column(Float)  # 0-100
+
+    # --- Security sub-components ---
+    tls_enforcement: Mapped[float | None] = mapped_column(Float)  # 0-100
+    auth_strength: Mapped[float | None] = mapped_column(Float)  # 0-100
+    scope_granularity: Mapped[float | None] = mapped_column(Float)  # 0-100
+    dependency_hygiene: Mapped[float | None] = mapped_column(Float)  # 0-100
+    secret_handling: Mapped[float | None] = mapped_column(Float)  # 0-100
+    security_notes: Mapped[str | None] = mapped_column(Text)
+
+    # --- Reliability sub-components ---
+    uptime_documented: Mapped[float | None] = mapped_column(Float)  # 0-100
+    version_stability: Mapped[float | None] = mapped_column(Float)  # 0-100
+    breaking_changes_history: Mapped[float | None] = mapped_column(Float)  # 0-100 (100=no breaking)
+    error_recovery: Mapped[float | None] = mapped_column(Float)  # 0-100
+
+    # --- Legacy / metadata ---
+    mcp_security_score: Mapped[float | None] = mapped_column(Float)  # legacy, kept for compat
+    idempotency_support: Mapped[str | None] = mapped_column(String(50))
     idempotency_notes: Mapped[str | None] = mapped_column(Text)
-    pagination_style: Mapped[str | None] = mapped_column(String(50))  # "cursor", "offset", "none"
+    pagination_style: Mapped[str | None] = mapped_column(String(50))
     retry_guidance_documented: Mapped[bool | None] = mapped_column(Boolean)
     known_agent_gotchas: Mapped[str | None] = mapped_column(Text)  # JSON array
 
@@ -335,11 +363,24 @@ class PackageAgentReadiness(Base):
     def to_dict(self) -> dict:
         return {
             "af_score": self.af_score,
+            "security_score": self.security_score,
+            "reliability_score": self.reliability_score,
             "mcp_server_quality": self.mcp_server_quality,
-            "mcp_security_score": self.mcp_security_score,
             "documentation_accuracy": self.documentation_accuracy,
             "error_message_quality": self.error_message_quality,
             "error_message_notes": self.error_message_notes,
+            "auth_complexity": self.auth_complexity,
+            "rate_limit_clarity": self.rate_limit_clarity,
+            "tls_enforcement": self.tls_enforcement,
+            "auth_strength": self.auth_strength,
+            "scope_granularity": self.scope_granularity,
+            "dependency_hygiene": self.dependency_hygiene,
+            "secret_handling": self.secret_handling,
+            "security_notes": self.security_notes,
+            "uptime_documented": self.uptime_documented,
+            "version_stability": self.version_stability,
+            "breaking_changes_history": self.breaking_changes_history,
+            "error_recovery": self.error_recovery,
             "idempotency_support": self.idempotency_support,
             "idempotency_notes": self.idempotency_notes,
             "pagination_style": self.pagination_style,

@@ -47,5 +47,74 @@ templates = Jinja2Templates(directory=str(_templates_dir))
 
 @app.on_event("startup")
 def startup():
-    """Create tables if they don't exist."""
+    """Create tables and run pending migrations."""
     init_db()
+    _run_migrations()
+
+
+def _run_migrations():
+    """Add new columns if they don't exist. Safe to run repeatedly."""
+    import logging
+    from sqlalchemy import text
+    from assay.database import engine
+
+    logger = logging.getLogger("assay.migrations")
+
+    # Define new columns to add (table, column, type)
+    new_columns = [
+        ("packages", "security_score", "FLOAT"),
+        ("packages", "reliability_score", "FLOAT"),
+        ("package_agent_readiness", "security_score", "FLOAT"),
+        ("package_agent_readiness", "reliability_score", "FLOAT"),
+        ("package_agent_readiness", "auth_complexity", "FLOAT"),
+        ("package_agent_readiness", "rate_limit_clarity", "FLOAT"),
+        ("package_agent_readiness", "tls_enforcement", "FLOAT"),
+        ("package_agent_readiness", "auth_strength", "FLOAT"),
+        ("package_agent_readiness", "scope_granularity", "FLOAT"),
+        ("package_agent_readiness", "dependency_hygiene", "FLOAT"),
+        ("package_agent_readiness", "secret_handling", "FLOAT"),
+        ("package_agent_readiness", "security_notes", "TEXT"),
+        ("package_agent_readiness", "uptime_documented", "FLOAT"),
+        ("package_agent_readiness", "version_stability", "FLOAT"),
+        ("package_agent_readiness", "breaking_changes_history", "FLOAT"),
+        ("package_agent_readiness", "error_recovery", "FLOAT"),
+    ]
+
+    dialect = "sqlite" if "sqlite" in str(engine.url) else "postgresql"
+
+    with engine.begin() as conn:
+        for table, column, col_type in new_columns:
+            # Check if column exists
+            if dialect == "sqlite":
+                result = conn.execute(text(f"PRAGMA table_info({table})"))
+                exists = column in [row[1] for row in result]
+            else:
+                result = conn.execute(text(
+                    "SELECT 1 FROM information_schema.columns "
+                    "WHERE table_name = :table AND column_name = :column"
+                ), {"table": table, "column": column})
+                exists = result.fetchone() is not None
+
+            if not exists:
+                conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {column} {col_type}"))
+                logger.info("Added column %s.%s", table, column)
+
+        # Backfill security_score from legacy mcp_security_score
+        conn.execute(text("""
+            UPDATE package_agent_readiness
+            SET security_score = mcp_security_score
+            WHERE security_score IS NULL AND mcp_security_score IS NOT NULL
+        """))
+        if dialect == "sqlite":
+            conn.execute(text("""
+                UPDATE packages SET security_score = (
+                    SELECT par.security_score FROM package_agent_readiness par
+                    WHERE par.package_id = packages.id
+                ) WHERE security_score IS NULL
+            """))
+        else:
+            conn.execute(text("""
+                UPDATE packages p SET security_score = par.security_score
+                FROM package_agent_readiness par
+                WHERE par.package_id = p.id AND p.security_score IS NULL
+            """))
