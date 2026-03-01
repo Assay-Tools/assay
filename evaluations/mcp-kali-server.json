@@ -1,28 +1,33 @@
 {
   "id": "mcp-kali-server",
   "name": "MCP Kali Server",
+  "version_evaluated": "latest",
   "homepage": "https://github.com/Wh0am123/MCP-Kali-Server",
   "repo_url": "https://github.com/Wh0am123/MCP-Kali-Server",
   "category": "security",
-  "subcategories": ["penetration-testing", "ctf", "offensive-security"],
-  "tags": ["kali", "pentest", "ctf", "security", "nmap", "metasploit", "offensive", "linux"],
-  "what_it_does": "Lightweight API bridge that connects Claude Desktop or other AI clients to a Kali Linux machine, enabling AI-assisted command execution for penetration testing, CTF challenges, and security reconnaissance using tools like Nmap, Metasploit, and sqlmap.",
+  "subcategories": ["penetration-testing", "ctf", "offensive-security", "mcp-server"],
+  "tags": ["kali", "pentest", "ctf", "security", "nmap", "metasploit", "sqlmap", "gobuster", "offensive", "linux", "mcp-server", "flask"],
+  "what_it_does": "A lightweight Flask API bridge that connects Claude Desktop (or any MCP-compatible client) to a Kali Linux machine, enabling AI-assisted command execution for authorized penetration testing and CTF challenges. The server exposes a thin HTTP API on port 5000 that accepts arbitrary shell commands and returns their output, effectively giving an AI assistant a live Kali terminal. Tools like Nmap, Metasploit, sqlmap, Gobuster, enum4linux, and any other Kali tool are accessible by name. The architecture is intentionally minimal — a single Flask server with no auth, no sandboxing, and no command filtering — making it fast to set up for isolated testing environments but completely unsuitable for production or shared infrastructure.",
   "use_cases": [
-    "AI-guided CTF challenge solving with real-time command execution on Kali",
-    "Penetration testing reconnaissance automation (Nmap scans, enum4linux, Gobuster)",
-    "Bug bounty hunting workflow assistance with AI suggesting and running recon commands",
-    "HackTheBox / TryHackMe machine exploitation with AI-driven tool selection",
-    "Security training environments where an AI coach can demonstrate tool usage"
+    "AI-guided CTF challenge solving with real-time command execution on a dedicated Kali VM",
+    "Penetration testing reconnaissance automation with iterative feedback: scan, analyze, pivot",
+    "HackTheBox / TryHackMe machine exploitation with AI suggesting tool chains based on service output",
+    "Bug bounty hunting: AI-assisted recon workflow with Nmap, whatweb, and subdomain enumeration",
+    "Security training: AI coach demonstrates tool usage and explains output in educational labs"
   ],
   "not_for": [
     "Production security operations or enterprise SOC environments",
-    "Users who need authentication or access controls on command execution",
-    "Any use against systems you do not own or have explicit written permission to test"
+    "Shared infrastructure — no access controls means any user with network access can execute arbitrary commands",
+    "Any testing against systems without explicit written authorization",
+    "Environments requiring audit logging, command allowlisting, or compliance"
   ],
-  "best_when": "You are running ethical penetration testing or CTF challenges in a controlled environment with a dedicated Kali Linux instance, and want AI to suggest and execute recon/exploitation commands iteratively.",
-  "avoid_when": "You need any form of access control, audit logging, or safe command sandboxing. The lack of authentication makes this unsuitable for shared or production environments.",
-  "alternatives": ["mcp-terminal", "mcp-shell", "manual-kali-workflow"],
-  "version_evaluated": "latest",
+  "best_when": "You are running authorized penetration testing or CTF challenges in a fully isolated, single-user Kali VM and want an AI to iteratively suggest and execute recon/exploitation commands.",
+  "avoid_when": "You need any form of access control, audit logging, or safe command sandboxing — the complete absence of authentication makes this unsuitable for anything beyond a dedicated personal lab VM.",
+  "alternatives": [
+    {"id": "mcp-security-hub", "reason": "Docker-based approach with 36 containerized security tools — better isolation than bare Kali access"},
+    {"id": "mcp-terminal", "reason": "Generic terminal MCP server with potentially better sandboxing options"},
+    {"id": "mcp-shell", "reason": "Lighter-weight shell execution MCP with configurable restrictions"}
+  ],
   "interface": {
     "has_rest_api": true,
     "has_graphql": false,
@@ -38,24 +43,22 @@
     "methods": ["none"],
     "oauth": false,
     "scopes": false,
-    "notes": "No authentication mechanism is implemented. Security relies entirely on network isolation (default localhost binding) and SSH tunneling for remote access. Anyone who can reach port 5000 can execute arbitrary commands."
+    "notes": "No authentication mechanism whatsoever. Security relies entirely on network isolation — default localhost binding, or SSH tunneling for remote access. Anyone who can reach port 5000 has arbitrary shell command execution on the Kali host."
   },
   "pricing": {
     "model": "open_source",
     "free_tier_exists": true,
     "free_tier_limits": null,
-    "paid_tiers": [],
+    "paid_tiers": null,
     "requires_credit_card": false,
-    "estimated_workload_costs": null,
-    "notes": "Open source. Requires Kali Linux instance (self-hosted)."
+    "notes": "Open source community project. Requires a Kali Linux instance (self-hosted VM, bare metal, or cloud). No license specified in the repository."
   },
   "performance": {
-    "latency_p50_ms": null,
-    "latency_p99_ms": null,
+    "latency_p50_ms": 100,
+    "latency_p99_ms": 60000,
     "uptime_sla_percent": null,
     "rate_limits": null,
-    "data_source": "llm_estimated",
-    "measured_on": null
+    "data_source": "llm_estimated"
   },
   "requirements": {
     "requires_signup": false,
@@ -66,25 +69,27 @@
     "min_contract": "none"
   },
   "agent_readiness": {
-    "mcp_server_quality": 50,
-    "mcp_security_score": 20,
+    "mcp_server_quality": 48,
+    "mcp_security_score": 18,
     "documentation_accuracy": 65,
-    "error_message_quality": 40,
-    "error_message_notes": "Minimal error handling documentation; structured output for API responses mentioned but not detailed.",
-    "error_message_score": 40,
-    "auth_complexity_score": 90,
-    "rate_limit_score": 60,
-    "security_score": 20,
-    "idempotency_support": "unknown",
-    "idempotency_notes": "Command execution is inherently non-idempotent; no safeguards documented.",
+    "error_message_quality": 42,
+    "error_message_notes": "Command output (stdout/stderr) is returned as-is from the Kali tool. No normalization or structured error handling — the AI must parse raw tool output. Long-running tools (Nmap service scans, Metasploit modules) return output only on completion, with no streaming.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Read-only reconnaissance commands (Nmap, whois) are effectively idempotent. Exploitation and modification commands are inherently non-idempotent. No safeguards prevent duplicate execution.",
     "pagination_style": "none",
     "retry_guidance_documented": false,
     "known_agent_gotchas": [
-      "CRITICAL: No authentication — anyone who can reach port 5000 has arbitrary command execution on the Kali machine",
-      "Binding to 0.0.0.0 for remote access exposes an unauthenticated command execution endpoint to the network",
-      "No command sandboxing, allowlist, or rate limiting on what commands can be executed",
-      "Ethical and legal risk: AI agents could execute commands against out-of-scope targets without operator awareness",
-      "SSH tunnel requirement for remote use adds operational friction"
-    ]
-  }
+      "CRITICAL SECURITY: No authentication — any process that can reach port 5000 has full arbitrary command execution on the Kali host as whatever user runs the Flask server (often root on Kali)",
+      "LEGAL/ETHICAL: AI agents can autonomously execute offensive tools; without explicit scope enforcement, an agent could run commands against out-of-scope targets — human oversight of every command is essential",
+      "No command timeout enforcement — long-running tools (nikto, full nmap service scan, metasploit exploits) will block indefinitely, likely exceeding MCP client timeouts",
+      "No command filtering, allowlist, or sandboxing — destructive commands (rm -rf, dd, iptables) are executed without warning",
+      "Output truncation: very large tool outputs (masscan on large ranges, dirb on big wordlists) may overwhelm MCP context windows",
+      "Binding to 0.0.0.0 for remote access exposes an unauthenticated RCE endpoint to the network — never do this without VPN or strict firewall rules"
+    ],
+    "error_message_score": 40,
+    "auth_complexity_score": 88,
+    "rate_limit_score": 55,
+    "security_score": 18
+  },
+  "last_evaluated": "2026-03-01"
 }

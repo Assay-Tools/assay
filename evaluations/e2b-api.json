@@ -1,0 +1,97 @@
+{
+  "id": "e2b-api",
+  "name": "E2B Code Interpreter API",
+  "version_evaluated": "current",
+  "homepage": "https://e2b.dev",
+  "repo_url": "https://github.com/e2b-dev/e2b",
+  "category": "developer-tools",
+  "subcategories": ["code-execution", "sandboxing", "ai-infrastructure"],
+  "tags": ["code-interpreter", "sandbox", "ai-agents", "python", "javascript", "secure-execution", "e2b"],
+  "what_it_does": "E2B provides secure, isolated cloud sandboxes for running AI-generated code. Each sandbox is a full Linux VM that spins up in ~150ms, letting agents execute Python, JavaScript, bash, and other code safely without risk to host systems. Purpose-built for AI agents — supports file uploads, persistent processes, long-running sessions (up to 24 hours), and real-time stdout/stderr streaming.",
+  "use_cases": [
+    "Executing AI-generated code safely in isolated environments before deploying",
+    "Running data analysis pipelines where agents write and test Python code iteratively",
+    "Building coding assistants that need to verify their generated code actually works",
+    "Hosting interactive Jupyter-like environments for AI-driven data science",
+    "Running arbitrary user-submitted code in multi-tenant SaaS platforms",
+    "Testing and debugging AI-generated scripts without infrastructure setup",
+    "Long-running background computation tasks launched by AI agents"
+  ],
+  "not_for": [
+    "Persistent compute requiring GPU (use Modal or Replicate for GPU workloads)",
+    "Production server hosting — sandboxes are ephemeral compute environments",
+    "Very long-running jobs exceeding 24-hour session limits",
+    "Teams that need on-premise code execution for compliance reasons"
+  ],
+  "best_when": "You need an AI agent to write and run code in a loop (plan-execute-observe), especially for data analysis, coding assistants, or any workflow where validating AI-generated code before trusting it is critical. E2B's fast spin-up and Python SDK are ideal for tight agent loops.",
+  "avoid_when": "You need GPU compute, persistent state across many sessions, or heavy ML model inference inside the sandbox. For pure model inference, use Replicate or Together AI instead.",
+  "alternatives": [
+    {"id": "modal-api", "reason": "Better for GPU workloads and persistent ML inference; E2B is better for short-lived code interpreter sessions"},
+    {"id": "replicate-api", "reason": "Better for running pre-built ML models; E2B is better for arbitrary agent-generated code"},
+    {"id": "github-actions", "reason": "CI/CD code execution but not designed for low-latency agent loops"}
+  ],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "javascript", "typescript"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["api_key"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Single E2B_API_KEY environment variable. No OAuth, no scopes. Key passed in header or via SDK. Very simple auth model ideal for agents."
+  },
+  "pricing": {
+    "model": "usage_based",
+    "free_tier_exists": true,
+    "free_tier_limits": "100 hours of sandbox compute per month on free tier. No credit card required to start.",
+    "paid_tiers": "Hobby: $20/month for 500 sandbox hours. Pro: $150/month for 2500 hours. Enterprise: custom. Additional usage billed at ~$0.000225/second of compute.",
+    "requires_credit_card": false,
+    "notes": "Pricing is based on sandbox uptime (wall clock time), not CPU. Sandboxes auto-terminate on timeout. Free tier generous for development and testing."
+  },
+  "performance": {
+    "latency_p50_ms": 150,
+    "latency_p99_ms": 500,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "Free tier: 1 concurrent sandbox. Paid tiers: up to 100 concurrent sandboxes. No explicit rate limit on API calls.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["US"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 90,
+    "error_message_quality": 85,
+    "error_message_notes": "SDK raises typed exceptions with clear messages. Sandbox timeout, quota exceeded, and execution errors are distinct exception types. Stdout/stderr are captured separately from process errors.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Sandbox creation is idempotent via named sandboxes (sandbox_id). Code execution itself is not idempotent — side effects within the sandbox persist for the session lifetime.",
+    "pagination_style": "none",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Sandboxes are paused (not destroyed) when keepalive times out — resume them via sandbox_id to avoid stale state issues",
+      "File system state persists within a session but sandboxes are destroyed after 24 hours max",
+      "Package installation (pip install) inside sandbox is not cached between sessions — pre-built custom sandbox templates are needed for fast startup with dependencies",
+      "stdout/stderr streaming requires async SDK usage; synchronous polling may miss interleaved output",
+      "Concurrent sandbox limits can surprise agents that spin up many parallel sandboxes — implement a pool/semaphore pattern",
+      "Network access inside sandboxes is enabled by default — egress can be a security concern if running untrusted code"
+    ],
+    "error_message_score": 85,
+    "auth_complexity_score": 95,
+    "rate_limit_score": 78,
+    "security_score": 88
+  },
+  "last_evaluated": "2026-03-01"
+}

@@ -1,29 +1,34 @@
 {
   "id": "clickhouse-api",
-  "name": "ClickHouse Cloud API",
+  "name": "ClickHouse",
   "version_evaluated": "current",
-  "homepage": "https://clickhouse.com/docs/en/cloud/manage/api/api-overview",
+  "homepage": "https://clickhouse.com",
   "repo_url": "https://github.com/ClickHouse/ClickHouse",
   "category": "database",
-  "subcategories": ["olap", "analytics-database", "time-series", "cloud-database"],
-  "tags": ["clickhouse", "olap", "analytics", "time-series", "columnar", "cloud-database", "rest-api", "sql"],
-  "what_it_does": "ClickHouse Cloud management and query API for the high-performance columnar OLAP database, enabling analytics at massive scale over time-series, event, and log data.",
+  "subcategories": ["olap", "analytics-database", "columnar", "time-series", "cloud-database"],
+  "tags": ["clickhouse", "olap", "analytics", "columnar", "time-series", "event-analytics", "http-interface", "sql", "open-source", "cloud-database", "log-analytics"],
+  "what_it_does": "ClickHouse is a blazing-fast open-source columnar OLAP database designed for real-time analytics over massive datasets. It stores data in column-oriented format with aggressive compression, enabling queries that scan billions of rows per second. ClickHouse accepts SQL via an HTTP interface (port 8123/8443) and a native binary protocol (port 9440), with support for many input/output formats (JSON, CSV, Parquet, Arrow). ClickHouse Cloud is the managed offering with a REST Management API for programmatic cluster management. The HTTP interface supports streaming responses, progress headers, and session-based queries — making it well-suited for agents that need to run complex analytical queries.",
   "use_cases": [
-    "Running sub-second analytical queries over billions of rows of event data",
-    "Building real-time dashboards over log and telemetry data",
-    "Provisioning and scaling ClickHouse Cloud services programmatically",
-    "Ingesting high-throughput event streams for analytics",
-    "Analyzing product telemetry and user behavior at scale"
+    "Sub-second analytical queries over billions of rows of event, log, or telemetry data",
+    "Real-time dashboards and alerting over streaming event data ingested at millions of events/second",
+    "Product analytics and user behavior analysis with complex funnel and session queries",
+    "Log analytics and observability data storage with time-based partitioning and TTL policies",
+    "Programmatic ClickHouse Cloud service provisioning and scaling via Management API",
+    "Data warehouse queries using S3-backed external table integrations (ClickHouse reads directly from S3/GCS)"
   ],
   "not_for": [
-    "OLTP transactional workloads (use Postgres or MySQL)",
-    "Frequent point-update patterns (ClickHouse is append-optimized)",
-    "Small datasets where simpler tools suffice",
-    "Teams needing simple SQL without analytical query expertise"
+    "OLTP transactional workloads requiring row-level updates, foreign keys, or ACID across multiple tables (use PostgreSQL or MySQL)",
+    "Frequent point updates — ClickHouse is append-optimized; mutations (UPDATE/DELETE) are slow and asynchronous",
+    "Small datasets where simpler tools (PostgreSQL, SQLite) suffice — ClickHouse has significant setup overhead",
+    "Teams needing simple SQL without understanding columnar database concepts like MergeTree engine families"
   ],
-  "best_when": "You need to run fast analytical queries over large volumes of immutable or append-only event/log data.",
-  "avoid_when": "You need frequent row-level updates, complex transactions, or a general-purpose OLTP database.",
-  "alternatives": ["singlestore-api", "cockroachdb-api"],
+  "best_when": "You need to run fast analytical queries over large volumes of immutable or append-only event/log data, especially when time-series patterns, aggregations over billions of rows, or real-time ingestion are requirements.",
+  "avoid_when": "You need frequent row-level updates, complex multi-table transactions, or a general-purpose OLTP database.",
+  "alternatives": [
+    {"id": "elasticsearch-api", "reason": "Elasticsearch is better for full-text search and log exploration; ClickHouse is faster for pure aggregation analytics"},
+    {"id": "neon-api", "reason": "Neon/PostgreSQL better for OLTP workloads requiring transactions and updates"},
+    {"id": "bigquery-api", "reason": "BigQuery is better for ad-hoc serverless analytics on petabyte-scale datasets in GCP"}
+  ],
   "interface": {
     "has_rest_api": true,
     "has_graphql": false,
@@ -31,61 +36,63 @@
     "has_mcp_server": false,
     "mcp_server_url": null,
     "has_sdk": true,
-    "sdk_languages": ["python", "javascript", "java", "go", "rust"],
+    "sdk_languages": ["python", "javascript", "typescript", "java", "go", "rust", "php"],
     "openapi_spec_url": "https://clickhouse.com/docs/en/cloud/manage/api/api-overview",
     "webhooks": false
   },
   "auth": {
-    "methods": ["api_key", "basic_auth"],
+    "methods": ["basic_auth", "api_key", "x_clickhouse_headers"],
     "oauth": false,
-    "scopes": false,
-    "notes": "Cloud Management API uses Bearer token (from portal). Query HTTP interface uses Basic Auth (username:password). Native protocol (port 9440) uses separate credentials."
+    "scopes": true,
+    "notes": "HTTP interface supports three auth methods: HTTP Basic Auth (user:password), URL parameters (?user=x&password=y), or custom headers (X-ClickHouse-User, X-ClickHouse-Key). ClickHouse Cloud Management API uses a separate API key (Bearer token) created in the Cloud console. Database users can be created with fine-grained privilege grants (SELECT on specific databases/tables). Default 'default' user with empty password is dangerous in production — always configure a password."
   },
   "pricing": {
-    "model": "usage-based",
+    "model": "usage_based",
     "free_tier_exists": true,
-    "free_tier_limits": "30-day free trial with $300 credits",
-    "paid_tiers": "From $0.20/compute-unit-hour + $0.02/GB storage",
+    "free_tier_limits": "ClickHouse Cloud: 30-day free trial with $300 credits. Open-source self-hosted version is free under Apache 2.0.",
+    "paid_tiers": "ClickHouse Cloud Development from $0.20/compute-unit-hour + $0.023/GB/month storage. Production tier with multi-replica from ~$250/month minimum. Enterprise: custom.",
     "requires_credit_card": false,
-    "notes": "Usage-based pricing on compute and storage. Trial credits available. On-demand and reserved capacity options. Self-hosted open-source version available for free."
+    "notes": "Trial doesn't require credit card. Pay-as-you-go after trial. Self-hosted Apache 2.0 open source is completely free — many teams run ClickHouse on-prem for cost control. ClickHouse Cloud auto-scales compute and supports service-level configurations."
   },
   "performance": {
     "latency_p50_ms": 2,
     "latency_p99_ms": 50,
     "uptime_sla_percent": 99.99,
-    "rate_limits": "No hard rate limits; scales with cluster size",
+    "rate_limits": "No hard rate limits on self-hosted; ClickHouse Cloud scales with cluster configuration. Concurrent query limits configurable per user.",
     "data_source": "llm_estimated"
   },
   "requirements": {
     "requires_signup": true,
     "requires_credit_card": false,
     "domain_verification": false,
-    "data_residency": ["US", "EU", "APAC"],
+    "data_residency": ["US-East", "US-West", "EU-West", "EU-Central", "APAC"],
     "compliance": ["SOC2", "ISO27001", "HIPAA", "GDPR"],
     "min_contract": "none"
   },
   "agent_readiness": {
-    "mcp_server_quality": null,
-    "mcp_security_score": null,
-    "documentation_accuracy": 88,
-    "error_message_quality": 82,
-    "error_message_notes": "SQL errors are very descriptive with exact positions and suggestions. HTTP API errors include exception class, message, and error code. One of the better query databases for error quality.",
+    "mcp_server_quality": 0,
+    "mcp_security_score": 80,
+    "documentation_accuracy": 90,
+    "error_message_quality": 86,
+    "error_message_notes": "SQL error messages are among the best in any database — they include the exact query position, the problematic token, and often a suggestion. HTTP interface error responses include Exception, Code (ClickHouse error code), and a human-readable message. CRITICAL GOTCHA: HTTP 200 responses do NOT guarantee successful queries — errors can appear mid-stream in the response body; agents must parse response body for 'Exception:' prefix even on 200 status.",
     "idempotency_support": "partial",
-    "idempotency_notes": "INSERT queries are idempotent if using ReplacingMergeTree or deduplication settings. Standard inserts append data.",
+    "idempotency_notes": "Standard INSERT appends data — not idempotent. ReplacingMergeTree engine provides eventual deduplication using version columns, but duplicates may exist temporarily until merges complete. INSERT with deduplication (insert_deduplicate=1, default on ClickHouse Cloud) is idempotent for identical payloads within a deduplication window. DDL operations (CREATE TABLE IF NOT EXISTS) are idempotent.",
     "pagination_style": "none",
     "retry_guidance_documented": true,
     "known_agent_gotchas": [
-      "ClickHouse doesn't support UPDATE/DELETE in the traditional sense — use ReplacingMergeTree or mutation operations",
-      "Eventual consistency in deduplication — duplicate rows may exist temporarily after insert",
-      "Query HTTP interface returns data in many formats (JSON, CSV, TabSeparated) — specify format explicitly",
-      "Large result sets should use streaming — avoid loading billions of rows into memory",
-      "Cloud Management API and database query API are separate with different auth mechanisms",
-      "Dictionary and Materialized View setup required for many optimization patterns — plan schema carefully"
+      "HTTP 200 does NOT mean query success — ClickHouse can return a 200 with 'Exception: ...' in the body when errors occur mid-stream; agents MUST check response body for errors",
+      "UPDATE and DELETE are mutations — they run asynchronously and may take minutes on large tables; use ReplacingMergeTree/CollapsingMergeTree engine instead of frequent mutations",
+      "Eventual deduplication: ReplacingMergeTree deduplicates only at merge time — duplicate rows may exist for minutes to hours after INSERT; COUNT queries may return inflated results",
+      "Format must be explicitly specified — default TabSeparated format is not JSON; agents must add FORMAT JSON or FORMAT JSONEachRow to queries or use X-ClickHouse-Format header",
+      "Cloud Management API and HTTP query API are entirely separate with different auth credentials — platform token for management, user/password for queries",
+      "Multi-statement queries are not supported in a single HTTP request — each query must be a separate HTTP call",
+      "Large result sets should use streaming (enable_http_compression=1, wait_end_of_query=0) to avoid OOM — never pull millions of rows into agent memory at once",
+      "Dictionary and Materialized View setup is required for many performance optimization patterns — ad-hoc queries on non-partitioned, non-sorted data may be slow despite ClickHouse's speed reputation"
     ],
-    "error_message_score": 85,
-    "auth_complexity_score": 75,
+    "error_message_score": 86,
+    "auth_complexity_score": 76,
     "rate_limit_score": 82,
-    "security_score": 85
+    "security_score": 83
   },
-  "last_evaluated": "2026-02-28"
+  "last_evaluated": "2026-03-01"
 }

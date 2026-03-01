@@ -6,21 +6,28 @@
   "repo_url": "https://github.com/Cyfrin/aderyn",
   "category": "security",
   "subcategories": ["smart-contract-security", "static-analysis", "solidity"],
-  "tags": ["solidity", "smart-contracts", "security", "static-analysis", "rust", "foundry", "hardhat", "blockchain", "mcp-server"],
-  "what_it_does": "A Rust-based Solidity smart contract static analyzer that identifies vulnerabilities in blockchain code, supporting Foundry and Hardhat projects with zero-configuration setup and multiple report formats.",
+  "tags": ["solidity", "smart-contracts", "security", "static-analysis", "rust", "foundry", "hardhat", "blockchain", "mcp-server", "cyfrin", "web3"],
+  "what_it_does": "Aderyn is a Rust-based static analyzer built specifically for Solidity smart contracts, developed by Cyfrin (a leading smart contract security audit firm). It compiles and analyzes the AST of Solidity contracts to detect vulnerability patterns including reentrancy, unchecked return values, weak randomness, centralization risks, and dozens of other known vulnerability classes. Unlike general-purpose linters, Aderyn understands Solidity semantics deeply — including storage layout, function visibility, and call graph analysis. It supports Foundry and Hardhat project layouts with zero configuration, outputting reports in Markdown, JSON, or SARIF for CI/CD integration. The tool also exposes an MCP server interface (tagged in GitHub topics, though minimally documented) enabling AI agents to invoke contract analysis directly.",
   "use_cases": [
-    "Automated security scanning of Solidity smart contracts before deployment",
-    "Generating vulnerability reports in Markdown, JSON, or SARIF format for CI/CD pipelines",
-    "Integrating static analysis into VS Code or GitHub Actions for continuous security checks"
+    "Automated pre-deployment security scanning of Solidity contracts in CI/CD pipelines",
+    "Generating SARIF reports for GitHub Code Scanning integration to show vulnerability annotations inline",
+    "AI-assisted smart contract review: agent runs Aderyn, interprets findings, and proposes fixes",
+    "Security audit preparation: pre-screen contracts to identify low-hanging fruit before a full manual audit",
+    "DeFi protocol monitoring: scan contracts when new code is pushed via GitHub Actions"
   ],
   "not_for": [
-    "Non-Solidity smart contract languages (Vyper, Rust/Anchor, etc.)",
-    "Runtime monitoring or dynamic analysis of deployed contracts",
-    "Full security audits (complements but does not replace manual review)"
+    "Non-Solidity smart contract languages (Vyper, Rust/Anchor, Move, Cairo)",
+    "Runtime monitoring or dynamic analysis of deployed on-chain contracts",
+    "Full security audits — Aderyn catches known patterns but misses novel vulnerabilities and business logic flaws",
+    "Ethereum mainnet live contract bytecode analysis (requires source and compilation)"
   ],
-  "best_when": "An agent needs to analyze Solidity smart contracts for known vulnerability patterns before deployment or during code review.",
-  "avoid_when": "You are working with non-Solidity contracts or need dynamic/runtime analysis of deployed contracts.",
-  "alternatives": ["Slither", "Mythril", "Securify", "Solhint"],
+  "best_when": "An agent or CI/CD pipeline needs fast, automated detection of known Solidity vulnerability patterns before deployment or during code review, integrated with Foundry or Hardhat build systems.",
+  "avoid_when": "You are working with non-Solidity contracts, need dynamic/runtime analysis of deployed contracts, or require comprehensive audit coverage that only manual review can provide.",
+  "alternatives": [
+    {"id": "slither", "reason": "Python-based, broader detector coverage, better for complex inter-contract analysis"},
+    {"id": "mythril", "reason": "Symbolic execution for deeper vulnerability discovery including novel attack paths"},
+    {"id": "solhint", "reason": "Lighter-weight linter for style and basic security rules, faster but less deep"}
+  ],
   "interface": {
     "has_rest_api": false,
     "has_graphql": false,
@@ -36,7 +43,7 @@
     "methods": ["none"],
     "oauth": false,
     "scopes": false,
-    "notes": "Runs entirely locally as a CLI tool. No authentication required."
+    "notes": "Runs entirely locally as a CLI tool and MCP server. No authentication, API keys, or network calls required. All analysis is local."
   },
   "pricing": {
     "model": "open_source",
@@ -44,11 +51,11 @@
     "free_tier_limits": null,
     "paid_tiers": null,
     "requires_credit_card": false,
-    "notes": "GPL-3.0 licensed. Fully open source and free to use."
+    "notes": "GPL-3.0 licensed. Fully open source and free to use. Commercial use allowed but copyleft applies to derivative works. Cyfrin offers paid audit services separately."
   },
   "performance": {
-    "latency_p50_ms": null,
-    "latency_p99_ms": null,
+    "latency_p50_ms": 3000,
+    "latency_p99_ms": 30000,
     "uptime_sla_percent": null,
     "rate_limits": null,
     "data_source": "llm_estimated"
@@ -62,25 +69,28 @@
     "min_contract": "none"
   },
   "agent_readiness": {
-    "mcp_server_quality": 30,
-    "mcp_security_score": 75,
-    "documentation_accuracy": 70,
-    "error_message_quality": 50,
-    "error_message_notes": "Tagged as mcp-server on GitHub but README contains no MCP-specific documentation, configuration examples, or tool definitions. MCP support appears to be either minimal or undocumented. Core CLI tool is well-documented.",
+    "mcp_server_quality": 35,
+    "mcp_security_score": 80,
+    "documentation_accuracy": 72,
+    "error_message_quality": 55,
+    "error_message_notes": "CLI produces structured JSON output that is machine-parseable. MCP server interface is tagged in GitHub topics but has no dedicated documentation for tool names, schemas, or configuration. Agents should use CLI JSON output mode rather than relying on the MCP server until documentation improves.",
     "idempotency_support": "full",
-    "idempotency_notes": "Static analysis is inherently idempotent - same input produces same output.",
+    "idempotency_notes": "Static analysis is inherently idempotent — same Solidity source always produces identical findings.",
     "pagination_style": "none",
     "retry_guidance_documented": false,
     "known_agent_gotchas": [
-      "MCP server capability is tagged but not documented - unclear what tools are exposed or how to configure it",
-      "Requires Foundry or Hardhat project structure - won't work on standalone .sol files without setup",
-      "Windows requires WSL - adds complexity for cross-platform agent deployments",
-      "GPL-3.0 license has copyleft implications for derivative works",
-      "Analysis scope limited to Solidity only"
+      "MCP server capability is GitHub-tagged but not documented — no published tool definitions, schemas, or configuration examples as of evaluation date",
+      "Requires a complete Foundry (forge build) or Hardhat project structure — won't analyze standalone .sol files without project setup",
+      "Windows requires WSL — adds significant complexity for cross-platform agent deployments",
+      "GPL-3.0 copyleft license: if Aderyn is linked into a larger system, that system may need to be GPL-3.0 as well",
+      "Detector coverage focuses on known patterns — novel vulnerabilities, business logic flaws, and complex cross-contract issues require manual review",
+      "Analysis time scales with codebase size — large DeFi protocols may take 30+ seconds, which can exceed some MCP timeout windows",
+      "False positives occur, especially for centralization risk detectors — agents should flag for human review rather than treating all findings as confirmed vulnerabilities"
     ],
-    "error_message_score": 50,
+    "error_message_score": 55,
     "auth_complexity_score": 100,
     "rate_limit_score": 100,
-    "security_score": 75
-  }
+    "security_score": 78
+  },
+  "last_evaluated": "2026-03-01"
 }
