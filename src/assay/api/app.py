@@ -7,6 +7,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
+from assay.database import init_db
+
 from .routes import router
 from .web_routes import router as web_router
 
@@ -41,3 +43,9 @@ if _static_dir.exists():
 
 # Jinja2 templates — available for web frontend routes
 templates = Jinja2Templates(directory=str(_templates_dir))
+
+
+@app.on_event("startup")
+def startup():
+    """Create tables if they don't exist."""
+    init_db()
