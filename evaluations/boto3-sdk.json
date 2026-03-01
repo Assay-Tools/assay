@@ -1,0 +1,94 @@
+{
+  "id": "boto3-sdk",
+  "name": "AWS SDK for Python (Boto3)",
+  "version_evaluated": "current",
+  "last_evaluated": "2026-03-01",
+  "homepage": "https://boto3.amazonaws.com/v1/documentation/api/latest/index.html",
+  "repo_url": "https://github.com/boto/boto3",
+  "category": "cloud-infrastructure",
+  "subcategories": ["aws", "sdk", "cloud-storage", "compute", "serverless"],
+  "tags": ["aws", "boto3", "python", "sdk", "s3", "ec2", "lambda", "dynamodb", "sqs", "iam", "cloud-infrastructure"],
+  "what_it_does": "The primary Python SDK for Amazon Web Services, providing a unified interface to 200+ AWS services including S3, EC2, Lambda, DynamoDB, SQS, and more. Agents use it to orchestrate cloud resources, read/write data, trigger serverless functions, and automate infrastructure.",
+  "use_cases": [
+    "Reading and writing files to S3 from agent workflows",
+    "Invoking Lambda functions as sub-agents or tool calls",
+    "Querying DynamoDB for low-latency key-value lookups",
+    "Publishing messages to SQS or SNS for async task queuing",
+    "Managing EC2 instances, ECS tasks, or EKS clusters programmatically",
+    "Interacting with Bedrock for LLM inference within AWS environments",
+    "Automating IAM role creation and permission management"
+  ],
+  "not_for": [
+    "Non-AWS cloud providers (use GCP or Azure SDKs instead)",
+    "Environments where pip install is not available",
+    "Agents needing REST-only access without Python runtime"
+  ],
+  "best_when": "An agent operates within AWS or needs to orchestrate AWS services — S3, Lambda, DynamoDB, Bedrock — from Python code.",
+  "avoid_when": "Your infrastructure is on GCP or Azure, or you need a thin REST API rather than a full SDK dependency.",
+  "alternatives": ["gcp-python-client", "azure-sdk-python", "aws-s3-api", "aws-lambda-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["api_key", "iam_role", "environment_variables", "aws_config_file"],
+    "oauth": false,
+    "scopes": true,
+    "notes": "Uses AWS credential chain: environment variables (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY), ~/.aws/credentials file, EC2/ECS instance profile, or IAM role via STS assume-role. For agents in AWS, IAM roles are strongly preferred over static keys. Supports STS for temporary credentials and cross-account access."
+  },
+  "pricing": {
+    "model": "free",
+    "free_tier_exists": true,
+    "free_tier_limits": "SDK itself is free; costs are incurred per AWS service used (S3 storage/requests, Lambda invocations, etc.)",
+    "paid_tiers": "Pay-per-use per underlying AWS service — S3 from $0.023/GB, Lambda $0.20/million requests, DynamoDB from $1.25/million write units",
+    "requires_credit_card": true,
+    "notes": "Boto3 is open-source and free. AWS services themselves are pay-as-you-go. AWS Free Tier covers significant usage for 12 months (e.g., 5GB S3, 1M Lambda requests/month). Cost accumulation is a real risk for agents — always set billing alerts."
+  },
+  "performance": {
+    "latency_p50_ms": 50,
+    "latency_p99_ms": 300,
+    "uptime_sla_percent": 99.99,
+    "rate_limits": "Per-service and per-API; S3 3,500 PUT/s, 5,500 GET/s per prefix; Lambda 10 concurrent by default (soft limit); DynamoDB provisioned or on-demand throughput",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": true,
+    "domain_verification": false,
+    "data_residency": ["US", "EU", "APAC", "GovCloud"],
+    "compliance": ["SOC1", "SOC2", "SOC3", "ISO27001", "PCI-DSS", "HIPAA", "FedRAMP", "GDPR"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 90,
+    "error_message_quality": 82,
+    "error_message_notes": "Boto3 raises typed exceptions (botocore.exceptions.ClientError) with an error response dict containing Code and Message. Most errors include a RequestId for AWS support. Pagination errors can be confusing — agents often forget to handle Truncated flags or paginator setup.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "S3 PutObject is idempotent. DynamoDB PutItem and conditional writes support idempotency. Lambda invocations are not idempotent by default — use client token on async invocations. SQS has at-least-once delivery requiring deduplication IDs on FIFO queues.",
+    "pagination_style": "token",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Credential chain order matters — a stale ~/.aws/credentials file will override environment variables in some configurations",
+      "Pagination is not automatic — agents must use paginators or check NextToken/IsTruncated on list operations",
+      "Region must be explicitly set — operations against wrong region fail with EndpointResolutionError",
+      "Boto3 client vs resource distinction confuses many agents — clients are low-level, resources are higher-level OOP wrappers",
+      "Rate limit errors (ThrottlingException) require exponential backoff — not handled automatically for all services",
+      "IAM permission errors return AccessDeniedException with minimal detail about which policy is missing",
+      "S3 key naming affects performance — avoid sequential prefixes at high scale (they hash-partition by prefix)",
+      "Lambda cold starts can cause agent timeouts — set appropriate timeout values on both Lambda and calling client"
+    ],
+    "error_message_score": 78,
+    "auth_complexity_score": 72,
+    "rate_limit_score": 68,
+    "security_score": 92
+  }
+}
