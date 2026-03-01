@@ -1,0 +1,227 @@
+{% extends "base.html" %}
+{% block title %}Contribute{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+
+    <h1 class="text-3xl font-bold text-white mb-3">Contribute to Assay</h1>
+    <p class="text-lg text-gray-400 mb-10">
+        Help build the quality layer for agentic software. Run evaluations with your own tokens,
+        submit results, and help the community find the best tools.
+    </p>
+
+    {# ── How it works ── #}
+    <section class="mb-12">
+        <h2 class="text-xl font-semibold text-white mb-4">How Community Evaluation Works</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="bg-surface-raised border border-gray-800 rounded-xl p-5">
+                <div class="w-10 h-10 rounded-lg bg-accent/10 border border-accent/20 flex items-center justify-center text-accent font-bold mb-3">1</div>
+                <h3 class="text-white font-semibold mb-2">Pick a Package</h3>
+                <p class="text-sm text-gray-400">
+                    Choose from the evaluation queue below, or evaluate a package you use.
+                    The queue prioritizes packages with no existing evaluation or outdated scores.
+                </p>
+            </div>
+            <div class="bg-surface-raised border border-gray-800 rounded-xl p-5">
+                <div class="w-10 h-10 rounded-lg bg-accent/10 border border-accent/20 flex items-center justify-center text-accent font-bold mb-3">2</div>
+                <h3 class="text-white font-semibold mb-2">Run the Evaluation</h3>
+                <p class="text-sm text-gray-400">
+                    Use the Assay evaluation skill or CLI tool. It runs against your LLM tokens,
+                    analyzes the package, and produces a structured JSON result.
+                </p>
+            </div>
+            <div class="bg-surface-raised border border-gray-800 rounded-xl p-5">
+                <div class="w-10 h-10 rounded-lg bg-accent/10 border border-accent/20 flex items-center justify-center text-accent font-bold mb-3">3</div>
+                <h3 class="text-white font-semibold mb-2">Submit Results</h3>
+                <p class="text-sm text-gray-400">
+                    Open a pull request to the
+                    <a href="https://github.com/Assay-Tools/assay" class="text-accent hover:underline">Assay repo</a>
+                    with your evaluation JSON. Assay reviews and merges quality submissions.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    {# ── Trust Model ── #}
+    <section class="mb-12">
+        <h2 class="text-xl font-semibold text-white mb-4">Trust & Quality</h2>
+        <div class="bg-surface-raised border border-gray-800 rounded-xl p-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <h3 class="text-white font-semibold mb-2">Reproducible Evaluations</h3>
+                    <p class="text-sm text-gray-400">
+                        All evaluations use Assay's standardized eval configs &mdash; deterministic prompts,
+                        pinned model versions, and structured output schemas. Results should be reproducible
+                        by anyone running the same config.
+                    </p>
+                </div>
+                <div>
+                    <h3 class="text-white font-semibold mb-2">Cross-Validation</h3>
+                    <p class="text-sm text-gray-400">
+                        When multiple independent contributors evaluate the same package, agreement between
+                        submissions increases confidence. Cross-validated scores carry more weight.
+                    </p>
+                </div>
+                <div>
+                    <h3 class="text-white font-semibold mb-2">Spot-Check Verification</h3>
+                    <p class="text-sm text-gray-400">
+                        Assay re-runs approximately 10% of new contributor submissions using our own tokens
+                        as a quality gate. This builds trust gradually &mdash; established contributors
+                        earn higher trust over time.
+                    </p>
+                </div>
+                <div>
+                    <h3 class="text-white font-semibold mb-2">Anti-Gaming</h3>
+                    <p class="text-sm text-gray-400">
+                        Package authors evaluating their own tools must disclose the relationship.
+                        Undisclosed self-evaluations that significantly diverge from independent evaluations
+                        are flagged for review.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    {# ── Evaluation Queue ── #}
+    <section class="mb-12">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-xl font-semibold text-white">Evaluation Queue</h2>
+            <span class="text-sm text-gray-500">{{ queue_stats.needs_eval }} packages need evaluation</span>
+        </div>
+
+        {% if queue_packages %}
+        <div class="bg-surface-raised border border-gray-800 rounded-xl divide-y divide-gray-800">
+            {% for pkg in queue_packages %}
+            <div class="p-4 flex items-center justify-between">
+                <div class="min-w-0 flex-1">
+                    <div class="flex items-center gap-3">
+                        <a href="/packages/{{ pkg.id }}" class="text-white font-medium hover:text-accent transition">
+                            {{ pkg.name }}
+                        </a>
+                        {% if pkg.category %}
+                        <span class="text-xs bg-surface-overlay text-gray-500 px-2 py-0.5 rounded-full">
+                            {{ pkg.category.name if pkg.category else '' }}
+                        </span>
+                        {% endif %}
+                    </div>
+                    {% if pkg.what_it_does %}
+                    <p class="text-xs text-gray-500 mt-0.5 truncate">{{ pkg.what_it_does }}</p>
+                    {% endif %}
+                </div>
+                <div class="flex items-center gap-3 flex-shrink-0 ml-4">
+                    {% if pkg.af_score is not none %}
+                    <span class="text-xs text-gray-500">
+                        Current: {{ "%.0f"|format(pkg.af_score) }}
+                        {% if pkg.last_evaluated %}
+                        ({{ pkg.last_evaluated.strftime('%Y-%m-%d') }})
+                        {% endif %}
+                    </span>
+                    {% else %}
+                    <span class="text-xs text-yellow-500">Not yet evaluated</span>
+                    {% endif %}
+                    {% if pkg.repo_url %}
+                    <a href="{{ pkg.repo_url }}" target="_blank" rel="noopener"
+                       class="text-xs text-accent hover:underline whitespace-nowrap">Repo &nearr;</a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        {% if queue_stats.needs_eval > 20 %}
+        <p class="text-sm text-gray-500 mt-3 text-center">
+            Showing 20 of {{ queue_stats.needs_eval }} packages.
+            <a href="/api/v1/queue" class="text-accent hover:underline">View full queue via API &rarr;</a>
+        </p>
+        {% endif %}
+
+        {% else %}
+        <div class="bg-surface-raised border border-gray-800 rounded-xl p-8 text-center text-gray-500">
+            All packages have been evaluated! Check back later for new discoveries.
+        </div>
+        {% endif %}
+    </section>
+
+    {# ── Getting Started ── #}
+    <section class="mb-12">
+        <h2 class="text-xl font-semibold text-white mb-4">Getting Started</h2>
+        <div class="bg-surface-raised border border-gray-800 rounded-xl p-6 space-y-4">
+
+            <div>
+                <h3 class="text-white font-semibold mb-2">Option 1: Claude Code Skill (Recommended)</h3>
+                <p class="text-sm text-gray-400 mb-3">
+                    The easiest way to run evaluations. Install the Assay evaluator skill in Claude Code:
+                </p>
+                <pre class="bg-surface rounded-lg p-4 text-sm text-gray-300 overflow-x-auto"><code># Clone the repo
+git clone https://github.com/Assay-Tools/assay.git
+cd assay
+
+# Run evaluation on a specific package
+uv run python -m assay.evaluation.evaluator --package &lt;package-id&gt;
+
+# Or batch evaluate discovered packages
+uv run python -m assay.evaluation.evaluator --batch --limit 5</code></pre>
+            </div>
+
+            <div class="border-t border-gray-800 pt-4">
+                <h3 class="text-white font-semibold mb-2">Option 2: Submit Evaluation JSON</h3>
+                <p class="text-sm text-gray-400 mb-3">
+                    If you've generated evaluation JSON by other means, submit it directly:
+                </p>
+                <ol class="space-y-2 text-sm text-gray-400">
+                    <li class="flex gap-2">
+                        <span class="text-accent">1.</span>
+                        Fork the <a href="https://github.com/Assay-Tools/assay" class="text-accent hover:underline">Assay repo</a>
+                    </li>
+                    <li class="flex gap-2">
+                        <span class="text-accent">2.</span>
+                        Add your evaluation JSON to <code class="text-gray-300">evaluations/&lt;package-id&gt;.json</code>
+                    </li>
+                    <li class="flex gap-2">
+                        <span class="text-accent">3.</span>
+                        Open a pull request with the title: <code class="text-gray-300">eval: &lt;package-name&gt;</code>
+                    </li>
+                    <li class="flex gap-2">
+                        <span class="text-accent">4.</span>
+                        Assay will validate the schema and run a spot-check if you're a new contributor
+                    </li>
+                </ol>
+            </div>
+
+            <div class="border-t border-gray-800 pt-4">
+                <h3 class="text-white font-semibold mb-2">Option 3: Request an Evaluation</h3>
+                <p class="text-sm text-gray-400">
+                    Know a package that should be in Assay? Open a
+                    <a href="https://github.com/Assay-Tools/assay/issues/new?labels=evaluation-request&template=evaluation_request.md"
+                       class="text-accent hover:underline">GitHub issue</a>
+                    with the package name and repo URL, and we'll add it to the queue.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    {# ── Contributor Stats ── #}
+    <section class="mb-12">
+        <h2 class="text-xl font-semibold text-white mb-4">Community Stats</h2>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div class="bg-surface-raised rounded-xl p-4 text-center border border-gray-800">
+                <div class="text-2xl font-bold text-white">{{ queue_stats.total_evaluated }}</div>
+                <div class="text-xs text-gray-500 mt-1">Packages Evaluated</div>
+            </div>
+            <div class="bg-surface-raised rounded-xl p-4 text-center border border-gray-800">
+                <div class="text-2xl font-bold text-white">{{ queue_stats.needs_eval }}</div>
+                <div class="text-xs text-gray-500 mt-1">Need Evaluation</div>
+            </div>
+            <div class="bg-surface-raised rounded-xl p-4 text-center border border-gray-800">
+                <div class="text-2xl font-bold text-white">{{ queue_stats.needs_reeval }}</div>
+                <div class="text-xs text-gray-500 mt-1">Need Re-evaluation</div>
+            </div>
+            <div class="bg-surface-raised rounded-xl p-4 text-center border border-gray-800">
+                <div class="text-2xl font-bold text-accent">&#9829;</div>
+                <div class="text-xs text-gray-500 mt-1">Community Powered</div>
+            </div>
+        </div>
+    </section>
+
+</div>
+{% endblock %}

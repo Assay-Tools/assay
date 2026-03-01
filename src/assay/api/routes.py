@@ -1,5 +1,7 @@
 """API route handlers for Assay."""
 
+from datetime import datetime, timedelta, timezone
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func
 from sqlalchemy.orm import Session, joinedload
@@ -192,6 +194,66 @@ def compare_packages(
         raise HTTPException(status_code=404, detail=f"Packages not found: {', '.join(missing)}")
 
     return CompareResponse(packages=[p.to_dict() for p in packages])
+
+
+# --- Evaluation Queue ---
+
+
+@router.get("/v1/queue", tags=["contribute"])
+def get_evaluation_queue(
+    limit: int = Query(50, ge=1, le=200),
+    include_stale: bool = Query(True, description="Include packages needing re-evaluation"),
+    db: Session = Depends(get_db),
+):
+    """Get packages needing evaluation — for community contributors."""
+    # Unevaluated packages
+    unevaluated = (
+        db.query(Package)
+        .filter(Package.af_score.is_(None))
+        .order_by(Package.created_at.desc())
+        .limit(limit)
+        .all()
+    )
+
+    results = [
+        {
+            "id": p.id,
+            "name": p.name,
+            "repo_url": p.repo_url,
+            "category": p.category_slug,
+            "status": "needs_evaluation",
+        }
+        for p in unevaluated
+    ]
+
+    # Stale packages (evaluated > 90 days ago)
+    if include_stale and len(results) < limit:
+        stale_cutoff = datetime.now(timezone.utc) - timedelta(days=90)
+        remaining = limit - len(results)
+        stale = (
+            db.query(Package)
+            .filter(
+                Package.af_score.isnot(None),
+                Package.last_evaluated < stale_cutoff,
+            )
+            .order_by(Package.last_evaluated.asc())
+            .limit(remaining)
+            .all()
+        )
+        results.extend([
+            {
+                "id": p.id,
+                "name": p.name,
+                "repo_url": p.repo_url,
+                "category": p.category_slug,
+                "status": "needs_reevaluation",
+                "last_evaluated": p.last_evaluated.isoformat() if p.last_evaluated else None,
+                "current_af_score": p.af_score,
+            }
+            for p in stale
+        ])
+
+    return {"count": len(results), "queue": results}
 
 
 # --- Stats ---

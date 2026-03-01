@@ -1,6 +1,7 @@
 """Web routes — server-rendered HTML pages for Assay."""
 
 import math
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from urllib.parse import urlencode
 
@@ -317,6 +318,78 @@ def compare_packages(
             "packages": packages,
             "ids_str": ids_str,
             "all_packages": all_packages,
+        },
+    )
+
+
+# ── Contribute ────────────────────────────────────────────────────────────────
+
+
+@router.get("/contribute", response_class=HTMLResponse)
+def contribute(request: Request, db: Session = Depends(get_db)):
+    """Community contribution page with evaluation queue."""
+    # Packages needing evaluation (status = discovered, no af_score)
+    needs_eval_count = (
+        db.query(func.count(Package.id))
+        .filter(Package.af_score.is_(None))
+        .scalar() or 0
+    )
+
+    # Packages needing re-evaluation (evaluated > 90 days ago)
+    stale_cutoff = datetime.now(timezone.utc) - timedelta(days=90)
+    needs_reeval_count = (
+        db.query(func.count(Package.id))
+        .filter(
+            Package.af_score.isnot(None),
+            Package.last_evaluated < stale_cutoff,
+        )
+        .scalar() or 0
+    )
+
+    total_evaluated = (
+        db.query(func.count(Package.id))
+        .filter(Package.af_score.isnot(None))
+        .scalar() or 0
+    )
+
+    queue_stats = {
+        "needs_eval": needs_eval_count,
+        "needs_reeval": needs_reeval_count,
+        "total_evaluated": total_evaluated,
+    }
+
+    # Queue: unevaluated first, then stale, limited to 20
+    queue_packages = (
+        db.query(Package)
+        .options(joinedload(Package.category))
+        .filter(Package.af_score.is_(None))
+        .order_by(Package.created_at.desc())
+        .limit(20)
+        .all()
+    )
+
+    # If fewer than 20 unevaluated, add stale ones
+    if len(queue_packages) < 20:
+        remaining = 20 - len(queue_packages)
+        stale_packages = (
+            db.query(Package)
+            .options(joinedload(Package.category))
+            .filter(
+                Package.af_score.isnot(None),
+                Package.last_evaluated < stale_cutoff,
+            )
+            .order_by(Package.last_evaluated.asc())
+            .limit(remaining)
+            .all()
+        )
+        queue_packages.extend(stale_packages)
+
+    return templates.TemplateResponse(
+        "pages/contribute.html",
+        {
+            "request": request,
+            "queue_stats": queue_stats,
+            "queue_packages": queue_packages,
         },
     )
 
