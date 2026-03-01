@@ -9,7 +9,7 @@ Example:
 """
 
 import sys
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine, inspect, text, Boolean
 from sqlalchemy.orm import Session
 
 # Add src to path
@@ -36,6 +36,51 @@ MODELS = [
     EvaluationRun,
 ]
 
+BATCH_SIZE = 500
+
+
+def migrate_table_raw(sqlite_engine, pg_engine, model):
+    """Migrate a table using raw INSERT for speed (avoids ORM overhead)."""
+    table = model.__table__
+    table_name = table.name
+    columns = [c.name for c in table.columns]
+
+    # Identify boolean columns (SQLite stores as 0/1, Postgres needs True/False)
+    bool_cols = {c.name for c in table.columns if isinstance(c.type, Boolean)}
+
+    with sqlite_engine.connect() as sqlite_conn:
+        rows = sqlite_conn.execute(text(f"SELECT * FROM {table_name}")).fetchall()
+
+    count = len(rows)
+    if count == 0:
+        print(f"  {table_name}: 0 records, skipping")
+        return
+
+    print(f"  {table_name}: migrating {count} records...", end=" ", flush=True)
+
+    # Build parameterized INSERT
+    col_list = ", ".join(columns)
+    param_list = ", ".join(f":{c}" for c in columns)
+    insert_sql = text(f"INSERT INTO {table_name} ({col_list}) VALUES ({param_list})")
+
+    def fix_row(row):
+        d = dict(zip(columns, row))
+        for col in bool_cols:
+            if d[col] is not None:
+                d[col] = bool(d[col])
+        return d
+
+    with pg_engine.begin() as pg_conn:
+        # Process in batches
+        for i in range(0, count, BATCH_SIZE):
+            batch = rows[i:i + BATCH_SIZE]
+            params = [fix_row(row) for row in batch]
+            pg_conn.execute(insert_sql, params)
+            if count > BATCH_SIZE:
+                print(f"{min(i + BATCH_SIZE, count)}/{count}", end=" ", flush=True)
+
+    print("done")
+
 
 def migrate(sqlite_path: str, postgres_url: str):
     sqlite_engine = create_engine(f"sqlite:///{sqlite_path}")
@@ -47,47 +92,25 @@ def migrate(sqlite_path: str, postgres_url: str):
     print("Creating tables in PostgreSQL...")
     Base.metadata.create_all(bind=pg_engine)
 
-    sqlite_session = Session(sqlite_engine)
-    pg_session = Session(pg_engine, autoflush=False)
-
     try:
         for model in MODELS:
-            table_name = model.__tablename__
-            records = sqlite_session.query(model).all()
-            count = len(records)
+            migrate_table_raw(sqlite_engine, pg_engine, model)
 
-            if count == 0:
-                print(f"  {table_name}: 0 records, skipping")
-                continue
-
-            print(f"  {table_name}: migrating {count} records...", end=" ", flush=True)
-
-            # Detach from SQLite session and merge into Postgres
-            for record in records:
-                sqlite_session.expunge(record)
-                pg_session.merge(record)
-
-            pg_session.flush()
-            print("done")
-
-        pg_session.commit()
         print("\nMigration complete!")
 
         # Verify counts
         print("\nVerification:")
-        for model in MODELS:
-            sqlite_count = sqlite_session.query(model).count()
-            pg_count = pg_session.query(model).count()
-            status = "OK" if sqlite_count == pg_count else "MISMATCH"
-            print(f"  {model.__tablename__}: SQLite={sqlite_count}, Postgres={pg_count} [{status}]")
+        with sqlite_engine.connect() as sc, pg_engine.connect() as pc:
+            for model in MODELS:
+                tn = model.__tablename__
+                sqlite_count = sc.execute(text(f"SELECT COUNT(*) FROM {tn}")).scalar()
+                pg_count = pc.execute(text(f"SELECT COUNT(*) FROM {tn}")).scalar()
+                status = "OK" if sqlite_count == pg_count else "MISMATCH"
+                print(f"  {tn}: SQLite={sqlite_count}, Postgres={pg_count} [{status}]")
 
     except Exception as e:
-        pg_session.rollback()
         print(f"\nError during migration: {e}")
         raise
-    finally:
-        sqlite_session.close()
-        pg_session.close()
 
 
 if __name__ == "__main__":
