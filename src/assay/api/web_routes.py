@@ -305,9 +305,27 @@ def compare_packages(
 
 
 @router.get("/about", response_class=HTMLResponse)
-def about(request: Request):
-    """About page."""
+def about(request: Request, db: Session = Depends(get_db)):
+    """About page with live stats."""
+    total_packages = db.query(func.count(Package.id)).scalar() or 0
+    total_categories = db.query(func.count(Category.slug)).scalar() or 0
+    mcp_count = (
+        db.query(func.count(Package.id))
+        .join(Package.interface)
+        .filter(Package.interface.has(has_mcp_server=True))
+        .scalar()
+        or 0
+    )
+    avg_af = db.query(func.avg(Package.af_score)).filter(Package.af_score.isnot(None)).scalar()
+
+    stats = {
+        "total_packages": total_packages,
+        "total_categories": total_categories,
+        "mcp_count": mcp_count,
+        "avg_af_score": round(avg_af, 1) if avg_af is not None else None,
+    }
+
     return templates.TemplateResponse(
         "pages/about.html",
-        {"request": request},
+        {"request": request, "stats": stats},
     )
