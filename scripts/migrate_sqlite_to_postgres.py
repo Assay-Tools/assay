@@ -41,12 +41,14 @@ def migrate(sqlite_path: str, postgres_url: str):
     sqlite_engine = create_engine(f"sqlite:///{sqlite_path}")
     pg_engine = create_engine(postgres_url)
 
-    # Create all tables in Postgres
+    # Drop and recreate all tables (clean slate)
+    print("Dropping existing tables...")
+    Base.metadata.drop_all(bind=pg_engine)
     print("Creating tables in PostgreSQL...")
     Base.metadata.create_all(bind=pg_engine)
 
     sqlite_session = Session(sqlite_engine)
-    pg_session = Session(pg_engine)
+    pg_session = Session(pg_engine, autoflush=False)
 
     try:
         for model in MODELS:

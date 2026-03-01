@@ -263,7 +263,7 @@ class PackagePerformance(Base):
     uptime_sla_percent: Mapped[float | None] = mapped_column(Float)
     rate_limits: Mapped[str | None] = mapped_column(Text)  # JSON object
     data_source: Mapped[str | None] = mapped_column(String(100))  # "synthetic_monitoring", "documented", "estimated"
-    measured_on: Mapped[str | None] = mapped_column(String(20))
+    measured_on: Mapped[str | None] = mapped_column(String(255))
 
     package: Mapped["Package"] = relationship(back_populates="performance")
 
