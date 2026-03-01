@@ -44,9 +44,24 @@ def index(request: Request, db: Session = Depends(get_db)):
         .all()
     )
 
+    # Top rated packages for showcase
+    top_packages = (
+        db.query(Package)
+        .options(joinedload(Package.category), joinedload(Package.interface))
+        .filter(Package.af_score.isnot(None))
+        .order_by(Package.af_score.desc())
+        .limit(6)
+        .all()
+    )
+
     return templates.TemplateResponse(
         "pages/index.html",
-        {"request": request, "stats": stats, "categories": categories},
+        {
+            "request": request,
+            "stats": stats,
+            "categories": categories,
+            "top_packages": top_packages,
+        },
     )
 
 

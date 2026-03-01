@@ -48,7 +48,7 @@ TOOLS = [
                 },
                 "min_af_score": {
                     "type": "number",
-                    "description": "Minimum agent-friendliness score (0-10).",
+                    "description": "Minimum agent-friendliness score (0-100).",
                 },
                 "limit": {
                     "type": "integer",

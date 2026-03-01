@@ -203,21 +203,21 @@ def get_stats(db: Session = Depends(get_db)):
     total_categories = db.query(func.count(Category.slug)).scalar() or 0
     avg_af = db.query(func.avg(Package.af_score)).filter(Package.af_score.is_not(None)).scalar()
 
-    # Score distribution
-    excellent = db.query(func.count(Package.id)).filter(Package.af_score >= 8.0).scalar() or 0
+    # Score distribution (0-100 scale)
+    excellent = db.query(func.count(Package.id)).filter(Package.af_score >= 80).scalar() or 0
     good = (
         db.query(func.count(Package.id))
-        .filter(Package.af_score >= 6.0, Package.af_score < 8.0)
+        .filter(Package.af_score >= 60, Package.af_score < 80)
         .scalar()
         or 0
     )
     fair = (
         db.query(func.count(Package.id))
-        .filter(Package.af_score >= 4.0, Package.af_score < 6.0)
+        .filter(Package.af_score >= 40, Package.af_score < 60)
         .scalar()
         or 0
     )
-    poor = db.query(func.count(Package.id)).filter(Package.af_score < 4.0).scalar() or 0
+    poor = db.query(func.count(Package.id)).filter(Package.af_score < 40).scalar() or 0
     unrated = (
         db.query(func.count(Package.id)).filter(Package.af_score.is_(None)).scalar() or 0
     )

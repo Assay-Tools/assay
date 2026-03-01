@@ -4,6 +4,14 @@
 {% block content %}
 <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
 
+    {% if not package %}
+    <div class="text-center py-20">
+        <h1 class="text-3xl font-bold text-white mb-4">Package Not Found</h1>
+        <p class="text-gray-500 mb-6">The package you're looking for doesn't exist in our database.</p>
+        <a href="/packages" class="text-accent hover:underline">Browse all packages &rarr;</a>
+    </div>
+    {% else %}
+
     {# ── Header ── #}
     <div class="flex items-start gap-6 mb-10">
         {# AF Score badge — large #}
@@ -52,6 +60,45 @@
             </div>
         </div>
     </div>
+
+    {# ── Score Breakdown ── #}
+    {% if package.agent_readiness %}
+    <section class="mb-10">
+        <h2 class="text-xl font-semibold text-white mb-4">Score Breakdown</h2>
+        <div class="bg-surface-raised border border-gray-800 rounded-xl p-5 space-y-3">
+            {% set ar = package.agent_readiness %}
+            {% set scores = [
+                ("MCP Quality", ar.mcp_server_quality, 20),
+                ("Documentation", ar.documentation_accuracy, 20),
+                ("Error Messages", ar.error_message_quality, 15),
+                ("Security", ar.mcp_security_score, 15),
+            ] %}
+            {% for label, score, weight in scores %}
+            <div class="flex items-center gap-3">
+                <div class="w-32 text-sm text-gray-400 flex-shrink-0">{{ label }}</div>
+                <div class="flex-1 h-5 bg-surface rounded-full overflow-hidden">
+                    {% if score is not none %}
+                    <div class="h-full rounded-full transition-all
+                                {% if score >= 80 %}bg-green-600
+                                {% elif score >= 60 %}bg-yellow-600
+                                {% else %}bg-red-600{% endif %}"
+                         style="width: {{ score }}%"></div>
+                    {% endif %}
+                </div>
+                <div class="w-16 text-sm text-right flex-shrink-0">
+                    {% if score is not none %}
+                    <span class="text-gray-200">{{ "%.0f"|format(score) }}</span>
+                    <span class="text-gray-600 text-xs">/100</span>
+                    {% else %}
+                    <span class="text-gray-600">N/A</span>
+                    {% endif %}
+                </div>
+                <div class="w-10 text-xs text-gray-600 flex-shrink-0 text-right">{{ weight }}%</div>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
 
     {# ── Best when / Avoid when ── #}
     {% if package.best_when or package.avoid_when %}
@@ -300,5 +347,6 @@
         </div>
     </section>
 
+    {% endif %}
 </div>
 {% endblock %}
