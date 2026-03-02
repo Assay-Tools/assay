@@ -1,0 +1,105 @@
+{
+  "id": "aws-kinesis-api",
+  "name": "AWS Kinesis Data Streams",
+  "version_evaluated": "current",
+  "homepage": "https://aws.amazon.com/kinesis/data-streams/",
+  "repo_url": "https://github.com/aws/aws-sdk-js-v3",
+  "category": "data-streaming",
+  "subcategories": ["event-ingestion", "real-time-analytics", "message-queuing"],
+  "tags": ["aws", "streaming", "real-time", "event-driven", "kinesis", "data-pipeline", "iot", "log-aggregation"],
+  "what_it_does": "Fully managed real-time data streaming service that ingests, buffers, and processes large streams of data records. Data is organized into shards, each capable of ingesting up to 1 MB/s or 1000 records/s. Consumers can read from streams using the Kinesis Client Library, AWS Lambda triggers, or direct GetRecords API calls.",
+  "use_cases": [
+    "Real-time log and event ingestion from applications, servers, or IoT devices",
+    "Feeding clickstream data into analytics pipelines (e.g., to Redshift or S3 via Firehose)",
+    "Triggering Lambda functions on each incoming record for stream processing",
+    "Fan-out architectures where multiple consumers read the same stream independently",
+    "Change data capture (CDC) pipelines from databases into downstream systems"
+  ],
+  "not_for": [
+    "Simple task queues where SQS is cheaper and simpler",
+    "Low-throughput scenarios where the per-shard cost is not justified",
+    "Long-term message storage beyond the 7-day maximum retention window"
+  ],
+  "best_when": "You need sub-second latency ingestion at high throughput (millions of events/sec) and multiple independent consumers must read the same data, or when deep AWS ecosystem integration (Lambda, Firehose, Analytics) is already in use.",
+  "avoid_when": "Your workload is low-volume (<1000 events/min), you need message acknowledgement semantics, or cost is a primary concern — SQS or EventBridge will be cheaper and simpler.",
+  "alternatives": ["apache-kafka", "aws-sqs", "aws-eventbridge", "google-pubsub", "azure-event-hubs", "confluent-kafka"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["Python", "JavaScript", "TypeScript", "Java", "Go", "Ruby", "PHP", "C++", ".NET"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["aws-sigv4", "iam-roles", "sts-assume-role"],
+    "oauth": false,
+    "scopes": true,
+    "notes": "All requests signed with AWS Signature Version 4. IAM policies control access at stream, shard, and action level. Use IAM roles (not access keys) in production. Supports resource-based policies on streams."
+  },
+  "pricing": {
+    "model": "pay-as-you-go",
+    "free_tier_exists": false,
+    "free_tier_limits": "No free tier for Kinesis Data Streams",
+    "paid_tiers": "On-demand mode: $0.08/GB ingested + $0.04/GB retrieved. Provisioned: $0.015/shard-hour. Enhanced fan-out: $0.015/consumer-shard-hour + $0.013/GB retrieved.",
+    "requires_credit_card": true,
+    "notes": "On-demand mode scales automatically but costs more per GB. Provisioned requires capacity planning. Costs escalate quickly with many consumers using enhanced fan-out."
+  },
+  "performance": {
+    "latency_p50_ms": 70,
+    "latency_p99_ms": 300,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "Per shard: 1 MB/s or 1000 records/s ingestion; 2 MB/s read. GetRecords returns up to 10MB or 10000 records per call, max 5 GetRecords calls/sec/shard. PutRecords: up to 500 records per request.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": true,
+    "domain_verification": false,
+    "data_residency": ["US", "EU", "APAC", "multiple AWS regions"],
+    "compliance": ["SOC1", "SOC2", "SOC3", "PCI-DSS", "HIPAA-eligible", "ISO-27001", "FedRAMP"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 88,
+    "error_message_quality": 78,
+    "error_message_notes": "AWS SDK errors are strongly typed (ProvisionedThroughputExceededException, ResourceNotFoundException) but stack traces from KCL can be verbose and hard to parse programmatically. HTTP error bodies are structured JSON.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "PutRecord and PutRecords have no built-in deduplication. Records may be duplicated on retry. Sequence numbers are assigned by Kinesis and cannot be specified. Use SequenceNumberForOrdering for ordering guarantees only.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "ProvisionedThroughputExceededException is silent at the record level in PutRecords — the HTTP response is 200 but individual record entries in the response have ErrorCode fields that must be checked and retried manually",
+      "GetShardIterator expires after 5 minutes; if an agent holds a shard iterator and pauses (e.g. waiting for LLM output), the iterator will be invalid and GetRecords will return ExpiredIteratorException",
+      "Shard splits and merges change the shard topology; agents enumerating shards via ListShards must handle CLOSED shards and follow child-shard pointers or they will stop consuming data",
+      "Enhanced fan-out (RegisterStreamConsumer) requires a separate ARN per consumer and takes up to 10 seconds to activate; agents that create and immediately read will get ResourceInUseException or no data",
+      "PutRecords partial failure: a 200 response does NOT mean all records succeeded — FailedRecordCount in the response body must be checked; unread failures are silently dropped"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 88,
+    "error_handling_score": 75,
+    "auth_complexity_score": 70,
+    "rate_limit_clarity_score": 82
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 92,
+    "scope_granularity": 90,
+    "dependency_hygiene": 88,
+    "secret_handling": 88,
+    "security_notes": "All data encrypted at rest with AWS KMS (SSE). TLS enforced on all endpoints. IAM provides fine-grained action-level policies (kinesis:PutRecord, kinesis:GetRecords, etc). VPC endpoints available for private connectivity."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 90,
+    "version_stability": 88,
+    "breaking_changes_history": 85,
+    "error_recovery": 80
+  }
+}

@@ -1,0 +1,105 @@
+{
+  "id": "backblaze-b2-api",
+  "name": "Backblaze B2 Cloud Storage API",
+  "version_evaluated": "current",
+  "homepage": "https://www.backblaze.com/b2/docs/",
+  "repo_url": null,
+  "category": "cloud-storage",
+  "subcategories": ["object-storage", "file-storage", "budget-storage"],
+  "tags": ["backblaze", "b2", "object-storage", "s3-compatible", "cheap-storage", "cdn"],
+  "what_it_does": "Backblaze B2 is an S3-compatible object storage service at 1/4 the price of AWS S3 — store files, generate download URLs, and serve content via CDN with 10 GB free storage and $0.006/GB egress.",
+  "use_cases": [
+    "Budget-friendly file storage for agent-generated content (images, documents, exports)",
+    "Backup storage for agent-produced artifacts that don't need AWS S3's full feature set",
+    "Serving static assets via Cloudflare CDN integration (Backblaze + Cloudflare = free egress)",
+    "Long-term archival of agent output with lower cost than Glacier alternatives",
+    "S3-compatible drop-in replacement for teams wanting to reduce storage costs"
+  ],
+  "not_for": [
+    "Applications requiring AWS-specific features (SQS triggers, Lambda events, IAM fine-grained control)",
+    "Teams with strict compliance requirements (B2 has fewer compliance certifications than S3)",
+    "High-frequency small object operations (S3 API overhead is real for millions of tiny files)"
+  ],
+  "best_when": "You need cheap, reliable object storage with S3 compatibility and don't require AWS-specific integrations — especially for static assets served via Cloudflare.",
+  "avoid_when": "You need AWS S3's full ecosystem (Lambda triggers, SQS, IAM per-prefix access, Storage Lens) or strict compliance certifications.",
+  "alternatives": ["aws-s3-api", "cloudflare-r2", "google-cloud-storage-api", "wasabi-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "node", "go", "java"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["api_key"],
+    "oauth": false,
+    "scopes": true,
+    "notes": "Application Key (accountId + applicationKey). Master Application Key has full access; restricted Application Keys can be scoped to specific buckets, name prefixes, and operations. Use restricted keys for agents."
+  },
+  "pricing": {
+    "model": "pay-as-you-go",
+    "free_tier_exists": true,
+    "free_tier_limits": "10 GB storage free; 1 GB/day download free",
+    "paid_tiers": "$0.006/GB/month storage; $0.01/GB egress (free with Cloudflare). API calls: $0.004 per 10K Class B ops.",
+    "requires_credit_card": false,
+    "notes": "Significantly cheaper than S3. Pairing with Cloudflare eliminates egress costs entirely. No minimum spend."
+  },
+  "performance": {
+    "latency_p50_ms": 200,
+    "latency_p99_ms": 1000,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "1,000 file uploads/day on free tier; limits increase on paid",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["US", "EU"],
+    "compliance": ["GDPR"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 82,
+    "error_message_quality": 78,
+    "error_message_notes": "Native B2 API errors with status, code, and message. S3-compatible API returns S3-format XML errors. Auth token expires in 24 hours — agents must refresh. Large file uploads use multipart with separate part tracking.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Uploading same filename overwrites previous version (versioning optional). Large file uploads use unique fileId — partial uploads tracked separately. No explicit idempotency keys.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Authorization tokens from b2_authorize_account expire in 24 hours — agents must implement token refresh",
+      "Large file uploads (>100MB) require 3-step process: startLargeFile → uploadPart (per 5MB+ chunk) → finishLargeFile",
+      "B2 native API and S3-compatible API have different endpoint URLs and auth — don't mix them in same codebase",
+      "File versioning is disabled by default — overwriting a file permanently deletes the old version unless versioning enabled",
+      "Download URL for private files requires generating signed URLs with b2_get_download_authorization — not intuitive first time"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 82,
+    "error_handling_score": 78,
+    "auth_complexity_score": 82,
+    "rate_limit_clarity_score": 75
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 80,
+    "scope_granularity": 82,
+    "dependency_hygiene": 82,
+    "secret_handling": 80,
+    "security_notes": "Restricted application keys for bucket-scoped access. Server-side encryption available. No IAM or fine-grained attribute-level control like S3. GDPR compliant with EU region option. HTTPS enforced."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 85,
+    "version_stability": 85,
+    "breaking_changes_history": 85,
+    "error_recovery": 80
+  }
+}

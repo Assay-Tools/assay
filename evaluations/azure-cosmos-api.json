@@ -1,0 +1,105 @@
+{
+  "id": "azure-cosmos-api",
+  "name": "Azure Cosmos DB API",
+  "version_evaluated": "current",
+  "homepage": "https://azure.microsoft.com/en-us/products/cosmos-db/",
+  "repo_url": "https://github.com/Azure/azure-sdk-for-python",
+  "category": "database",
+  "subcategories": ["nosql", "globally-distributed", "document-store", "multi-model"],
+  "tags": ["azure", "nosql", "cosmos", "globally-distributed", "multi-region", "document", "key-value", "graph", "column-family"],
+  "what_it_does": "Fully managed, globally distributed NoSQL and relational database service from Microsoft Azure. Supports multiple APIs (NoSQL/Core, MongoDB, Cassandra, Gremlin, Table) over the same underlying engine. Offers single-digit millisecond reads, configurable consistency levels (5 levels from eventual to strong), and turnkey multi-region writes with automatic failover.",
+  "use_cases": [
+    "Global web and mobile applications requiring low-latency reads across multiple geographic regions",
+    "IoT telemetry storage with high ingestion rates and time-series query patterns",
+    "User profile and session stores where per-document partitioning by userId is natural",
+    "E-commerce catalogs and order management requiring high availability and geo-replication",
+    "Multi-tenant SaaS applications using container-per-tenant or partition-key isolation"
+  ],
+  "not_for": [
+    "Complex multi-table relational joins — use Azure SQL or PostgreSQL instead",
+    "Analytics workloads over large datasets — use Synapse or Databricks",
+    "Cost-sensitive projects with unpredictable access patterns that could spike RU consumption"
+  ],
+  "best_when": "Your application is globally distributed, read-heavy, and needs predictable single-digit millisecond latency at any scale, especially when already in the Azure ecosystem.",
+  "avoid_when": "Your data is highly relational, you need complex transactions across multiple containers, or you need cost certainty — RU-based billing is hard to predict during development.",
+  "alternatives": ["mongodb-atlas", "aws-dynamodb", "google-firestore", "fauna", "couchbase"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["Python", "JavaScript", "TypeScript", "Java", ".NET", "Go"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["primary-key", "resource-tokens", "azure-active-directory", "managed-identity"],
+    "oauth": true,
+    "scopes": true,
+    "notes": "Primary/secondary master keys grant full access. Resource tokens are scoped to a specific user and permission. AAD/Managed Identity is preferred for production. RBAC roles (Cosmos DB Built-in Data Reader, etc.) available since 2021 for NoSQL API."
+  },
+  "pricing": {
+    "model": "pay-as-you-go",
+    "free_tier_exists": true,
+    "free_tier_limits": "1000 RU/s provisioned throughput and 25 GB storage free per account (one free tier account per subscription)",
+    "paid_tiers": "Provisioned: from $0.008/RU/hour (manual) or $0.012/RU/hour (autoscale). Serverless: $0.25/million RUs + $0.25/GB. Multi-region writes multiply cost by number of regions.",
+    "requires_credit_card": true,
+    "notes": "RU (Request Unit) consumption is notoriously difficult to predict. A single 1KB document read costs 1 RU; a cross-partition query can cost hundreds. Monitor RU consumption carefully before setting throughput limits."
+  },
+  "performance": {
+    "latency_p50_ms": 5,
+    "latency_p99_ms": 15,
+    "uptime_sla_percent": 99.999,
+    "rate_limits": "Rate limiting returns HTTP 429 (TooManyRequests) when RU/s limit is exceeded. The x-ms-retry-after-ms header specifies the retry delay. Provisioned throughput is enforced per partition key range.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": true,
+    "domain_verification": false,
+    "data_residency": ["US", "EU", "APAC", "50+ Azure regions"],
+    "compliance": ["SOC1", "SOC2", "SOC3", "PCI-DSS", "HIPAA", "ISO-27001", "FedRAMP-High"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 80,
+    "error_message_notes": "HTTP 429 responses include x-ms-retry-after-ms header which is well-documented and actionable. Document-not-found is 404. Partition key errors are descriptive. Cross-partition query cost errors include the actual RU consumed.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Upsert operations (createOrReplace) are idempotent by document id+partition key. Point reads and replaces on a known id are safe to retry. No server-side deduplication token. ETag-based optimistic concurrency available for updates.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Every query — including simple point reads — must specify the partition key or it becomes a cross-partition fan-out, which is dramatically more expensive in RUs and slower; agents building queries dynamically must always include the partition key predicate",
+      "The free-tier account limit of 1000 RU/s is easy to exhaust with a few concurrent agent operations; 429 errors will silently throttle all operations and the retry-after window can be several seconds",
+      "Consistency level is set at account creation and defaults to Session; agents that switch to reading from a different region or use a new client instance may observe stale data if they don't understand session tokens",
+      "Container-level throughput vs database-level throughput sharing is a config choice made at creation time and cannot be changed; agents provisioning containers must specify the right mode upfront",
+      "The MongoDB API compatibility layer does not support all MongoDB operators (e.g. $lookup for joins, $where); agents using the MongoDB wire protocol against Cosmos must validate that specific operators work before relying on them"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 80,
+    "auth_complexity_score": 72,
+    "rate_limit_clarity_score": 85
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 90,
+    "scope_granularity": 85,
+    "dependency_hygiene": 87,
+    "secret_handling": 85,
+    "security_notes": "Data encrypted at rest with Microsoft-managed or customer-managed keys. TLS 1.2+ enforced. IP firewall and virtual network service endpoints supported. Private Link available. RBAC with fine-grained data-plane roles."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 95,
+    "version_stability": 85,
+    "breaking_changes_history": 82,
+    "error_recovery": 85
+  }
+}

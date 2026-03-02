@@ -1,0 +1,109 @@
+{
+  "id": "jira-cloud-api",
+  "name": "Jira Cloud REST API v3",
+  "version_evaluated": "v3",
+  "homepage": "https://developer.atlassian.com/cloud/jira/platform/rest/v3/",
+  "repo_url": null,
+  "category": "project-management",
+  "subcategories": ["issue-tracking", "agile", "software-development", "enterprise"],
+  "tags": ["jira", "atlassian", "jira-cloud", "issue-tracking", "agile", "scrum", "kanban", "rest-api", "v3", "oauth2", "enterprise"],
+  "what_it_does": "Jira Cloud REST API v3 — the current cloud-native version of Atlassian's Jira API with Atlassian Document Format (ADF) for content, improved pagination, and granular OAuth2 scopes. Used to create, query, and automate issue tracking, sprint management, and workflow transitions in Jira Cloud.",
+  "use_cases": [
+    "Creating issues and sub-tasks from agent-detected bugs, alerts, or support escalations",
+    "Querying issues using JQL (Jira Query Language) for sprint health and backlog analysis",
+    "Transitioning issues through workflow states as part of automated CI/CD pipelines",
+    "Building AI triage agents that classify, label, and assign incoming Jira issues",
+    "Generating sprint velocity reports and engineering metrics from Jira issue data"
+  ],
+  "not_for": [
+    "Jira Data Center or Jira Server (v3 is cloud-only; DC uses a different API base)",
+    "Teams not on Jira Cloud (migration from DC to Cloud required to use v3)",
+    "Simple task management use cases (Jira complexity is overkill)",
+    "High-frequency operations exceeding Jira's rate limits"
+  ],
+  "best_when": "Your organization runs Jira Cloud and agents need to programmatically manage issues, automate triage, or integrate sprint data into engineering workflows.",
+  "avoid_when": "You're on Jira Data Center/Server, or your use case doesn't justify Atlassian's complexity and pricing.",
+  "alternatives": ["jira-api", "linear-api", "shortcut-api", "height-app-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": true,
+    "mcp_server_url": "https://github.com/sooperset/mcp-atlassian",
+    "has_sdk": true,
+    "sdk_languages": ["python", "java", "node"],
+    "openapi_spec_url": "https://developer.atlassian.com/cloud/jira/platform/swagger-v3.v3.json",
+    "webhooks": true
+  },
+  "auth": {
+    "methods": ["oauth2", "api_key"],
+    "oauth": true,
+    "scopes": true,
+    "notes": "API tokens (HTTP Basic with email + token) for server-to-server agent use. OAuth 2.0 (3LO) for user-context integrations with fine-grained scopes (read:issue:jira, write:issue:jira, etc.). For agents, API token approach is simpler. OAuth is required for marketplace apps. Scopes must be explicitly requested — least-privilege recommended."
+  },
+  "pricing": {
+    "model": "freemium",
+    "free_tier_exists": true,
+    "free_tier_limits": "Free plan: up to 10 users, 2GB storage, community support, full API access",
+    "paid_tiers": "Standard $8.15/user/month, Premium $16/user/month, Enterprise custom",
+    "requires_credit_card": false,
+    "notes": "API access on all plans including free. Free plan is functional for small teams. Premium unlocks advanced roadmaps, automation rules, and increased storage. Enterprise adds SAML SSO and data residency controls."
+  },
+  "performance": {
+    "latency_p50_ms": 280,
+    "latency_p99_ms": 1400,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "Per-user rate limits; typically 100-500 requests/minute depending on endpoint; burst limits can be lower; 429 responses include Retry-After header",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["US", "EU", "APAC"],
+    "compliance": ["SOC2", "ISO27001", "GDPR", "FedRAMP"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": 74,
+    "mcp_security_score": 78,
+    "documentation_accuracy": 82,
+    "error_message_quality": 74,
+    "error_message_notes": "V3 errors return errorMessages array and errors object with field-level details. JQL parse errors are descriptive. Transition errors can be opaque when workflow conditions block transitions. Some 403 errors don't indicate which permission is missing.",
+    "idempotency_support": "none",
+    "idempotency_notes": "No idempotency keys for issue creation. Agents must search via JQL for existing issues before creating to prevent duplicates. Transitions are idempotent if the issue is already in the target state.",
+    "pagination_style": "offset",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "V3 uses Atlassian Document Format (ADF) for description fields — not plain text or Markdown; agents must construct ADF JSON objects for rich content",
+      "Custom field IDs are workspace-specific (customfield_10001) and must be discovered via the fields endpoint before use — no portable field names",
+      "Workflow transitions require knowing the transition ID, not the state name — must call GET /issue/{key}/transitions before transitioning",
+      "JQL syntax errors return 400 — agents dynamically building JQL must validate or use structured query builders",
+      "Issue key format (PROJECT-123) requires knowing the project key in advance — project keys are per-workspace and not predictable",
+      "Rate limits are per-user per-IP and poorly documented — unexpected 429s can occur under concurrent agent load",
+      "Jira Cloud v3 API differs from v2 and from Data Center API — code targeting one may not work on the other without changes",
+      "Pagination uses offset (startAt + maxResults) capped at 100 per page — large result sets require multiple sequential requests"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 55,
+    "api_doc_score": 80,
+    "error_handling_score": 72,
+    "auth_complexity_score": 68,
+    "rate_limit_clarity_score": 58
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 82,
+    "scope_granularity": 85,
+    "dependency_hygiene": 80,
+    "secret_handling": 82,
+    "security_notes": "HTTPS enforced across all Atlassian Cloud. OAuth2 3LO supports fine-grained scopes for least-privilege access. API tokens tied to individual user accounts — token leakage exposes all that user's permissions. Service accounts recommended for agents. FedRAMP Moderate authorization available on Enterprise tier."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 82,
+    "breaking_changes_history": 78,
+    "error_recovery": 78
+  }
+}

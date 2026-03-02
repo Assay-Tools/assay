@@ -1,0 +1,105 @@
+{
+  "id": "heroku-api",
+  "name": "Heroku Platform API",
+  "version_evaluated": "current",
+  "homepage": "https://www.heroku.com/",
+  "repo_url": "https://github.com/heroku/heroku.rb",
+  "category": "platform-as-a-service",
+  "subcategories": ["app-deployment", "dyno-management", "add-ons", "pipelines"],
+  "tags": ["heroku", "paas", "deployment", "dynos", "buildpacks", "salesforce", "pipelines", "review-apps"],
+  "what_it_does": "Platform-as-a-Service (PaaS) that abstracts infrastructure management for web applications. The REST API exposes full programmatic control over apps, dynos (compute units), config vars, add-ons, pipelines, review apps, domains, SSL, and releases. Supports deployment via Git push, container registry, or direct slug upload.",
+  "use_cases": [
+    "Programmatic creation and teardown of ephemeral preview environments for each pull request",
+    "Automated deployment pipelines that promote slugs from staging to production without rebuild",
+    "Scaling dyno counts and dyno types in response to traffic metrics from a monitoring agent",
+    "Managing config vars (environment variables) for multiple apps in a CI/CD context",
+    "Querying release history and rolling back to a previous release via API"
+  ],
+  "not_for": [
+    "High-scale, cost-optimized infrastructure where EC2 or GKE gives more control per dollar",
+    "Persistent stateful workloads — Heroku dynos are ephemeral and restart frequently",
+    "GPU or specialized hardware workloads"
+  ],
+  "best_when": "You want a simple deployment target with minimal ops overhead, your team is small, and you value fast iteration over infrastructure control. API is excellent for automating review apps and pipeline promotions.",
+  "avoid_when": "Your app requires persistent local disk, you need custom networking (VPCs, private links beyond Heroku Private Spaces), or cost at scale exceeds what AWS/GCP would charge.",
+  "alternatives": ["railway", "render", "fly-io", "aws-elastic-beanstalk", "google-app-engine", "azure-app-service"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["Ruby", "Python", "JavaScript", "Go", "Java"],
+    "openapi_spec_url": "https://devcenter.heroku.com/articles/platform-api-reference",
+    "webhooks": true
+  },
+  "auth": {
+    "methods": ["api-token", "oauth2"],
+    "oauth": true,
+    "scopes": true,
+    "notes": "OAuth2 tokens are recommended for integrations. Direct API tokens (from account settings or heroku auth:token) work for personal use. OAuth apps can request scopes: global, read, write, read-protected, write-protected, identity. Tokens sent as Bearer in Authorization header."
+  },
+  "pricing": {
+    "model": "subscription",
+    "free_tier_exists": false,
+    "free_tier_limits": "Free dynos were removed in November 2022. Minimum is Eco dynos at $5/month.",
+    "paid_tiers": "Eco: $5/mo per app. Basic: $7/mo. Standard-1X: $25/mo. Standard-2X: $50/mo. Performance-M: $250/mo. Performance-L: $500/mo. Add-ons priced separately.",
+    "requires_credit_card": true,
+    "notes": "Pricing increased significantly in 2022-2024 as part of the Salesforce-era repositioning. Review app dynos count toward billing. Heroku Postgres and other add-ons add substantial cost."
+  },
+  "performance": {
+    "latency_p50_ms": 150,
+    "latency_p99_ms": 800,
+    "uptime_sla_percent": 99.95,
+    "rate_limits": "Platform API: 4500 requests per hour per token. Rate limit headers: RateLimit-Remaining, RateLimit-Reset. Deployment operations (builds, releases) are queued and may take 30-120 seconds.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": true,
+    "domain_verification": false,
+    "data_residency": ["US", "EU"],
+    "compliance": ["SOC2", "ISO-27001", "PCI-DSS"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 82,
+    "error_message_quality": 78,
+    "error_message_notes": "API errors return structured JSON with id and message fields. Common errors (app-not-found, rate-limit-exceeded) are well-described. Build failure messages surface the build log URL rather than inline details, requiring a second API call to fetch.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Most create operations are not idempotent — creating an app with the same name returns 422 Conflict. Config var updates (PATCH) are idempotent. Release creation via build is idempotent if the same source blob is used but still creates a new release record.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Build status is asynchronous — POST /apps/{app}/builds returns immediately with a build object whose status is 'pending'; agents must poll GET /apps/{app}/builds/{build_id} until status is 'succeeded' or 'failed', which can take 1-5 minutes",
+      "Config var updates (PATCH /apps/{app}/config-vars) replace only the keys provided but you must GET current vars first if you want to preserve existing ones; sending only the new key DOES NOT delete others, but sending an empty object will delete nothing — passing null as a value deletes that specific key",
+      "Dynos restart automatically after 24 hours (daily cycling) and on any config var change or new release; agents that assume dyno persistence across restarts will break — use add-ons (Redis, Postgres) for all state",
+      "Pipeline promotions copy the slug from source to target but do NOT re-run release phase or post-deploy hooks automatically in all configurations; agents orchestrating pipeline promotions must verify the release phase completed",
+      "Rate limit of 4500 req/hr is per OAuth token, not per app; an agent managing many apps with a single token will exhaust the budget quickly during bulk operations — parallelize with caution or use separate tokens per pipeline"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 82,
+    "error_handling_score": 78,
+    "auth_complexity_score": 80,
+    "rate_limit_clarity_score": 85
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 82,
+    "scope_granularity": 78,
+    "dependency_hygiene": 80,
+    "secret_handling": 80,
+    "security_notes": "Config vars (environment variables) are encrypted at rest and only exposed via authenticated API calls or dyno environment — they do not appear in build logs. TLS enforced. OAuth scopes limit token blast radius. Heroku Private Spaces provide network isolation for enterprise."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 85,
+    "version_stability": 82,
+    "breaking_changes_history": 78,
+    "error_recovery": 78
+  }
+}
