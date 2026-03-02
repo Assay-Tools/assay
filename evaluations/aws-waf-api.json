@@ -1,0 +1,105 @@
+{
+  "id": "aws-waf-api",
+  "name": "AWS WAF",
+  "version_evaluated": "v2",
+  "homepage": "https://aws.amazon.com/waf",
+  "repo_url": null,
+  "category": "infrastructure",
+  "subcategories": ["security", "waf", "rate-limiting", "bot-protection"],
+  "tags": ["aws", "waf", "web-application-firewall", "rate-limiting", "ddos", "bot-protection"],
+  "what_it_does": "AWS Web Application Firewall for protecting agent API endpoints from SQL injection, XSS, bot traffic, and rate limiting attacks via rule groups and IP reputation lists.",
+  "use_cases": [
+    "Rate limiting agent API endpoints to prevent abuse via WAF rate-based rules",
+    "Blocking known bad IP ranges and bot traffic from accessing agent services",
+    "Getting WAF sampled requests and CloudWatch metrics for agent security monitoring",
+    "Dynamically updating IP block lists via API when agents detect malicious patterns",
+    "Integrating WAF with CloudFront/ALB to protect agent APIs at the edge layer"
+  ],
+  "not_for": [
+    "Application-layer security testing — WAF is runtime protection, not SAST/DAST",
+    "Protecting non-AWS endpoints without Global Accelerator",
+    "Complex custom firewall rules requiring stateful inspection (use Palo Alto or similar NGFW)"
+  ],
+  "best_when": "Your agent APIs are behind AWS CloudFront, ALB, or API Gateway and you need managed WAF rules with rate limiting and bot protection.",
+  "avoid_when": "You're not on AWS or need advanced application layer security that goes beyond simple rule-based pattern matching.",
+  "alternatives": ["cloudflare-workers-api", "fastly-api", "imperva-api", "f5-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "node", "java", "go", "dotnet", "ruby", "php"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["service_account"],
+    "oauth": false,
+    "scopes": true,
+    "notes": "AWS IAM with fine-grained WAF permissions (wafv2:GetWebACL, wafv2:UpdateWebACL, wafv2:GetSampledRequests). No user-level auth — IAM only."
+  },
+  "pricing": {
+    "model": "usage_based",
+    "free_tier_exists": false,
+    "free_tier_limits": "No free tier",
+    "paid_tiers": "$5/Web ACL/month; $1/rule/month; $0.60/million requests processed",
+    "requires_credit_card": true,
+    "notes": "Managed rule groups (AWS Managed Rules, Bot Control) add $10-20/month per rule group. Bot Control adds $10/month + $1/million requests."
+  },
+  "performance": {
+    "latency_p50_ms": 1,
+    "latency_p99_ms": 5,
+    "uptime_sla_percent": 99.99,
+    "rate_limits": "WAF API: 5 requests/second for mutating operations",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": true,
+    "domain_verification": false,
+    "data_residency": ["all_aws_regions"],
+    "compliance": ["SOC2", "ISO27001", "HIPAA", "PCI_DSS", "FedRAMP"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 82,
+    "error_message_quality": 80,
+    "error_message_notes": "Standard AWS error codes; WAFUnavailableEntityException for concurrent modification conflicts",
+    "idempotency_support": "partial",
+    "idempotency_notes": "UpdateWebACL requires lock token from GetWebACL to prevent concurrent modification — optimistic locking pattern",
+    "pagination_style": "token",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "WAF v1 and v2 (WAFV2) are completely separate services — WAFV2 is current; classic WAF is deprecated",
+      "UpdateWebACL requires lock token from GetWebACL — must fetch current state before each update, cannot batch changes",
+      "SCOPE parameter (CLOUDFRONT vs REGIONAL) determines where Web ACL can be applied — CloudFront ACLs must be in us-east-1",
+      "Sampled requests are available for 3 hours only — implement regular polling for security agents needing historical data",
+      "Rule priority matters — rules evaluated in ascending priority order; overlapping rules may cause unexpected blocks"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 82,
+    "error_handling_score": 80,
+    "auth_complexity_score": 80,
+    "rate_limit_clarity_score": 80
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 92,
+    "scope_granularity": 92,
+    "dependency_hygiene": 88,
+    "secret_handling": 88,
+    "security_notes": "IAM-only auth with fine-grained action-level permissions. WAF itself is the security control — no external auth surface."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 93,
+    "version_stability": 88,
+    "breaking_changes_history": 85,
+    "error_recovery": 88
+  }
+}
