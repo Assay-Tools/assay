@@ -1,0 +1,105 @@
+{
+  "id": "mongodb-atlas-api",
+  "name": "MongoDB Atlas Administration API",
+  "version_evaluated": "current",
+  "homepage": "https://www.mongodb.com/atlas",
+  "repo_url": null,
+  "category": "developer-tools",
+  "subcategories": ["database", "cloud-infrastructure", "search"],
+  "tags": ["mongodb", "nosql", "document-database", "atlas", "cloud", "search", "data-api"],
+  "what_it_does": "Provides programmatic management of MongoDB Atlas clusters, databases, and search indexes, plus a JSON-based Data API for CRUD operations without requiring a MongoDB driver.",
+  "use_cases": [
+    "Provision and scale Atlas clusters in response to load (e.g., upgrade tier or add nodes autonomously)",
+    "Create and manage Atlas Search indexes for full-text and vector search without a Mongo driver",
+    "Perform CRUD operations via the Data API from serverless or edge environments that cannot use a native driver",
+    "Automate database user creation and IP access list management during environment provisioning workflows",
+    "Monitor cluster metrics and trigger alerts or scaling actions based on CPU/memory/storage thresholds"
+  ],
+  "not_for": [
+    "High-throughput, low-latency OLTP queries — use the native MongoDB driver over a direct connection instead",
+    "Complex aggregation pipelines or transactions — the Data API does not support full MongoDB query language",
+    "Self-hosted or on-premises MongoDB deployments — this API is Atlas (cloud) only"
+  ],
+  "best_when": "An agent needs to manage Atlas infrastructure lifecycle (clusters, users, network access) or perform simple CRUD without a native driver in a restricted runtime.",
+  "avoid_when": "The agent needs full MongoDB query capabilities, transactions, or sub-100ms latency — use a native driver with a direct connection string instead.",
+  "alternatives": ["cockroachdb-api", "planetscale-api", "supabase-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "javascript", "go", "java"],
+    "openapi_spec_url": "https://www.mongodb.com/docs/atlas/reference/api-resources-spec/",
+    "webhooks": true
+  },
+  "auth": {
+    "methods": ["digest_auth"],
+    "oauth": false,
+    "scopes": true,
+    "notes": "Atlas Administration API uses HTTP Digest Authentication with a public key (username) and private key (password) pair generated in the Atlas UI. The Data API uses a separate API key passed as an apiKey header or Bearer token. Programmatic API keys can be scoped to organization or project level with fine-grained roles (e.g., Project Data Access Read Only)."
+  },
+  "pricing": {
+    "model": "usage_based",
+    "free_tier_exists": true,
+    "free_tier_limits": "M0 free cluster: 512 MB storage, shared vCPU/RAM, no SLA. Atlas Data API calls are included but subject to cluster tier limits.",
+    "paid_tiers": "M10 dedicated from ~$0.08/hr; M30+ for production. Serverless instances billed per operation (RPUs/WPUs). Additional costs for backup, data transfer, and Search.",
+    "requires_credit_card": false,
+    "notes": "Free tier (M0) is available without a credit card. Upgrading to dedicated tiers requires payment method. Data API and Search are available on all paid tiers; Data API is also available on M0 with limits."
+  },
+  "performance": {
+    "latency_p50_ms": 80,
+    "latency_p99_ms": 500,
+    "uptime_sla_percent": 99.995,
+    "rate_limits": "Administration API: varies by endpoint, typically 100 req/min for cluster management operations. Data API: rate limits tied to cluster tier; M10 allows higher throughput than M0. No published global req/min ceiling for Data API.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["US", "EU", "AP"],
+    "compliance": ["SOC2", "ISO27001", "HIPAA", "PCI-DSS", "GDPR"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 83,
+    "error_message_quality": 78,
+    "error_message_notes": "Administration API errors return structured JSON with errorCode and detail fields, but error codes are not always documented. Data API errors can be less descriptive, especially for schema validation failures on insert.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Cluster creation and modification operations are not idempotent by default; re-sending a create request for an existing cluster name returns a conflict error. Data API insertOne is not idempotent unless the agent manages _id fields explicitly. Cluster pausing/resuming is effectively idempotent.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Digest authentication requires a two-step HTTP handshake (challenge-response); most HTTP clients need explicit Digest auth support — standard Bearer token auth does not work for the Administration API.",
+      "The Atlas Data API is a separate service with a different base URL and auth scheme from the Administration API; agents that conflate the two will get 401 errors on every request.",
+      "Cluster modification operations (e.g., scaling) are asynchronous and can take 5-30 minutes; agents must poll the cluster stateName field until it returns 'IDLE' before issuing the next modification.",
+      "The Data API does not support all MongoDB operators — complex aggregations, $lookup, or transactions will return unsupported operation errors that are easy to misinterpret as auth failures.",
+      "IP access list entries are required for all cluster connections; an agent provisioning a new environment must also add its egress IP or CIDR to the project access list, or all connection attempts will be silently dropped."
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 83,
+    "error_handling_score": 78,
+    "auth_complexity_score": 65,
+    "rate_limit_clarity_score": 68
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 85,
+    "scope_granularity": 83,
+    "dependency_hygiene": 85,
+    "secret_handling": 80,
+    "security_notes": "All API traffic is TLS-enforced. Programmatic API keys support role-based scoping at org and project level. Private keys are shown only once at creation and must be stored securely by the agent. Network access lists provide an additional layer of IP-based restriction. BYOK (Bring Your Own Key) encryption available on M10+ clusters."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 92,
+    "version_stability": 82,
+    "breaking_changes_history": 78,
+    "error_recovery": 80
+  }
+}
