@@ -1,0 +1,105 @@
+{
+  "id": "cube-js-api",
+  "name": "Cube",
+  "version_evaluated": "0.36.x",
+  "homepage": "https://cube.dev",
+  "repo_url": "https://github.com/cube-js/cube",
+  "category": "data-engineering",
+  "subcategories": ["semantic-layer", "headless-bi", "data-api"],
+  "tags": ["cube", "semantic-layer", "headless-bi", "rest-api", "graphql", "sql-api", "data-warehouse", "metrics"],
+  "what_it_does": "Semantic layer and headless BI platform that sits between data warehouses and agent/app consumers, exposing curated business metrics via REST, GraphQL, and SQL APIs.",
+  "use_cases": [
+    "Agent queries consistent business metrics (MRR, DAU, conversion rate) through Cube's REST API without writing warehouse SQL directly",
+    "Build natural language to data pipelines where an LLM generates Cube query JSON from user questions and executes them via the REST API",
+    "Cache expensive warehouse aggregations in Cube's pre-aggregation layer so agent metric queries return in milliseconds instead of seconds",
+    "Expose a single GraphQL metrics API to multiple agent frontends so each agent gets the same governed metric definitions without data drift",
+    "Implement row-level security for multi-tenant agent deployments using Cube's security context to filter data by tenant ID at query time"
+  ],
+  "not_for": [
+    "Simple single-warehouse queries where adding a semantic layer abstraction creates unnecessary complexity and latency",
+    "Streaming or real-time event data requiring sub-100ms freshness — Cube's pre-aggregation model is optimized for batch refresh cycles",
+    "Teams without a data warehouse (Snowflake, BigQuery, Redshift, etc.) — Cube requires a supported warehouse as its data source"
+  ],
+  "best_when": "Serving multiple agent consumers that need consistent, governed business metrics from a data warehouse without duplicating metric logic in each consumer.",
+  "avoid_when": "You need real-time row-level data access — Cube's pre-aggregation and caching model trades freshness for query speed.",
+  "alternatives": ["lightdash-api", "evidence-dev-api", "dbt-semantic-layer-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": true,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["javascript", "node", "python"],
+    "openapi_spec_url": "https://cube.dev/docs/product/apis-integrations/rest-api/reference",
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["jwt", "api_key"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "JWT tokens carry security context (tenant ID, user role) used for row-level security. API secret configurable via CUBEJS_API_SECRET env var. Cube Cloud adds token management UI."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Unlimited self-hosted; Cube Cloud free Developer tier for 1 deployment",
+    "paid_tiers": "Cube Cloud Starter from $99/mo; Enterprise with custom pricing for SLAs and support",
+    "requires_credit_card": false,
+    "notes": "Apache 2.0 open source for self-hosted. Cube Cloud is the managed option with monitoring, CI/CD integration, and enterprise support."
+  },
+  "performance": {
+    "latency_p50_ms": 50,
+    "latency_p99_ms": 500,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "Self-hosted — limited only by deployment resources; Cube Cloud limits vary by tier",
+    "data_source": "vendor_published"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self_hosted", "cube_cloud"],
+    "compliance": ["SOC2", "HIPAA"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 86,
+    "error_message_quality": 82,
+    "error_message_notes": "REST API returns structured JSON errors with user_message and internal_message fields; measure/dimension name errors identify the invalid field; pre-aggregation build errors are logged separately",
+    "idempotency_support": "full",
+    "idempotency_notes": "All query endpoints are GET-based or use deterministic query objects — same query JSON always produces same result from cache or warehouse",
+    "pagination_style": "offset",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Pre-aggregation refresh lag means agent queries may return data that is hours old — agents must check the lastRefreshTime field to validate data freshness",
+      "Cube query JSON uses its own schema (measures, dimensions, filters) that differs from SQL — LLM agents generating Cube queries must be fine-tuned or prompted with the Cube schema format",
+      "Security context is embedded in the JWT token — agents that need to query as different tenants must generate separate tokens per tenant, not per query",
+      "GraphQL schema is auto-generated from cube definitions — adding/removing measures requires a schema reload before they appear in GraphQL introspection",
+      "REST /v1/load endpoint returns a 'Continue wait' 202 response for slow queries — agents must poll with the provided token until data is ready, implementing their own polling loop"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 86,
+    "error_handling_score": 82,
+    "auth_complexity_score": 82,
+    "rate_limit_clarity_score": 80
+  },
+  "security_score_components": {
+    "tls_enforcement": 90,
+    "auth_strength": 85,
+    "scope_granularity": 80,
+    "dependency_hygiene": 82,
+    "secret_handling": 82,
+    "security_notes": "JWT-based security context enables row-level security per tenant without query modification. CUBEJS_API_SECRET must be rotated carefully — all issued tokens share the same secret."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 82,
+    "version_stability": 80,
+    "breaking_changes_history": 78,
+    "error_recovery": 82
+  }
+}
