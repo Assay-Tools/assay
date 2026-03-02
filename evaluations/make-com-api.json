@@ -1,0 +1,105 @@
+{
+  "id": "make-com-api",
+  "name": "Make.com API",
+  "version_evaluated": "current",
+  "homepage": "https://www.make.com",
+  "repo_url": null,
+  "category": "data-pipeline",
+  "subcategories": ["workflow-automation", "integration", "no-code"],
+  "tags": ["automation", "workflow", "integration", "no-code", "webhook", "zapier-alternative", "iPaaS", "visual-programming"],
+  "what_it_does": "Provides a REST API to programmatically trigger, manage, and monitor Make.com visual automation scenarios, enabling agents to invoke multi-step integrations across hundreds of connected apps.",
+  "use_cases": [
+    "Agent triggers a Make.com scenario via webhook to execute a pre-built multi-app workflow (e.g., CRM update + Slack notification + email) as a single atomic action",
+    "Agent uses Make.com API to check scenario execution history and verify that a triggered workflow completed successfully before proceeding",
+    "Agent creates or updates Make.com data stores via API to pass structured state between agent-triggered scenarios",
+    "Agent manages scenario on/off state via API to enable or disable automated workflows based on business logic (e.g., disable nightly job during maintenance)",
+    "Agent retrieves execution logs from Make.com scenarios to diagnose failures in dependent automation pipelines"
+  ],
+  "not_for": [
+    "Building new automation logic entirely via API — scenario design and module configuration requires the visual Make.com UI",
+    "Real-time sub-second integrations — Make.com scenarios have scheduling and queuing overhead not suitable for latency-sensitive workflows",
+    "Simple single-service API calls where direct API access would be more efficient than going through Make.com"
+  ],
+  "best_when": "Complex multi-app workflows are already built in Make.com and agents need to trigger or manage them programmatically without rebuilding the integration logic.",
+  "avoid_when": "You are building net-new integrations from scratch in code — a direct API-to-API approach will be faster and more reliable than routing through Make.com.",
+  "alternatives": ["zapier-api", "n8n-api", "activepieces-api", "tray-io-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": false,
+    "sdk_languages": [],
+    "openapi_spec_url": "https://www.make.com/en/api-documentation",
+    "webhooks": true
+  },
+  "auth": {
+    "methods": ["api_key"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "API tokens are generated in Make.com account settings. Tokens are scoped to a team and have organization-level permissions. No per-resource scope granularity — a token can access all scenarios in the team."
+  },
+  "pricing": {
+    "model": "usage_based",
+    "free_tier_exists": true,
+    "free_tier_limits": "1,000 operations/month, 2 active scenarios, 5-minute minimum schedule interval",
+    "paid_tiers": "Core from $9/month (10K ops), Pro from $16/month (10K ops + advanced features), Teams from $29/month, Enterprise custom; operations are consumed per module executed per scenario run",
+    "requires_credit_card": false,
+    "notes": "Operations are the core billing unit — every module (app action) in a scenario consumes one operation per execution. Complex scenarios with many modules consume operations quickly. Agent-triggered scenarios burn operations faster than scheduled ones."
+  },
+  "performance": {
+    "latency_p50_ms": 800,
+    "latency_p99_ms": 5000,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "No published API rate limits for management API; webhook triggers limited by scenario scheduling tier (minimum 1-minute intervals on most plans); concurrent scenario execution limited by plan",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["EU", "US"],
+    "compliance": ["SOC2", "GDPR", "ISO27001"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 75,
+    "error_message_quality": 70,
+    "error_message_notes": "Make.com API errors return HTTP status codes with JSON bodies, but error messages for scenario execution failures are often generic ('scenario failed') without surfacing the specific module or downstream API error that caused the failure.",
+    "idempotency_support": "none",
+    "idempotency_notes": "Scenario triggers via webhook or API are not idempotent — each call creates a new scenario execution. Agents must implement their own deduplication or check execution history before triggering.",
+    "pagination_style": "offset",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Scenario execution is asynchronous — triggering via the API returns immediately but the scenario may not complete for seconds or minutes; agents polling for completion must use the execution history API with polling loops",
+      "Operation consumption is opaque at trigger time — agents cannot predict how many operations a scenario will consume before it runs, making budget management difficult",
+      "Scenario error handling is configured in the Make.com UI, not via API — agents cannot programmatically configure retry behavior or error routes on triggered scenarios",
+      "Data passing from agent to Make.com is through webhook payloads or data stores — complex structured data must be serialized into JSON payloads that match what the scenario's webhook module expects",
+      "Make.com API documentation lags behind UI features — some scenario management actions available in the UI have no API equivalent, requiring manual configuration"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 75,
+    "error_handling_score": 70,
+    "auth_complexity_score": 78,
+    "rate_limit_clarity_score": 65
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 72,
+    "scope_granularity": 65,
+    "dependency_hygiene": 78,
+    "secret_handling": 75,
+    "security_notes": "API tokens have no expiry by default and no per-scenario scope — a leaked token exposes all team scenarios. Webhook URLs are public endpoints; Make.com supports webhook token validation but it must be manually configured per scenario. Third-party app credentials stored in Make.com modules are only as secure as Make.com's credential storage."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 82,
+    "version_stability": 78,
+    "breaking_changes_history": 75,
+    "error_recovery": 70
+  }
+}

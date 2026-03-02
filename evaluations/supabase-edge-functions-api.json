@@ -1,0 +1,105 @@
+{
+  "id": "supabase-edge-functions-api",
+  "name": "Supabase Edge Functions API",
+  "version_evaluated": "current",
+  "homepage": "https://supabase.com/docs/guides/functions",
+  "repo_url": "https://github.com/supabase/supabase",
+  "category": "developer-tools",
+  "subcategories": ["edge-functions", "serverless", "backend-as-a-service", "database"],
+  "tags": ["supabase", "deno", "edge-functions", "serverless", "typescript", "postgres", "baas", "self-hosted", "open-source"],
+  "what_it_does": "Deno-based serverless edge functions tightly integrated with Supabase's Postgres database, auth, and storage, deployable via REST API or CLI for backend logic close to users.",
+  "use_cases": [
+    "Deploying server-side TypeScript functions that directly query Supabase Postgres using the service role key, bypassing RLS for trusted agent operations",
+    "Creating webhook receivers as edge functions that process third-party events and insert records into Supabase tables in a single integrated deployment",
+    "Running database triggers and background logic in response to Supabase database changes via pg_net or direct function invocation from an agent",
+    "Deploying AI inference middleware at the edge that augments Supabase data with LLM responses before returning to client agents",
+    "Automating edge function deployments as part of Supabase project provisioning in agent-driven multi-tenant SaaS scaffolding"
+  ],
+  "not_for": [
+    "Standalone edge function hosting without a Supabase backend — the value proposition drops significantly when not using Supabase's integrated services",
+    "Long-running compute tasks exceeding the 150-second wall-clock timeout — Supabase edge functions are optimized for fast request-response cycles",
+    "Teams not using TypeScript/JavaScript — the Deno runtime only supports JS/TS, with no Python, Go, or other language support"
+  ],
+  "best_when": "An agent is already working within a Supabase project and needs server-side TypeScript logic deployed close to the database with native access to Supabase auth, storage, and Postgres without additional infrastructure.",
+  "avoid_when": "You are not using Supabase as your backend, need multi-language runtime support, or require long-running background job execution beyond the 150-second timeout.",
+  "alternatives": ["deno-deploy-api", "val-town-api", "cloudflare-workers-api", "inngest-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["typescript", "python", "dart", "swift", "kotlin"],
+    "openapi_spec_url": null,
+    "webhooks": true
+  },
+  "auth": {
+    "methods": ["api_key", "jwt"],
+    "oauth": false,
+    "scopes": true,
+    "notes": "Edge functions accept Supabase anon keys (public), service role keys (admin), or user JWTs for RLS-aware access. Service role key bypasses Row Level Security — must be kept secret in agent environments. API management operations use a Supabase management API token. Scope distinction between anon/service role is meaningful for security."
+  },
+  "pricing": {
+    "model": "freemium",
+    "free_tier_exists": true,
+    "free_tier_limits": "Free tier: 500,000 edge function invocations/month; 10 active functions per project; included in Supabase free plan",
+    "paid_tiers": "Pro: $25/month per project — 2M invocations/month included, $2 per additional 1M; Team/Enterprise: volume discounts available",
+    "requires_credit_card": false,
+    "notes": "Edge functions pricing is bundled with Supabase project pricing. Free tier is generous for development. Self-hosted Supabase (via Docker) makes edge functions free with no usage limits, at the cost of managing the infrastructure."
+  },
+  "performance": {
+    "latency_p50_ms": 50,
+    "latency_p99_ms": 300,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "Free: 500K invocations/month; soft concurrency limits per project (undocumented); wall-clock execution timeout: 150 seconds; CPU timeout: 2 seconds per request on free tier",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["US", "EU", "APAC"],
+    "compliance": ["SOC2", "HIPAA"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 88,
+    "error_message_quality": 82,
+    "error_message_notes": "Supabase edge function errors are returned as standard HTTP responses with JSON bodies when the function throws. Supabase Management API errors include descriptive messages and error codes. Function boot errors (deployment issues) are surfaced in the Supabase dashboard logs and retrievable via the logs API.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Function deployment via the Management API is idempotent for the same function name — deploying the same name overwrites the existing function. Function invocations have no built-in idempotency key support. Agents must implement their own deduplication at the application layer.",
+    "pagination_style": "offset",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "The service role key grants full database access bypassing RLS — if an agent passes the service role key to an edge function that also accepts user input, there is a risk of privilege escalation if not carefully scoped",
+      "Edge function cold starts can take 1-3 seconds on the free tier — agents calling infrequently used functions must account for cold start latency in timeout budgets",
+      "The Supabase CLI is required for local development and testing; the Management API alone cannot fully replicate the local Deno dev server behavior, creating potential deployment surprises",
+      "CPU time limits (2 seconds on free, higher on paid) are separate from wall-clock time — I/O-heavy functions may appear fast but CPU-heavy operations like heavy cryptography will hit CPU limits unexpectedly",
+      "Edge functions do not support persistent file system writes — any state must go through Supabase Storage, Postgres, or an external service; agents expecting tmp file access will fail silently"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 88,
+    "error_handling_score": 82,
+    "auth_complexity_score": 85,
+    "rate_limit_clarity_score": 78
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 85,
+    "scope_granularity": 80,
+    "dependency_hygiene": 82,
+    "secret_handling": 85,
+    "security_notes": "TLS enforced on all endpoints. Service role vs anon key distinction provides meaningful access control. Secrets stored encrypted via Supabase Vault. JWT verification built into the function invocation path. SOC 2 Type II and HIPAA compliance available on Enterprise. Deno runtime sandboxing provides process-level isolation per function invocation."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 85,
+    "version_stability": 82,
+    "breaking_changes_history": 80,
+    "error_recovery": 83
+  }
+}

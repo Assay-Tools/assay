@@ -1,0 +1,108 @@
+{
+  "id": "scylladb-api",
+  "name": "ScyllaDB API",
+  "version_evaluated": "current",
+  "homepage": "https://www.scylladb.com",
+  "repo_url": "https://github.com/scylladb/scylladb",
+  "category": "database",
+  "subcategories": ["nosql", "wide-column", "cassandra-compatible", "high-performance"],
+  "tags": ["scylladb", "cassandra", "nosql", "wide-column", "cql", "low-latency", "c++", "time-series", "iot", "cloud"],
+  "what_it_does": "Apache Cassandra-compatible NoSQL wide-column database written in C++ delivering sub-millisecond p99 latency and 10x Cassandra throughput, with a REST API for administration and the native Cassandra CQL protocol for data operations.",
+  "use_cases": [
+    "High-throughput agent event storage where Cassandra API compatibility is needed but Cassandra latency is too high",
+    "Time-series sensor and IoT data at massive scale with predictable single-digit millisecond read latency",
+    "User profile and session storage for real-time personalization agents requiring consistent low-latency reads",
+    "Leaderboard and counter workloads leveraging Cassandra's distributed counter column type",
+    "Agent state persistence at scale where horizontal partitioning across many nodes is required"
+  ],
+  "not_for": [
+    "Relational data with complex JOIN requirements — ScyllaDB is not a relational database",
+    "Teams without Cassandra data modeling expertise — partition key design is critical and non-obvious",
+    "Small-scale applications where PostgreSQL or DynamoDB would be simpler to operate"
+  ],
+  "best_when": "You need Cassandra-compatible wide-column storage at much lower latency and higher throughput than Apache Cassandra, especially for time-series or high-cardinality workloads requiring horizontal scale.",
+  "avoid_when": "Your team lacks Cassandra data modeling experience, your data model requires ad-hoc querying with flexible filtering, or your scale does not justify the operational complexity.",
+  "alternatives": ["cassandra-api", "aws-dynamodb-api", "mongodb-api", "influxdb-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "java", "go", "javascript", "csharp", "rust", "cpp"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["username_password"],
+    "oauth": false,
+    "scopes": true,
+    "notes": "Authentication uses Cassandra-compatible SASL/username-password over the CQL protocol. ScyllaDB Enterprise adds LDAP, Kerberos, and role-based authorization (system_auth keyspace). ScyllaDB Cloud uses API keys for the management plane and standard CQL auth for data plane connections. Authorization at keyspace, table, and operation level via Cassandra GRANT syntax."
+  },
+  "pricing": {
+    "model": "open_source_with_saas",
+    "free_tier_exists": true,
+    "free_tier_limits": "Open source ScyllaDB is free to self-host (AGPL v3). ScyllaDB Cloud free trial available for new accounts.",
+    "paid_tiers": "ScyllaDB Cloud: from ~$0.55/hour for a 3-node cluster (i4i.large). Enterprise Edition: custom licensing. Serverless (preview): pay-per-request pricing.",
+    "requires_credit_card": true,
+    "notes": "Open source community edition is free under AGPL v3. ScyllaDB Enterprise adds proprietary features (incremental compaction, advanced security). ScyllaDB Cloud is the managed offering. Serverless tier (in preview) provides elastic scaling with consumption-based pricing."
+  },
+  "performance": {
+    "latency_p50_ms": 1,
+    "latency_p99_ms": 5,
+    "uptime_sla_percent": 99.99,
+    "rate_limits": "No rate limits enforced by the database — throughput bounded by cluster resources. ScyllaDB Cloud tiers have per-cluster throughput limits.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["US", "EU", "APAC"],
+    "compliance": ["SOC2", "GDPR", "HIPAA"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 80,
+    "error_message_quality": 72,
+    "error_message_notes": "CQL error codes follow the Cassandra protocol specification — well-known error types (InvalidQuery, Unavailable, ReadTimeout, WriteTimeout) are documented and handled by all Cassandra-compatible drivers. Error messages can be verbose with schema-level details. Timeout errors require understanding of consistency levels to diagnose correctly.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "INSERT and UPDATE operations with IF NOT EXISTS or lightweight transactions (LWT) provide conditional idempotency. Regular INSERTs are idempotent for the same primary key (upsert behavior). Counters are NOT idempotent — retrying a counter increment will double-count. Batch statements support idempotency markers.",
+    "pagination_style": "token",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Data model must be designed around query patterns — table-per-query is standard; agents that try to add filters on non-partition-key columns will fail or cause full-table scans",
+      "Consistency level tuning is required for agent workloads — QUORUM provides the right balance but agents often default to ONE which can return stale data",
+      "Cassandra's CQL ALLOW FILTERING is a trap — it enables full scans that can take minutes on large datasets; agents should never use it in production queries",
+      "Counter columns cannot be mixed with regular columns in the same table — a frequent schema design mistake",
+      "ScyllaDB's shard-per-core architecture means connection pooling should target all shards — drivers must be configured for topology-aware load balancing",
+      "TTL (time to live) on rows does not immediately reclaim space — compaction must run to free disk space after expiry",
+      "Lightweight transactions (LWT/IF conditions) have much higher latency than regular writes due to Paxos consensus — avoid in hot paths"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 80,
+    "error_handling_score": 72,
+    "auth_complexity_score": 72,
+    "rate_limit_clarity_score": 80
+  },
+  "security_score_components": {
+    "tls_enforcement": 85,
+    "auth_strength": 78,
+    "scope_granularity": 75,
+    "dependency_hygiene": 85,
+    "secret_handling": 75,
+    "security_notes": "TLS available for client-to-node and inter-node communication but requires manual configuration on self-hosted installs. ScyllaDB Cloud enforces TLS. Authentication via username/password with SASL. Enterprise adds LDAP and Kerberos. AGPL v3 license source transparency supports dependency hygiene review."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 85,
+    "breaking_changes_history": 82,
+    "error_recovery": 88
+  },
+  "last_evaluated": "2026-03-01"
+}

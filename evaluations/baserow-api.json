@@ -1,0 +1,105 @@
+{
+  "id": "baserow-api",
+  "name": "Baserow API",
+  "version_evaluated": "current",
+  "homepage": "https://baserow.io",
+  "repo_url": "https://gitlab.com/baserow/baserow",
+  "category": "database",
+  "subcategories": ["no-code", "spreadsheet-database", "open-source"],
+  "tags": ["no-code", "airtable-alternative", "open-source", "self-hosted", "postgresql", "rest-api", "spreadsheet", "tables"],
+  "what_it_does": "Provides a REST API for a self-hostable open-source no-code database and Airtable alternative backed by PostgreSQL, enabling agents to create, read, update, and delete rows in structured tables.",
+  "use_cases": [
+    "Agent stores structured workflow output (extracted entities, classification results, scores) as rows in a Baserow table for human review",
+    "Agent reads a Baserow table containing configuration records or lookup data to parameterize its decision logic",
+    "Agent populates a shared Baserow database from multiple external APIs, acting as a lightweight ETL layer that non-technical users can query",
+    "Agent updates row status fields in Baserow as it processes items in a queue, providing real-time progress visibility to stakeholders",
+    "Agent uses Baserow webhooks to receive notifications when a human updates a row, triggering downstream agent workflows"
+  ],
+  "not_for": [
+    "Complex relational queries requiring SQL joins — Baserow REST API returns single-table records, not joined views across tables",
+    "High-write transactional workloads — the no-code abstraction layer is not designed for database-level throughput",
+    "Teams needing full SQL access or stored procedures against the underlying PostgreSQL"
+  ],
+  "best_when": "Teams need a self-hostable, open-source Airtable alternative where agents can read and write structured records via REST while humans use a spreadsheet-like UI.",
+  "avoid_when": "You need complex multi-table queries, high write throughput, or are already using a purpose-built database with a proper ORM.",
+  "alternatives": ["airtable-api", "nocodb-api", "google-sheets-api", "notion-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "javascript"],
+    "openapi_spec_url": "https://api.baserow.io/api/redoc/",
+    "webhooks": true
+  },
+  "auth": {
+    "methods": ["api_key", "jwt"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Token-based auth using a database token (scoped to specific databases) or a user JWT. Database tokens are recommended for agents — they are scoped to a workspace database and do not expose user credentials."
+  },
+  "pricing": {
+    "model": "freemium",
+    "free_tier_exists": true,
+    "free_tier_limits": "Self-hosted: unlimited rows and features (open-source); Baserow Cloud free tier: 3 tables, 1000 rows per table, 2 users",
+    "paid_tiers": "Cloud Premium from $5/user/month (unlimited rows per table, 50K rows total); Advanced from $20/user/month; Enterprise custom pricing. Self-hosted premium features available with license.",
+    "requires_credit_card": false,
+    "notes": "Self-hosted via Docker is completely free with no row limits. Cloud tier row limits make free cloud tier impractical for most agent use cases — self-hosted or paid cloud is recommended."
+  },
+  "performance": {
+    "latency_p50_ms": 60,
+    "latency_p99_ms": 500,
+    "uptime_sla_percent": 99.5,
+    "rate_limits": "Baserow Cloud: 1000 requests/minute per API token; self-hosted: configurable with no default limit; pagination defaults to 100 rows per page",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["EU", "self-hosted"],
+    "compliance": ["GDPR", "SOC2"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 83,
+    "error_message_quality": 78,
+    "error_message_notes": "REST errors return structured JSON with field-level validation messages (e.g., per-field required/type errors). HTTP status codes are consistently used. Error detail is sufficient for programmatic handling.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Row updates by ID (PATCH /api/database/rows/table/{id}/{row_id}/) are idempotent. Row creation (POST) is not — retries will create duplicates. Agents should use row IDs with upsert patterns where possible.",
+    "pagination_style": "offset",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Table and field IDs are numeric integers that differ between Baserow instances — agents must discover IDs via API at startup and cannot hardcode them across environments",
+      "Field types are strictly enforced — writing a string to a number field returns a 400 error; agents must inspect table schema before writes",
+      "The API uses offset-based pagination with a 'count' and 'next' URL; for large tables, deep-offset queries become slow — agents processing full tables should use ascending ID-based pagination instead",
+      "Linked row fields return minimal references (ID + display value) by default — populating related records requires additional API calls per linked field",
+      "Self-hosted instances expose an OpenAPI spec, but the cloud-hosted spec may lag behind the latest API version — always verify against the running instance"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 83,
+    "error_handling_score": 78,
+    "auth_complexity_score": 83,
+    "rate_limit_clarity_score": 78
+  },
+  "security_score_components": {
+    "tls_enforcement": 88,
+    "auth_strength": 78,
+    "scope_granularity": 75,
+    "dependency_hygiene": 80,
+    "secret_handling": 80,
+    "security_notes": "Database tokens scope access to specific databases, reducing blast radius vs. user-level tokens. Self-hosted operators are responsible for TLS configuration. No row-level security — all rows in a shared table are accessible to any token with database access."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 75,
+    "version_stability": 78,
+    "breaking_changes_history": 76,
+    "error_recovery": 78
+  }
+}
