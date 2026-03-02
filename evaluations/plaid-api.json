@@ -2,28 +2,27 @@
   "id": "plaid-api",
   "name": "Plaid API",
   "version_evaluated": "current",
-  "homepage": "https://plaid.com/docs/",
-  "repo_url": "https://github.com/plaid/plaid-python",
+  "homepage": "https://plaid.com",
+  "repo_url": null,
   "category": "finance",
-  "subcategories": ["banking-connectivity", "financial-data", "identity-verification", "transactions"],
-  "tags": ["plaid", "banking", "open-banking", "transactions", "identity", "ach", "rest-api", "sdk", "fintech"],
-  "what_it_does": "Plaid connects applications to users' bank accounts, enabling retrieval of transaction history, account balances, income verification, identity data, and ACH payment initiation. It aggregates data from thousands of financial institutions via a unified API.",
+  "subcategories": ["banking", "open-banking", "data-enrichment", "payments"],
+  "tags": ["plaid", "banking", "open-banking", "account-linking", "transactions", "ach", "fintech"],
+  "what_it_does": "Plaid REST API — financial data connectivity platform enabling agents to securely link bank accounts, retrieve transaction history, verify account balances, and initiate ACH transfers via standardized APIs across thousands of financial institutions.",
   "use_cases": [
-    "Retrieving bank transaction history for personal finance management",
-    "Account balance verification before initiating payments",
-    "Income and employment verification for lending applications",
-    "ACH payment initiation and bank account verification",
-    "Identity verification using bank account ownership data",
-    "Cash flow analysis for underwriting and credit decisions"
+    "Agents orchestrating bank account linking workflows — generate Link tokens, guide users through Plaid Link, exchange public tokens for access tokens to retrieve financial data",
+    "Transaction enrichment — agents pulling 24-month transaction history with merchant categorization and counterparty details for financial analysis",
+    "Income and employment verification — agents using Plaid Income API to verify income for loan applications without manual document review",
+    "Balance checks — agents calling /accounts/balance/get to verify sufficient funds before initiating payments or subscription charges",
+    "Identity verification — agents using Plaid Identity to verify bank account ownership by matching account holder name/address against user-provided info"
   ],
   "not_for": [
-    "Real-time trading or brokerage account management (use Alpaca or Coinbase)",
-    "International bank connectivity outside supported countries (primarily US, Canada, UK, EU)",
-    "Applications needing free or low-cost bank data access (pricing is high per item)"
+    "International banking outside supported countries — Plaid supports US, Canada, EU, and UK; broader international coverage requires Truelayer or regional providers",
+    "Real-time payment initiation with instant confirmation — Plaid's payment products depend on ACH which has 1-3 day settlement; use Stripe or similar for instant payments",
+    "Non-banking financial data (investments, crypto) — while Plaid has some investment support, it's primarily designed for bank/checking/savings account connectivity"
   ],
-  "best_when": "An agent needs to read user bank transactions, verify account ownership, or initiate ACH transfers as part of a financial application.",
-  "avoid_when": "Cost sensitivity is high (at ~$1.50/item/mo, costs scale quickly with users) or when bank connectivity is needed in unsupported geographies.",
-  "alternatives": ["yodlee-api", "mx-api", "finicity-api", "tink-api"],
+  "best_when": "You need to connect to US bank accounts for transaction data, balance verification, identity confirmation, or ACH payment initiation within a regulated financial product.",
+  "avoid_when": "You need real-time payment settlement, broad international bank coverage, or crypto/investment account data as the primary use case.",
+  "alternatives": ["mx-api", "yodlee-api", "finicity-api", "truelayer-api"],
   "interface": {
     "has_rest_api": true,
     "has_graphql": false,
@@ -31,65 +30,76 @@
     "has_mcp_server": false,
     "mcp_server_url": null,
     "has_sdk": true,
-    "sdk_languages": ["python", "node", "ruby", "java", "go"],
-    "openapi_spec_url": "https://raw.githubusercontent.com/plaid/plaid-openapi/master/2020-09-14.yml",
+    "sdk_languages": ["python", "javascript", "ruby", "java", "go"],
+    "openapi_spec_url": "https://plaid.com/documents/plaid-api-spec.yaml",
     "webhooks": true
   },
   "auth": {
-    "methods": ["api_key", "access_token"],
+    "methods": ["api_key"],
     "oauth": false,
     "scopes": false,
-    "notes": "client_id and secret for API authentication. User bank connections produce access_tokens (per institution per user) via Link flow. access_tokens are persistent and long-lived. Sandbox, development, and production environments use separate credentials. No fine-grained API scopes — access_token grants access to all products enabled for that Item."
+    "notes": "client_id + secret in request body (not headers). Sandbox, development, and production environments have separate credentials. Access tokens are per-item (bank connection) and never expire but can be invalidated. Plaid Link generates short-lived public tokens exchanged server-side for access tokens."
   },
   "pricing": {
-    "model": "pay-per-use",
-    "free_tier_exists": false,
-    "free_tier_limits": "Sandbox environment is free and unlimited for testing",
-    "paid_tiers": "No monthly platform fee; per-call pricing varies by product. Transactions: ~$0.30/call + $1.50/item/mo. Auth: ~$1.00/call. Identity: ~$1.00/call. Volume discounts negotiated with sales.",
-    "requires_credit_card": false,
-    "notes": "No free production tier. Pricing is opaque — exact rates require contacting sales for volume. Can become expensive quickly at scale. Development environment has limited calls per day."
+    "model": "usage-based",
+    "free_tier_exists": true,
+    "free_tier_limits": "Sandbox environment free with simulated data; development environment free up to 100 Items",
+    "paid_tiers": "Production: per-API-call pricing varies by product — Transactions: $0.30/Item/month; Auth: $1.50/Item; Identity: $1.00/Item; Income: custom",
+    "requires_credit_card": true,
+    "notes": "Per-Item per-month pricing model. An Item is a bank connection (one institution per item). Pricing varies significantly by product. Volume discounts available. Production access requires Plaid agreement and use-case approval."
   },
   "performance": {
-    "latency_p50_ms": 400,
+    "latency_p50_ms": 300,
     "latency_p99_ms": 3000,
     "uptime_sla_percent": 99.9,
-    "rate_limits": "Rate limits vary by endpoint and plan tier. /transactions/get has lower limits than balance checks. Exact limits provided post-signup. Sandbox is effectively unlimited.",
+    "rate_limits": "Per-Item rate limits; /transactions/get: 15/min; /auth/get: 10/min; Sandbox has no meaningful limits",
     "data_source": "llm_estimated"
   },
   "requirements": {
     "requires_signup": true,
-    "requires_credit_card": false,
-    "domain_verification": true,
-    "data_residency": ["US", "EU", "UK", "Canada"],
-    "compliance": ["SOC2", "ISO27001", "GDPR", "CCPA", "PSD2"],
+    "requires_credit_card": true,
+    "domain_verification": false,
+    "data_residency": ["US", "EU", "CA", "UK"],
+    "compliance": ["SOC2", "ISO-27001", "GDPR", "CCPA"],
     "min_contract": "none"
   },
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
-    "documentation_accuracy": 88,
-    "error_message_quality": 80,
-    "error_message_notes": "Plaid uses structured error objects with error_type, error_code, error_message, and display_message. Error codes are well-documented and categorized (INVALID_REQUEST, INVALID_INPUT, INSTITUTION_ERROR, etc.). display_message is user-facing safe text. Machine-readable codes enable reliable agent error branching.",
-    "idempotency_support": "none",
-    "idempotency_notes": "No idempotency keys on API calls. The Link flow (user-facing) is the main non-idempotent risk area; API read calls are naturally idempotent but write operations (payment initiation) are not.",
+    "documentation_accuracy": 92,
+    "error_message_quality": 88,
+    "error_message_notes": "Excellent documentation with OpenAPI spec, error code reference, and product guides. Errors include error_type, error_code, and display_message. ITEM_LOGIN_REQUIRED errors indicate user re-authentication needed. Error handling guide is thorough.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Link token creation is not idempotent — each call creates a new token (valid 30 minutes). Public token exchange is one-time only — tokens are invalidated after exchange. /transactions/sync supports incremental cursor-based sync for idempotent transaction fetching.",
     "pagination_style": "cursor",
     "retry_guidance_documented": true,
     "known_agent_gotchas": [
-      "Link token flow is user-interactive (browser-based) — agents cannot automate the initial bank connection without user involvement",
-      "access_tokens are per-institution per-user; a user with 3 banks = 3 separate tokens to manage",
-      "Transaction data can be 1-2 days delayed from real-time; not suitable for real-time balance decisions",
-      "ITEM_LOGIN_REQUIRED errors require the user to re-authenticate via Link — agents cannot resolve this autonomously",
-      "Transactions sync is eventual — initial historical load can take minutes to hours for new items",
-      "Institution errors are frequent and unpredictable; agents must handle INSTITUTION_ERROR gracefully",
-      "Webhook delivery is not guaranteed exactly-once — agents must be idempotent on webhook processing",
-      "Production access requires Plaid to approve your use case — sandbox success does not guarantee production approval"
+      "Link token flow is inherently user-interactive — agents cannot complete bank linking without a human completing Plaid Link UI; tokens expire in 30 minutes",
+      "ITEM_LOGIN_REQUIRED error means bank credentials changed or MFA required — agents must surface this to users for re-authentication, not retry automatically",
+      "Webhook delivery for transactions is asynchronous (TRANSACTIONS_REMOVED, DEFAULT_UPDATE) — agents relying on webhooks must handle out-of-order and duplicate webhook delivery",
+      "Historical transaction sync for new Items can take 1-2 days for full history — agents should poll /transactions/sync cursor until no_more_data=true across multiple requests",
+      "Production access requires Plaid review of use case and compliance attestation — sandbox-to-production migration requires business approval, not just API key swap"
     ]
   },
-  "af_score": 68,
-  "fq_score": 75,
-  "score_rationale": "Plaid has well-structured error codes and good SDK coverage, making it relatively agent-friendly for read operations. However, the critical limitation for agents is that the initial bank connection (Link flow) is inherently user-interactive and cannot be automated. Ongoing token management, institution errors requiring user re-auth, and eventual consistency of transaction data add operational complexity. Strong choice when user bank connectivity is the goal; poor fit for fully autonomous workflows.",
-  "score_version": "1.0",
-  "evaluated_at": "2026-03-02",
-  "evaluator": "claude-sonnet-4-6",
-  "confidence": "medium"
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 92,
+    "error_handling_score": 88,
+    "auth_complexity_score": 78,
+    "rate_limit_clarity_score": 80
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 85,
+    "scope_granularity": 80,
+    "dependency_hygiene": 88,
+    "secret_handling": 85,
+    "security_notes": "SOC2 Type II, ISO 27001 certified. GDPR and CCPA compliant. TLS enforced. Access tokens are opaque and can be revoked. Sandbox/dev/prod environment separation. Financial data — PII handling requires proper data governance. No credential storage (Plaid acts as intermediary)."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 92,
+    "version_stability": 88,
+    "breaking_changes_history": 85,
+    "error_recovery": 85
+  }
 }
