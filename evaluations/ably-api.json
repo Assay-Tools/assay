@@ -1,28 +1,28 @@
 {
   "id": "ably-api",
-  "name": "Ably Realtime Messaging API",
+  "name": "Ably",
   "version_evaluated": "current",
-  "homepage": "https://ably.com",
-  "repo_url": "https://github.com/ably/ably-js",
-  "category": "developer-tools",
-  "subcategories": ["realtime", "messaging", "pub-sub", "websocket"],
-  "tags": ["pub-sub", "presence", "history", "websocket", "sse", "edge-delivery", "realtime", "channels"],
-  "what_it_does": "Delivers realtime pub/sub messaging with channel presence, message history, and guaranteed ordering via a globally distributed edge network.",
+  "homepage": "https://ably.com/docs",
+  "repo_url": null,
+  "category": "communications",
+  "subcategories": ["real-time", "messaging", "websocket"],
+  "tags": ["real-time", "messaging", "websocket", "mqtt", "sse", "pub-sub", "message-queues", "guaranteed-delivery"],
+  "what_it_does": "Real-time messaging infrastructure providing WebSocket, MQTT, and SSE transports with guaranteed message ordering, persistence, and 99.999% uptime SLA.",
   "use_cases": [
-    "Stream agent progress updates and intermediate results to a frontend UI in real time over a persistent channel",
-    "Broadcast state change events from an orchestrator agent to multiple subscribed worker agents simultaneously",
-    "Use channel presence to track which agent instances are currently online and available for work assignment",
-    "Retrieve recent message history on a channel so a newly started agent can catch up on missed events",
-    "Push low-latency notifications from a backend agent to mobile or web clients without polling"
+    "Stream agent events and state updates to browser clients with guaranteed ordered delivery and automatic history replay on reconnect",
+    "Build multi-agent coordination systems where agents publish work items to channels and other agents subscribe to claim them",
+    "Fan out alerts or notifications to thousands of subscribers simultaneously with delivery confirmation and retry on failure",
+    "Integrate IoT device telemetry via MQTT and process it server-side with Ably Rules forwarding to webhooks or queues",
+    "Implement agent task queues using Ably Queues (AMQP/STOMP) for durable, exactly-once processing of real-time events"
   ],
   "not_for": [
-    "Reliable webhook delivery to customer HTTP endpoints (use Svix instead)",
-    "Persistent job queues with durable at-least-once processing guarantees (use SQS or BullMQ)",
-    "Large binary file transfers or video streaming (use a CDN or media-specific service)"
+    "Simple SMS or voice communications — Twilio is the appropriate choice for telephony",
+    "Scenarios where free tier message volume is the primary constraint and Pusher's limits suffice",
+    "Teams needing a fully self-hosted messaging infrastructure with no third-party dependency"
   ],
-  "best_when": "You need low-latency, globally distributed pub/sub with presence awareness and message history for real-time agent-to-client or agent-to-agent communication.",
-  "avoid_when": "Your use case is fire-and-forget webhook delivery to customer HTTP endpoints rather than persistent channel-based messaging.",
-  "alternatives": ["pusher-api", "livekit-api", "svix-api"],
+  "best_when": "You need enterprise-grade real-time messaging with guaranteed delivery, message history, and multi-protocol support at scale.",
+  "avoid_when": "Your use case is simple fire-and-forget pub/sub with no delivery guarantees needed and Pusher's simpler model fits better.",
+  "alternatives": ["pusher-api", "twilio-api"],
   "interface": {
     "has_rest_api": true,
     "has_graphql": false,
@@ -30,29 +30,29 @@
     "has_mcp_server": false,
     "mcp_server_url": null,
     "has_sdk": true,
-    "sdk_languages": ["javascript", "node", "python", "ruby", "java", "swift", "kotlin", "go", "dotnet", "flutter", "react-native"],
+    "sdk_languages": ["python", "node", "java", "golang", "ruby", "dotnet", "swift", "kotlin"],
     "openapi_spec_url": null,
     "webhooks": true
   },
   "auth": {
-    "methods": ["api_key", "jwt", "token_request"],
+    "methods": ["api_key", "bearer_token"],
     "oauth": false,
     "scopes": true,
-    "notes": "API keys support capability restrictions (publish, subscribe, presence, history) per channel namespace. Token requests allow server-side issuance of short-lived scoped tokens for client-side use — recommended pattern for agents issuing tokens to untrusted clients."
+    "notes": "API key (key:secret format) for server-side use. JWT tokens (Ably tokens) for client-side with capability restrictions — limits which channels clients can publish/subscribe. Token requests can be scoped per-client."
   },
   "pricing": {
     "model": "freemium",
     "free_tier_exists": true,
-    "free_tier_limits": "6 million messages/month, 200 peak connections, 200 peak channels",
-    "paid_tiers": "Standard ~$29/mo, Pro ~$149/mo, Enterprise custom; scales on message volume and concurrent connections",
+    "free_tier_limits": "6 million messages/month free; 200 peak connections; unlimited channels",
+    "paid_tiers": "Growth from $29/month (50M messages); Pro from $449/month; Enterprise custom",
     "requires_credit_card": false,
-    "notes": "Free tier is suitable for development and low-traffic production. Message volume and connection limits are the primary upgrade drivers."
+    "notes": "Free tier is generous. Messages include presence events and acknowledgements, not just data messages — agents should account for protocol overhead in message counts."
   },
   "performance": {
-    "latency_p50_ms": 60,
-    "latency_p99_ms": 250,
+    "latency_p50_ms": 40,
+    "latency_p99_ms": 150,
     "uptime_sla_percent": 99.999,
-    "rate_limits": "Default publish rate: 50 messages/sec per channel; REST API: varies by plan; connection limits vary by plan tier",
+    "rate_limits": "Publish rate limits vary by plan; default ~100 messages/second per connection; channel occupancy and presence events count toward message limits",
     "data_source": "llm_estimated"
   },
   "requirements": {
@@ -60,41 +60,41 @@
     "requires_credit_card": false,
     "domain_verification": false,
     "data_residency": ["US", "EU", "APAC"],
-    "compliance": ["SOC2", "GDPR", "HIPAA"],
+    "compliance": ["SOC2", "ISO27001"],
     "min_contract": "none"
   },
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
-    "documentation_accuracy": 90,
-    "error_message_quality": 86,
-    "error_message_notes": "SDK surfaces typed error codes with descriptive messages. Connection state machine events allow agents to react to disconnects and reconnects programmatically. REST API returns standard HTTP status codes with JSON bodies.",
+    "documentation_accuracy": 88,
+    "error_message_quality": 85,
+    "error_message_notes": "Errors include numeric error codes (e.g., 40001 for bad token, 90000 for internal) with documented meaning. REST API errors follow standard HTTP with JSON body. SDK exceptions carry code and status.",
     "idempotency_support": "partial",
-    "idempotency_notes": "Ably assigns unique message IDs; duplicate detection is available within a short deduplication window. No client-supplied idempotency key on publish.",
+    "idempotency_notes": "Message IDs can be set client-side for deduplication within a short window. Ably provides at-least-once delivery semantics; idempotent message processing is the consumer's responsibility.",
     "pagination_style": "cursor",
     "retry_guidance_documented": true,
     "known_agent_gotchas": [
-      "Token authentication requires a server-side token request endpoint; agents that issue tokens to clients must implement and host this endpoint themselves",
-      "Message history is limited by retention period (2 minutes on free, up to 72 hours on paid) — agents cannot retrieve arbitrarily old messages without a database backup",
-      "Channel occupancy and metrics events require explicit activation via channel params; not enabled by default",
-      "Presence enter/leave events are not guaranteed to arrive in order on high-churn channels — agents should not rely on presence alone for strict membership accounting",
-      "Publishing via REST API does not use a persistent connection; for high-frequency publishing, agents should use the persistent SDK connection to avoid connection overhead"
+      "Ably tokens have a short TTL (default 1 hour) and agents using token auth must implement token renewal before expiry — failure to renew causes mid-session disconnection with error 40140",
+      "Message history is stored for 2 minutes on free tier and up to 72 hours on paid plans — agents relying on history replay for state recovery must verify their plan's retention window",
+      "Presence events (enter/leave/update) count as messages toward billing limits — agents subscribing to presence-heavy channels should monitor message consumption carefully",
+      "The REST API and Realtime API are separate interfaces with different auth flows — REST publish does not affect realtime channel state and vice versa; agents must use the appropriate interface for each operation",
+      "Ably channel namespaces (e.g., [meta]) are reserved and have special behaviors — agents creating dynamic channel names must sanitize inputs to avoid accidentally using reserved prefixes"
     ]
   },
   "af_score_components": {
     "mcp_score": 0,
-    "api_doc_score": 90,
-    "error_handling_score": 86,
-    "auth_complexity_score": 82,
-    "rate_limit_clarity_score": 84
+    "api_doc_score": 88,
+    "error_handling_score": 85,
+    "auth_complexity_score": 78,
+    "rate_limit_clarity_score": 80
   },
   "security_score_components": {
     "tls_enforcement": 100,
     "auth_strength": 88,
     "scope_granularity": 88,
     "dependency_hygiene": 85,
-    "secret_handling": 88,
-    "security_notes": "Capability restrictions on API keys and tokens limit what each key can do per channel. Token requests enable server-controlled access delegation. TLS enforced on all transports."
+    "secret_handling": 87,
+    "security_notes": "TLS 1.2+ enforced. Capability-scoped tokens prevent clients from accessing unauthorized channels. API key secret must remain server-side. Token requests support IP and timestamp restrictions."
   },
   "reliability_score_components": {
     "uptime_documented": 95,

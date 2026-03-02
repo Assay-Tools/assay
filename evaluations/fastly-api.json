@@ -1,28 +1,28 @@
 {
   "id": "fastly-api",
-  "name": "Fastly API",
+  "name": "Fastly",
   "version_evaluated": "current",
-  "homepage": "https://developer.fastly.com/reference/api/",
+  "homepage": "https://developer.fastly.com",
   "repo_url": null,
-  "category": "cdn",
-  "subcategories": ["cdn", "edge-computing", "programmable-cdn", "waf"],
-  "tags": ["fastly", "cdn", "edge-computing", "vcl", "waf", "compute-edge", "programmable-cdn", "rest-api", "sdk"],
-  "what_it_does": "Programmable CDN and edge cloud platform with a REST API for managing CDN services, VCL configurations, edge compute (Compute@Edge with Wasm/WASI), purging, and real-time analytics.",
+  "category": "infrastructure",
+  "subcategories": ["cdn", "edge-computing"],
+  "tags": ["cdn", "edge-computing", "waf", "ddos-protection", "compute-at-edge", "vcl", "tls", "api-gateway"],
+  "what_it_does": "Edge cloud platform providing CDN with programmable caching (VCL), edge compute (Compute@Edge via Wasm), WAF, and DDoS protection via REST API.",
   "use_cases": [
-    "Programmatic cache purging by URL, surrogate key, or tag from deployment pipelines",
-    "Deploying and configuring VCL (Varnish Configuration Language) edge logic via API",
-    "Managing WAF rules and security configurations programmatically",
-    "Configuring edge compute (WebAssembly) deployments for custom request handling",
-    "Retrieving real-time CDN traffic analytics and cache hit ratios"
+    "Purge CDN cache programmatically by URL, surrogate key, or service when an agent updates backend content that must be immediately reflected",
+    "Configure edge caching rules and TTLs via the Fastly Config API as part of a deployment pipeline managed by an agent",
+    "Deploy and manage Compute@Edge functions (WebAssembly) for edge-side request processing, A/B testing, or bot mitigation",
+    "Query real-time CDN traffic analytics and cache hit ratios to detect anomalies or confirm content delivery health",
+    "Manage WAF rules programmatically to respond to emerging threats by adding IP blocklists or adjusting rule thresholds"
   ],
   "not_for": [
-    "Teams needing a simple plug-and-play CDN without VCL knowledge",
-    "Small traffic volumes where Cloudflare or Bunny.net is sufficient",
-    "Static asset hosting only (overkill; use S3 + CloudFront)"
+    "Simple static site hosting at small scale where a free CDN tier (Cloudflare, GitHub Pages) eliminates the billing complexity",
+    "Application-layer logic beyond edge compute — backend application servers remain necessary for complex business logic",
+    "Teams without VCL or Wasm knowledge who need quick CDN setup without learning Fastly's configuration model"
   ],
-  "best_when": "You're a large-scale web application requiring programmable edge logic, custom caching strategies, and API-driven CDN configuration with real-time purging.",
-  "avoid_when": "You need a simple, low-cost CDN without custom edge logic or VCL expertise.",
-  "alternatives": ["cloudflare-workers-api", "bunny-cdn"],
+  "best_when": "You need programmable, high-performance edge delivery with instant purging, Compute@Edge logic, and enterprise WAF at global scale.",
+  "avoid_when": "Your CDN needs are simple and do not require VCL programming, edge compute, or instant cache purging — simpler CDNs cost less.",
+  "alternatives": ["cloudinary-api"],
   "interface": {
     "has_rest_api": true,
     "has_graphql": false,
@@ -30,61 +30,76 @@
     "has_mcp_server": false,
     "mcp_server_url": null,
     "has_sdk": true,
-    "sdk_languages": ["python", "javascript", "ruby", "go", "perl"],
+    "sdk_languages": ["python", "node", "golang", "ruby"],
     "openapi_spec_url": "https://developer.fastly.com/reference/api/",
     "webhooks": false
   },
   "auth": {
     "methods": ["api_key"],
     "oauth": false,
-    "scopes": true,
-    "notes": "API tokens with scoped permissions (purge, global, global:read). Tokens can be restricted to specific services. User API tokens and automation tokens are distinct. HMAC for webhook validation."
+    "scopes": false,
+    "notes": "API tokens passed as Fastly-Key header. Tokens can be scoped to specific services and permissions (read, write, purge) at creation time. No OAuth2. Tokens are long-lived; rotation is manual."
   },
   "pricing": {
-    "model": "usage-based",
+    "model": "pay_as_you_go",
     "free_tier_exists": false,
-    "free_tier_limits": "No free tier; developer trial available",
-    "paid_tiers": "Pay-as-you-go from $0.01/GB; enterprise contracts with volume discounts",
+    "free_tier_limits": null,
+    "paid_tiers": "Bandwidth from ~$0.12/GB; requests from ~$0.0075/10K; Compute@Edge ~$0.50/1M requests; Enterprise contracts available with committed spend discounts",
     "requires_credit_card": true,
-    "notes": "Usage-based pricing on bandwidth, compute, and requests. Enterprise customers typically negotiate contracts. Fastly targets mid-to-large companies."
+    "notes": "No persistent free tier — trial credit available for new accounts. Pricing is usage-based with significant enterprise discounts at volume. WAF is an add-on with separate pricing."
   },
   "performance": {
     "latency_p50_ms": 5,
     "latency_p99_ms": 30,
     "uptime_sla_percent": 99.99,
-    "rate_limits": "API: 1000 requests/second per token; purge: rate limited per service",
+    "rate_limits": "Config API: 1000 requests/minute per service; Purge API: 1000 purges/second (key-based), 150 purges/second (URL-based); Real-time stats API: 1 request/second",
     "data_source": "llm_estimated"
   },
   "requirements": {
     "requires_signup": true,
     "requires_credit_card": true,
-    "domain_verification": false,
-    "data_residency": ["US", "EU", "APAC"],
-    "compliance": ["SOC2", "ISO27001", "PCI-DSS", "GDPR", "HIPAA"],
+    "domain_verification": true,
+    "data_residency": ["US", "EU", "APAC", "other"],
+    "compliance": ["SOC2", "ISO27001", "PCI-DSS"],
     "min_contract": "none"
   },
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
     "documentation_accuracy": 85,
-    "error_message_quality": 80,
-    "error_message_notes": "Errors include msg and detail fields. API versioning is clear. Purge responses indicate cache cleared vs. already empty. Generally informative.",
+    "error_message_quality": 82,
+    "error_message_notes": "API errors return JSON with msg field and HTTP status codes are semantically correct. VCL compilation errors include line numbers. Some Config API validation errors are only surfaced during service activation, not at creation time.",
     "idempotency_support": "partial",
-    "idempotency_notes": "Purge operations are idempotent — purging already-purged content succeeds. Configuration changes require versioning — Fastly uses service versions that must be activated.",
+    "idempotency_notes": "Config API uses versioned service configurations — changes are staged in a new version and must be activated. Version creation is idempotent in that unused versions can be discarded. Cache purges are idempotent.",
     "pagination_style": "cursor",
     "retry_guidance_documented": true,
     "known_agent_gotchas": [
-      "All Fastly service configuration changes require creating a new version and activating it — no in-place edits",
-      "VCL configuration requires VCL expertise — programming the edge is not like a typical REST API",
-      "Compute@Edge (Wasm) deployments require a separate build and upload workflow",
-      "Purge-by-tag (surrogate keys) requires setting Surrogate-Key headers on origin responses",
-      "Real-time analytics has a 2-minute delay for aggregated data",
-      "Service versions are immutable once active — cloning is required to modify a live configuration"
-    ],
-    "error_message_score": 80,
-    "auth_complexity_score": 82,
-    "rate_limit_score": 78,
-    "security_score": 85
+      "All Fastly service configuration changes must go through a version workflow: create version, modify version, validate, activate — agents cannot apply config changes directly to the active version",
+      "Instant purge (single URL or surrogate key) and full service purge are different operations with vastly different blast radius — agents must use surrogate key purging to avoid purging unintended content",
+      "The real-time analytics API has a 1 request/second rate limit and returns data with up to 30-second delay — agents must not poll faster than this or use it for sub-minute alerting",
+      "VCL custom logic errors (syntax errors, runtime panics) cause the entire service to fall back to default behavior silently in some cases — agents deploying VCL changes should always validate before activating",
+      "Service cloning copies configuration but not TLS certificate associations — agents automating service setup must handle TLS domain activation separately after cloning"
+    ]
   },
-  "last_evaluated": "2026-02-28"
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 82,
+    "auth_complexity_score": 80,
+    "rate_limit_clarity_score": 83
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 85,
+    "scope_granularity": 82,
+    "dependency_hygiene": 88,
+    "secret_handling": 85,
+    "security_notes": "TLS 1.2+ enforced at edge. API tokens support service-level and permission-level scoping at creation. WAF provides OWASP rule sets. PCI-DSS compliant infrastructure for payment data flows."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 92,
+    "version_stability": 87,
+    "breaking_changes_history": 85,
+    "error_recovery": 85
+  }
 }

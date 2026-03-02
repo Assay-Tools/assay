@@ -1,28 +1,28 @@
 {
   "id": "pusher-api",
-  "name": "Pusher Channels / Pusher Beams",
+  "name": "Pusher",
   "version_evaluated": "current",
-  "homepage": "https://pusher.com",
-  "repo_url": "https://github.com/pusher/pusher-http-python",
-  "category": "communication",
-  "subcategories": ["realtime", "pub-sub", "push-notifications", "websocket"],
-  "tags": ["pusher", "websocket", "pub-sub", "channels", "presence", "realtime", "push-notifications", "beams", "rest-api", "sdk"],
-  "what_it_does": "Pusher Channels provides hosted WebSocket infrastructure for real-time pub/sub messaging between servers and browser/mobile clients. Pusher Beams provides push notification delivery to iOS, Android, and web browsers. Together they cover real-time in-app messaging and background push notifications.",
+  "homepage": "https://pusher.com/docs",
+  "repo_url": null,
+  "category": "communications",
+  "subcategories": ["real-time", "websocket"],
+  "tags": ["real-time", "websocket", "pub-sub", "push-notifications", "channels", "beams", "live-updates"],
+  "what_it_does": "WebSocket-as-a-service providing real-time pub/sub messaging via Channels and mobile push notifications via Beams, with HMAC-signed server-side event publishing.",
   "use_cases": [
-    "Pushing live agent status updates and streaming output to a web dashboard without polling",
-    "Broadcasting events from a server-side agent to all connected browser clients on a shared channel",
-    "Implementing presence channels to track which users or agent workers are currently active",
-    "Triggering client-side UI updates from an agent pipeline when a background job completes",
-    "Sending push notifications to mobile devices or browsers when agents complete async tasks"
+    "Push real-time agent status updates or workflow progress to a browser UI without polling, using Channels pub/sub",
+    "Broadcast live dashboard data (metrics, alerts, task completions) to multiple connected clients from a server-side agent",
+    "Send targeted push notifications to mobile app users via Beams when an agent completes a long-running task",
+    "Implement presence channels to track which users or agents are currently connected and active in a collaborative tool",
+    "Stream agent-generated events (log lines, sensor readings) to authenticated subscribers with per-channel access control"
   ],
   "not_for": [
-    "Durable message queuing or guaranteed delivery to offline consumers (use SQS, RabbitMQ, or a queue service)",
-    "High-frequency machine-to-machine messaging between backend services at scale (use Ably or Kafka)",
-    "Video or audio streaming and WebRTC (use LiveKit, Daily, or Agora)"
+    "Guaranteed message delivery with persistence — Pusher does not queue messages for offline clients; use a proper message queue (SQS, RabbitMQ) for durable delivery",
+    "High-throughput event streaming at millions of events per second — purpose-built streaming platforms scale better",
+    "MQTT or IoT device connectivity at scale — Ably or AWS IoT are better suited"
   ],
-  "best_when": "You need a simple, well-documented WebSocket layer to push server-side events to browser or mobile clients without managing WebSocket infrastructure yourself.",
-  "avoid_when": "You need message persistence, guaranteed delivery, offline replay, or complex routing logic beyond simple channel subscriptions.",
-  "alternatives": ["ably-api", "soketi", "livekit-api"],
+  "best_when": "You need simple, reliable WebSocket pub/sub for browser or mobile clients with minimal infrastructure management and a generous free tier.",
+  "avoid_when": "You need message persistence, delivery guarantees, or complex message routing beyond basic channel-based pub/sub.",
+  "alternatives": ["ably-api", "twilio-api"],
   "interface": {
     "has_rest_api": true,
     "has_graphql": false,
@@ -30,7 +30,7 @@
     "has_mcp_server": false,
     "mcp_server_url": null,
     "has_sdk": true,
-    "sdk_languages": ["javascript", "node", "python", "ruby", "php", "java", "go", "swift", "dotnet"],
+    "sdk_languages": ["python", "node", "java", "ruby", "php", "golang", "dotnet"],
     "openapi_spec_url": null,
     "webhooks": true
   },
@@ -38,21 +38,21 @@
     "methods": ["api_key"],
     "oauth": false,
     "scopes": false,
-    "notes": "App key and secret used for server-side publishing via REST API. Private and presence channels require a server-side auth endpoint that signs channel authorization requests using HMAC. Public channels require no auth. Beams uses a separate instance ID and secret key. No OAuth or fine-grained permission scopes."
+    "notes": "Server-side event publishing uses HMAC-SHA256 signature with app_id, key, and secret. Client subscriptions to private/presence channels require server-generated auth tokens. No OAuth2."
   },
   "pricing": {
     "model": "freemium",
     "free_tier_exists": true,
-    "free_tier_limits": "Sandbox: 200 max concurrent connections, 200,000 messages/day, unlimited channels",
-    "paid_tiers": "Starter $49/mo; Growth $99/mo; Scale $299/mo — scales on connections and message volume",
+    "free_tier_limits": "Sandbox: 200 concurrent connections, 200K messages/day, unlimited channels",
+    "paid_tiers": "Starter $49/month (500 connections, 3M messages/day); Growth $99/month; enterprise custom",
     "requires_credit_card": false,
-    "notes": "Daily message limit on free tier can be restrictive for high-frequency agents. Connection limit is per app, not per channel. Beams (push notifications) has a separate free tier of up to 1,000 monthly active devices."
+    "notes": "Free tier is sufficient for development and small production workloads. Beams (push notifications) billed separately by device."
   },
   "performance": {
-    "latency_p50_ms": 80,
-    "latency_p99_ms": 350,
+    "latency_p50_ms": 50,
+    "latency_p99_ms": 200,
     "uptime_sla_percent": 99.9,
-    "rate_limits": "10 messages/sec per channel on free tier; REST publish API: 100 events per batch call, 10 channels per event trigger",
+    "rate_limits": "10 events/second per channel; 10 events per publish call (batch); no documented HTTP API rate limits for server publishing",
     "data_source": "llm_estimated"
   },
   "requirements": {
@@ -66,47 +66,40 @@
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
-    "documentation_accuracy": 88,
-    "error_message_quality": 80,
-    "error_message_notes": "HTTP API returns standard status codes with JSON error bodies. SDK errors are generally descriptive. Channel auth failures return 403 with a message but limited diagnostic detail on what caused the auth endpoint to fail.",
+    "documentation_accuracy": 85,
+    "error_message_quality": 78,
+    "error_message_notes": "HTTP API errors return JSON with error field. Some auth errors return plaintext. Client-side connection errors surfaced through event listeners rather than synchronous exceptions.",
     "idempotency_support": "none",
-    "idempotency_notes": "No idempotency keys supported. Pusher does not deduplicate published messages. Duplicate event detection and handling is entirely the agent's responsibility.",
+    "idempotency_notes": "Event publishing is fire-and-forget with no built-in idempotency. Duplicate publishes result in duplicate events delivered to subscribers. Agents must implement dedup at the subscriber level.",
     "pagination_style": "none",
     "retry_guidance_documented": true,
     "known_agent_gotchas": [
-      "Private and presence channels require a live auth endpoint on the agent's server — if that endpoint is unavailable, all private channel subscriptions fail",
-      "The 100-event batch publish limit applies per API call — agents publishing high-frequency events must implement batching logic",
-      "Messages are not persisted; clients that disconnect and reconnect will miss events published during the gap",
-      "Channel names are case-sensitive and have a 200-character limit — agents generating channel names dynamically must enforce this constraint",
-      "Free tier hard daily message cap resets at midnight UTC — agents must implement fallback behavior or graceful degradation when the cap is hit",
-      "Pusher Beams (push notifications) and Pusher Channels are separate products with separate credentials and SDKs"
+      "Pusher Channels and Pusher Beams are separate products with separate credentials and SDKs — agents must not use Channels keys with Beams API or vice versa",
+      "Private and presence channels require server-side authentication endpoint — agents acting as server must implement the /pusher/auth endpoint or equivalent; missing this causes silent client subscription failures",
+      "The 10 events/second per channel limit is enforced server-side; exceeding it returns 403 with no clear retry guidance — agents must implement client-side rate limiting",
+      "Messages are not persisted — if a client disconnects and reconnects, it misses all events published during disconnection; agents must design for this by providing state catch-up via REST API",
+      "The cluster must match between server and client SDK configuration (e.g., mt1 for US-East, eu for EU) — mismatched clusters cause connection failures that appear as auth errors"
     ]
   },
   "af_score_components": {
-    "api_doc_score": 88,
-    "error_handling_score": 80,
-    "auth_complexity_score": 80,
-    "rate_limit_clarity_score": 82
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 78,
+    "auth_complexity_score": 75,
+    "rate_limit_clarity_score": 72
   },
   "security_score_components": {
     "tls_enforcement": 100,
-    "auth_strength": 82,
-    "scope_granularity": 70,
+    "auth_strength": 80,
+    "scope_granularity": 72,
     "dependency_hygiene": 82,
-    "secret_handling": 83,
-    "security_notes": "Channel authorization tokens are HMAC-signed server-side — app secret never reaches clients. App secret must be protected server-side. No fine-grained scope system beyond public/private/presence channel types. SOC2 Type II certified."
+    "secret_handling": 80,
+    "security_notes": "TLS enforced on all connections. HMAC-SHA256 used for server auth tokens. Private channel auth prevents unauthorized subscriptions. App secret must be kept server-side only."
   },
   "reliability_score_components": {
     "uptime_documented": 85,
-    "version_stability": 88,
-    "breaking_changes_history": 85,
-    "error_recovery": 82
-  },
-  "af_score": 65,
-  "fq_score": 72,
-  "score_rationale": "Pusher Channels is well-documented and straightforward to integrate for server-to-client real-time event delivery. Agent readiness is good for the outbound publish use case (trigger event → clients receive it). The main limitations are no message persistence, no idempotency, the channel auth endpoint dependency for private channels, and the daily message cap on free tier. Best choice when agents need to stream output to browser dashboards or notify clients of async task completion.",
-  "score_version": "1.0",
-  "evaluated_at": "2026-03-02",
-  "evaluator": "claude-sonnet-4-6",
-  "confidence": "medium"
+    "version_stability": 83,
+    "breaking_changes_history": 82,
+    "error_recovery": 78
+  }
 }

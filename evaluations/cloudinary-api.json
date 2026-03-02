@@ -1,28 +1,28 @@
 {
   "id": "cloudinary-api",
-  "name": "Cloudinary API",
+  "name": "Cloudinary",
   "version_evaluated": "current",
-  "homepage": "https://cloudinary.com",
-  "repo_url": "https://github.com/cloudinary/cloudinary_python",
-  "category": "cloud-infrastructure",
-  "subcategories": ["media-management", "image-processing", "cdn"],
-  "tags": ["cloudinary", "images", "video", "cdn", "media", "transformation", "upload", "rest-api", "sdk"],
-  "what_it_does": "Cloud-based image and video management platform with on-the-fly transformations, AI-powered analysis, global CDN delivery, and APIs for programmatic media upload and management.",
+  "homepage": "https://cloudinary.com/documentation",
+  "repo_url": null,
+  "category": "developer-tools",
+  "subcategories": ["media-management", "image-processing"],
+  "tags": ["image-processing", "video-processing", "media-management", "cdn", "transformation", "ai-tagging", "dam"],
+  "what_it_does": "Cloud-based image and video management platform with a transformation pipeline, AI-powered tagging, and CDN delivery accessible via REST API and SDKs.",
   "use_cases": [
-    "Uploading and transforming images programmatically from agent workflows",
-    "Generating resized/cropped/optimized image variants via URL parameters",
-    "AI-powered image analysis (face detection, content moderation) from agents",
-    "Video transcoding and thumbnail extraction",
-    "Managing media asset libraries with metadata and tagging"
+    "Upload user-generated images from an agent workflow and apply on-the-fly transformations (resize, crop, format conversion) via URL parameters",
+    "Use AI-powered auto-tagging and content moderation to classify uploaded images and flag inappropriate content without building custom ML pipelines",
+    "Generate responsive image variants for multiple device sizes programmatically as part of a content publishing pipeline",
+    "Search and retrieve media assets by tags, format, or metadata to feed content into downstream agent tasks",
+    "Apply video transcoding and thumbnail extraction to uploaded videos at ingest time using eager transformations"
   ],
   "not_for": [
-    "General file storage (use S3/R2 instead)",
-    "Teams needing full self-hosted media processing",
-    "Simple static file hosting without transformation needs"
+    "Raw file storage of non-media assets (documents, binaries) — use S3 or equivalent object storage",
+    "Video streaming with adaptive bitrate (HLS/DASH) at massive scale — dedicated video platforms like Mux are better suited",
+    "Environments with strict data residency requirements that cannot tolerate media passing through Cloudinary's CDN"
   ],
-  "best_when": "An agent needs to upload, transform, and serve images/videos at scale with minimal infrastructure management.",
-  "avoid_when": "You only need file storage without image transformations, or need fully self-hosted media processing.",
-  "alternatives": ["imgix-api", "aws-s3-api", "cloudflare-r2"],
+  "best_when": "You need to accept arbitrary user image/video uploads and serve them optimized for web with minimal custom infrastructure.",
+  "avoid_when": "Your media processing needs are simple enough that a basic image resizing library and S3 would suffice without the SaaS overhead.",
+  "alternatives": ["fastly-api"],
   "interface": {
     "has_rest_api": true,
     "has_graphql": false,
@@ -30,59 +30,76 @@
     "has_mcp_server": false,
     "mcp_server_url": null,
     "has_sdk": true,
-    "sdk_languages": ["python", "node", "ruby", "php", "java", "csharp", "go"],
-    "openapi_spec_url": "https://cloudinary.com/documentation/admin_api",
+    "sdk_languages": ["python", "node", "java", "php", "ruby", "dotnet", "golang"],
+    "openapi_spec_url": null,
     "webhooks": true
   },
   "auth": {
     "methods": ["api_key"],
     "oauth": false,
     "scopes": false,
-    "notes": "API key + API secret for signed operations. Cloud name identifies the account. Unsigned uploads allowed for public assets. HMAC-SHA256 signature for sensitive operations."
+    "notes": "Signed requests using cloud_name + api_key + api_secret (SHA-1 HMAC signature). Unsigned uploads allowed for specific presets. No OAuth2 — all auth is HMAC-based. Secrets must be kept server-side."
   },
   "pricing": {
     "model": "freemium",
     "free_tier_exists": true,
-    "free_tier_limits": "25 monthly credits (1 credit = 1k transformations or 1GB storage or 1GB bandwidth)",
-    "paid_tiers": "Plus from $89/month, Advanced from $224/month",
+    "free_tier_limits": "25 GB storage, 25 GB bandwidth/month, 25 transformation credits/month",
+    "paid_tiers": "Plus ~$89/month; Advanced ~$224/month; Enterprise custom; add-on credits purchasable",
     "requires_credit_card": false,
-    "notes": "Credit-based pricing unifies storage, transformations, and bandwidth. Free tier is usable for development. Credits can be supplemented with add-ons."
+    "notes": "Free tier includes full API access. 'Transformation credits' are a unit that covers complex transformations; simple format/resize ops are less costly. Pricing can be opaque."
   },
   "performance": {
     "latency_p50_ms": 100,
-    "latency_p99_ms": 400,
+    "latency_p99_ms": 500,
     "uptime_sla_percent": 99.9,
-    "rate_limits": "Admin API: 500 requests/hour; Upload API: 500 requests/second burst",
+    "rate_limits": "Upload API: 500 concurrent uploads; Admin API: 500 requests/hour on free, higher on paid; transformation generation is synchronous but cached after first request",
     "data_source": "llm_estimated"
   },
   "requirements": {
     "requires_signup": true,
     "requires_credit_card": false,
     "domain_verification": false,
-    "data_residency": ["US", "EU", "AP"],
-    "compliance": ["SOC2", "GDPR", "HIPAA"],
+    "data_residency": ["US", "EU"],
+    "compliance": ["SOC2", "ISO27001", "GDPR"],
     "min_contract": "none"
   },
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
     "documentation_accuracy": 87,
-    "error_message_quality": 80,
-    "error_message_notes": "Clear error responses with error.message field. Upload API errors include HTTP status codes.",
+    "error_message_quality": 82,
+    "error_message_notes": "Upload API errors return JSON with error.message. Admin API errors include HTTP status and message. Transformation errors sometimes surface only in the delivered image (error image placeholder) rather than in API response.",
     "idempotency_support": "partial",
-    "idempotency_notes": "Upload with public_id is effectively idempotent - re-uploading same public_id replaces the asset.",
+    "idempotency_notes": "Upload with public_id is idempotent when overwrite=true — same public_id replaces the asset. Without public_id, each upload creates a new asset. Agents should always set deterministic public_ids.",
     "pagination_style": "cursor",
     "retry_guidance_documented": true,
     "known_agent_gotchas": [
-      "Admin API has strict rate limits (500/hour) - agents doing bulk operations will hit limits",
-      "Signed URLs require timestamp to be within 1 hour - agent clock skew causes failures",
-      "Transformation credits consumed at runtime - unexpected transformations inflate costs",
-      "Eager transformations are asynchronous - agents must poll or use webhooks for completion",
-      "Default image quality is not always optimal for web - agents should specify quality parameter"
-    ],
-    "error_message_score": 80,
+      "Transformation URLs are generated client-side by constructing the URL string — agents must follow the URL syntax precisely; invalid transformation parameters silently return the original image, not an error",
+      "The Admin API rate limit (500 req/hour on free tier) is much lower than the Upload API — agents doing bulk asset management operations will hit this quickly",
+      "Eager transformations at upload time block the upload response until transformations complete — agents doing batch uploads should use lazy transformations (accessed on first URL request) instead",
+      "Signed upload timestamps expire within 1 hour — agents pre-generating signed upload parameters must use them promptly or regenerate signatures",
+      "Webhooks for upload notifications require a publicly reachable endpoint — agents running locally or in private networks must use a tunnel or polling instead"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 87,
+    "error_handling_score": 82,
     "auth_complexity_score": 78,
-    "rate_limit_score": 65,
-    "security_score": 80
+    "rate_limit_clarity_score": 75
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 82,
+    "scope_granularity": 72,
+    "dependency_hygiene": 85,
+    "secret_handling": 82,
+    "security_notes": "TLS enforced. API secret must never be exposed client-side. Unsigned upload presets should restrict allowed transformations and file types. No per-operation scope granularity."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 85,
+    "breaking_changes_history": 83,
+    "error_recovery": 82
   }
 }
