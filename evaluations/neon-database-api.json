@@ -1,0 +1,105 @@
+{
+  "id": "neon-database-api",
+  "name": "Neon Database API",
+  "version_evaluated": "current",
+  "homepage": "https://neon.tech",
+  "repo_url": null,
+  "category": "database",
+  "subcategories": ["postgresql", "serverless", "branching", "developer-tools"],
+  "tags": ["neon", "postgres", "serverless", "branching", "database", "autoscaling"],
+  "what_it_does": "Neon serverless PostgreSQL API — fully managed serverless Postgres with instant database branching, enabling agents to create isolated database branches for dev/test/staging, scale-to-zero compute, and standard PostgreSQL queries via standard connection strings.",
+  "use_cases": [
+    "Agents creating database branches for each PR — POST to branches API to spin up an isolated Postgres copy from main branch for testing without affecting production",
+    "Ephemeral test databases — agents creating and deleting Neon projects/branches for short-lived integration tests, then tearing down to avoid costs",
+    "Database schema migration testing — agents branching from production, running migrations on the branch, validating, then applying to main",
+    "Multi-tenant database isolation — agents provisioning per-tenant Neon databases or branches with individual connection strings",
+    "Scale-to-zero development environments — agents managing Neon computes that automatically suspend when idle, reducing development database costs to near zero"
+  ],
+  "not_for": [
+    "High-connection-count workloads — Neon's serverless architecture has connection limits; use PgBouncer or built-in connection pooler for high-concurrency apps",
+    "Long-running batch operations — cold start from scale-to-zero adds latency; use dedicated Postgres (RDS, Supabase) for jobs that start infrequently but run long",
+    "Non-Postgres workloads — Neon is PostgreSQL-compatible only"
+  ],
+  "best_when": "You need serverless PostgreSQL with instant branching for development workflows, preview environments, or ephemeral test databases — especially in CI/CD pipelines.",
+  "avoid_when": "You need high connection counts (>100 concurrent), predictable low-latency response times, or database engines other than PostgreSQL.",
+  "alternatives": ["supabase-api", "planetscale-api", "turso-api", "xata-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": true,
+    "mcp_server_url": "https://github.com/neondatabase/mcp-server-neon",
+    "has_sdk": true,
+    "sdk_languages": ["javascript", "typescript"],
+    "openapi_spec_url": "https://api-docs.neon.tech/reference/getting-started-with-neon-api",
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["api_key", "oauth"],
+    "oauth": true,
+    "scopes": true,
+    "notes": "API key from Neon console for personal access. OAuth2 for third-party integrations. API key passed as Authorization: Bearer header. OAuth supports fine-grained scopes for project management vs database access."
+  },
+  "pricing": {
+    "model": "freemium",
+    "free_tier_exists": true,
+    "free_tier_limits": "Free: 0.5 GB storage, 190 compute hours/month, 1 project, limited branching",
+    "paid_tiers": "Launch: $19/month (10 GB, 300 compute hours); Scale: $69/month (50 GB, 750 compute hours); Business: $700/month",
+    "requires_credit_card": false,
+    "notes": "Scale-to-zero computes only charge when active. Branching costs storage for unique data in the branch. Very cost-effective for dev/staging where databases are idle most of the time."
+  },
+  "performance": {
+    "latency_p50_ms": 5,
+    "latency_p99_ms": 500,
+    "uptime_sla_percent": 99.95,
+    "rate_limits": "Management API: 100 req/s; Database queries: standard Postgres limits based on compute size",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["US", "EU"],
+    "compliance": ["SOC2", "HIPAA", "ISO-27001"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": 85,
+    "mcp_security_score": 80,
+    "documentation_accuracy": 90,
+    "error_message_quality": 85,
+    "error_message_notes": "Clean REST API with well-structured JSON errors. MCP server available for direct agent database management. OpenAPI spec published. Error responses include helpful context. Cold start latency is the main operational surprise.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Project and branch creation are not idempotent — same name creates duplicate. Agents should list existing branches before creating to avoid duplicates. Connection string retrieval is idempotent.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Scale-to-zero cold start adds 500ms-5s latency on first connection — agents must implement connection retry logic for the initial connection attempt",
+      "Branch creation copies the parent branch at point-in-time — branches do NOT stay in sync with parent after creation; agents must re-branch or merge explicitly",
+      "Connection pooler endpoint is separate from direct connection endpoint — for serverless/lambda agents, always use the pooler endpoint to avoid connection exhaustion",
+      "Free tier projects suspend after 5 days of inactivity — agents must handle connection failures with an unsuspend step before retrying",
+      "Database branches count against storage quota for unique (non-shared) pages — heavy branching on large databases incurs significant storage costs"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 72,
+    "api_doc_score": 90,
+    "error_handling_score": 85,
+    "auth_complexity_score": 88,
+    "rate_limit_clarity_score": 82
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 85,
+    "scope_granularity": 80,
+    "dependency_hygiene": 85,
+    "secret_handling": 85,
+    "security_notes": "SOC2 Type II, ISO 27001 certified. HIPAA BAA available on Business plan. TLS enforced. Connection strings contain credentials — must be handled as secrets. IAM authentication available via AWS integration. Data encrypted at rest."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 90,
+    "version_stability": 88,
+    "breaking_changes_history": 85,
+    "error_recovery": 85
+  }
+}

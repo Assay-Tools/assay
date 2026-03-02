@@ -1,0 +1,105 @@
+{
+  "id": "aws-step-functions-api",
+  "name": "AWS Step Functions API",
+  "version_evaluated": "current",
+  "homepage": "https://aws.amazon.com/step-functions/",
+  "repo_url": null,
+  "category": "automation",
+  "subcategories": ["workflow", "orchestration", "serverless", "state-machine"],
+  "tags": ["aws", "step-functions", "workflow", "orchestration", "state-machine", "lambda", "serverless"],
+  "what_it_does": "AWS Step Functions REST API — serverless workflow orchestration service enabling agents to define, execute, and monitor state machines that coordinate AWS services (Lambda, ECS, DynamoDB, SQS, etc.) with built-in error handling, retries, and parallel execution.",
+  "use_cases": [
+    "Agents triggering multi-step data processing pipelines — start execution with StartExecution API, passing input payload to a state machine that coordinates Lambda, S3, and DynamoDB steps",
+    "Human-in-the-loop workflows — agents using Step Functions callback tasks (SendTaskSuccess/SendTaskFailure) to pause a workflow pending external approval and resume after decision",
+    "Distributed saga pattern — agents orchestrating multi-service transactions with automatic compensation logic on failure via Step Functions error handling and catch states",
+    "Long-running job monitoring — agents starting Step Functions executions for ETL jobs and polling DescribeExecution for completion status",
+    "Event-driven automation — agents triggering state machines in response to S3 uploads, DynamoDB streams, or SQS messages to implement reliable event processing"
+  ],
+  "not_for": [
+    "Sub-second latency workflows — Step Functions has ~100ms overhead per state transition; use direct Lambda invocation for latency-sensitive flows",
+    "Very high-frequency executions — at >1000 executions/second Express Workflows are needed; Standard Workflows have lower throughput limits",
+    "Non-AWS orchestration — Step Functions only natively integrates with AWS services; for cross-cloud workflows use Temporal or Airflow"
+  ],
+  "best_when": "You need reliable, auditable orchestration of AWS service workflows with automatic retry, error handling, and execution history — especially when coordinating 3+ AWS services in sequence or parallel.",
+  "avoid_when": "Your workflow needs sub-100ms state transitions, involves non-AWS services predominantly, or requires very high throughput (>10K/s) without Express Workflows.",
+  "alternatives": ["temporal-api", "prefect-api", "dagster-api", "airflow-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "javascript", "java", "go", "ruby", "csharp", "php"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["aws-iam"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "AWS IAM SigV4 signing required for all API calls. IAM policies control which state machines an identity can start, stop, or describe. Execution roles attached to state machines control which AWS services Step Functions can invoke."
+  },
+  "pricing": {
+    "model": "usage-based",
+    "free_tier_exists": true,
+    "free_tier_limits": "Standard Workflows: 4,000 state transitions/month free; Express Workflows: 1M state transitions/month free",
+    "paid_tiers": "Standard: $0.025 per 1,000 state transitions; Express: $1 per 1M state transitions + $0.00001 per GB-second",
+    "requires_credit_card": true,
+    "notes": "Standard Workflows billed per state transition with execution history stored for 90 days. Express Workflows are cheaper for high-volume short-duration workflows but have no execution history. Synchronous Express Workflows wait for completion."
+  },
+  "performance": {
+    "latency_p50_ms": 100,
+    "latency_p99_ms": 500,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "StartExecution: 1,300/s burst, 400/s sustained; DescribeExecution: 350/s; ListExecutions: 150/s; regional quotas apply",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": true,
+    "domain_verification": false,
+    "data_residency": ["US", "EU", "APAC", "CA", "SA"],
+    "compliance": ["SOC2", "ISO-27001", "HIPAA", "PCI-DSS", "FedRAMP"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 88,
+    "error_message_quality": 82,
+    "error_message_notes": "AWS SDK returns typed exceptions (ExecutionAlreadyExists, StateMachineDoesNotExist, etc.) that are descriptive. IAM permission errors can be cryptic. CloudWatch Logs integration recommended for state machine debugging.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "StartExecution supports a name parameter for idempotency — same name returns existing execution within 90 days. Without name, each call creates new execution. SendTaskSuccess/SendTaskFailure are idempotent by task token.",
+    "pagination_style": "token",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "State machine definitions use Amazon States Language (ASL) JSON — agents generating or modifying definitions must produce valid ASL or UpdateStateMachine will fail",
+      "Execution input/output are JSON with 256KB payload limit — large data must be passed via S3 reference, not directly in state machine payload",
+      "Standard Workflow executions have 1-year maximum duration; Express Workflows max out at 5 minutes — wrong type choice causes timeout failures",
+      "Callback task tokens (used for human-in-the-loop) expire if not responded to within 1 year for Standard, 5 minutes for Express — agents must track and respond promptly",
+      "IAM execution role trust policy must explicitly trust states.amazonaws.com — missing trust relationship is a common setup failure that produces confusing errors"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 88,
+    "error_handling_score": 82,
+    "auth_complexity_score": 70,
+    "rate_limit_clarity_score": 85
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 92,
+    "scope_granularity": 90,
+    "dependency_hygiene": 90,
+    "secret_handling": 88,
+    "security_notes": "IAM SigV4 with fine-grained resource-level policies. Execution data encrypted at rest and in transit. VPC endpoint support for private network access. CloudTrail logging for all API calls. FedRAMP authorized for government workloads."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 90,
+    "version_stability": 88,
+    "breaking_changes_history": 85,
+    "error_recovery": 90
+  }
+}
