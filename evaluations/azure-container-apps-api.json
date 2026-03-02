@@ -1,0 +1,105 @@
+{
+  "id": "azure-container-apps-api",
+  "name": "Azure Container Apps",
+  "version_evaluated": "current",
+  "homepage": "https://azure.microsoft.com/en-us/products/container-apps",
+  "repo_url": null,
+  "category": "infrastructure",
+  "subcategories": ["serverless", "containers", "cloud"],
+  "tags": ["serverless", "kubernetes", "containers", "azure", "dapr", "keda", "microservices", "scale-to-zero"],
+  "what_it_does": "Provides a fully managed serverless container platform on Azure that runs containerized applications with automatic scaling including scale-to-zero, built on Kubernetes with Dapr and KEDA integration.",
+  "use_cases": [
+    "Agent deploys a containerized AI inference service as a Container App that scales to zero when not in use to minimize cost",
+    "Agent triggers a job revision to run a one-off container-based batch processing task and polls for completion",
+    "Agent scales a Container App revision up or down based on queue depth detected in Azure Service Bus",
+    "Agent retrieves Container App logs and replica metrics to diagnose a failing AI microservice",
+    "Agent creates a new Container App environment and deploys a multi-container agent orchestration service with Dapr sidecar for service-to-service calls"
+  ],
+  "not_for": [
+    "Workloads requiring direct Kubernetes API access or custom node configuration — Container Apps abstracts away the cluster and does not expose kubectl",
+    "Long-running stateful applications with persistent local storage requirements — ephemeral container storage and scale-in behavior make stateful apps unreliable",
+    "Windows container workloads — Container Apps only supports Linux containers"
+  ],
+  "best_when": "Running containerized AI microservices or agent tools that need automatic HTTP-based or event-driven scaling including scale-to-zero without managing Kubernetes infrastructure.",
+  "avoid_when": "You need fine-grained Kubernetes control, Windows containers, or workloads with strict stateful storage requirements that cannot use external stores.",
+  "alternatives": ["azure-functions-api", "google-cloud-run-api", "aws-app-runner-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "javascript", "java", "go", "dotnet"],
+    "openapi_spec_url": "https://raw.githubusercontent.com/Azure/azure-rest-api-specs/main/specification/app/resource-manager/Microsoft.App/stable/2024-03-01/ContainerApps.json",
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["azure-active-directory", "service-principal", "managed-identity"],
+    "oauth": true,
+    "scopes": true,
+    "notes": "Uses Azure RBAC with Entra ID (formerly Azure AD). Managed Identity is the preferred approach for agent-to-Container Apps auth, eliminating credential management. Service principal with client secret is common but less secure."
+  },
+  "pricing": {
+    "model": "usage-based",
+    "free_tier_exists": true,
+    "free_tier_limits": "180,000 vCPU-seconds and 360,000 GB-seconds free per subscription per month; first 2 million requests/month free",
+    "paid_tiers": "Consumption plan: $0.000024/vCPU-second, $0.000003/GB-second; Dedicated plan available for consistent workloads with reserved compute",
+    "requires_credit_card": true,
+    "notes": "Scale-to-zero means idle apps incur no compute cost. Free tier is generous for low-traffic agent tools. Dedicated plan required for GPU workloads or Spot instance pricing."
+  },
+  "performance": {
+    "latency_p50_ms": 150,
+    "latency_p99_ms": 800,
+    "uptime_sla_percent": 99.95,
+    "rate_limits": "Azure Resource Manager API: 1200 req/hour per subscription for reads, 600 req/hour for writes; Container App ingress: configurable per-app, no default cap",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": true,
+    "domain_verification": false,
+    "data_residency": ["US", "EU", "APAC", "UK", "Canada", "Brazil"],
+    "compliance": ["SOC2", "ISO-27001", "HIPAA", "FedRAMP", "PCI-DSS"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 83,
+    "error_message_quality": 78,
+    "error_message_notes": "ARM API errors return structured JSON with code and message fields, but Container App-level errors (crash loops, OOM) require log streaming or Log Analytics queries rather than surfacing in API responses",
+    "idempotency_support": "full",
+    "idempotency_notes": "ARM PUT operations are idempotent by design — deploying the same Container App definition repeatedly is safe. Revision creation generates a unique revision name automatically, preventing duplicate deployment issues.",
+    "pagination_style": "token",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Container App revisions are immutable — updating a container image or environment variable creates a new revision rather than modifying in place; agents must track active revision names separately from app names",
+      "Cold start latency on scale-from-zero can exceed 30 seconds for large container images; agents expecting fast response after idle periods must implement generous timeouts",
+      "KEDA-based scaling rules and HTTP scaling rules cannot both be active simultaneously on the same Container App; agents configuring scaling must choose one trigger type",
+      "Log data is routed to Log Analytics by default but requires a separate KQL query against the workspace — there is no direct 'get recent logs' API on the Container App resource itself",
+      "Managed Environment (Container App Environment) is a shared resource; deleting the environment deletes all apps within it — agents performing cleanup must enumerate apps before environment deletion"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 83,
+    "error_handling_score": 75,
+    "auth_complexity_score": 78,
+    "rate_limit_clarity_score": 80
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 92,
+    "scope_granularity": 88,
+    "dependency_hygiene": 85,
+    "secret_handling": 90,
+    "security_notes": "Secrets can be stored in Azure Key Vault and referenced via Managed Identity — no credential injection at deploy time. VNet integration supports private ingress. Workload profiles allow dedicated compute isolation for sensitive workloads."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 92,
+    "version_stability": 85,
+    "breaking_changes_history": 80,
+    "error_recovery": 85
+  }
+}

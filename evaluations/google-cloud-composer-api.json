@@ -1,0 +1,105 @@
+{
+  "id": "google-cloud-composer-api",
+  "name": "Google Cloud Composer (Managed Apache Airflow)",
+  "version_evaluated": "current",
+  "homepage": "https://cloud.google.com/composer",
+  "repo_url": null,
+  "category": "infrastructure",
+  "subcategories": ["orchestration", "workflow", "cloud"],
+  "tags": ["airflow", "dag", "workflow-orchestration", "managed-service", "gcp", "batch", "pipeline"],
+  "what_it_does": "Provides a fully managed Apache Airflow environment on GCP for orchestrating complex multi-step data pipelines and workflows as directed acyclic graphs (DAGs).",
+  "use_cases": [
+    "Agent triggers a DAG run to kick off a multi-step ETL pipeline after detecting new data",
+    "Agent polls DAG run status to determine when a long-running data processing job has completed",
+    "Agent dynamically creates or updates DAG definitions to schedule recurring AI batch inference jobs",
+    "Agent retrieves task instance logs from a failed DAG run to diagnose pipeline errors",
+    "Agent pauses or resumes a DAG schedule in response to upstream data quality failures"
+  ],
+  "not_for": [
+    "Low-latency real-time event processing — Airflow is designed for batch/scheduled workflows, not sub-second reactions",
+    "Simple single-step job execution — overhead of Airflow is unnecessary for trivial tasks better handled by Cloud Tasks or Cloud Run Jobs",
+    "Serverless or event-driven workloads — Composer environments are always-on and incur fixed costs regardless of usage"
+  ],
+  "best_when": "Orchestrating complex multi-step data pipelines with dependencies, retries, and branching logic where workflow state and audit history matter.",
+  "avoid_when": "You need low-cost, low-overhead task execution or real-time event-driven processing, as Composer's always-on environment makes it expensive for infrequent workloads.",
+  "alternatives": ["google-cloud-workflows-api", "google-cloud-tasks-api", "aws-step-functions-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "javascript", "java", "go"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["google-oauth2", "service-account"],
+    "oauth": true,
+    "scopes": true,
+    "notes": "Uses GCP IAM with OAuth2 or service account credentials. Roles like roles/composer.admin and roles/composer.worker control access. Airflow's own RBAC layer adds a second permission surface that agents must also navigate."
+  },
+  "pricing": {
+    "model": "usage-based",
+    "free_tier_exists": false,
+    "free_tier_limits": "No free tier; trial credits via GCP $300 new account credit apply",
+    "paid_tiers": "Composer 2 charges per vCPU-hour and GB-hour for the GKE cluster running the environment; small environment ~$300-500/month at idle, scales with workload",
+    "requires_credit_card": true,
+    "notes": "One of the more expensive GCP services at rest. Composer 2 improved cost efficiency vs Composer 1 via autopilot GKE, but there is no truly serverless tier."
+  },
+  "performance": {
+    "latency_p50_ms": 500,
+    "latency_p99_ms": 3000,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "Airflow REST API: 10 req/s per environment by default; GCP management API standard quota applies (600 req/min per project)",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": true,
+    "domain_verification": false,
+    "data_residency": ["US", "EU", "APAC"],
+    "compliance": ["SOC2", "ISO-27001", "HIPAA", "FedRAMP"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 82,
+    "error_message_quality": 75,
+    "error_message_notes": "Airflow errors surface via task logs rather than API responses; agents must parse unstructured log text to understand failures, which is fragile",
+    "idempotency_support": "partial",
+    "idempotency_notes": "DAG runs can be triggered with explicit run_ids to avoid duplicates, but the API does not enforce idempotency by default — duplicate run_ids return a 409 conflict that agents must handle explicitly",
+    "pagination_style": "offset",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Airflow's own REST API and the GCP Cloud Composer management API are two separate API surfaces with different endpoints, auth scopes, and base URLs — agents must track which they are calling",
+      "DAG parsing errors are silent at trigger time; a DAG with a Python syntax error will accept the trigger call but never schedule tasks, requiring agents to separately check DAG import errors",
+      "Environment creation takes 20-30 minutes; agents polling for environment READY state must implement long-poll logic with appropriate backoff",
+      "The Airflow webserver URL embedded in Composer environments requires separate IAM Proxy authentication (IAP) on top of GCP OAuth, adding an extra auth layer agents must handle",
+      "DAG run states use Airflow-native values (running, success, failed, queued) not GCP-standard operation states, requiring agents to map between state machines"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 82,
+    "error_handling_score": 70,
+    "auth_complexity_score": 60,
+    "rate_limit_clarity_score": 72
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 88,
+    "scope_granularity": 80,
+    "dependency_hygiene": 82,
+    "secret_handling": 85,
+    "security_notes": "Supports VPC-native deployments and private IP environments. Secrets can be stored in Secret Manager and referenced in DAGs. IAP-protected Airflow UI adds defense-in-depth. Shared GKE node pools are a potential blast-radius concern."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 80,
+    "breaking_changes_history": 72,
+    "error_recovery": 80
+  }
+}
