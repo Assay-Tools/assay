@@ -1,0 +1,105 @@
+{
+  "id": "supabase-realtime-api",
+  "name": "Supabase Realtime API",
+  "version_evaluated": "current",
+  "homepage": "https://supabase.com/docs/guides/realtime",
+  "repo_url": "https://github.com/supabase/realtime",
+  "category": "infrastructure",
+  "subcategories": ["realtime", "database", "pub-sub", "postgres", "websockets"],
+  "tags": ["postgres", "cdc", "broadcast", "presence", "websocket", "change-data-capture", "row-level-security"],
+  "what_it_does": "Streams Postgres database change events (INSERT, UPDATE, DELETE) and provides broadcast and presence channels over WebSockets, tightly integrated with the Supabase platform.",
+  "use_cases": [
+    "Reactively notifying agents when database rows they care about are inserted or updated without polling the database",
+    "Building agent observability dashboards that display live task and job state as rows change in Postgres",
+    "Implementing multi-agent coordination via Broadcast channels where agents post signals to named channels without database writes",
+    "Tracking which agents are currently active in a workspace using Presence channels with automatic heartbeat handling",
+    "Triggering downstream agent logic via database webhooks when upstream agents commit results to shared tables"
+  ],
+  "not_for": [
+    "Projects not already using or willing to adopt Supabase — Realtime is tightly coupled to the Supabase platform and Postgres",
+    "High-frequency event streams at sub-10ms latency — Postgres CDC replication lag introduces baseline latency unsuitable for ultra-low-latency use cases",
+    "Complex message transformation or routing — Supabase Realtime delivers raw change events with no built-in server-side filtering logic beyond row-level security"
+  ],
+  "best_when": "Your agent stack is already on Supabase/Postgres and you want zero-infrastructure real-time change notifications gated by existing row-level security policies.",
+  "avoid_when": "You need real-time messaging independent of a relational database, or require message delivery guarantees with acknowledgment and replay semantics.",
+  "alternatives": ["ably-realtime-api", "pusher-channels-api", "convex-db-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": true,
+    "mcp_server_url": "https://github.com/supabase-community/supabase-mcp",
+    "has_sdk": true,
+    "sdk_languages": ["javascript", "typescript", "python", "swift", "kotlin", "dart"],
+    "openapi_spec_url": null,
+    "webhooks": true
+  },
+  "auth": {
+    "methods": ["api_key", "jwt"],
+    "oauth": false,
+    "scopes": true,
+    "notes": "Realtime channels respect Supabase Row Level Security policies — channel subscriptions are authorized based on the user's JWT. Anon key allows public channel access; service role key bypasses RLS for server-side agents."
+  },
+  "pricing": {
+    "model": "freemium",
+    "free_tier_exists": true,
+    "free_tier_limits": "200 concurrent Realtime connections, 2 million Realtime messages/month included in Supabase free tier",
+    "paid_tiers": "Pro $25/month base; additional Realtime message packs available; Team and Enterprise plans",
+    "requires_credit_card": false,
+    "notes": "Realtime is bundled into Supabase plans, not priced separately. Message counts include Postgres changes, broadcasts, and presence events. Paused free projects stop receiving Realtime events."
+  },
+  "performance": {
+    "latency_p50_ms": 100,
+    "latency_p99_ms": 400,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "Default 100 concurrent channels per connection; 200 concurrent connections on free tier; Realtime message throughput shared with database load",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["US", "EU", "AP", "SA"],
+    "compliance": ["SOC2", "GDPR", "HIPAA"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": 75,
+    "mcp_security_score": 78,
+    "documentation_accuracy": 85,
+    "error_message_quality": 80,
+    "error_message_notes": "Realtime errors surface as channel status events (CHANNEL_ERROR, TIMED_OUT) with string reason codes. Error granularity is lower than REST API errors — agents may need to implement their own diagnostics to distinguish auth failures from network issues.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Postgres change events carry the table's primary key and commit timestamp, enabling agents to deduplicate replayed events. Broadcast and Presence have no idempotency support — agents must handle duplicate events.",
+    "pagination_style": "none",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Supabase free tier projects pause after 1 week of inactivity — Realtime subscriptions silently drop and do not resume until the project is unpaused",
+      "Row Level Security policies apply to Realtime subscriptions, so an agent using the anon key may subscribe to a channel but receive zero events if RLS blocks the underlying table access",
+      "Postgres CDC replication lag means Realtime events are not instantaneous — under heavy write load, events may arrive hundreds of milliseconds after the commit",
+      "Channel multiplexing is handled client-side in the SDK — agents opening many channels on one connection can cause head-of-line blocking where a slow channel delays others",
+      "Broadcast and Presence channels do not persist messages — if an agent is disconnected even briefly, it will miss all events published during the disconnection window"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 75,
+    "api_doc_score": 85,
+    "error_handling_score": 80,
+    "auth_complexity_score": 83,
+    "rate_limit_clarity_score": 78
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 85,
+    "scope_granularity": 85,
+    "dependency_hygiene": 83,
+    "secret_handling": 83,
+    "security_notes": "Row Level Security integration is a strong security feature — Realtime honors the same policies as the REST API. Service role key grants full bypass and must be kept strictly server-side. JWTs can be scoped to specific roles for fine-grained access."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 85,
+    "version_stability": 82,
+    "breaking_changes_history": 80,
+    "error_recovery": 80
+  }
+}
