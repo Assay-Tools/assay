@@ -1,0 +1,105 @@
+{
+  "id": "zipkin-api",
+  "name": "Zipkin Tracing API",
+  "version_evaluated": "v2.x",
+  "homepage": "https://zipkin.io/",
+  "repo_url": "https://github.com/openzipkin/zipkin",
+  "category": "developer-tools",
+  "subcategories": ["observability", "distributed-tracing", "monitoring"],
+  "tags": ["tracing", "distributed-tracing", "spans", "observability", "self-hosted", "zipkin", "opentelemetry"],
+  "what_it_does": "Zipkin is an open-source distributed tracing system with a v2 JSON REST API for collecting spans and querying traces to investigate latency and error propagation across microservices.",
+  "use_cases": [
+    "Query the Zipkin API by service name and time range to retrieve recent traces and automatically identify the slowest endpoints after a production change",
+    "Use the /api/v2/services and /api/v2/spans endpoints to maintain a real-time catalog of all instrumented services and their operation names for agent-driven service maps",
+    "Post spans directly to /api/v2/spans from an agent that wraps outbound API calls to add tracing to uninstrumented legacy services",
+    "Retrieve trace dependency graphs via /api/v2/dependencies to detect newly introduced or broken service-to-service relationships during continuous deployment",
+    "Search traces with error tags using the /api/v2/traces?annotationQuery=error endpoint to power automated alert triage that links alerts to root-cause trace data"
+  ],
+  "not_for": [
+    "Metrics collection and alerting — Zipkin stores only trace/span data with no metric aggregation, alerting rules, or time-series storage",
+    "Log aggregation or correlation — use a log backend (Loki, Elasticsearch) alongside Zipkin for full observability; Zipkin has no log storage",
+    "High-cardinality trace storage at scale without a proper backend — the default in-memory store is for development only and loses all data on restart"
+  ],
+  "best_when": "Best when you need a lightweight, easily embeddable distributed tracing backend with a clean v2 JSON API that agents can both write spans to and query without complex setup.",
+  "avoid_when": "Avoid when you need advanced trace analytics, long retention, or tight OpenTelemetry ecosystem integration — Jaeger or Grafana Tempo are better choices for those needs.",
+  "alternatives": ["jaeger-api", "tempo-api", "datadog-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["java", "go", "python", "node", "ruby"],
+    "openapi_spec_url": "https://zipkin.io/zipkin-api/",
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Zipkin has no built-in authentication or authorization. All endpoints are open by default. Access control must be implemented via a reverse proxy. Do not expose Zipkin directly to the internet."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Free and open source under Apache 2.0",
+    "paid_tiers": "No official paid tier; available as a component in commercial APM platforms",
+    "requires_credit_card": false,
+    "notes": "Fully open source. Production deployments require a storage backend (MySQL, Cassandra, Elasticsearch) that incurs its own operational costs."
+  },
+  "performance": {
+    "latency_p50_ms": 15,
+    "latency_p99_ms": 150,
+    "uptime_sla_percent": null,
+    "rate_limits": "None — self-hosted; performance scales with storage backend capacity",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self_hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 80,
+    "error_message_quality": 68,
+    "error_message_notes": "API error responses are minimal — often just an HTTP status code with a plain-text body; agents must handle both JSON and plain-text error formats defensively",
+    "idempotency_support": "partial",
+    "idempotency_notes": "GET query endpoints are idempotent; POST /api/v2/spans is not idempotent — duplicate span submissions will result in duplicate spans in the trace store",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Timestamps in the Zipkin v2 API are in microseconds since epoch — submitting milliseconds or seconds will produce traces with wildly incorrect timestamps that appear far in the past or future",
+      "The default in-memory storage backend loses all trace data on restart — agents must not rely on previously queried trace IDs persisting across Zipkin restarts in dev environments",
+      "Span ingestion via POST /api/v2/spans is fire-and-forget with a 202 Accepted response — a 202 does not guarantee the span was stored; storage failures are silent from the client perspective",
+      "The /api/v2/traces search API has no cursor-based pagination — results are limited by the `limit` parameter (max 10 by default) and there is no way to fetch the next page beyond adjusting endTs",
+      "Service names and span names in Zipkin are case-sensitive and whitespace-sensitive — inconsistent instrumentation across services produces fragmented service maps that are difficult to query programmatically"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 80,
+    "error_handling_score": 68,
+    "auth_complexity_score": 85,
+    "rate_limit_clarity_score": 88
+  },
+  "security_score_components": {
+    "tls_enforcement": 65,
+    "auth_strength": 50,
+    "scope_granularity": 45,
+    "dependency_hygiene": 80,
+    "secret_handling": 72,
+    "security_notes": "No authentication whatsoever by default — Zipkin is designed as an internal tool behind a network boundary. Spans can contain sensitive data (HTTP headers, request bodies) with no access controls. TLS requires a proxy layer."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 72,
+    "version_stability": 82,
+    "breaking_changes_history": 78,
+    "error_recovery": 70
+  }
+}

@@ -1,0 +1,105 @@
+{
+  "id": "nats-api",
+  "name": "NATS Messaging API",
+  "version_evaluated": "v2.10.x",
+  "homepage": "https://nats.io/",
+  "repo_url": "https://github.com/nats-io/nats-server",
+  "category": "developer-tools",
+  "subcategories": ["messaging", "infrastructure", "streaming", "pubsub"],
+  "tags": ["messaging", "pubsub", "jetstream", "kv-store", "object-store", "streaming", "self-hosted", "cloud-native", "nats"],
+  "what_it_does": "NATS is a high-performance cloud-native messaging system with pub/sub, request-reply, and JetStream (persistent streaming, key-value store, and object store) accessible via client SDKs and an HTTP monitoring API.",
+  "use_cases": [
+    "Use NATS pub/sub to fan out task assignments from an orchestrator agent to a pool of worker agents, with request-reply for synchronous task acknowledgment and result collection",
+    "Leverage JetStream key-value store as a lightweight distributed state store for agent coordination — storing task status, locks, and shared configuration without a separate database",
+    "Implement an event-driven agent pipeline where each processing stage subscribes to an upstream subject, transforms the message, and publishes to a downstream subject for the next stage",
+    "Use NATS request-reply pattern to build an agent capability discovery system where agents advertise their available tools on a well-known subject and respond to capability queries",
+    "Query the NATS HTTP monitoring API (/varz, /connz, /subsz) to observe agent fleet health — active connections, subscription counts, and message throughput — from an operations agent"
+  ],
+  "not_for": [
+    "Replacing a full message queue with complex routing, dead-letter queues, and per-message TTLs — RabbitMQ or SQS are better fits for those semantics",
+    "Storing large binary payloads at scale — NATS messages have a default max payload of 1MB (configurable); use the object store for larger files with awareness of throughput tradeoffs",
+    "Teams that need a managed SaaS messaging service with zero ops burden — use Synadia Cloud (managed NATS) or cloud-native alternatives like AWS SQS/SNS"
+  ],
+  "best_when": "Best when you need ultra-low-latency, high-throughput messaging between agents with optional persistence (JetStream) and a simple protocol that works across cloud, edge, and embedded environments.",
+  "avoid_when": "Avoid when your agents need complex message routing topologies, per-consumer dead-letter queues, or message-level TTLs that NATS core pub/sub does not natively support.",
+  "alternatives": ["rabbitmq-api", "kafka-api", "redis-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["go", "python", "node", "java", "rust", "dotnet", "ruby", "c"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none", "token", "username_password", "nkey", "jwt"],
+    "oauth": false,
+    "scopes": true,
+    "notes": "NATS supports a range of auth mechanisms from simple token/password to NKey cryptographic identity and JWT-based decentralized auth (NATS Accounts). NKey + JWT is the recommended production approach and supports fine-grained subject-level publish/subscribe permissions per user."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Free and open source under Apache 2.0",
+    "paid_tiers": "Synadia Cloud (managed NATS) has free and paid tiers starting at usage-based pricing",
+    "requires_credit_card": false,
+    "notes": "NATS server is fully open source. Synadia Cloud is the commercial managed offering. NGS (NATS Global Service) was the prior commercial tier, now consolidated under Synadia."
+  },
+  "performance": {
+    "latency_p50_ms": 0,
+    "latency_p99_ms": 2,
+    "uptime_sla_percent": null,
+    "rate_limits": "None by default — self-hosted; configurable max_payload, max_connections, and per-account rate limits via JetStream",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self_hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 83,
+    "error_message_quality": 75,
+    "error_message_notes": "NATS protocol errors are returned as -ERR messages in the text protocol; SDK wrappers surface these as typed errors but the underlying messages can be terse. JetStream API errors include an error code and description via JSON.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Core pub/sub has no idempotency guarantees — at-most-once delivery by default. JetStream provides exactly-once semantics via message deduplication (Nats-Msg-Id header) with a configurable deduplication window.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "NATS core pub/sub is at-most-once delivery — if no subscriber is listening when a message is published, the message is dropped silently; agents must use JetStream for durable delivery guarantees",
+      "Subject naming is hierarchical and wildcard-based (* for single token, > for multi-token) — poorly scoped subscriptions (especially >) can cause an agent to receive far more messages than intended, leading to overwhelm",
+      "JetStream consumers must explicitly acknowledge messages (AckExplicit policy) or they will be redelivered after AckWait expires — agents that process slowly without acking will see duplicate deliveries",
+      "The NATS HTTP monitoring API (port 8222 by default) is read-only and unauthenticated — it exposes connection metadata, subscription counts, and server stats and should not be exposed publicly",
+      "Maximum message payload defaults to 1MB — agents sending large payloads (embeddings, documents, images) will receive a 'Maximum Payload Exceeded' error; use JetStream Object Store for large binary transfers instead"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 83,
+    "error_handling_score": 75,
+    "auth_complexity_score": 72,
+    "rate_limit_clarity_score": 82
+  },
+  "security_score_components": {
+    "tls_enforcement": 80,
+    "auth_strength": 88,
+    "scope_granularity": 90,
+    "dependency_hygiene": 87,
+    "secret_handling": 85,
+    "security_notes": "NKey + JWT auth provides strong cryptographic identity with subject-level publish/subscribe permissions — one of the more capable auth models among self-hosted messaging systems. TLS is well-documented and recommended for all non-loopback connections. The monitoring port is a common oversight — it must be secured separately."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 82,
+    "version_stability": 85,
+    "breaking_changes_history": 80,
+    "error_recovery": 85
+  }
+}

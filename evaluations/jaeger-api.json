@@ -1,0 +1,105 @@
+{
+  "id": "jaeger-api",
+  "name": "Jaeger Tracing API",
+  "version_evaluated": "v2.x",
+  "homepage": "https://www.jaegertracing.io/",
+  "repo_url": "https://github.com/jaegertracing/jaeger",
+  "category": "developer-tools",
+  "subcategories": ["observability", "distributed-tracing", "monitoring"],
+  "tags": ["tracing", "distributed-tracing", "opentelemetry", "spans", "observability", "self-hosted", "jaeger"],
+  "what_it_does": "Jaeger is an open-source distributed tracing backend with a query HTTP API and gRPC API for retrieving traces, spans, service dependency graphs, and latency data from instrumented microservices.",
+  "use_cases": [
+    "Query the Jaeger API to fetch traces for a specific service within a time window to identify latency regressions after a deployment",
+    "Retrieve service dependency graphs via the /api/dependencies endpoint to automatically generate architecture documentation or detect unexpected inter-service coupling",
+    "Search for traces containing error spans across a set of operations to build automated incident triage workflows that surface root-cause traces",
+    "Use the trace detail API to extract span tags and process metadata for automated SLO compliance checking against latency budgets",
+    "Poll the /api/services endpoint to maintain an always-current inventory of instrumented services for agent-driven service discovery pipelines"
+  ],
+  "not_for": [
+    "Ingesting trace data — Jaeger's query API is read-only; trace ingestion uses OpenTelemetry Collector or the Jaeger agent/collector endpoints (OTLP, Thrift)",
+    "Metric aggregation and alerting — use Prometheus and Grafana for metrics; Jaeger is trace-centric with no native alerting",
+    "Long-term trace retention beyond days/weeks without a scalable backend like Cassandra, Elasticsearch, or ClickHouse"
+  ],
+  "best_when": "Best when you need to programmatically query distributed traces across microservices to power automated debugging, performance regression detection, or dependency mapping agents.",
+  "avoid_when": "Avoid when your primary need is log aggregation or metrics — Jaeger stores only traces and has no log or metric query capabilities.",
+  "alternatives": ["zipkin-api", "tempo-api", "datadog-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": true,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["go", "java", "python", "node", "rust"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none", "oauth2", "basic_auth"],
+    "oauth": true,
+    "scopes": false,
+    "notes": "Jaeger query service has no built-in authentication. Auth is typically handled by a reverse proxy (Traefik, Nginx, OAuth2-proxy) placed in front of the UI and API. Jaeger v2 with OpenTelemetry-native config supports TLS for gRPC endpoints."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Free and open source under Apache 2.0",
+    "paid_tiers": "No official paid tier; managed offerings available through Grafana Cloud (Tempo) and other vendors",
+    "requires_credit_card": false,
+    "notes": "Fully open source. Storage backend costs (Cassandra, Elasticsearch, ClickHouse) are separate operational concerns."
+  },
+  "performance": {
+    "latency_p50_ms": 20,
+    "latency_p99_ms": 200,
+    "uptime_sla_percent": null,
+    "rate_limits": "None — self-hosted; query latency depends on storage backend and trace volume",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self_hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 78,
+    "error_message_quality": 70,
+    "error_message_notes": "API errors are returned as JSON with an 'errors' array but messages can be cryptic storage-layer errors that require knowledge of the backend (Cassandra/ES) to interpret",
+    "idempotency_support": "full",
+    "idempotency_notes": "All query API endpoints are read-only GET requests — fully idempotent",
+    "pagination_style": "offset",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Trace search (/api/traces) has a maximum result limit (default 20, max configurable) — agents must paginate by adjusting the `limit` and `offset` parameters or risk missing traces",
+      "Time parameters use microseconds since epoch (not milliseconds or seconds) — a common source of empty result sets when agents pass wrong time units",
+      "The /api/services endpoint only returns services that have submitted at least one span recently — services that stopped reporting will disappear from the list after TTL expiry",
+      "Large traces (thousands of spans) can cause the query API to time out or return truncated results — agents should set explicit span count limits and handle partial responses",
+      "Jaeger v1 and v2 have different configuration models; v2 adopts the OpenTelemetry Collector config schema — agents targeting both versions must handle API compatibility differences"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 78,
+    "error_handling_score": 70,
+    "auth_complexity_score": 82,
+    "rate_limit_clarity_score": 88
+  },
+  "security_score_components": {
+    "tls_enforcement": 72,
+    "auth_strength": 60,
+    "scope_granularity": 50,
+    "dependency_hygiene": 85,
+    "secret_handling": 78,
+    "security_notes": "No built-in auth on the query API — exposure requires a proxy layer. gRPC endpoints in v2 support mTLS. Trace data can contain sensitive request parameters and headers; access control is entirely the operator's responsibility."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 75,
+    "version_stability": 80,
+    "breaking_changes_history": 72,
+    "error_recovery": 78
+  }
+}
