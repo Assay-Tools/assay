@@ -5,9 +5,9 @@
   "homepage": "https://huggingface.co/docs/api-inference/index",
   "repo_url": "https://github.com/huggingface/huggingface_hub",
   "category": "ai-ml",
-  "subcategories": ["model-inference", "model-hub", "embeddings", "nlp", "open-source-models"],
+  "subcategories": ["model-inference", "model-hub", "embeddings", "nlp"],
   "tags": ["huggingface", "ai", "ml", "inference", "embeddings", "nlp", "open-source", "transformers", "model-hub", "rest-api", "sdk"],
-  "what_it_does": "The world's largest open-source model hub with a serverless Inference API for running 250k+ models including LLMs, embeddings, image generation, and specialized NLP tasks via a unified REST interface.",
+  "what_it_does": "Hosted inference for 100,000+ open-source ML models including LLMs, embeddings, image generation, audio, and specialized NLP tasks via a unified REST API. Dedicated Endpoints provide production-grade isolated GPU inference.",
   "use_cases": [
     "Running open-source LLM inference (Llama, Mistral, Falcon) without managing GPU infrastructure",
     "Generating embeddings from specialized sentence-transformer models for RAG",
@@ -17,8 +17,8 @@
   ],
   "not_for": [
     "Production workloads requiring guaranteed latency SLAs (cold starts on free tier)",
-    "Very large model inference requiring custom VRAM configurations",
-    "Teams that need dedicated, isolated GPU infrastructure (use Dedicated Endpoints instead)"
+    "Very large model inference requiring custom VRAM configurations on shared API",
+    "Teams needing dedicated isolated GPU infrastructure without Dedicated Endpoints pricing"
   ],
   "best_when": "You need to run open-source models without managing GPU infrastructure, especially for specialized tasks where open models outperform general-purpose commercial APIs.",
   "avoid_when": "You need OpenAI-level reliability guarantees, very low latency, or your model doesn't fit in the serverless tier.",
@@ -43,16 +43,16 @@
   "pricing": {
     "model": "freemium",
     "free_tier_exists": true,
-    "free_tier_limits": "Free tier: rate-limited inference on many models (cold starts, shared infrastructure)",
-    "paid_tiers": "PRO $9/month for faster inference; Dedicated Endpoints from ~$0.06/hour; Enterprise custom",
+    "free_tier_limits": "Free tier: rate-limited inference on many models (cold starts, shared infrastructure, ~30 requests/hour).",
+    "paid_tiers": "PRO $9/mo for faster inference and higher limits; Dedicated Endpoints from ~$0.06/hr; Enterprise custom.",
     "requires_credit_card": false,
-    "notes": "Free Inference API is heavily rate-limited and has cold starts. PRO unlocks faster access. Dedicated Endpoints are billed per GPU-hour and are production-grade."
+    "notes": "Free Inference API is heavily rate-limited and has cold starts. PRO unlocks faster access. Dedicated Endpoints are billed per GPU-hour and are production-grade with no cold starts."
   },
   "performance": {
     "latency_p50_ms": 500,
     "latency_p99_ms": 10000,
     "uptime_sla_percent": 99.5,
-    "rate_limits": "Free: ~30 requests/hour; PRO: higher limits; Dedicated: no limits",
+    "rate_limits": "Free: ~30 requests/hour; PRO: higher limits undocumented; Dedicated: no shared limits",
     "data_source": "llm_estimated"
   },
   "requirements": {
@@ -68,23 +68,25 @@
     "mcp_security_score": null,
     "documentation_accuracy": 82,
     "error_message_quality": 72,
-    "error_message_notes": "Errors include error field with description and estimated_time for model loading. 503 with estimated_time is common for cold starts. Documentation sometimes lags model updates.",
+    "error_message_notes": "Errors include error field with description and estimated_time for model loading. 503 with estimated_time is common for cold starts and is a normal operational state agents must handle. Documentation sometimes lags model updates.",
     "idempotency_support": "none",
-    "idempotency_notes": "Inference is stateless and effectively idempotent. No persistent state across calls.",
+    "idempotency_notes": "Inference is stateless — same inputs produce same outputs (for deterministic models). No deduplication or idempotency key mechanism.",
     "pagination_style": "none",
     "retry_guidance_documented": true,
     "known_agent_gotchas": [
-      "Model cold start: first request after idle period returns 503 with estimated_time — must implement retry with backoff",
-      "Model-specific input formats vary widely — agents must read model cards before calling a model",
-      "Some models require Pro subscription or gate access (gated models require explicit approval)",
-      "Free Inference API may be deprecated or rate-limited for certain models — check model page for availability",
-      "Response format differs by task (text-generation vs feature-extraction vs fill-mask) — no unified schema",
-      "Dedicated Endpoints have separate URLs and credentials from the shared Inference API"
-    ],
-    "error_message_score": 72,
-    "auth_complexity_score": 82,
-    "rate_limit_score": 55,
-    "security_score": 80
+      "Model cold start: first request after idle returns 503 with estimated_time — must implement retry with exponential backoff",
+      "Model-specific input formats vary widely — agents must read model cards before calling an unfamiliar model",
+      "Some models require Pro subscription or are gated (require explicit HF account approval)",
+      "Free Inference API availability is not guaranteed for all models — check model page for availability status",
+      "Response schema differs by task type (text-generation vs feature-extraction vs fill-mask) — no unified response envelope",
+      "Dedicated Endpoints have separate URLs and separate credentials from the shared Inference API"
+    ]
   },
-  "last_evaluated": "2026-02-28"
+  "af_score": 62,
+  "fq_score": 70,
+  "score_rationale": "Hugging Face Inference API provides unmatched breadth of open-source model access with a straightforward REST interface, earning solid fq_score. However, cold starts, rate limits on free tier, per-model schema variation, and gated model friction significantly impact agent reliability — hence the lower af_score. Dedicated Endpoints (billed separately) substantially improve agent suitability but require additional setup and cost. Scoped tokens are a plus for security.",
+  "score_version": "1.0",
+  "evaluated_at": "2026-03-02",
+  "evaluator": "claude-sonnet-4-6",
+  "confidence": "medium"
 }
