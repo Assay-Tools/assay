@@ -1,0 +1,105 @@
+{
+  "id": "traefik-api",
+  "name": "Traefik Proxy API",
+  "version_evaluated": "v3.x",
+  "homepage": "https://traefik.io/traefik/",
+  "repo_url": "https://github.com/traefik/traefik",
+  "category": "developer-tools",
+  "subcategories": ["infrastructure", "networking", "reverse-proxy"],
+  "tags": ["reverse-proxy", "load-balancer", "ingress", "tls", "routing", "docker", "kubernetes", "self-hosted"],
+  "what_it_does": "Traefik is a cloud-native reverse proxy and load balancer with a REST API for dynamic configuration, real-time routing introspection, and health/metrics access.",
+  "use_cases": [
+    "Query the Traefik API to enumerate all registered routers, services, and middleware for service discovery in a dynamic microservices environment",
+    "Poll the /health and /ping endpoints to verify Traefik availability before routing traffic or running integration tests",
+    "Use the dashboard API to inspect TLS certificate status and expiry across all entrypoints during automated certificate rotation workflows",
+    "Read active load balancer backend health status via the API to dynamically adjust upstream selections in orchestration scripts",
+    "Retrieve current routing rules and middleware chains via the REST API to validate configuration drift against infrastructure-as-code definitions"
+  ],
+  "not_for": [
+    "Dynamically modifying routing configuration at runtime — Traefik's API is read-only by default; writes require provider config changes",
+    "Replacing a full API gateway with auth, rate limiting, and developer portal features — use Kong or AWS API Gateway instead",
+    "Environments that need a managed SaaS reverse proxy — Traefik is self-hosted only (Traefik Hub adds SaaS features)"
+  ],
+  "best_when": "Best when you need a self-hosted, container-native reverse proxy whose live routing state can be introspected programmatically by agents or automation pipelines.",
+  "avoid_when": "Avoid when you need a fully managed reverse proxy with zero operational overhead or when your use case requires runtime write mutations to routing config via API.",
+  "alternatives": ["nginx-ui", "kong-api", "caddy"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": false,
+    "sdk_languages": [],
+    "openapi_spec_url": "https://raw.githubusercontent.com/traefik/traefik/master/docs/content/reference/api.json",
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none", "basic_auth", "forward_auth"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "The API and dashboard are unsecured by default and must be explicitly protected. Basic auth or a forward-auth middleware is the standard approach. TLS is opt-in. Never expose the API publicly without authentication."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Free and open source under MIT license",
+    "paid_tiers": "Traefik Hub and Traefik Enterprise add SaaS management, RBAC, and plugin marketplace",
+    "requires_credit_card": false,
+    "notes": "Core Traefik is MIT-licensed and fully free. Traefik Hub (cloud management plane) has a free tier and paid plans."
+  },
+  "performance": {
+    "latency_p50_ms": 1,
+    "latency_p99_ms": 5,
+    "uptime_sla_percent": null,
+    "rate_limits": "None — self-hosted; throughput is hardware-limited",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self_hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 72,
+    "error_message_notes": "REST API returns standard HTTP status codes but error bodies are minimal JSON; agents must infer cause from status code rather than descriptive messages",
+    "idempotency_support": "full",
+    "idempotency_notes": "All API endpoints are read-only GET requests — fully idempotent by nature",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "The API must be explicitly enabled in static config (`api: true`) — it is disabled by default and agents will receive connection refused without this",
+      "The dashboard API (/api/...) and the ping/health endpoints are on different paths; /ping is always available but /api/* requires api.insecure or proper auth setup",
+      "Router and service names in the API include the provider suffix (e.g., `my-router@docker`) — agents must strip or handle the @provider suffix when matching names",
+      "The API is read-only; any attempt to POST or PUT configuration changes will return 405 Method Not Allowed — dynamic config must go through a provider (file, Docker labels, K8s CRDs)",
+      "TLS certificate information returned by the API may lag real-time ACME state by up to one polling cycle — don't treat it as authoritative for immediate cert validity checks"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 72,
+    "auth_complexity_score": 80,
+    "rate_limit_clarity_score": 90
+  },
+  "security_score_components": {
+    "tls_enforcement": 75,
+    "auth_strength": 65,
+    "scope_granularity": 55,
+    "dependency_hygiene": 88,
+    "secret_handling": 80,
+    "security_notes": "API is insecure by default — a common misconfiguration in homelab and dev environments. No native RBAC on the API; auth is all-or-nothing via middleware. TLS for the API itself requires explicit entrypoint configuration."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 78,
+    "version_stability": 82,
+    "breaking_changes_history": 75,
+    "error_recovery": 83
+  }
+}
