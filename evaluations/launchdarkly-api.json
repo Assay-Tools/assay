@@ -3,27 +3,26 @@
   "name": "LaunchDarkly",
   "version_evaluated": "current",
   "homepage": "https://launchdarkly.com",
-  "repo_url": "https://github.com/launchdarkly/api-client-python",
-  "category": "devops",
-  "subcategories": ["feature-flags", "experimentation", "developer-tools"],
-  "tags": ["launchdarkly", "feature-flags", "feature-toggles", "experimentation", "a-b-testing", "sdk", "rest-api"],
-  "what_it_does": "Enterprise feature flag management platform with REST API for creating, toggling, and targeting feature flags across environments, supporting gradual rollouts, A/B testing, and kill switches.",
+  "repo_url": null,
+  "category": "developer-tools",
+  "subcategories": ["feature-flags"],
+  "tags": ["feature-flags", "targeting", "rollouts", "experimentation", "sdk-evaluation"],
+  "what_it_does": "Manages feature flag lifecycle and targeting rules via REST API, while SDKs evaluate flags locally using streamed rule sets so agents can toggle features without per-evaluation API calls.",
   "use_cases": [
-    "Agents dynamically enabling or disabling features in response to incidents or deployments",
-    "CI/CD automation toggling flags as part of progressive delivery pipelines",
-    "Reading flag configurations to understand what features are enabled for a given user/environment",
-    "Scheduling flag rollouts and targeting rule changes via API",
-    "Experiment management — creating and reading A/B test configurations programmatically"
+    "Toggle a feature flag on or off for a specific environment via API during an automated incident rollback workflow",
+    "Create a new feature flag with targeting rules when provisioning a canary deployment in CI/CD",
+    "Update percentage rollout on an existing flag to gradually increase traffic to a new code path based on error rate thresholds",
+    "List all flags enabled for a given environment to generate a feature inventory report for compliance auditing",
+    "Archive stale flags older than 90 days with zero evaluation counts to reduce flag debt automatically"
   ],
   "not_for": [
-    "Simple on/off feature flags without targeting (use a free/OSS tool like Unleash or Flipt)",
-    "Config management beyond boolean/string/number flags (use a dedicated config service)",
-    "Applications with extremely low latency requirements for flag evaluation (use local SDK)",
-    "Teams that need fully self-hosted feature flagging (use Unleash or Flipt OSS)"
+    "Error monitoring or crash reporting (use Sentry or Bugsnag instead)",
+    "A/B test statistical analysis with warehouse-native computation (use GrowthBook or Statsig)",
+    "Real-time application performance tracing and APM (use Datadog or New Relic)"
   ],
-  "best_when": "You need enterprise-grade feature management with advanced targeting, experimentation, and audit trails, and want a managed SaaS solution with deep SDK support across all major languages.",
-  "avoid_when": "Your use case is simple on/off flags without targeting, or your team's budget doesn't justify enterprise pricing.",
-  "alternatives": ["unleash-api", "split-api"],
+  "best_when": "An agent needs programmatic control over feature rollouts in production with millisecond SDK evaluation latency and enterprise-grade targeting rules.",
+  "avoid_when": "The team needs a self-hosted open-source solution or the budget does not support per-seat SaaS pricing at scale.",
+  "alternatives": ["flagsmith-api", "split-io-api", "growthbook-api"],
   "interface": {
     "has_rest_api": true,
     "has_graphql": false,
@@ -31,29 +30,29 @@
     "has_mcp_server": false,
     "mcp_server_url": null,
     "has_sdk": true,
-    "sdk_languages": ["python", "node", "java", "go", "ruby", "dotnet", "php", "ios", "android"],
-    "openapi_spec_url": "https://apidocs.launchdarkly.com",
+    "sdk_languages": ["python", "node", "java", "go", "ruby", "dotnet", "swift", "kotlin", "rust", "php"],
+    "openapi_spec_url": "https://apidocs.launchdarkly.com/",
     "webhooks": true
   },
   "auth": {
-    "methods": ["api_key", "oauth2"],
+    "methods": ["api_key"],
     "oauth": true,
     "scopes": true,
-    "notes": "Personal access tokens and service tokens available. OAuth2 for third-party integrations. Tokens can be scoped to read-only or specific resource types. Role-based access control available on enterprise plans."
+    "notes": "Access tokens with role-based permissions (Reader, Writer, Admin). Personal and service tokens supported. OAuth2 available for third-party integrations via LaunchDarkly App Directory."
   },
   "pricing": {
-    "model": "subscription",
+    "model": "freemium",
     "free_tier_exists": true,
-    "free_tier_limits": "Free tier: up to 1,000 MAUs, limited flags, no experimentation",
-    "paid_tiers": "Starter from $10/month; Business and Enterprise with custom pricing",
+    "free_tier_limits": "1,000 MAU (Monthly Active Users), 3 team members, unlimited flags, 1 environment",
+    "paid_tiers": "Starter ~$12/month per seat; Pro and Enterprise tiers with experimentation, approvals, and SSO",
     "requires_credit_card": false,
-    "notes": "Free tier is limited but usable for small projects. Experimentation and advanced targeting require paid plans. Pricing scales with monthly active users (MAUs)."
+    "notes": "Pricing based on MAU and seats. SDK evaluation does not consume API quota — only management API calls count against rate limits."
   },
   "performance": {
-    "latency_p50_ms": 30,
-    "latency_p99_ms": 150,
-    "uptime_sla_percent": 99.9,
-    "rate_limits": "REST API: 429 Too Many Requests enforced; SDK streaming connections are long-lived",
+    "latency_p50_ms": 50,
+    "latency_p99_ms": 200,
+    "uptime_sla_percent": 99.99,
+    "rate_limits": "Management REST API: 10 requests/second per token; SDK streaming connections: no per-evaluation API calls; webhook delivery best-effort",
     "data_source": "llm_estimated"
   },
   "requirements": {
@@ -61,31 +60,46 @@
     "requires_credit_card": false,
     "domain_verification": false,
     "data_residency": ["US", "EU"],
-    "compliance": ["SOC2", "GDPR", "HIPAA"],
+    "compliance": ["SOC2", "GDPR", "HIPAA", "FedRAMP"],
     "min_contract": "none"
   },
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
     "documentation_accuracy": 90,
-    "error_message_quality": 85,
-    "error_message_notes": "Well-documented REST API with OpenAPI spec. Error responses include status codes and descriptive messages. Rate limit headers returned on all responses.",
+    "error_message_quality": 86,
+    "error_message_notes": "REST API returns structured JSON errors with code and message fields. OpenAPI spec is accurate and machine-readable. 409 conflicts include diff of conflicting state.",
     "idempotency_support": "partial",
-    "idempotency_notes": "Flag reads are idempotent. Flag updates use patch operations (JSON Patch) — must be aware of concurrent modification. Flag creation is not idempotent by default.",
-    "pagination_style": "cursor",
+    "idempotency_notes": "PATCH operations using semantic patches are idempotent for most flag mutations. Flag creation (POST) is not idempotent — duplicate POSTs create duplicate flags if key differs.",
+    "pagination_style": "offset",
     "retry_guidance_documented": true,
     "known_agent_gotchas": [
-      "Flag updates use JSON Patch format — agents must construct proper patch documents, not simple PUT bodies",
-      "Environment keys are required for all flag operations — easy to accidentally target wrong environment",
-      "SDK evaluation and REST API management are separate surfaces — SDK is for eval, API is for config",
-      "Webhook payloads include old/new state but not full flag config — may need secondary API call for context",
-      "Rate limits are enforced per API token — shared tokens across agents can hit limits",
-      "Flag targeting rules use LaunchDarkly's rule DSL — complex targeting requires understanding their schema"
-    ],
-    "error_message_score": 85,
-    "auth_complexity_score": 82,
-    "rate_limit_score": 78,
-    "security_score": 85
+      "LaunchDarkly uses semantic patch (application/json; domain-model=launchdarkly.semanticpatch) not standard JSON Patch (RFC 6902) — sending standard patch format returns 415 with a confusing error",
+      "SDK evaluation happens client-side from a streamed ruleset; the REST API is only for management, not per-flag evaluation — agents that call the API per flag check add unnecessary latency and cost",
+      "Environments are separate API resources with their own keys; a flag may have different values per environment and requests scoped to the wrong environment silently return wrong values",
+      "Rate limit is 10 req/s which is easy to saturate when iterating over large flag lists — the API does not return Retry-After headers, only 429 status",
+      "Flag keys are immutable after creation; if an agent creates a flag with the wrong key it must be archived and recreated, it cannot be renamed"
+    ]
   },
-  "last_evaluated": "2026-02-28"
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 90,
+    "error_handling_score": 86,
+    "auth_complexity_score": 85,
+    "rate_limit_clarity_score": 82
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 87,
+    "scope_granularity": 85,
+    "dependency_hygiene": 88,
+    "secret_handling": 85,
+    "security_notes": "FedRAMP Moderate authorized. HIPAA BAA available. EU data residency. Fine-grained RBAC with custom roles on Enterprise. SDK keys are read-only — cannot modify flags."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 95,
+    "version_stability": 88,
+    "breaking_changes_history": 85,
+    "error_recovery": 90
+  }
 }

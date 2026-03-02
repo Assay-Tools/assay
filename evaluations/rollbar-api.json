@@ -1,28 +1,28 @@
 {
   "id": "rollbar-api",
-  "name": "Rollbar API",
+  "name": "Rollbar",
   "version_evaluated": "current",
-  "homepage": "https://rollbar.com/",
-  "repo_url": "https://github.com/rollbar/rollbar.js",
-  "category": "Observability",
-  "subcategories": ["Error Tracking", "Crash Reporting", "Debugging"],
-  "tags": ["error-tracking", "crash-reporting", "debugging", "observability", "alerts", "rollbar"],
-  "what_it_does": "Rollbar provides real-time error tracking and debugging with APIs for querying occurrences, managing items (error groups), deploying releases, and configuring notifications. Offers SDKs for 30+ languages and frameworks with intelligent error grouping, person tracking, and deploy correlation.",
+  "homepage": "https://rollbar.com",
+  "repo_url": null,
+  "category": "observability",
+  "subcategories": ["error-tracking"],
+  "tags": ["error-monitoring", "person-tracking", "rql", "real-time", "deploy-tracking"],
+  "what_it_does": "Tracks real-time application errors with person-level impact data and supports RQL (Rollbar Query Language) for agents to run SQL-like queries over error data.",
   "use_cases": [
-    "Build agents that triage and assign unresolved errors to the appropriate on-call team member",
-    "Automate error resolution workflow: query high-frequency errors, create JIRA tickets, and mark Rollbar items as resolved after fix is deployed",
-    "Monitor post-deployment error rates and trigger rollback if new error classes spike",
-    "Extract error trends and frequency data for SLA reporting pipelines",
-    "Correlate error occurrences with specific user IDs to support customer escalation workflows"
+    "Run an RQL query to count unique users affected by a specific error class in the past 7 days for an impact report",
+    "List all errors introduced in a specific deploy version to scope a regression investigation",
+    "Retrieve person-level occurrence history for a given user ID to understand their error experience during support triage",
+    "Create a deploy tracking entry via API when CI/CD completes to correlate new errors with code changes",
+    "Mute or resolve items in bulk that match a known pattern to reduce noise during an incident"
   ],
   "not_for": [
-    "Full distributed tracing and APM (use Datadog, Honeycomb, or Sentry's tracing instead)",
-    "Log aggregation at scale (use Axiom, Logtail, or Datadog for log management)",
-    "Infrastructure-level monitoring (metrics, uptime, etc.)"
+    "APM-level distributed tracing with service-to-service latency visualization (use Jaeger or Datadog APM)",
+    "Infrastructure metrics and host monitoring (use Prometheus or CloudWatch)",
+    "Mobile crash symbolication and stability scoring for iOS/Android (Bugsnag or Firebase Crashlytics are better suited)"
   ],
-  "best_when": "You need fast real-time error alerting with per-user and per-deploy context, and want to build automation around error triage and resolution workflows.",
-  "avoid_when": "Your primary need is distributed tracing, log analytics, or infrastructure metrics — Rollbar is error-centric and not a general observability platform.",
-  "alternatives": ["sentry-api", "bugsnag-api", "honeybadger-api", "airbrake-api"],
+  "best_when": "An agent needs to run flexible analytical queries over error data using SQL-like syntax, or needs to correlate errors with specific deploys and individual users.",
+  "avoid_when": "The use case is primarily performance tracing or distributed trace visualization rather than error grouping and occurrence analysis.",
+  "alternatives": ["sentry-api", "bugsnag-api"],
   "interface": {
     "has_rest_api": true,
     "has_graphql": false,
@@ -30,77 +30,76 @@
     "has_mcp_server": false,
     "mcp_server_url": null,
     "has_sdk": true,
-    "sdk_languages": ["JavaScript", "Python", "Ruby", "PHP", "Java", "Go", "Swift", "Kotlin", "Rust", "C#"],
-    "openapi_spec_url": "https://docs.rollbar.com/openapi",
+    "sdk_languages": ["python", "node", "java", "go", "ruby", "php", "dotnet", "swift"],
+    "openapi_spec_url": null,
     "webhooks": true
   },
   "auth": {
-    "methods": ["api_key", "access_token"],
+    "methods": ["api_key", "bearer_token"],
     "oauth": false,
     "scopes": true,
-    "notes": "Project-level access tokens with read/write/post_server_item scopes. Account-level tokens for cross-project operations. Post tokens are used by SDKs to send data; read tokens for querying. Tokens are not rotatable via API — must be done in the UI."
+    "notes": "Project-level read and write tokens; account-level tokens for cross-project operations. No OAuth2. Tokens passed via X-Rollbar-Access-Token header or query param."
   },
   "pricing": {
-    "model": "usage_based_tiered",
+    "model": "freemium",
     "free_tier_exists": true,
-    "free_tier_limits": "5,000 occurrences/month, 30-day retention, 1 user",
-    "paid_tiers": "Essentials from $99/mo (50k occurrences), Advanced from $299/mo, Enterprise custom pricing",
+    "free_tier_limits": "5,000 occurrences/month, 1 project, 30-day retention",
+    "paid_tiers": "Essentials from ~$31/month (50K occurrences); Advanced and Enterprise tiers with higher retention and SSO",
     "requires_credit_card": false,
-    "notes": "Pricing based on occurrence volume. Occurrences are individual error events; items are grouped errors. High-volume services can burn through quotas quickly. Occurrence limits are hard stops — errors are dropped when quota is exceeded."
+    "notes": "Occurrence-based pricing. Overages charged at per-occurrence rate. Volume discounts on annual plans."
   },
   "performance": {
-    "latency_p50_ms": 150,
-    "latency_p99_ms": 800,
+    "latency_p50_ms": 110,
+    "latency_p99_ms": 450,
     "uptime_sla_percent": 99.9,
-    "rate_limits": "Read API: 60 req/min per token. Write (ingest) API: varies by plan, typically 5,000+ items/min. RQL (query language) queries have additional execution limits.",
+    "rate_limits": "Read API: 60 requests/minute per token; RQL queries may time out on large date ranges; write/ingest has higher limits",
     "data_source": "llm_estimated"
   },
   "requirements": {
     "requires_signup": true,
     "requires_credit_card": false,
     "domain_verification": false,
-    "data_residency": ["US", "EU"],
-    "compliance": ["SOC2", "GDPR", "HIPAA (Enterprise)"],
+    "data_residency": ["US"],
+    "compliance": ["SOC2", "GDPR"],
     "min_contract": "none"
   },
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
     "documentation_accuracy": 80,
-    "error_message_quality": 78,
-    "error_message_notes": "API errors return structured JSON with err and message fields. HTTP status codes are used correctly (401 for bad token, 422 for invalid params, 429 for rate limit). Error descriptions are generally helpful but RQL errors can be cryptic.",
-    "idempotency_support": "none",
-    "idempotency_notes": "No idempotency keys. Modifying item status (resolve, mute) is effectively idempotent by nature since it sets state rather than appending. However, comment/note creation is not idempotent.",
-    "pagination_style": "cursor",
-    "retry_guidance_documented": true,
+    "error_message_quality": 80,
+    "error_message_notes": "API errors return JSON with err and message fields. Some RQL errors return 200 with an error field in the result body rather than a non-2xx status.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Deploy creation is not idempotent — duplicate API calls create duplicate deploy entries. Item status updates (resolve, mute) are idempotent.",
+    "pagination_style": "offset",
+    "retry_guidance_documented": false,
     "known_agent_gotchas": [
-      "Occurrence quotas are hard limits — when the monthly quota is exceeded, new errors are silently dropped; agents monitoring error rates will see false 'all clear' signals at quota boundary",
-      "Item IDs and occurrence IDs are different — agents frequently confuse them; items are error groups, occurrences are individual instances; most workflow APIs operate on item IDs",
-      "RQL (Rollbar Query Language) has a 60-second execution timeout for complex queries; agents running analytics over large datasets must scope time ranges carefully or use pre-aggregated endpoints",
-      "Webhook payloads use different field names than REST API responses for the same data — e.g., item.id vs counter; validate your webhook schema separately from your API schema",
-      "Access token scopes cannot be modified via API — if an agent's token lacks post_server_item scope, there is no programmatic way to fix this; requires manual UI intervention",
-      "The resolve/reactivate workflow is state-machine-based; attempting to resolve an already-resolved item returns 200 but attempting invalid transitions returns 422 — agents must track or query current state before transitions"
+      "RQL queries that time out return a 200 status with an error message in the JSON body instead of a 4xx/5xx — agents must inspect the body even on success responses",
+      "Item IDs (counter) differ from occurrence IDs; using one where the other is expected returns confusing 404s with no disambiguation in the error message",
+      "The read token and write token for a project are different strings — ingest payloads sent with a read token are silently discarded, not rejected with an error",
+      "Pagination uses page and page_count parameters but page_count is the total count of pages only available after the first request — agents must fetch page 1 to know when to stop",
+      "Deploy tracking requires correct environment string matching exactly what the SDK was initialized with — mismatches cause deploys to appear in a separate unnamed environment with no warning"
     ]
   },
   "af_score_components": {
     "mcp_score": 0,
     "api_doc_score": 80,
     "error_handling_score": 78,
-    "auth_complexity_score": 82,
+    "auth_complexity_score": 80,
     "rate_limit_clarity_score": 75
   },
   "security_score_components": {
     "tls_enforcement": 100,
     "auth_strength": 78,
-    "scope_granularity": 75,
-    "dependency_hygiene": 78,
-    "secret_handling": 75,
-    "security_notes": "Project tokens provide basic scope separation (read vs write vs post). No OAuth or fine-grained field-level access. Token rotation requires UI action. EU data residency available for GDPR compliance. SOC2 Type II certified."
+    "scope_granularity": 78,
+    "dependency_hygiene": 80,
+    "secret_handling": 78,
+    "security_notes": "US-only data residency on standard plans. SOC2 Type II certified. No OAuth2 integration flow. Post token and read token should be treated as separate secrets."
   },
   "reliability_score_components": {
-    "uptime_documented": 82,
-    "version_stability": 80,
+    "uptime_documented": 85,
+    "version_stability": 82,
     "breaking_changes_history": 78,
-    "error_recovery": 75
+    "error_recovery": 80
   }
 }

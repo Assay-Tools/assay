@@ -1,28 +1,28 @@
 {
   "id": "vitest-api",
   "name": "Vitest",
-  "version_evaluated": "current",
+  "version_evaluated": "2.x",
   "homepage": "https://vitest.dev",
   "repo_url": "https://github.com/vitest-dev/vitest",
   "category": "developer-tools",
-  "subcategories": ["testing"],
-  "tags": ["testing", "unit-testing", "javascript", "typescript", "vite", "esm"],
-  "what_it_does": "Vite-native unit and integration test framework with Jest-compatible API, HMR-powered watch mode, and first-class ESM and TypeScript support.",
+  "subcategories": ["testing", "unit-testing"],
+  "tags": ["typescript", "javascript", "testing", "unit-testing", "vite", "esm", "mocking", "coverage"],
+  "what_it_does": "Fast Vite-native unit and integration test framework with a Jest-compatible API, native ESM support, browser mode, and built-in TypeScript execution requiring no separate transform step.",
   "use_cases": [
-    "Generate unit tests for Vite-based projects (Vue, React, Svelte) with zero additional config using vitest init",
-    "Drop Jest tests into a Vite project by replacing jest imports with vitest — the API is largely compatible without rewriting tests",
-    "Use vi.mock() for module mocking and vi.spyOn() for function spying with the same patterns as Jest but with native ESM support",
-    "Run tests in happy-dom or jsdom environments for component testing without a full browser, configurable per test file",
-    "Leverage HMR-powered watch mode to get sub-100ms re-run times for changed test files during active development"
+    "Run unit and integration tests in a Vite-based project sharing the same configuration and module resolution as the application",
+    "Execute TypeScript tests without a separate build step using native ESM and Vite's transform pipeline",
+    "Mock ES modules, timers, and environment globals with a built-in vi mock system compatible with Jest mock patterns",
+    "Generate code coverage reports using the built-in c8 or istanbul provider without additional tooling",
+    "Run tests in a real browser environment using Vitest's browser mode for testing DOM-dependent code"
   ],
   "not_for": [
-    "Non-Vite projects where Jest is already configured and working — migration provides marginal benefit",
-    "Browser E2E testing — Vitest runs in a simulated DOM, not a real browser rendering engine",
-    "Python or other non-JavaScript ecosystems"
+    "End-to-end browser testing across multiple browser engines — use Playwright or Cypress for that purpose",
+    "Projects with a non-Vite build system where Jest or another framework is already deeply integrated and migration cost is high",
+    "Testing in environments where Vite's ESM-first approach conflicts with CommonJS-only dependencies that cannot be transpiled"
   ],
-  "best_when": "Building or migrating a Vite-based application that needs fast unit tests with native TypeScript and ESM support.",
-  "avoid_when": "Your project does not use Vite and has an established Jest configuration with complex transform pipelines.",
-  "alternatives": ["jest-api", "cypress-api"],
+  "best_when": "Developing TypeScript or modern JavaScript applications with Vite where fast HMR-like test feedback and zero-config TypeScript support are valued.",
+  "avoid_when": "The project uses a non-Vite bundler and already has a stable Jest configuration with extensive custom transforms or preprocessors.",
+  "alternatives": ["jest-api"],
   "interface": {
     "has_rest_api": false,
     "has_graphql": false,
@@ -30,7 +30,7 @@
     "has_mcp_server": false,
     "mcp_server_url": null,
     "has_sdk": true,
-    "sdk_languages": ["javascript", "typescript"],
+    "sdk_languages": ["typescript", "javascript"],
     "openapi_spec_url": null,
     "webhooks": false
   },
@@ -38,22 +38,22 @@
     "methods": ["none"],
     "oauth": false,
     "scopes": false,
-    "notes": "Testing tool — no auth needed."
+    "notes": "Local test runner library with no network auth layer"
   },
   "pricing": {
     "model": "open_source",
     "free_tier_exists": true,
-    "free_tier_limits": "Unlimited, open source",
-    "paid_tiers": "No paid tiers",
+    "free_tier_limits": "Unlimited — MIT",
+    "paid_tiers": "none",
     "requires_credit_card": false,
-    "notes": "Open source (MIT). No cloud component."
+    "notes": "Completely free and open source"
   },
   "performance": {
     "latency_p50_ms": null,
     "latency_p99_ms": null,
     "uptime_sla_percent": null,
-    "rate_limits": "None (local tool)",
-    "data_source": "llm_estimated"
+    "rate_limits": "Self-hosted library",
+    "data_source": "self_hosted"
   },
   "requirements": {
     "requires_signup": false,
@@ -66,40 +66,40 @@
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
-    "documentation_accuracy": 88,
-    "error_message_quality": 87,
-    "error_message_notes": "Error output mirrors Jest's colored diff format; Vitest UI provides a browser-based test result view for visual debugging.",
+    "documentation_accuracy": 90,
+    "error_message_quality": 88,
+    "error_message_notes": "Test failure output includes diff views, stack traces with source maps, and clear assertion failure messages; TypeScript errors surface at execution time with helpful context",
     "idempotency_support": "full",
-    "idempotency_notes": "Tests are deterministic when app state is properly reset; vi.clearAllMocks() in afterEach prevents mock state leakage between tests.",
+    "idempotency_notes": "Test runs are deterministic and idempotent given the same source code and fixtures; test isolation is configurable per file or suite",
     "pagination_style": "none",
-    "retry_guidance_documented": false,
+    "retry_guidance_documented": true,
     "known_agent_gotchas": [
-      "Vitest uses Vite's module resolution — path aliases defined in vite.config.ts are automatically available in tests, but agents must ensure the same config file is used for both app and test runs",
-      "vi.mock() is hoisted like jest.mock() but only within Vitest's own transform pipeline; dynamic mock factories that reference outer-scope variables require vi.hoisted() to avoid temporal dead zone errors",
-      "The 'browser mode' (Vitest Browser Mode) runs tests in a real browser via WebdriverIO but has a different API from the default jsdom mode; agents must not mix browser-mode and node-mode assertions",
-      "Coverage providers (v8 vs istanbul) produce different results for untransformed code; agents configuring coverage must specify the provider explicitly or results will vary by environment",
-      "Vitest workspace config allows multi-project setups, but each project must declare its own environment — agents generating monorepo test configs must set environment per project, not globally"
+      "vi.mock() calls are hoisted to the top of the file by Vite's transform; placement in the file does not reflect execution order and can confuse agents generating test files",
+      "ESM module caching means vi.resetModules() must be called between tests that modify module-level state",
+      "Browser mode requires additional configuration and a browser binary; agents must not assume browser mode is available without explicit setup",
+      "Snapshot files (.snap) are generated on first run; agents running tests in read-only environments must pre-generate snapshots",
+      "Coverage thresholds cause a non-zero exit code on failure; agents interpreting exit codes must distinguish coverage failures from test failures"
     ]
   },
   "af_score_components": {
     "mcp_score": 0,
-    "api_doc_score": 88,
-    "error_handling_score": 87,
+    "api_doc_score": 90,
+    "error_handling_score": 88,
     "auth_complexity_score": 100,
     "rate_limit_clarity_score": 100
   },
   "security_score_components": {
-    "tls_enforcement": 0,
-    "auth_strength": 0,
-    "scope_granularity": 0,
-    "dependency_hygiene": 85,
-    "secret_handling": 82,
-    "security_notes": "Secrets should be provided via import.meta.env or process.env; avoid committing .env files with credentials used in test environments."
+    "tls_enforcement": 90,
+    "auth_strength": 90,
+    "scope_granularity": 85,
+    "dependency_hygiene": 88,
+    "secret_handling": 88,
+    "security_notes": "Local execution only; no network surface area; test environment variables should not contain production secrets; sandbox isolation between test files prevents cross-test contamination"
   },
   "reliability_score_components": {
-    "uptime_documented": 0,
-    "version_stability": 82,
-    "breaking_changes_history": 78,
-    "error_recovery": 85
+    "uptime_documented": 88,
+    "version_stability": 85,
+    "breaking_changes_history": 82,
+    "error_recovery": 87
   }
 }

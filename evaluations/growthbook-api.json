@@ -1,28 +1,28 @@
 {
   "id": "growthbook-api",
-  "name": "GrowthBook API",
+  "name": "GrowthBook",
   "version_evaluated": "current",
   "homepage": "https://www.growthbook.io",
   "repo_url": "https://github.com/growthbook/growthbook",
   "category": "developer-tools",
-  "subcategories": ["feature-flags", "experimentation", "open-source", "analytics"],
-  "tags": ["growthbook", "a-b-testing", "feature-flags", "open-source", "self-hosted", "experimentation", "rest-api"],
-  "what_it_does": "GrowthBook's REST API for managing feature flags and A/B experiments in an open-source experimentation platform, available self-hosted or as managed cloud with warehouse-native analytics integration.",
+  "subcategories": ["feature-flags", "a-b-testing"],
+  "tags": ["feature-flags", "open-source", "a-b-testing", "warehouse-native", "statistical-significance", "self-hosted"],
+  "what_it_does": "Provides open-source feature flags and A/B testing with warehouse-native statistics so agents can manage experiments that compute significance directly from data warehouse query results rather than a proprietary event pipeline.",
   "use_cases": [
-    "Creating and managing feature flags and experiment configurations via REST API",
-    "Automating experiment lifecycle — starting, stopping, and analyzing A/B tests from agent workflows",
-    "Reading experiment results and winning variants for automated feature rollout decisions",
-    "Syncing feature flag state with CI/CD pipelines for progressive delivery automation",
-    "Managing organization-wide feature flag environments (dev, staging, production) programmatically"
+    "Create a feature flag via REST API linked to a data source metric to begin a warehouse-native A/B test without a separate analytics pipeline",
+    "Retrieve experiment results including statistical significance and confidence intervals to automate go/no-go decisions on a feature rollout",
+    "List all running experiments and their metric assignments to generate a weekly experimentation portfolio review",
+    "Update feature flag targeting rules to adjust rollout percentage when an agent detects a metric crossing a threshold",
+    "Sync feature flag definitions from GrowthBook API into an internal catalog service to maintain a single source of truth for flag inventory"
   ],
   "not_for": [
-    "Teams needing real-time flag evaluation at edge without SDK (GrowthBook requires SDK integration for evaluation)",
-    "Non-technical product teams expecting a no-code experimentation experience",
-    "Organizations requiring enterprise SLA guarantees without self-hosting capacity"
+    "Real-time error monitoring and crash reporting (use Sentry or Bugsnag instead)",
+    "Infrastructure and host-level metrics alerting (use Datadog or Prometheus)",
+    "Session replay and user behavior analytics (use LogRocket or FullStory)"
   ],
-  "best_when": "You want open-source A/B testing with warehouse-native analytics (BigQuery, Snowflake, Redshift) and need full control over data, either self-hosted or via cloud.",
-  "avoid_when": "You need a fully managed SaaS with minimal ops overhead and don't have a data warehouse — Statsig or LaunchDarkly are better fits.",
-  "alternatives": ["statsig-api", "launchdarkly-api", "unleash-api", "flagsmith-api"],
+  "best_when": "An agent needs to run statistically rigorous A/B tests computed against an existing data warehouse (BigQuery, Snowflake, Redshift) without sending events to a proprietary vendor pipeline.",
+  "avoid_when": "The team has no data warehouse and needs a fully managed real-time metrics pipeline with instant results, or requires enterprise SLA guarantees and dedicated support.",
+  "alternatives": ["split-io-api", "launchdarkly-api", "flagsmith-api"],
   "interface": {
     "has_rest_api": true,
     "has_graphql": false,
@@ -30,36 +30,36 @@
     "has_mcp_server": false,
     "mcp_server_url": null,
     "has_sdk": true,
-    "sdk_languages": ["python", "node", "java", "go", "ruby", "php", "ios", "android", "react"],
+    "sdk_languages": ["python", "node", "java", "go", "ruby", "php", "swift", "kotlin"],
     "openapi_spec_url": "https://docs.growthbook.io/api",
     "webhooks": true
   },
   "auth": {
-    "methods": ["api_key"],
+    "methods": ["api_key", "bearer_token"],
     "oauth": false,
-    "scopes": true,
-    "notes": "Personal access tokens scoped to read-only or read-write. Tokens are organization-scoped. Self-hosted deployments can configure additional auth providers. Secret key must be kept server-side."
+    "scopes": false,
+    "notes": "Secret API keys per organization. Self-hosted instances can configure any auth method. No granular token scopes — keys are org-level admin. No OAuth2."
   },
   "pricing": {
-    "model": "open_source",
+    "model": "freemium",
     "free_tier_exists": true,
-    "free_tier_limits": "Self-hosted OSS is fully free; Cloud free tier: up to 3 seats, unlimited features",
-    "paid_tiers": "Cloud Pro $20/seat/month, Enterprise custom pricing",
+    "free_tier_limits": "Unlimited flags, unlimited experiments, unlimited seats on open-source self-hosted; SaaS free tier includes core features with up to 5 users",
+    "paid_tiers": "Pro ~$20/month per seat with advanced stats and SSO; Enterprise custom pricing with SLA",
     "requires_credit_card": false,
-    "notes": "Open-source self-hosted version is fully featured and free. Cloud offers a generous free tier. Enterprise adds SSO, advanced permissions, and dedicated support."
+    "notes": "Open-source self-hosted is fully free forever. SaaS pricing is per seat. Warehouse-native stats work on all tiers."
   },
   "performance": {
-    "latency_p50_ms": 80,
-    "latency_p99_ms": 400,
-    "uptime_sla_percent": 99.5,
-    "rate_limits": "Cloud: 100 requests/minute per token; self-hosted: no enforced limits",
+    "latency_p50_ms": 90,
+    "latency_p99_ms": 380,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "SaaS API: 100 requests/minute per key; self-hosted limits depend on your infrastructure; SDK evaluation is local with no API call per evaluation",
     "data_source": "llm_estimated"
   },
   "requirements": {
-    "requires_signup": false,
+    "requires_signup": true,
     "requires_credit_card": false,
     "domain_verification": false,
-    "data_residency": ["self-hosted", "US"],
+    "data_residency": ["US", "EU"],
     "compliance": ["SOC2", "GDPR"],
     "min_contract": "none"
   },
@@ -67,40 +67,39 @@
     "mcp_server_quality": null,
     "mcp_security_score": null,
     "documentation_accuracy": 82,
-    "error_message_quality": 76,
-    "error_message_notes": "REST API returns standard HTTP codes with JSON error bodies containing a message field. Validation errors specify which field failed. Error quality is good for common operations but edge cases can return generic 400 errors.",
+    "error_message_quality": 79,
+    "error_message_notes": "REST API returns JSON with status and message fields. Self-hosted error messages vary by version. Some 500 errors from misconfigured data sources surface as opaque internal errors.",
     "idempotency_support": "partial",
-    "idempotency_notes": "Feature flag reads are idempotent. Feature flag creation is not idempotent — duplicate slugs return 400 conflict, which agents can use as a check. Updates by ID are idempotent.",
+    "idempotency_notes": "Feature flag updates (PATCH) are idempotent. Experiment creation (POST) is not — duplicate POSTs create duplicate experiments with the same name and no deduplication key.",
     "pagination_style": "cursor",
     "retry_guidance_documented": false,
     "known_agent_gotchas": [
-      "SDK evaluation is client-side — REST API manages configuration only, agents must use SDK for actual flag evaluation in application code",
-      "Self-hosted deployments require managing the GrowthBook server, MongoDB, and SDK proxy — not zero-ops",
-      "Experiment statistical analysis requires connected data warehouse (BigQuery/Snowflake/Redshift) — not built-in event tracking",
-      "Feature flag slugs (IDs) are immutable after creation — choose carefully as they appear in code",
-      "Environment keys differ per environment — agents must specify the correct environment when reading flag state",
-      "Webhook payloads require HMAC signature verification — agents receiving webhooks must implement signature validation"
+      "Statistical results are computed asynchronously by querying your data warehouse — the experiments/{id}/results endpoint returns stale data until a manual or scheduled analysis run completes, with no staleness indicator in the response",
+      "Self-hosted and SaaS API versions may diverge; an agent built against the SaaS API may encounter missing endpoints or different response shapes on a self-hosted instance running an older version",
+      "Feature flags and experiments are separate top-level resources linked by ID — creating an experiment does not automatically create a feature flag, and vice versa; agents must create both and link them explicitly",
+      "No granular token scopes — every API key has full org-admin access, so leaking a GrowthBook API key is equivalent to leaking org owner credentials",
+      "Warehouse data source credentials are stored in GrowthBook and used server-side for analysis queries — agents that rotate warehouse credentials must update GrowthBook data source config via API or analysis will silently fail"
     ]
   },
   "af_score_components": {
     "mcp_score": 0,
     "api_doc_score": 82,
-    "error_handling_score": 76,
-    "auth_complexity_score": 80,
-    "rate_limit_clarity_score": 75
+    "error_handling_score": 79,
+    "auth_complexity_score": 75,
+    "rate_limit_clarity_score": 73
   },
   "security_score_components": {
     "tls_enforcement": 100,
-    "auth_strength": 78,
-    "scope_granularity": 72,
-    "dependency_hygiene": 85,
-    "secret_handling": 80,
-    "security_notes": "Open-source codebase enables full security audit. TLS enforced on cloud; self-hosted must configure TLS. Token scopes limited to read/write — no resource-level granularity."
+    "auth_strength": 75,
+    "scope_granularity": 65,
+    "dependency_hygiene": 82,
+    "secret_handling": 75,
+    "security_notes": "Open-source codebase is auditable. No token scoping is a significant security gap. Self-hosted deployments control their own data and can add auth layers. SaaS SOC2 certified."
   },
   "reliability_score_components": {
-    "uptime_documented": 78,
-    "version_stability": 82,
-    "breaking_changes_history": 80,
-    "error_recovery": 76
+    "uptime_documented": 80,
+    "version_stability": 80,
+    "breaking_changes_history": 78,
+    "error_recovery": 78
   }
 }

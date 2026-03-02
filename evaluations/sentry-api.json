@@ -1,59 +1,58 @@
 {
   "id": "sentry-api",
-  "name": "Sentry REST API",
+  "name": "Sentry",
   "version_evaluated": "current",
   "homepage": "https://sentry.io",
   "repo_url": "https://github.com/getsentry/sentry",
   "category": "observability",
-  "subcategories": ["error-tracking", "debugging", "monitoring", "developer-tools"],
-  "tags": ["sentry", "error-tracking", "observability", "debugging", "rest-api", "sdk", "webhooks"],
-  "what_it_does": "Error tracking and performance monitoring REST API for querying issues, events, releases, and projects — enabling automated triage, alerting, and integration of Sentry error data into agent workflows.",
+  "subcategories": ["error-tracking", "apm"],
+  "tags": ["error-monitoring", "performance-tracing", "crash-reporting", "session-replay", "alerting"],
+  "what_it_does": "Captures, groups, and surfaces application errors and performance traces across 90+ platforms so agents can query error trends, triage issues, and trigger alerts.",
   "use_cases": [
-    "Automated issue triage — agents querying Sentry for new unresolved errors and prioritizing by frequency",
-    "Release health monitoring — checking error rates after deployments via API",
-    "Creating and updating issues programmatically (e.g., marking issues resolved after a code fix is deployed)",
-    "Integrating Sentry error data into incident response workflows",
-    "Building custom dashboards over Sentry issues and performance data"
+    "Query recent unresolved errors in a production release to assess deployment health before promoting to next environment",
+    "Retrieve stack traces and breadcrumbs for a specific issue ID to generate root-cause analysis reports",
+    "Create or update alert rules programmatically when new services are deployed",
+    "List performance transaction summaries (p50/p95 latency) to detect regressions after a code change",
+    "Assign or resolve issues in bulk based on error frequency thresholds during incident triage"
   ],
   "not_for": [
-    "Teams not using Sentry for error monitoring",
-    "Real-time streaming of errors (Sentry webhooks provide near-real-time; true streaming requires separate approach)",
-    "Infrastructure metrics monitoring (use Datadog or Prometheus for that)",
-    "Application performance profiling at code-path level (Sentry does this but APM tools do it better)"
+    "Log aggregation and full-text log search (use Datadog Logs or Loki instead)",
+    "Infrastructure metrics such as CPU or memory utilization (use Prometheus or CloudWatch)",
+    "Synthetic uptime monitoring with global probe nodes (use Checkly or Pingdom)"
   ],
-  "best_when": "Your team uses Sentry and you want agents to query, triage, or act on error data without using the MCP server — particularly for server-side automation rather than IDE-embedded workflows.",
-  "avoid_when": "You want an IDE-embedded agent experience — use the sentry-mcp for that. Or if your team uses a different error tracking platform.",
-  "alternatives": ["sentry-mcp"],
+  "best_when": "An agent needs structured error data with grouping, fingerprinting, and release correlation already applied so it can triage issues without parsing raw log streams.",
+  "avoid_when": "The workload is purely metric-based infrastructure monitoring with no application-level error context needed.",
+  "alternatives": ["bugsnag-api", "rollbar-api", "datadog-api"],
   "interface": {
     "has_rest_api": true,
     "has_graphql": false,
     "has_grpc": false,
     "has_mcp_server": true,
-    "mcp_server_url": "https://github.com/getsentry/sentry-mcp",
+    "mcp_server_url": "https://mcp.sentry.dev",
     "has_sdk": true,
-    "sdk_languages": ["python", "node", "java", "go", "ruby", "php", "dotnet"],
-    "openapi_spec_url": "https://docs.sentry.io/api/",
+    "sdk_languages": ["python", "node", "java", "go", "ruby", "php", "dotnet", "swift", "kotlin", "rust"],
+    "openapi_spec_url": "https://sentry.io/api/0/",
     "webhooks": true
   },
   "auth": {
-    "methods": ["bearer_token", "api_key"],
+    "methods": ["api_key", "bearer_token"],
     "oauth": true,
     "scopes": true,
-    "notes": "User Auth Tokens with specific scopes (org:read, project:read, event:write, etc.). Internal integrations use auth tokens; public integrations use OAuth with install flow. Scopes are additive — request only what you need."
+    "notes": "Auth tokens are scoped (project:read, event:admin, etc.). Org-level tokens and user tokens both supported. OAuth2 available for integrations."
   },
   "pricing": {
     "model": "freemium",
     "free_tier_exists": true,
-    "free_tier_limits": "Developer (free): 1 user, 5K errors/month, 10K performance units/month",
-    "paid_tiers": "Team from $26/month for 50K errors; Business from $80/month; Enterprise custom",
+    "free_tier_limits": "5,000 errors/month, 10K performance units, 1 user, 30-day retention",
+    "paid_tiers": "Team from ~$26/month (100K errors); Business from ~$80/month; Enterprise custom",
     "requires_credit_card": false,
-    "notes": "Free tier is usable for small projects. API access on all plans. Paid plans significantly increase event quotas and add features like advanced search and retention."
+    "notes": "Volume-based pricing on errors, replays, and performance events. Annual discount available."
   },
   "performance": {
-    "latency_p50_ms": 150,
-    "latency_p99_ms": 600,
+    "latency_p50_ms": 120,
+    "latency_p99_ms": 500,
     "uptime_sla_percent": 99.9,
-    "rate_limits": "100 requests/second per token on paid plans; lower on free",
+    "rate_limits": "REST API: varies by endpoint; ingest: no hard cap on paid plans; API calls throttled at org level",
     "data_source": "llm_estimated"
   },
   "requirements": {
@@ -61,31 +60,46 @@
     "requires_credit_card": false,
     "domain_verification": false,
     "data_residency": ["US", "EU"],
-    "compliance": ["SOC2", "GDPR", "HIPAA", "ISO27001"],
+    "compliance": ["SOC2", "GDPR", "HIPAA"],
     "min_contract": "none"
   },
   "agent_readiness": {
-    "mcp_server_quality": 80,
-    "mcp_security_score": 75,
+    "mcp_server_quality": 88,
+    "mcp_security_score": 85,
     "documentation_accuracy": 88,
-    "error_message_quality": 82,
-    "error_message_notes": "Well-structured REST API with consistent JSON error format. Permission errors clearly indicate missing scope. Rate limit responses include retry-after header.",
+    "error_message_quality": 85,
+    "error_message_notes": "REST API returns structured JSON errors with detail fields; rate limit headers present; 4xx errors are descriptive.",
     "idempotency_support": "partial",
-    "idempotency_notes": "Issue status updates (resolve, ignore) are idempotent. Event ingestion via SDK is not idempotent. API reads are fully idempotent.",
+    "idempotency_notes": "Issue resolution and assignment are idempotent; event ingestion via SDK is not (duplicate events can be created if retried without deduplication).",
     "pagination_style": "cursor",
     "retry_guidance_documented": true,
     "known_agent_gotchas": [
-      "Token scopes must be explicitly requested — missing scopes return 403 with clear message but require token regeneration",
-      "Organization slug and project slug required for most endpoints — agents must resolve names to slugs",
-      "Issue queries use Sentry's proprietary search syntax (is:unresolved, times_seen:>10) — not standard SQL",
-      "Rate limits are per-token, not per-IP — shared tokens across agents can hit limits",
-      "Event data retention varies by plan — historical events may not be available",
-      "DSN (client-side) and API tokens (server-side) are completely different auth mechanisms — don't confuse them"
-    ],
-    "error_message_score": 82,
-    "auth_complexity_score": 78,
-    "rate_limit_score": 80,
-    "security_score": 85
+      "Issue IDs are org-scoped short integers that look like plain numbers but must be prefixed with the project slug in some endpoints",
+      "The MCP server at mcp.sentry.dev requires an auth token passed as a query parameter, not a header — unusual pattern that can trip up generic MCP clients",
+      "Event volume counts against quota at ingest time; retrying failed SDK sends without deduplication burns quota",
+      "Performance units (transactions) and errors are billed separately — an agent monitoring both can exhaust two independent quotas",
+      "List endpoints default to 25 items and max 100 per page; agents must follow cursor pagination to see all issues in large projects"
+    ]
   },
-  "last_evaluated": "2026-02-28"
+  "af_score_components": {
+    "mcp_score": 88,
+    "api_doc_score": 88,
+    "error_handling_score": 85,
+    "auth_complexity_score": 83,
+    "rate_limit_clarity_score": 80
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 85,
+    "scope_granularity": 88,
+    "dependency_hygiene": 85,
+    "secret_handling": 83,
+    "security_notes": "Fine-grained token scopes. EU data residency available. HIPAA BAA available on Enterprise. DSN (ingest key) is separate from API auth token."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 90,
+    "version_stability": 85,
+    "breaking_changes_history": 80,
+    "error_recovery": 87
+  }
 }
