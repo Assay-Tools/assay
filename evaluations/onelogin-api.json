@@ -1,0 +1,105 @@
+{
+  "id": "onelogin-api",
+  "name": "OneLogin API",
+  "version_evaluated": "current",
+  "homepage": "https://developers.onelogin.com/api-docs/2/getting-started/dev-overview",
+  "repo_url": null,
+  "category": "identity",
+  "subcategories": ["sso", "identity-management", "provisioning"],
+  "tags": ["onelogin", "sso", "saml", "oidc", "scim", "provisioning", "iam", "mfa"],
+  "what_it_does": "The OneLogin REST API enables programmatic management of users, roles, applications, and SSO configurations, supporting SCIM provisioning, SAML/OIDC app management, and MFA policy automation for enterprise identity workflows.",
+  "use_cases": [
+    "Provision and deprovision user accounts when HR system events are received, including role and group assignment",
+    "Retrieve a list of all users assigned to a specific application for an access review or audit export",
+    "Update user attributes (department, manager, custom fields) in bulk from an authoritative directory source",
+    "Enumerate all active SSO application assignments for a departing user and revoke access before account deactivation",
+    "Create or update SAML or OIDC application configurations when onboarding a new SaaS tool to the identity catalog"
+  ],
+  "not_for": [
+    "End-user authentication flows — OneLogin provides hosted login pages and SAML/OIDC endpoints, not a custom auth SDK for embedding in apps",
+    "Fine-grained authorization (RBAC/ABAC within applications) — OneLogin controls access to apps, not permissions within them",
+    "Replacing a full SIEM or audit log platform — event logs are available but OneLogin is not a security analytics tool"
+  ],
+  "best_when": "An agent needs to automate enterprise user lifecycle management, SSO application provisioning, or identity governance workflows in an organization using OneLogin as its identity provider.",
+  "avoid_when": "Your organization uses a different IdP (Okta, Azure AD, Ping) and switching is not planned — integration cost outweighs benefits when an existing IdP API can serve the same purpose.",
+  "alternatives": ["okta-api", "azure-active-directory-api", "ping-identity-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "ruby", "java", "php"],
+    "openapi_spec_url": null,
+    "webhooks": true
+  },
+  "auth": {
+    "methods": ["oauth2-client-credentials"],
+    "oauth": true,
+    "scopes": true,
+    "notes": "Uses OAuth 2.0 client credentials flow. Agents must first obtain an access token using client_id and client_secret from a OneLogin API credential pair. Access tokens expire after 10 hours and must be refreshed. Scopes include 'read:users', 'manage:users', 'manage:apps', etc."
+  },
+  "pricing": {
+    "model": "subscription",
+    "free_tier_exists": false,
+    "free_tier_limits": "No free tier; a free trial is available for evaluation",
+    "paid_tiers": "Starter, Advanced, and Professional plans priced per user per month; Enterprise plan with custom pricing for large organizations",
+    "requires_credit_card": false,
+    "notes": "Pricing is not publicly listed and requires contacting OneLogin sales for quotes on paid plans. API access is included with all paid plans."
+  },
+  "performance": {
+    "latency_p50_ms": 150,
+    "latency_p99_ms": 800,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "Default rate limit of approximately 2000 requests per minute per API credential; SCIM endpoints may have lower limits; rate limit headers are returned in responses",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": false,
+    "domain_verification": true,
+    "data_residency": ["US", "EU"],
+    "compliance": ["SOC2", "ISO-27001", "HIPAA"],
+    "min_contract": "annual"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 82,
+    "error_message_quality": 78,
+    "error_message_notes": "Returns JSON error responses with status codes and message strings; error messages are generally informative but SCIM endpoint errors can be verbose and inconsistently structured compared to the core REST endpoints.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "User updates via PATCH are idempotent. User creation is not idempotent — creating a user with an existing email returns an error; agents should check for existence before creating. SCIM provisioning is fully idempotent per the SCIM spec.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Access tokens have a 10-hour TTL — long-running agents must implement proactive token refresh before expiry to avoid mid-operation 401 errors",
+      "OneLogin subdomain is required in all API URLs (https://{subdomain}.onelogin.com/api/2) — missing or wrong subdomain causes confusing DNS errors rather than auth errors",
+      "SCIM provisioning and the native REST API are separate interfaces with different data models — mixing them for the same user operation can cause sync conflicts",
+      "User status transitions (active → suspended → locked) have sequencing constraints — trying to activate a locked user requires unlocking first",
+      "Event webhooks use HMAC-SHA256 signatures that must be verified to prevent forged event injection; many integrations skip this step"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 82,
+    "error_handling_score": 78,
+    "auth_complexity_score": 80,
+    "rate_limit_clarity_score": 78
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 85,
+    "scope_granularity": 85,
+    "dependency_hygiene": 82,
+    "secret_handling": 85,
+    "security_notes": "OAuth 2.0 client credentials with scoped access tokens provide solid security. Client secrets should be rotated periodically; the API supports credential management. Webhook signatures enforce event authenticity."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 85,
+    "version_stability": 82,
+    "breaking_changes_history": 80,
+    "error_recovery": 80
+  }
+}

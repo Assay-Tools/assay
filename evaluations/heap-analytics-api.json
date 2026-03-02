@@ -2,27 +2,27 @@
   "id": "heap-analytics-api",
   "name": "Heap Analytics API",
   "version_evaluated": "current",
-  "homepage": "https://heap.io/docs/api",
+  "homepage": "https://heap.io",
   "repo_url": null,
   "category": "analytics",
-  "subcategories": ["product-analytics", "event-tracking", "user-behavior"],
-  "tags": ["product-analytics", "event-autocapture", "session-replay", "funnels", "user-tracking", "saas"],
-  "what_it_does": "Provides server-side event tracking and data export APIs for Heap's product analytics platform, which autocaptures all user interactions by default and allows agents to push server-side events and export behavioral data.",
+  "subcategories": ["product-analytics", "autocapture"],
+  "tags": ["product-analytics", "autocapture", "event-tracking", "server-side", "user-behavior", "retroactive-analysis", "saas"],
+  "what_it_does": "Provides a server-side REST API and JavaScript SDK for sending custom events, identifying users, and adding user properties to Heap's product analytics platform, which auto-captures all front-end interactions by default.",
   "use_cases": [
-    "Send server-side events (e.g., payment completed, subscription upgraded) to Heap to correlate back-end business events with front-end behavior",
-    "Add user properties (plan type, cohort, region) to Heap user profiles to enable behavioral segmentation in dashboards",
-    "Export raw event data via the Export API for downstream processing in a data warehouse",
-    "Identify and merge anonymous and logged-in user identities after a sign-up event",
-    "Delete user data on GDPR/CCPA request by programmatically removing a user's event history"
+    "Send server-side conversion events (subscription_upgraded, payment_processed) to Heap to enrich the auto-captured front-end session data with backend outcomes",
+    "Identify users server-side by associating anonymous session IDs with authenticated user identities after login to enable full-funnel analysis",
+    "Add user properties (plan_type, company_size, cohort_date) from a backend datastore to Heap to enable behavioral segmentation in reports",
+    "Track feature flag exposures from a server-side experimentation system as custom events to measure experiment impact in Heap",
+    "Backfill historical user properties or events during a data migration by posting to the server-side API in bulk"
   ],
   "not_for": [
-    "Querying live behavioral data or building dashboards — Heap's query layer is UI-only; the REST API is primarily an ingestion and export interface",
-    "Real-time streaming event consumption — the Export API is batch-oriented, not a live stream",
-    "Mobile-native event tracking without the Heap mobile SDK — server-side REST does not replace SDK autocapture on native apps"
+    "Exporting raw event data for warehouse ingestion (Heap has a separate Connect product for warehouse sync, not covered by the server API)",
+    "Querying or retrieving analytics results programmatically — Heap has no public query API; data is accessed via the UI or Connect",
+    "Real-time streaming analytics or event-driven alerting pipelines"
   ],
-  "best_when": "An agent needs to enrich Heap user profiles with server-side business events that the JavaScript SDK cannot capture, or must export raw session data for ETL pipelines.",
-  "avoid_when": "The goal is to query or visualize behavioral data programmatically — Heap does not expose a query API; use a connected data warehouse instead.",
-  "alternatives": ["june-so-api", "mixpanel-api", "amplitude-api", "segment-api"],
+  "best_when": "You want to enrich Heap's auto-captured front-end behavior data with server-side events and user properties to build complete product analytics without fully manual event instrumentation.",
+  "avoid_when": "You need to programmatically query or export Heap analytics results — Heap's API is ingestion-only, so any downstream data access requires the Heap Connect warehouse integration.",
+  "alternatives": ["mixpanel-api", "amplitude-api", "posthog-api", "june-so-api", "segment-api"],
   "interface": {
     "has_rest_api": true,
     "has_graphql": false,
@@ -30,7 +30,7 @@
     "has_mcp_server": false,
     "mcp_server_url": null,
     "has_sdk": true,
-    "sdk_languages": ["javascript", "ios", "android", "react-native"],
+    "sdk_languages": ["javascript", "ios", "android"],
     "openapi_spec_url": null,
     "webhooks": false
   },
@@ -38,68 +38,68 @@
     "methods": ["api_key"],
     "oauth": false,
     "scopes": false,
-    "notes": "Server-side track and identify calls use the Heap App ID (not a secret). Export API uses a separate API key. The App ID is considered public (embedded in client-side code); the export key should be kept secret."
+    "notes": "App ID (not a secret) is used in the JavaScript SDK. Server-side API uses the app_id in the request body — no secret key is required for event ingestion, which trades convenience for some security tradeoffs."
   },
   "pricing": {
-    "model": "subscription",
+    "model": "freemium",
     "free_tier_exists": true,
-    "free_tier_limits": "Free plan available with limited sessions per month; Export API and server-side API typically require paid Growth or Enterprise plans.",
-    "paid_tiers": "Growth and Enterprise plans; pricing not publicly listed, requires sales engagement for larger volumes.",
+    "free_tier_limits": "Free plan for up to 10,000 monthly sessions with core autocapture and server-side API access",
+    "paid_tiers": "Growth and Pro plans with custom pricing based on session volume; enterprise pricing for large-scale deployments",
     "requires_credit_card": false,
-    "notes": "Free tier is primarily for evaluation. Server-side REST API and Export API are generally growth/enterprise features. Contact sales for pricing."
+    "notes": "Free tier is suitable for early-stage products. Server-side API access is included on all plans."
   },
   "performance": {
-    "latency_p50_ms": 200,
-    "latency_p99_ms": 1500,
+    "latency_p50_ms": 100,
+    "latency_p99_ms": 400,
     "uptime_sla_percent": 99.9,
-    "rate_limits": "Track API: up to 25 requests per second per app. Export API: batch exports can take minutes to hours depending on data volume.",
+    "rate_limits": "Server-side API: up to 25 MB/s per app; individual endpoint limits not prominently documented",
     "data_source": "llm_estimated"
   },
   "requirements": {
     "requires_signup": true,
     "requires_credit_card": false,
     "domain_verification": false,
-    "data_residency": ["US", "EU"],
-    "compliance": ["SOC2", "GDPR", "CCPA", "HIPAA"],
-    "min_contract": "monthly"
+    "data_residency": ["US"],
+    "compliance": ["GDPR", "SOC2", "CCPA"],
+    "min_contract": "none"
   },
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
-    "documentation_accuracy": 76,
-    "error_message_quality": 70,
-    "error_message_notes": "Track API returns 200 OK even for malformed events in some cases, making silent data loss a risk. Export API errors are more descriptive but documentation is sparse.",
-    "idempotency_support": "partial",
-    "idempotency_notes": "Track calls are not idempotent — duplicate calls create duplicate events. Agents must deduplicate at the source. Identity calls are idempotent.",
+    "documentation_accuracy": 78,
+    "error_message_quality": 72,
+    "error_message_notes": "Server-side API returns HTTP 200 for most requests regardless of payload validity, making it difficult to detect silently dropped events.",
+    "idempotency_support": "none",
+    "idempotency_notes": "No idempotency key support; retrying a failed event POST will create duplicate events in Heap. Agents must implement deduplication upstream.",
     "pagination_style": "none",
     "retry_guidance_documented": false,
     "known_agent_gotchas": [
-      "The Track API returns HTTP 200 for many invalid payloads — agents cannot rely on HTTP status to confirm event was recorded correctly",
-      "Server-side events do not participate in session recordings or autocaptured click sequences — they appear as standalone events only",
-      "User identity must be established before associating server events to a user; events sent before identify() are attributed to an anonymous identity",
-      "Export API jobs are asynchronous and can take significant time for large date ranges — agents must poll for completion rather than expecting synchronous responses",
-      "Heap App IDs are environment-specific (development vs production) — mixing them silently corrupts production analytics data"
+      "The app_id used for server-side event ingestion is the same public ID embedded in the browser JavaScript — it is not a secret, but this means anyone can POST events to your Heap app if they know the ID",
+      "Server-side API returns HTTP 200 even for malformed payloads; agents cannot use status codes to confirm successful event recording",
+      "User identity stitching requires that the anonymous identity (captured client-side) and the server-side user ID are linked via an addUserProperties or identify call before the session ends",
+      "Most server-side API endpoints do not support pagination as they are write-only ingestion endpoints — querying data requires the Heap Connect warehouse integration",
+      "Property names sent via the server API must match the format expected by Heap's schema; special characters or inconsistent casing create separate property definitions in reports"
     ]
   },
   "af_score_components": {
     "mcp_score": 0,
-    "api_doc_score": 75,
-    "error_handling_score": 62,
-    "auth_complexity_score": 82,
+    "api_doc_score": 78,
+    "error_handling_score": 65,
+    "auth_complexity_score": 80,
     "rate_limit_clarity_score": 68
   },
   "security_score_components": {
     "tls_enforcement": 100,
-    "auth_strength": 72,
-    "scope_granularity": 55,
-    "dependency_hygiene": 78,
-    "secret_handling": 75,
-    "security_notes": "App ID is intentionally public (embedded in JS). Export API key must be protected as a server-side secret. No fine-grained API key scopes available."
+    "auth_strength": 55,
+    "scope_granularity": 40,
+    "dependency_hygiene": 76,
+    "secret_handling": 60,
+    "security_notes": "The use of a public app_id (non-secret) for event ingestion is a notable security tradeoff — event spam or data poisoning is theoretically possible. Heap mitigates this with event validation rules. No scope granularity on ingestion."
   },
   "reliability_score_components": {
-    "uptime_documented": 82,
-    "version_stability": 80,
-    "breaking_changes_history": 78,
+    "uptime_documented": 80,
+    "version_stability": 78,
+    "breaking_changes_history": 76,
     "error_recovery": 70
   }
 }

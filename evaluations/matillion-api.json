@@ -2,27 +2,27 @@
   "id": "matillion-api",
   "name": "Matillion API",
   "version_evaluated": "current",
-  "homepage": "https://docs.matillion.com/data-productivity-cloud/api/",
+  "homepage": "https://www.matillion.com",
   "repo_url": null,
   "category": "data-integration",
-  "subcategories": ["etl", "elt", "pipeline-orchestration", "data-engineering"],
-  "tags": ["etl", "elt", "data-pipeline", "orchestration", "snowflake", "redshift", "bigquery", "enterprise"],
-  "what_it_does": "Provides REST API access to Matillion's cloud-native ELT platform for triggering, monitoring, and managing data transformation jobs, environments, and pipeline orchestration on cloud data warehouses.",
+  "subcategories": ["etl", "elt", "cloud-data-warehouse"],
+  "tags": ["elt", "etl", "data-pipeline", "cloud-data-warehouse", "snowflake", "redshift", "bigquery", "orchestration", "enterprise"],
+  "what_it_does": "Provides a REST API for orchestrating and managing Matillion ELT jobs, pipelines, and environments programmatically, enabling agents to trigger data loads and transformations in cloud data warehouses.",
   "use_cases": [
-    "Trigger a Matillion pipeline run programmatically after a source data file lands in S3 or GCS to kick off downstream transformations",
-    "Poll job execution status and surface pipeline success or failure to an orchestration agent (e.g., Airflow, Prefect) as part of a larger DAG",
-    "Parameterize and run different pipeline variants by passing environment variables to a Matillion job at runtime",
-    "Automate promotion of pipeline definitions from development to production environments via API-driven export/import",
-    "Monitor job run history to detect recurring failures and trigger alerts or remediation workflows"
+    "Trigger a Matillion ELT pipeline run after a new data file lands in S3, coordinating the load into Snowflake without manual intervention",
+    "Poll job run status and surface completion or failure events to an orchestration system (Airflow, Prefect) for dependency management",
+    "Parameterize and start a transformation job with runtime variables (e.g., date range, source schema) from an external scheduling agent",
+    "Retrieve job run history and error logs programmatically to feed a data operations monitoring dashboard",
+    "Clone or promote a Matillion environment (dev to prod) as part of a CI/CD deployment pipeline triggered by a git merge event"
   ],
   "not_for": [
-    "Ad-hoc SQL or data querying — Matillion's API controls pipeline orchestration, not the data warehouse query layer",
-    "Lightweight or low-cost data integration — Matillion is enterprise-priced and runs on cloud data warehouse infrastructure",
-    "Teams without Snowflake, Redshift, BigQuery, or Azure Synapse — Matillion is purpose-built for cloud data warehouses only"
+    "Ad-hoc SQL query execution directly against a data warehouse (Matillion orchestrates pipelines, not interactive SQL)",
+    "Real-time streaming data ingestion (Matillion is batch-oriented ELT, not a streaming platform)",
+    "Teams without Matillion instances already deployed — the API manages existing Matillion infrastructure, not a standalone service"
   ],
-  "best_when": "An agent needs to orchestrate Matillion ELT jobs as part of a larger data pipeline, particularly when triggering runs from external events or integrating with an existing workflow orchestrator.",
-  "avoid_when": "The data integration need is simple or the team lacks a cloud data warehouse — Matillion's complexity and cost are overkill for non-enterprise ELT workloads.",
-  "alternatives": ["fivetran-api", "airbyte-api", "dbt-cloud-api"],
+  "best_when": "Your organization already uses Matillion for cloud ELT and you need to integrate pipeline triggering and monitoring into a broader orchestration or DataOps automation workflow.",
+  "avoid_when": "You do not already have Matillion licensed and deployed; the API has no standalone utility and Matillion is an expensive enterprise platform that requires significant setup.",
+  "alternatives": ["fivetran-api", "airbyte-api", "dbt-cloud-api", "stitch-api", "meltano-api"],
   "interface": {
     "has_rest_api": true,
     "has_graphql": false,
@@ -35,32 +35,32 @@
     "webhooks": false
   },
   "auth": {
-    "methods": ["basic_auth", "api_key"],
+    "methods": ["basic_auth"],
     "oauth": false,
     "scopes": false,
-    "notes": "Matillion ETL (legacy) uses HTTP Basic Auth (username:password) per instance. Matillion Data Productivity Cloud uses API keys or OAuth 2.0 client credentials. Basic auth over HTTPS for legacy instances; credentials should be stored securely and not embedded in pipeline configs."
+    "notes": "HTTP Basic Authentication using Matillion instance username and password. Credentials are tied to a specific Matillion instance deployment (EC2, Azure VM, etc.)."
   },
   "pricing": {
-    "model": "subscription",
+    "model": "paid",
     "free_tier_exists": false,
     "free_tier_limits": null,
-    "paid_tiers": "Matillion Data Productivity Cloud pricing is consumption-based (credits per job run) with platform fees; Matillion ETL is licensed per instance. Pricing requires direct sales engagement.",
-    "requires_credit_card": false,
-    "notes": "Enterprise-tier pricing. No public pricing listed. Typically requires annual contracts. API access is included with any Matillion subscription."
+    "paid_tiers": "Matillion is enterprise-priced; Matillion ETL (self-hosted on cloud VMs) and Matillion Data Productivity Cloud have separate pricing models, typically $1,000+/month",
+    "requires_credit_card": true,
+    "notes": "No free tier. Pricing is usage and instance-based. Contact sales for quotes. The API itself has no separate cost beyond the Matillion license."
   },
   "performance": {
     "latency_p50_ms": 300,
     "latency_p99_ms": 2000,
     "uptime_sla_percent": 99.5,
-    "rate_limits": "Not publicly documented; API is designed for orchestration use cases, not high-frequency polling. Recommend polling job status no more than once per 10 seconds.",
+    "rate_limits": "No documented rate limits on the REST API; limits are effectively constrained by the underlying Matillion instance resources",
     "data_source": "llm_estimated"
   },
   "requirements": {
     "requires_signup": true,
-    "requires_credit_card": false,
+    "requires_credit_card": true,
     "domain_verification": false,
     "data_residency": ["US", "EU", "APAC"],
-    "compliance": ["SOC2", "ISO27001", "GDPR"],
+    "compliance": ["SOC2", "GDPR", "HIPAA"],
     "min_contract": "annual"
   },
   "agent_readiness": {
@@ -68,36 +68,36 @@
     "mcp_security_score": null,
     "documentation_accuracy": 72,
     "error_message_quality": 68,
-    "error_message_notes": "Error responses vary between Matillion ETL and Data Productivity Cloud versions. ETL returns JSON with status and message; DPC follows a more consistent REST pattern. Documentation of error codes is incomplete.",
-    "idempotency_support": "partial",
-    "idempotency_notes": "Job trigger calls create new executions each time — not idempotent. Agents must track whether a job is already running before triggering to avoid duplicate runs.",
+    "error_message_notes": "API errors often reflect underlying Matillion job failures with stack traces rather than structured agent-friendly error codes; parsing failure reasons requires log inspection.",
+    "idempotency_support": "none",
+    "idempotency_notes": "Job trigger endpoints are not idempotent — each API call starts a new job run. Agents must check current job status before triggering to avoid duplicate runs.",
     "pagination_style": "offset",
     "retry_guidance_documented": false,
     "known_agent_gotchas": [
-      "The API surface differs significantly between Matillion ETL (legacy, instance-based) and Matillion Data Productivity Cloud (new SaaS) — confirm which product is deployed before building integrations",
-      "Job runs are asynchronous — the trigger endpoint returns immediately; agents must poll the execution status endpoint with a job run ID to determine completion",
-      "Basic auth credentials for Matillion ETL are per-instance and per-environment; dev and prod instances have separate credential sets that must be managed independently",
-      "Job parameter passing is environment-variable based; variable names must exactly match what is defined in the Matillion job, with no validation error if a variable is misspelled",
-      "Long-running jobs can exceed default HTTP timeout settings; agents should use long-poll or status-check patterns rather than holding connections open"
+      "Basic auth credentials are tied to a specific Matillion instance — if the instance is stopped or its IP changes, the API endpoint itself changes, breaking agent configurations",
+      "Job status polling is required as there are no webhooks; agents must implement polling loops with appropriate backoff for long-running ELT jobs",
+      "The API surface differs between Matillion ETL (legacy) and the newer Data Productivity Cloud platform — ensure you target the correct API version for your instance",
+      "Running a job that is already in progress returns a success response but the job does not queue — silent no-op behavior can confuse orchestration agents",
+      "Basic auth over HTTPS means credentials must be carefully managed in agent secret stores; credential rotation requires updating all agents pointing to the instance"
     ]
   },
   "af_score_components": {
     "mcp_score": 0,
-    "api_doc_score": 70,
-    "error_handling_score": 65,
-    "auth_complexity_score": 72,
-    "rate_limit_clarity_score": 58
+    "api_doc_score": 72,
+    "error_handling_score": 68,
+    "auth_complexity_score": 65,
+    "rate_limit_clarity_score": 60
   },
   "security_score_components": {
     "tls_enforcement": 100,
-    "auth_strength": 70,
-    "scope_granularity": 55,
-    "dependency_hygiene": 75,
-    "secret_handling": 68,
-    "security_notes": "Basic auth is weak if credentials are stored insecurely. Matillion DPC's OAuth client credentials are significantly stronger. No IP allowlisting documented for legacy ETL instances. Recommend rotating credentials regularly."
+    "auth_strength": 55,
+    "scope_granularity": 40,
+    "dependency_hygiene": 72,
+    "secret_handling": 60,
+    "security_notes": "Basic auth is a security concern for automated agents — credentials must be stored as secrets. No scope granularity means any credential has full API access. Prefer deploying Matillion in a private VPC and restricting API access by IP."
   },
   "reliability_score_components": {
-    "uptime_documented": 78,
+    "uptime_documented": 70,
     "version_stability": 72,
     "breaking_changes_history": 70,
     "error_recovery": 68

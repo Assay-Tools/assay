@@ -1,0 +1,105 @@
+{
+  "id": "cloudflare-queues-api",
+  "name": "Cloudflare Queues API",
+  "version_evaluated": "current",
+  "homepage": "https://developers.cloudflare.com/queues/",
+  "repo_url": null,
+  "category": "messaging",
+  "subcategories": ["message-queue", "edge-compute", "async-processing"],
+  "tags": ["cloudflare", "queues", "workers", "message-queue", "async", "edge", "pub-sub"],
+  "what_it_does": "Cloudflare Queues is a globally distributed message queue service tightly integrated with Cloudflare Workers, enabling agents to produce and consume messages at the edge without managing queue infrastructure.",
+  "use_cases": [
+    "Enqueue tasks from a Cloudflare Worker triggered by HTTP requests for background processing by a consumer Worker",
+    "Buffer high-volume webhook events arriving at the edge before fan-out processing by downstream consumers",
+    "Create a dead-letter pattern by routing failed message deliveries to a secondary queue for inspection and retry",
+    "Decouple an agent's data ingestion pipeline from its processing pipeline using queues as the intermediate buffer",
+    "Manage queue configurations (create, delete, list) via the REST API as part of infrastructure provisioning automation"
+  ],
+  "not_for": [
+    "High-throughput use cases requiring sub-millisecond latency — Queues adds at-least-once delivery latency unsuitable for real-time use",
+    "Teams not already using Cloudflare Workers — the consumer side requires a Worker; cross-platform consumption is not natively supported",
+    "Complex message routing, topic fan-out, or stream processing that would be better served by Kafka or Pub/Sub"
+  ],
+  "best_when": "An agent is already running within the Cloudflare Workers ecosystem and needs reliable async task delegation or event buffering without external queue infrastructure.",
+  "avoid_when": "Your workloads run outside Cloudflare Workers or require complex routing, ordering guarantees, or consumer group semantics not offered by Queues.",
+  "alternatives": ["sqs-api", "cloudflare-api", "pubsub-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["javascript"],
+    "openapi_spec_url": "https://raw.githubusercontent.com/cloudflare/api-schemas/main/openapi.yaml",
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["api-token"],
+    "oauth": false,
+    "scopes": true,
+    "notes": "Management operations (create/delete/list queues) use Cloudflare API tokens with 'Workers Queues: Edit' permission. Message production and consumption within Workers uses the Workers runtime binding — no explicit auth needed inside a Worker script."
+  },
+  "pricing": {
+    "model": "usage-based",
+    "free_tier_exists": true,
+    "free_tier_limits": "1 million operations per month free; each write, read, or delete counts as one operation",
+    "paid_tiers": "$0.40 per million operations beyond the free tier; no minimum commitment",
+    "requires_credit_card": true,
+    "notes": "Requires a Cloudflare Workers paid plan ($5/month) to use Queues beyond the free tier limits. Free tier is part of the Workers free plan."
+  },
+  "performance": {
+    "latency_p50_ms": 150,
+    "latency_p99_ms": 800,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "Message body size limit of 128KB; batch size up to 100 messages per send operation; consumer concurrency controlled by Worker configuration",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": true,
+    "domain_verification": false,
+    "data_residency": ["US", "EU"],
+    "compliance": ["SOC2"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 82,
+    "error_message_quality": 78,
+    "error_message_notes": "REST management API returns standard Cloudflare JSON error format; Worker runtime queue errors surface as exceptions in the consumer handler with limited detail on delivery failure reason.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Queue creation via REST is idempotent by name within an account. Message sends are not idempotent — retries may produce duplicates; consumers must implement deduplication logic.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Queues uses at-least-once delivery — consumers must handle duplicate messages; there is no built-in deduplication key",
+      "Consumer Workers must explicitly acknowledge messages; unacknowledged messages are redelivered after the visibility timeout, which can cause processing loops on persistent errors",
+      "Queue bindings must be declared in the wrangler.toml configuration and redeployed when new queues are added — runtime binding changes are not hot-reloadable",
+      "Messages are not ordered within a queue — FIFO guarantees are not provided, which affects workflows that depend on processing sequence",
+      "The REST API manages queue resources but cannot send or receive messages directly — production and consumption only work via Workers bindings"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 82,
+    "error_handling_score": 78,
+    "auth_complexity_score": 80,
+    "rate_limit_clarity_score": 78
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 88,
+    "scope_granularity": 82,
+    "dependency_hygiene": 85,
+    "secret_handling": 85,
+    "security_notes": "Messages are encrypted in transit over TLS; at-rest encryption is provided by Cloudflare's infrastructure. Access control is via Cloudflare API token scopes for management and Worker runtime bindings for data plane operations."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 78,
+    "breaking_changes_history": 75,
+    "error_recovery": 80
+  }
+}
