@@ -1,29 +1,28 @@
 {
   "id": "kafka-api",
-  "name": "Apache Kafka / Confluent Cloud API",
-  "version_evaluated": "current",
-  "homepage": "https://docs.confluent.io/cloud/current/api.html",
+  "name": "Apache Kafka",
+  "version_evaluated": "3.x",
+  "homepage": "https://kafka.apache.org",
   "repo_url": "https://github.com/apache/kafka",
-  "category": "messaging",
-  "subcategories": ["event-streaming", "message-broker", "data-pipeline", "open-source"],
-  "tags": ["kafka", "confluent", "event-streaming", "message-broker", "data-pipeline", "open-source", "rest-api", "sdk"],
-  "what_it_does": "Apache Kafka event streaming platform (via Confluent Cloud REST API) for high-throughput, durable, replayable message streaming and event-driven architectures at scale.",
+  "category": "infrastructure",
+  "subcategories": ["messaging", "event-streaming", "pub-sub", "event-sourcing"],
+  "tags": ["kafka", "event-streaming", "pub-sub", "event-sourcing", "confluent", "high-throughput"],
+  "what_it_does": "Distributed event streaming platform for high-throughput, fault-tolerant publish-subscribe messaging, event sourcing, and real-time data pipelines between agent services.",
   "use_cases": [
-    "High-throughput event ingestion from IoT, clickstream, or application events",
-    "Event sourcing and CQRS patterns for distributed systems",
-    "Real-time data pipelines between systems with schema evolution",
-    "Change data capture (CDC) from databases for downstream consumers",
-    "Agent event bus for distributed AI workflow coordination"
+    "High-throughput event streaming for agent action logs and audit trails at millions of events/second",
+    "Decoupled communication between agent microservices with durable replay capability",
+    "Event sourcing for agent state machines where all state changes are persisted as ordered events",
+    "Real-time data pipeline ingestion for agent training data or feature stores",
+    "Exactly-once delivery for financial transactions or critical agent operations"
   ],
   "not_for": [
-    "Simple task queuing with few messages (SQS or RabbitMQ are simpler)",
-    "Teams without Kafka operations knowledge",
-    "Very low latency transactional messaging",
-    "Small-scale applications (operational overhead isn't justified)"
+    "Simple job queues or task distribution (use RabbitMQ or Redis queues instead)",
+    "Teams without infrastructure to run Kafka cluster or budget for Confluent Cloud",
+    "Low-latency RPC patterns where sub-10ms response time is required"
   ],
-  "best_when": "You need durable, replayable event streams at high throughput with multiple independent consumers reading the same events.",
-  "avoid_when": "You need simple work queues, don't need replay semantics, or can't justify Kafka's operational complexity.",
-  "alternatives": ["aws-sqs-api", "rabbitmq-api", "upstash-api"],
+  "best_when": "You need event streaming at scale with durable replay, consumer groups, and ordered partitioned delivery for distributed agent architectures.",
+  "avoid_when": "Your use case is simple queue-based task processing — Kafka's complexity and operational overhead is overkill for basic queues.",
+  "alternatives": ["aws-sqs-api", "google-cloud-pubsub-api", "azure-service-bus-api", "nats-api", "rabbitmq-api"],
   "interface": {
     "has_rest_api": true,
     "has_graphql": false,
@@ -31,61 +30,76 @@
     "has_mcp_server": false,
     "mcp_server_url": null,
     "has_sdk": true,
-    "sdk_languages": ["python", "javascript", "java", "go", "dotnet", "ruby", "c"],
-    "openapi_spec_url": "https://docs.confluent.io/cloud/current/api.html",
+    "sdk_languages": ["java", "python", "node", "go", "dotnet", "ruby", "c"],
+    "openapi_spec_url": null,
     "webhooks": false
   },
   "auth": {
-    "methods": ["api_key", "oauth2", "sasl"],
-    "oauth": true,
+    "methods": ["api_key", "service_account"],
+    "oauth": false,
     "scopes": true,
-    "notes": "Confluent Cloud uses API keys (Kafka API key/secret) for native protocol access. REST API uses HTTP Basic Auth with API key/secret. OAuth2 available for Confluent Platform enterprise. SASL/PLAIN or SASL/SCRAM for self-hosted."
+    "notes": "Self-hosted: SASL/PLAIN, SASL/SCRAM, mTLS. Confluent Cloud: API key per cluster with ACLs. MSK: IAM auth via SigV4."
   },
   "pricing": {
-    "model": "usage-based",
+    "model": "open_source",
     "free_tier_exists": true,
-    "free_tier_limits": "$400 free credits for new Confluent Cloud accounts",
-    "paid_tiers": "Basic clusters from $0.11/GB data; Standard/Dedicated for production",
-    "requires_credit_card": true,
-    "notes": "Apache Kafka is free and open-source for self-hosting. Confluent Cloud managed service has usage-based pricing. MSK (AWS) and Event Hubs (Azure) offer Kafka-compatible managed services."
+    "free_tier_limits": "Self-hosted: free. Confluent Cloud: $400/month free credits for 30 days",
+    "paid_tiers": "Confluent Cloud: ~$0.10/GB ingested + $0.015/CKU/hour; AWS MSK: ~$0.21/hour per broker",
+    "requires_credit_card": false,
+    "notes": "Self-hosted is free but operationally complex. Managed services (Confluent, MSK, Aiven) add significant cost."
   },
   "performance": {
     "latency_p50_ms": 5,
-    "latency_p99_ms": 50,
-    "uptime_sla_percent": 99.99,
-    "rate_limits": "Millions of messages/second with appropriate cluster sizing",
+    "latency_p99_ms": 30,
+    "uptime_sla_percent": 99.95,
+    "rate_limits": "Effectively unlimited — scales horizontally with partitions",
     "data_source": "llm_estimated"
   },
   "requirements": {
-    "requires_signup": true,
-    "requires_credit_card": true,
+    "requires_signup": false,
+    "requires_credit_card": false,
     "domain_verification": false,
-    "data_residency": ["US", "EU", "APAC", "multiple-regions"],
-    "compliance": ["SOC2", "ISO27001", "HIPAA", "PCI-DSS", "GDPR"],
+    "data_residency": ["self_hosted_or_cloud"],
+    "compliance": [],
     "min_contract": "none"
   },
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
-    "documentation_accuracy": 88,
-    "error_message_quality": 78,
-    "error_message_notes": "Kafka protocol errors are numeric codes. Confluent REST Proxy returns JSON errors. Error handling in client libraries is well-documented.",
+    "documentation_accuracy": 82,
+    "error_message_quality": 80,
+    "error_message_notes": "Kafka client exceptions are detailed (TopicAuthorizationException, RecordTooLargeException) but require SDK-level handling",
     "idempotency_support": "full",
-    "idempotency_notes": "Kafka producers support idempotent delivery (exactly-once semantics) with producer ID and sequence numbers. Transactions available for atomic multi-partition writes.",
+    "idempotency_notes": "Idempotent producers enabled by default in Kafka 3.x; exactly-once semantics with transactions API",
     "pagination_style": "offset",
     "retry_guidance_documented": true,
     "known_agent_gotchas": [
-      "Kafka native protocol is TCP binary — agents need Kafka client libraries, not simple HTTP",
-      "Confluent REST Proxy adds HTTP interface but adds latency overhead vs native clients",
-      "Consumer group management is critical — agents in same group compete for partitions, different groups get independent copies",
-      "Topic partitioning affects parallelism — plan partition count before production (hard to change)",
-      "Schema Registry required for Avro/Protobuf schemas — adds another service to manage",
-      "Retention period settings determine how long messages are replayable — set thoughtfully"
-    ],
-    "error_message_score": 75,
-    "auth_complexity_score": 68,
-    "rate_limit_score": 92,
-    "security_score": 88
+      "Consumer group rebalancing causes processing pause — design agents to handle rebalance callbacks and offset commits carefully",
+      "Default message size limit is 1MB — large agent payloads must use chunk references or increase max.message.bytes",
+      "Auto-commit of offsets can cause message loss if agent crashes mid-processing; use manual offset commit after processing",
+      "Partition count cannot be decreased after creation — plan partition strategy carefully; over-partitioning wastes resources",
+      "Kafka REST Proxy adds 50-200ms overhead vs native clients — for latency-sensitive agents use native client libraries"
+    ]
   },
-  "last_evaluated": "2026-02-28"
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 82,
+    "error_handling_score": 80,
+    "auth_complexity_score": 72,
+    "rate_limit_clarity_score": 82
+  },
+  "security_score_components": {
+    "tls_enforcement": 90,
+    "auth_strength": 83,
+    "scope_granularity": 83,
+    "dependency_hygiene": 82,
+    "secret_handling": 80,
+    "security_notes": "TLS and auth optional on self-hosted — must be explicitly configured. ACLs for topic-level authorization. Confluent Cloud enforces TLS by default."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 90,
+    "version_stability": 87,
+    "breaking_changes_history": 83,
+    "error_recovery": 90
+  }
 }
