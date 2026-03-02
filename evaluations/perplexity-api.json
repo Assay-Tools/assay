@@ -1,59 +1,58 @@
 {
   "id": "perplexity-api",
-  "name": "Perplexity API",
+  "name": "Perplexity AI API",
   "version_evaluated": "current",
   "homepage": "https://docs.perplexity.ai",
   "repo_url": null,
   "category": "ai-ml",
-  "subcategories": ["llm", "search-augmented", "research", "real-time-knowledge"],
-  "tags": ["perplexity", "llm", "search", "real-time", "citations", "research", "rest-api"],
-  "what_it_does": "Search-augmented LLM API that grounds responses in real-time web search. Provides up-to-date information with citations, combining LLM reasoning with live web search for factual, current answers.",
+  "subcategories": ["llm-inference", "search-augmented-generation"],
+  "tags": ["perplexity", "llm", "search", "real-time", "citations", "research", "rest-api", "sonar", "online-llm", "web-search", "openai-compatible"],
+  "what_it_does": "Perplexity AI provides a search-augmented LLM API (Sonar models) that grounds responses in real-time web search results with citations, alongside standard offline LLM inference, via an OpenAI-compatible REST API.",
   "use_cases": [
-    "Agent workflows requiring up-to-date information beyond LLM training cutoff",
-    "Research automation with cited sources for fact-checked content generation",
-    "Competitive intelligence and market research with real-time data",
-    "News monitoring and current event summarization for business agents",
-    "Answering questions about recent events, prices, or rapidly changing information"
+    "Build agents that need up-to-date factual answers grounded in current web content without implementing a separate search-and-retrieval pipeline",
+    "Generate cited research summaries by sending queries to the Sonar model and parsing the returned citations array for source attribution",
+    "Answer time-sensitive questions (current events, recent product releases, live pricing) where training data cutoffs would produce stale responses",
+    "Implement a lightweight research assistant that combines web retrieval and synthesis in a single API call instead of separate search + LLM steps",
+    "Power FAQ systems that need to stay current without re-training by routing factual queries through Sonar for live-grounded answers"
   ],
   "not_for": [
-    "Creative writing or tasks where grounding in web search is unnecessary",
-    "Tasks requiring large context windows for document analysis",
-    "Code generation (not a primary strength)",
-    "High-volume generation where web search adds cost and latency"
+    "Tasks where internet access to external sources is prohibited by compliance policy or where answers must be limited to a controlled knowledge base",
+    "High-throughput batch processing of purely internal documents where web search adds latency and cost without benefit",
+    "Applications requiring strict determinism or reproducibility where the same query must return identical outputs every time"
   ],
-  "best_when": "An agent needs current, factual answers with citations where the LLM's training data may be stale — especially for research, news monitoring, or real-time business intelligence.",
-  "avoid_when": "Your task doesn't require current information or citations, and you can use a cheaper LLM without web search.",
-  "alternatives": ["openai-api", "anthropic-api", "cohere-api"],
+  "best_when": "You need an LLM that can answer questions about current events, recent information, or any topic where freshness and cited sources are more important than pure reasoning depth.",
+  "avoid_when": "Your use case involves proprietary internal knowledge, requires deterministic outputs, or is a workload where web search results are irrelevant or harmful to accuracy.",
+  "alternatives": ["openai-api", "anthropic-api", "fireworks-ai-api", "together-ai-api"],
   "interface": {
     "has_rest_api": true,
     "has_graphql": false,
     "has_grpc": false,
     "has_mcp_server": false,
     "mcp_server_url": null,
-    "has_sdk": false,
-    "sdk_languages": [],
+    "has_sdk": true,
+    "sdk_languages": ["python", "javascript", "typescript"],
     "openapi_spec_url": null,
     "webhooks": false
   },
   "auth": {
-    "methods": ["api_key", "bearer_token"],
+    "methods": ["api_key"],
     "oauth": false,
     "scopes": false,
-    "notes": "Simple Bearer token authentication. OpenAI-compatible chat completions endpoint. Easy migration from OpenAI SDK by changing base URL and model name."
+    "notes": "API key passed as Bearer token in Authorization header. OpenAI SDK compatible — set base_url to api.perplexity.ai and api_key to use existing OpenAI client code against Sonar endpoints."
   },
   "pricing": {
     "model": "pay-as-you-go",
     "free_tier_exists": false,
-    "free_tier_limits": "No free API tier; Perplexity Pro subscription gives some API credits",
-    "paid_tiers": "Sonar ~$1/1M input, $1/1M output + $5/1000 search queries; Sonar Pro $3/1M input + $5/1000 searches",
+    "free_tier_limits": null,
+    "paid_tiers": "Sonar (online search): ~$5/1000 requests + $1/M tokens. Sonar Pro (deep research): ~$5/1000 requests + $3/M tokens. Sonar Reasoning (with search): ~$5/1000 requests + $5/M tokens. Offline models (sonar-chat): ~$0.20/M input + $0.60/M output tokens.",
     "requires_credit_card": true,
-    "notes": "Search queries are charged separately from token generation. Costs can add up quickly if every response triggers a search. Pro subscription ($20/month) includes some API credits."
+    "notes": "Search-enabled models include a per-request fee on top of token costs to cover real-time web retrieval. Number of search queries per request is not user-controllable. Pricing is higher than pure inference providers but includes built-in retrieval."
   },
   "performance": {
-    "latency_p50_ms": 1500,
-    "latency_p99_ms": 8000,
+    "latency_p50_ms": 500,
+    "latency_p99_ms": 3500,
     "uptime_sla_percent": 99.5,
-    "rate_limits": "Varies by plan; not publicly specified",
+    "rate_limits": "Default 50 RPM for new accounts. Token-per-minute limits not prominently published. Search-augmented models have higher latency than offline models due to retrieval step.",
     "data_source": "llm_estimated"
   },
   "requirements": {
@@ -67,25 +66,40 @@
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
-    "documentation_accuracy": 78,
-    "error_message_quality": 70,
-    "error_message_notes": "OpenAI-compatible error format. Errors are standard but documentation on specific Perplexity error scenarios is limited. Rate limit documentation is sparse.",
-    "idempotency_support": "full",
-    "idempotency_notes": "Stateless chat completions API. Retrying is safe — may return different results due to live search and non-deterministic generation.",
+    "documentation_accuracy": 80,
+    "error_message_quality": 72,
+    "error_message_notes": "OpenAI-compatible error envelope with type and message. Search failures and retrieval timeouts surface as model-level errors rather than distinct error codes, making it hard for agents to distinguish search failures from inference failures.",
+    "idempotency_support": "none",
+    "idempotency_notes": "Each request triggers a new real-time web search; identical queries can return different results if web content has changed. No idempotency keys or response caching.",
     "pagination_style": "none",
     "retry_guidance_documented": false,
     "known_agent_gotchas": [
-      "Search query costs (per-query) can make high-volume usage expensive",
-      "Web search introduces latency — responses are slower than non-search LLMs",
-      "Citations are returned in response but format varies — agents must parse citations array",
-      "Search may be triggered even for queries that don't need current info — increases cost",
-      "Model availability changes — not all models support search, check model-specific docs",
-      "Rate limits not clearly documented — agents may hit limits without clear error guidance"
-    ],
-    "error_message_score": 70,
-    "auth_complexity_score": 92,
-    "rate_limit_score": 60,
-    "security_score": 75
+      "The citations array in responses requires post-processing to extract and attribute sources; the citation indices in response text ([1], [2]) must be mapped to the citations list manually",
+      "Search-augmented models have higher and more variable latency (2-8s) than pure LLM inference; agents with strict timeout budgets must set generous deadlines for Sonar calls",
+      "The model cannot be instructed to skip web search for a given query — online models always search, which can surface irrelevant web content for queries better answered from training data",
+      "Web search results introduce non-determinism; the same question on different days or even different API calls may retrieve different sources and produce different answers",
+      "Rate limits are low (50 RPM default) compared to other LLM APIs; agents that need high-throughput search-grounded generation will quickly hit limits and require a tier upgrade"
+    ]
   },
-  "last_evaluated": "2026-02-28"
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 80,
+    "error_handling_score": 72,
+    "auth_complexity_score": 90,
+    "rate_limit_clarity_score": 60
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 75,
+    "scope_granularity": 55,
+    "dependency_hygiene": 78,
+    "secret_handling": 78,
+    "security_notes": "TLS enforced. Single API key with no scope restrictions. Search-augmented models send query content to Perplexity's search infrastructure — agents handling sensitive queries should use offline models instead. GDPR compliance noted but no public SOC 2 documentation."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 76,
+    "version_stability": 78,
+    "breaking_changes_history": 78,
+    "error_recovery": 70
+  }
 }

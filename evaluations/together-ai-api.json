@@ -4,31 +4,25 @@
   "version_evaluated": "current",
   "homepage": "https://www.together.ai",
   "repo_url": "https://github.com/togethercomputer",
-  "category": "developer-tools",
-  "subcategories": ["llm-inference", "ai-infrastructure", "model-hosting"],
-  "tags": ["llm", "inference", "openai-compatible", "llama", "mistral", "mixtral", "open-source-models", "fine-tuning"],
-  "what_it_does": "Together AI provides high-throughput, cost-effective inference for 100+ open-source LLMs including Llama 3.x, Mixtral, Qwen, DeepSeek, and Code Llama. Uses an OpenAI-compatible API (same endpoint format, same client libraries), making it a drop-in alternative for agents using OpenAI SDKs. Supports chat completions, text completions, embeddings, image generation, and fine-tuning. Popular for teams wanting open model access without vendor lock-in.",
+  "category": "ai-ml",
+  "subcategories": ["llm-inference", "model-serving", "embeddings"],
+  "tags": ["llm", "inference", "openai-compatible", "llama", "mistral", "mixtral", "open-source-models", "fine-tuning", "together-ai", "embeddings", "image-generation"],
+  "what_it_does": "Together AI provides serverless and dedicated inference for 100+ open-source models including Llama 3, Mistral, FLUX, and Stable Diffusion via an OpenAI-compatible API, plus managed fine-tuning and embeddings.",
   "use_cases": [
-    "Drop-in replacement for OpenAI API using open-source models at lower cost",
-    "Running Llama 3.x or Mixtral models for production AI agent backends",
-    "Fine-tuning open-source LLMs on proprietary data without managing GPU infrastructure",
-    "Parallel inference across multiple models for ensemble/routing architectures",
-    "Cost-sensitive agent workloads where OpenAI pricing is prohibitive",
-    "Evaluating multiple open-source models against each other via unified API",
-    "Building privacy-sensitive applications where keeping data off proprietary APIs matters"
+    "Run inference on a broad catalog of open-source models (Llama 3.1, Mistral, Qwen, DeepSeek) with a single OpenAI-compatible API client",
+    "Generate embeddings for RAG pipelines using models like BAAI/bge-large-en-v1.5 or Mistral-7B-based embedding endpoints",
+    "Fine-tune Llama or Mistral models on custom datasets using Together's managed fine-tuning API and then deploy them to the same endpoint",
+    "Generate images with FLUX.1 or Stable Diffusion models through the same API client used for text completions",
+    "Benchmark multiple open-source models on the same task by switching model IDs within the same API call structure to compare quality and cost"
   ],
   "not_for": [
-    "Agents that require GPT-4 or Claude-specific capabilities — open models may underperform on complex reasoning",
-    "Ultra-low latency requirements under 100ms (use Groq for that)",
-    "Teams that need enterprise SLA guarantees beyond 99.9% uptime"
+    "Applications requiring proprietary frontier models (GPT-4o, Claude, Gemini) not available in open-weight form",
+    "Production workloads requiring guaranteed SLA-backed uptime beyond what serverless inference provides",
+    "Teams needing integrated agent orchestration, memory, or built-in RAG pipeline management"
   ],
-  "best_when": "You want OpenAI API compatibility but need open-source models (for cost, privacy, or customization), or when you need to fine-tune a model on your own data. The OpenAI-compatible format means zero code changes when switching from OpenAI.",
-  "avoid_when": "You need the absolute lowest latency (use Groq), guaranteed frontier model performance (use OpenAI/Anthropic directly), or need multimodal vision with open models at production quality.",
-  "alternatives": [
-    {"id": "groq-api", "reason": "10-20x faster token generation; less model variety but dramatically lower latency"},
-    {"id": "replicate-api", "reason": "Better for image/video/audio models; Together is better for LLM chat completions"},
-    {"id": "huggingface-inference-api", "reason": "Hugging Face has more model variety; Together has better reliability and throughput for production"}
-  ],
+  "best_when": "You want a large catalog of open-source models with a unified OpenAI-compatible interface, including text, embeddings, and image generation in one platform.",
+  "avoid_when": "You need the absolute lowest latency (Groq is faster) or require proprietary model access unavailable in open-weight form.",
+  "alternatives": ["fireworks-ai-api", "groq-api", "openai-api", "octoai-api"],
   "interface": {
     "has_rest_api": true,
     "has_graphql": false,
@@ -44,18 +38,18 @@
     "methods": ["api_key"],
     "oauth": false,
     "scopes": false,
-    "notes": "Single TOGETHER_API_KEY in Authorization: Bearer header. OpenAI Python SDK works with base_url='https://api.together.xyz/v1' and api_key set to Together key. No scopes, no OAuth."
+    "notes": "API key passed as Bearer token in Authorization header. Fully OpenAI SDK compatible — set base_url to api.together.xyz/v1 and use existing OpenAI client."
   },
   "pricing": {
-    "model": "usage_based",
+    "model": "pay-as-you-go",
     "free_tier_exists": true,
-    "free_tier_limits": "$1 free credit on signup. No ongoing free tier.",
-    "paid_tiers": "Per-token pricing varies by model. Llama-3.1-8B: ~$0.10/M input tokens. Llama-3.1-70B: ~$0.90/M input tokens. Mixtral-8x22B: ~$1.20/M input tokens. Fine-tuning: $0.0025/step. Significantly cheaper than OpenAI equivalents.",
+    "free_tier_limits": "$1 free credit on signup.",
+    "paid_tiers": "Serverless inference per token: Llama 3.1 8B ~$0.18/M tokens, Llama 3.1 70B ~$0.88/M tokens, Llama 3.1 405B ~$3.50/M tokens, Mixtral 8x7B ~$0.60/M tokens, Mistral 7B ~$0.20/M tokens. FLUX.1 image generation ~$0.01-0.05 per image. Dedicated endpoints from ~$0.80/hr.",
     "requires_credit_card": true,
-    "notes": "Pay-as-you-go with no minimum commitment. Volume discounts available. Fine-tuning charged per training step, not per epoch."
+    "notes": "Most models bill input and output tokens at the same rate. Free models available (older/smaller models). Fine-tuning costs additional per-token for training plus storage."
   },
   "performance": {
-    "latency_p50_ms": 400,
+    "latency_p50_ms": 200,
     "latency_p99_ms": 1500,
     "uptime_sla_percent": 99.9,
     "rate_limits": "Free tier: 1 req/sec, 60 req/min. Paid: 10 req/sec per model, configurable higher. Rate limits are per model, not global.",
@@ -84,13 +78,28 @@
       "Context window sizes differ significantly between models; don't assume GPT-4 context limits apply",
       "Streaming responses require server-sent events handling; some proxy setups break SSE",
       "Fine-tuned model IDs use a different naming convention (username/model-name) which can confuse routing logic",
-      "Rate limits are per-model, not global — spreading across models gives higher effective throughput",
       "JSON mode ('response_format': {'type': 'json_object'}) not supported by all models"
-    ],
-    "error_message_score": 82,
-    "auth_complexity_score": 95,
-    "rate_limit_score": 78,
-    "security_score": 80
+    ]
   },
-  "last_evaluated": "2026-03-01"
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 88,
+    "error_handling_score": 82,
+    "auth_complexity_score": 92,
+    "rate_limit_clarity_score": 80
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 75,
+    "scope_granularity": 55,
+    "dependency_hygiene": 78,
+    "secret_handling": 78,
+    "security_notes": "TLS enforced. Single API key with no scope restrictions. SOC 2 Type II compliant. Privacy policy states customer prompts are not used for training. US-only data processing."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 82,
+    "version_stability": 82,
+    "breaking_changes_history": 80,
+    "error_recovery": 78
+  }
 }
