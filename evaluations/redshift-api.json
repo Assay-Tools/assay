@@ -1,0 +1,105 @@
+{
+  "id": "redshift-api",
+  "name": "Amazon Redshift Data API",
+  "version_evaluated": "current",
+  "homepage": "https://docs.aws.amazon.com/redshift/latest/mgmt/data-api.html",
+  "repo_url": "https://github.com/boto/boto3",
+  "category": "database",
+  "subcategories": ["data-warehouse", "cloud-database", "olap"],
+  "tags": ["redshift", "aws", "data-warehouse", "sql", "olap", "analytics", "boto3"],
+  "what_it_does": "Amazon Redshift Data API enables asynchronous SQL execution against Redshift clusters and Serverless workgroups without managing persistent database connections.",
+  "use_cases": [
+    "Running analytical SQL queries from agents without managing JDBC/PSQL connections",
+    "Executing ETL queries and data transformation jobs from Lambda or agent workflows",
+    "Polling for query results asynchronously (fire-and-forget query execution)",
+    "Federated queries across S3, DynamoDB, and other AWS data sources from agents",
+    "Scheduling data quality checks and reporting queries from agent pipelines"
+  ],
+  "not_for": [
+    "Real-time, low-latency queries (Redshift is a data warehouse; use RDS for OLTP)",
+    "Teams not on AWS (Snowflake or BigQuery for cloud-agnostic warehousing)",
+    "Applications requiring synchronous query results without polling"
+  ],
+  "best_when": "Your agent needs to run complex analytical queries on petabyte-scale data already in Amazon Redshift, without managing database connection pools.",
+  "avoid_when": "You need sub-second query latency or are not already using AWS — the Data API adds async overhead and AWS lock-in.",
+  "alternatives": ["snowflake-api", "bigquery-api", "databricks-api", "duckdb-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "node", "java", "go", "dotnet", "ruby", "php"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["aws_iam"],
+    "oauth": false,
+    "scopes": true,
+    "notes": "AWS SigV4 signing via IAM credentials or roles. IAM policy controls who can execute statements. Cluster credentials managed separately (DB username/password or IAM database auth)."
+  },
+  "pricing": {
+    "model": "pay-as-you-go",
+    "free_tier_exists": false,
+    "free_tier_limits": "2-month free trial for Redshift Serverless (up to $300 credit)",
+    "paid_tiers": "Redshift Serverless: $0.36/RPU-hour; Provisioned: $0.25/hour per node (DC2.Large)",
+    "requires_credit_card": true,
+    "notes": "Data API itself is free — costs come from Redshift cluster/serverless usage time."
+  },
+  "performance": {
+    "latency_p50_ms": 1000,
+    "latency_p99_ms": 30000,
+    "uptime_sla_percent": 99.99,
+    "rate_limits": "5 concurrent queries per cluster for Data API; 10 active statements per IAM user",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": true,
+    "domain_verification": false,
+    "data_residency": ["US", "EU", "APAC"],
+    "compliance": ["SOC1", "SOC2", "PCI-DSS", "HIPAA", "ISO27001", "FedRAMP"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 75,
+    "error_message_notes": "AWS-standard error responses with RequestId and code. Query errors require polling the describe-statement endpoint to see the SQL error message — adds a step.",
+    "idempotency_support": "full",
+    "idempotency_notes": "ExecuteStatement is idempotent by client token. StatementId returned for all queries enables exactly-once execution semantics.",
+    "pagination_style": "page_token",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Data API is async — agents must poll DescribeStatement until status is FINISHED or FAILED",
+      "Results expire after 24 hours — agents must retrieve results before expiry",
+      "Concurrent query limit (5 per cluster) can block agents queuing many queries",
+      "Redshift Serverless has cold start (60-180 seconds) if workgroup has been idle",
+      "IAM role must be granted GRANT USAGE permissions at the database level separately from IAM"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 75,
+    "auth_complexity_score": 72,
+    "rate_limit_clarity_score": 78
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 92,
+    "scope_granularity": 90,
+    "dependency_hygiene": 88,
+    "secret_handling": 90,
+    "security_notes": "IAM roles for agents recommended over access keys. VPC endpoint keeps traffic off public internet. Encryption at rest and in transit enforced. Row-level security via Redshift RLS policies. FedRAMP authorized."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 92,
+    "version_stability": 90,
+    "breaking_changes_history": 88,
+    "error_recovery": 85
+  }
+}

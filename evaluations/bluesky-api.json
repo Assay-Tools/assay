@@ -1,0 +1,117 @@
+{
+  "id": "bluesky-api",
+  "name": "Bluesky AT Protocol API",
+  "version_evaluated": "current",
+  "homepage": "https://atproto.com/docs",
+  "repo_url": "https://github.com/bluesky-social/atproto",
+  "category": "social-media",
+  "subcategories": ["microblogging", "decentralized-social", "content-publishing", "social-feeds"],
+  "tags": ["bluesky", "atproto", "at-protocol", "decentralized", "social-media", "open-protocol", "python", "typescript"],
+  "what_it_does": "Open decentralized social network API based on the AT Protocol (ATP), enabling posting, reading feeds, managing follows, and building custom feed algorithms on the Bluesky platform.",
+  "use_cases": [
+    "Automated posting of announcements, updates, or content from agent workflows without per-message fees",
+    "Building custom feed generators that curate content based on algorithmic criteria",
+    "Reading public posts and timelines for social listening and sentiment analysis",
+    "Running a personal bot account that participates in open protocol conversations",
+    "Labeling and content moderation workflows using the Labeler service protocol"
+  ],
+  "not_for": [
+    "Commercial social listening at enterprise scale — user base smaller than Twitter/LinkedIn",
+    "B2B professional network use cases — Bluesky is primarily consumer social",
+    "Guaranteed uptime SLAs — platform is still maturing; infrastructure reliability is improving but not enterprise-grade",
+    "Mass marketing automation — community norms reject spam; accounts can be blocked at the instance level"
+  ],
+  "best_when": "An agent needs to post content, monitor conversations, or build social tools without approval processes, partnership requirements, or per-post fees — especially for developer-focused or tech-savvy audiences.",
+  "avoid_when": "Your audience is primarily on Twitter/X and hasn't migrated, or you need the reach scale that only incumbent platforms offer.",
+  "alternatives": [
+    {"id": "mastodon-api", "reason": "Also open-source and decentralized, ActivityPub-based, larger federated network"},
+    {"id": "twitter-api-v2", "reason": "Larger audience reach but extremely expensive and restrictive"},
+    {"id": "threads-api", "reason": "Meta's Twitter alternative with much larger user base but proprietary platform"}
+  ],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": true,
+    "mcp_server_url": "https://github.com/brianellin/bsky-mcp-server",
+    "has_sdk": true,
+    "sdk_languages": ["python", "typescript"],
+    "openapi_spec_url": "https://raw.githubusercontent.com/bluesky-social/atproto/main/lexicons/app/bsky",
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["app_password", "oauth2"],
+    "oauth": true,
+    "scopes": false,
+    "notes": "App passwords (username + dedicated app password) are the simplest auth path for agents — no browser flow required. OAuth 2.0 (DPoP-based) is being rolled out for third-party apps. App passwords can be created with reduced scope (e.g., no DMs) and revoked independently of the main account password. This is far more agent-friendly than Twitter or LinkedIn's mandatory browser-redirect OAuth flows."
+  },
+  "pricing": {
+    "model": "free",
+    "free_tier_exists": true,
+    "free_tier_limits": "No per-call fees; rate limits apply (300 req/5min for most endpoints); public PDS hosting on bsky.social is free",
+    "paid_tiers": "No paid API tier; self-hosting a PDS (Personal Data Server) has infrastructure costs only",
+    "requires_credit_card": false,
+    "notes": "Bluesky charges nothing for API access. The open protocol means you can also self-host a PDS for full data sovereignty. No approval process, no partnership requirements, no developer account tiers. This is the most accessible social API for developers and agents."
+  },
+  "performance": {
+    "latency_p50_ms": 200,
+    "latency_p99_ms": 800,
+    "uptime_sla_percent": 99.0,
+    "rate_limits": "300 requests per 5 minutes per IP for unauthenticated; 3,000 requests per 5 minutes authenticated; post creation: 11,520 posts per day per account",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["US"],
+    "compliance": ["GDPR"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": 62,
+    "mcp_security_score": 68,
+    "documentation_accuracy": 72,
+    "error_message_quality": 70,
+    "error_message_notes": "XRPC errors return a structured JSON body with error name and message field. Common errors like RateLimitExceeded, InvalidToken, and AuthRequired are well-named. Error documentation is still evolving — the Lexicon schema is the ground truth but not all error conditions are explicitly described.",
+    "idempotency_support": "none",
+    "idempotency_notes": "com.atproto.repo.createRecord is not idempotent — duplicate posts are created on retry. Agents should implement CID-based deduplication or check for recent posts before retrying creates.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "AT Protocol uses DIDs (Decentralized Identifiers) and ATURIs throughout — agents must resolve handle-to-DID before most record operations",
+      "App passwords do not support DM scoping until OAuth 2.0 is fully deployed — store app passwords as secrets, not in code",
+      "Feed generator building requires running an external HTTP service that Bluesky's appview queries — it's not a simple API call",
+      "Lexicon versioning: record types are versioned (e.g., app.bsky.feed.post) — agents embedding records must use correct schema versions",
+      "Firehose (com.atproto.sync.subscribeRepos) is a WebSocket stream, not REST — requires persistent connection handling",
+      "bsky.social is one PDS instance; users on other PDS instances are federated but API routing may differ",
+      "Community bots are common and norms around bot behavior are still forming — clearly marking bot accounts is expected"
+    ],
+    "error_message_score": 70,
+    "auth_complexity_score": 78,
+    "rate_limit_score": 72,
+    "security_score": 70
+  },
+  "af_score_components": {
+    "mcp_score": 40,
+    "api_doc_score": 72,
+    "error_handling_score": 70,
+    "auth_complexity_score": 78,
+    "rate_limit_clarity_score": 72
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 72,
+    "scope_granularity": 60,
+    "dependency_hygiene": 75,
+    "secret_handling": 72,
+    "security_notes": "TLS enforced. App passwords provide credential isolation — compromise of an app password doesn't expose the main account password. DPoP-bound OAuth 2.0 tokens (in rollout) provide strong token binding. The open protocol means anyone can read public data without auth, which is by design but requires agents to avoid leaking private data by assuming all posts are public by default."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 65,
+    "version_stability": 68,
+    "breaking_changes_history": 65,
+    "error_recovery": 70
+  },
+  "last_evaluated": "2026-03-01"
+}

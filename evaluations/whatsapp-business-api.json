@@ -1,0 +1,118 @@
+{
+  "id": "whatsapp-business-api",
+  "name": "WhatsApp Business API (Meta Cloud API)",
+  "version_evaluated": "current",
+  "homepage": "https://developers.facebook.com/docs/whatsapp/cloud-api",
+  "repo_url": null,
+  "category": "communication",
+  "subcategories": ["messaging", "customer-notifications", "business-messaging", "chatbots"],
+  "tags": ["whatsapp", "meta", "messaging", "sms-alternative", "customer-notifications", "cloud-api", "business-messaging", "webhooks"],
+  "what_it_does": "Meta's Cloud-hosted WhatsApp Business API for sending template messages, free-form messages, media, and interactive messages to WhatsApp users from verified business phone numbers.",
+  "use_cases": [
+    "Sending transactional notification messages (order confirmations, shipping updates, appointment reminders)",
+    "Running customer support chatbots that respond to inbound WhatsApp messages",
+    "Sending OTP/verification codes to WhatsApp as an SMS alternative",
+    "Broadcasting approved template messages to opted-in customer lists",
+    "Building conversational commerce flows for product inquiries and order placement"
+  ],
+  "not_for": [
+    "Unsolicited marketing messages — WhatsApp actively polices spam and bans phone numbers",
+    "Bulk cold outreach — requires prior opt-in and template pre-approval; violations ban the number",
+    "Multi-step conversational agents that need to maintain long dialog state — session windows are 24-hour",
+    "Any non-business use — personal WhatsApp accounts cannot use the Cloud API",
+    "Real-time low-latency applications — message delivery via WhatsApp adds variability"
+  ],
+  "best_when": "A business needs to send high-trust transactional notifications or handle customer support in markets where WhatsApp is the dominant messaging platform (Brazil, India, Europe).",
+  "avoid_when": "Your use case involves unsolicited outreach, your users haven't opted in, or you need a conversational agent that maintains context across sessions longer than 24 hours.",
+  "alternatives": [
+    {"id": "twilio-api", "reason": "Broader channel support (SMS, voice, email) with simpler API and less approval friction"},
+    {"id": "sendgrid-api", "reason": "Better for high-volume transactional notifications where email is acceptable"}
+  ],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "node", "php", "java"],
+    "openapi_spec_url": null,
+    "webhooks": true
+  },
+  "auth": {
+    "methods": ["bearer_token", "system_user_token"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "System User Access Tokens via Meta Business Manager are the standard for server-to-server agent use. Tokens are long-lived but must be rotated manually or via API. No OAuth 2.0 user delegation needed for sending — the business owns the phone number. Token management requires Meta Business Manager access, which itself requires business verification. App Secret is needed for webhook signature validation."
+  },
+  "pricing": {
+    "model": "usage",
+    "free_tier_exists": true,
+    "free_tier_limits": "1,000 free conversations per month (across all categories); first 1,000 conversations each month at no charge",
+    "paid_tiers": "Per-conversation pricing by category: Marketing ~$0.025-0.08, Utility ~$0.005-0.02, Authentication ~$0.005-0.02, Service (inbound) ~$0.005-0.01; rates vary significantly by country",
+    "requires_credit_card": true,
+    "notes": "Pricing is per conversation (24-hour window), not per message. A customer service session can include many messages within one billable conversation. Marketing conversations are the most expensive. Pricing varies dramatically by country — US rates differ from India or Brazil. Free tier of 1,000 conversations/month is meaningful for small deployments."
+  },
+  "performance": {
+    "latency_p50_ms": 500,
+    "latency_p99_ms": 3000,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "1,000 messages/second (high-tier businesses); standard: 80 messages/second; template message sending limits depend on phone number quality rating",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": true,
+    "domain_verification": false,
+    "data_residency": ["US", "EU"],
+    "compliance": ["GDPR", "CCPA"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 75,
+    "error_message_quality": 65,
+    "error_message_notes": "Error responses follow the Graph API pattern with error_code, error_subcode, and message. WhatsApp-specific error codes (e.g., 131030 for recipient phone number issues) are documented but the mapping between codes and recovery actions is not always clear. Template rejection errors provide minimal detail on why a template was rejected.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Message sends are not idempotent — duplicate requests create duplicate messages. No idempotency key support. Agents must track sent message IDs to prevent duplicates on retry. Received messages (via webhook) include a unique wamid that can be used for deduplication.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "24-hour customer service window: after a user's last inbound message, you can only send free-form messages for 24 hours; after that, only approved templates are allowed",
+      "Template messages must be pre-approved by Meta before use — approval takes 1-3 days and templates can be rejected without clear explanation",
+      "Phone number quality rating affects throughput — sending too many messages that get blocked or reported degrades your rating and reduces your per-second limit",
+      "WhatsApp phone numbers are one-time use for cloud API — cannot migrate a number used in the on-premises BSP solution to Cloud API without downtime",
+      "Webhook delivery is not guaranteed at-least-once with strong ordering; agents must handle out-of-order and duplicate webhook events",
+      "Business verification in Meta Business Manager can take days to weeks and may require uploading business documents",
+      "Opt-in is the user's responsibility — businesses must collect and document user consent; WhatsApp audits this and can ban numbers for violations",
+      "Media messages require uploading media first to get a media ID, then sending the ID — direct URL sending is not supported for all media types"
+    ],
+    "error_message_score": 65,
+    "auth_complexity_score": 65,
+    "rate_limit_score": 62,
+    "security_score": 75
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 72,
+    "error_handling_score": 65,
+    "auth_complexity_score": 65,
+    "rate_limit_clarity_score": 62
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 80,
+    "scope_granularity": 58,
+    "dependency_hygiene": 75,
+    "secret_handling": 78,
+    "security_notes": "TLS enforced. System User tokens provide service-account-style auth without requiring user OAuth flows. Webhook payloads should be verified using the X-Hub-Signature-256 header (HMAC-SHA256 with app secret). WhatsApp end-to-end encryption protects message content in transit on the WhatsApp network; Meta's servers process metadata. No per-number scope isolation — one system user token can manage all phone numbers in the Business Account."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 78,
+    "version_stability": 72,
+    "breaking_changes_history": 65,
+    "error_recovery": 68
+  },
+  "last_evaluated": "2026-03-01"
+}

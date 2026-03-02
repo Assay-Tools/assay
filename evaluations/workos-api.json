@@ -2,27 +2,27 @@
   "id": "workos-api",
   "name": "WorkOS API",
   "version_evaluated": "current",
-  "homepage": "https://workos.com",
+  "homepage": "https://workos.com/docs",
   "repo_url": "https://github.com/workos/workos-node",
-  "category": "authentication",
-  "subcategories": ["enterprise-sso", "directory-sync", "identity"],
-  "tags": ["workos", "enterprise", "sso", "saml", "scim", "directory-sync", "authentication", "rest-api", "sdk"],
-  "what_it_does": "Enterprise authentication infrastructure providing SAML SSO, Directory Sync (SCIM), and Admin Portal for B2B SaaS apps to onboard enterprise customers without building it themselves.",
+  "category": "auth-identity",
+  "subcategories": ["enterprise-sso", "directory-sync", "scim", "mfa", "identity"],
+  "tags": ["workos", "enterprise", "sso", "saml", "oidc", "scim", "directory-sync", "authentication", "b2b", "rest-api", "sdk"],
+  "what_it_does": "Enterprise authentication infrastructure API providing SAML/OIDC SSO, SCIM Directory Sync, MFA, and a self-serve Admin Portal for B2B SaaS apps to add enterprise identity features without building them from scratch.",
   "use_cases": [
-    "Enabling enterprise SAML SSO for B2B SaaS applications",
-    "Directory sync to provision/deprovision users from enterprise IdPs (Okta, Azure AD)",
-    "Embedding an Admin Portal for customers to self-configure their SSO connection",
-    "Querying synced directory users and groups via API in agent workflows",
-    "Audit log streaming to SIEM systems"
+    "Adding SAML and OIDC enterprise SSO to a B2B SaaS product to close enterprise deals",
+    "Automating user provisioning and deprovisioning via SCIM Directory Sync from Okta, Azure AD, or Google Workspace",
+    "Embedding a self-serve Admin Portal so customers configure their own SSO connection",
+    "Querying synced directory users and groups programmatically in agent workflows",
+    "Streaming audit log events to SIEM systems for compliance and security monitoring"
   ],
   "not_for": [
-    "Consumer apps without enterprise customers",
-    "Teams that don't need SAML or SCIM",
-    "Applications requiring end-user social login flows (use Auth0/Clerk instead)"
+    "Consumer-facing apps that don't need enterprise SSO or SCIM",
+    "Teams that only need social login — Clerk or Auth0 are better fits",
+    "Applications requiring end-user self-registration UI (WorkOS is B2B identity infrastructure, not a consumer auth platform)"
   ],
-  "best_when": "You're building B2B SaaS and need to close enterprise deals by offering SSO/SCIM without months of implementation work.",
-  "avoid_when": "Your users are consumers or you don't need SAML/SCIM enterprise features.",
-  "alternatives": ["auth0-api", "okta-api", "clerk-api"],
+  "best_when": "A B2B SaaS product needs to add enterprise SSO, SCIM, and audit logs to close enterprise deals — WorkOS is purpose-built for this exact use case with a Stripe-quality developer experience.",
+  "avoid_when": "Your users are consumers or SMBs who won't need SAML SSO or directory sync; the cost and complexity are not justified.",
+  "alternatives": ["auth0-api", "okta-api", "clerk-api", "stytch-api"],
   "interface": {
     "has_rest_api": true,
     "has_graphql": false,
@@ -30,7 +30,7 @@
     "has_mcp_server": false,
     "mcp_server_url": null,
     "has_sdk": true,
-    "sdk_languages": ["node", "python", "ruby", "go", "java", "php"],
+    "sdk_languages": ["node", "python", "ruby", "go", "java", "dotnet"],
     "openapi_spec_url": "https://workos.com/docs/reference",
     "webhooks": true
   },
@@ -38,21 +38,21 @@
     "methods": ["api_key"],
     "oauth": false,
     "scopes": false,
-    "notes": "Simple API key auth. Secret key for backend operations. Very agent-friendly with no token rotation required for standard API calls."
+    "notes": "Single Secret Key (sk_live_/sk_test_) for all backend API operations — clean and agent-friendly with no token rotation. No granular key scoping. Environment-separated keys for production vs. staging. WorkOS supports both SAML and OIDC for the SSO flows it enables in your product."
   },
   "pricing": {
     "model": "freemium",
     "free_tier_exists": true,
-    "free_tier_limits": "1 million MAU free, SSO connections free up to enterprise use",
-    "paid_tiers": "Pricing based on connections and features; enterprise custom",
+    "free_tier_limits": "Free Standard plan: up to 1 million MAU with social login, MFA, and user management; SAML SSO and SCIM require paid Enterprise plan",
+    "paid_tiers": "Enterprise plan: custom pricing per SSO connection (~$49-$125/connection/month depending on volume); usage-based; startup discounts available",
     "requires_credit_card": false,
-    "notes": "WorkOS offers extremely generous free tier - up to 1M MAU free. Charges per SSO connection after free tier. Unique 'startup-friendly' pricing model."
+    "notes": "Standard plan with 1M MAU free is a compelling deal for growing B2B SaaS. The jump to Enterprise pricing for SAML SSO is significant — typical enterprise SaaS customers are willing to pay this. WorkOS is known for startup-friendly terms and no long-term contracts."
   },
   "performance": {
     "latency_p50_ms": 120,
     "latency_p99_ms": 450,
     "uptime_sla_percent": 99.99,
-    "rate_limits": "Not publicly specified; generous in practice",
+    "rate_limits": "Not publicly documented; designed for enterprise workloads",
     "data_source": "llm_estimated"
   },
   "requirements": {
@@ -60,29 +60,32 @@
     "requires_credit_card": false,
     "domain_verification": false,
     "data_residency": ["US", "EU"],
-    "compliance": ["SOC2", "GDPR", "ISO27001"],
+    "compliance": ["SOC2", "GDPR", "ISO27001", "HIPAA"],
     "min_contract": "none"
   },
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
-    "documentation_accuracy": 88,
-    "error_message_quality": 83,
-    "error_message_notes": "Well-structured error responses with codes and human-readable messages.",
+    "documentation_accuracy": 92,
+    "error_message_quality": 88,
+    "error_message_notes": "WorkOS returns highly structured error responses with a code, message, and sub-error details — among the best-documented error schemas in the auth space. Stripe-influenced API design means errors are actionable and the docs include fix guidance. SAML configuration errors are particularly well-explained.",
     "idempotency_support": "partial",
-    "idempotency_notes": "Directory sync events are idempotent by event ID. SSO flows are not.",
+    "idempotency_notes": "Directory Sync events have stable event IDs — consumers can use idempotency by event ID. SSO AuthKit flows are stateful and not idempotent. Admin Portal link generation is safe to retry (creates new short-lived URL).",
     "pagination_style": "cursor",
     "retry_guidance_documented": true,
     "known_agent_gotchas": [
-      "Directory Sync events must be consumed in order - missed events require re-sync",
-      "SAML assertions are single-use and time-bounded - agent must handle timing carefully",
-      "Admin Portal links expire after a short period",
-      "Each enterprise customer needs separate SSO connection configuration",
-      "Webhook events for directory changes can arrive out of order during bulk provisioning"
+      "Directory Sync events must be consumed via webhooks — polling is not supported; missed events require a full directory re-sync",
+      "SAML assertions are single-use and time-bounded (5 minutes typically) — agents handling SSO callbacks must process immediately",
+      "Admin Portal links expire after a configurable period (default 5 minutes) — generate fresh links on demand, never cache",
+      "Each enterprise customer requires a separately configured SSO connection — org-specific connection IDs must be fetched dynamically",
+      "SCIM provisioning events can arrive out of order during bulk imports — implement idempotent handlers keyed on externalId",
+      "Secret Key has full account access — no per-connection scoping; guard carefully in multi-tenant environments",
+      "Test environment uses sk_test_ keys with test IdP — do not mix test and production connection IDs"
     ],
-    "error_message_score": 83,
-    "auth_complexity_score": 88,
-    "rate_limit_score": 78,
-    "security_score": 90
-  }
+    "error_message_score": 88,
+    "auth_complexity_score": 90,
+    "rate_limit_score": 80,
+    "security_score": 92
+  },
+  "last_evaluated": "2026-03-01"
 }

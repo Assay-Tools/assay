@@ -1,0 +1,262 @@
+[
+  {
+    "id": "reddit-mcp-buddy",
+    "af_score_components": {
+      "mcp_score": 80,
+      "api_doc_score": 82,
+      "error_handling_score": 70,
+      "auth_complexity_score": 82,
+      "rate_limit_clarity_score": 70,
+      "notes": "Has MCP server (quality 80) with 5 focused read-only tools. Clean three-tier auth escalation: anonymous (10 req/min, zero setup), app-only OAuth (60 req/min), authenticated OAuth (100 req/min). Anonymous tier throttles quickly during agentic loops — authenticated tier strongly recommended for agents. 50MB memory cache can serve stale data for frequently updated subreddits. Reddit may 429 even within documented rate limits during peak traffic."
+    },
+    "security_score_components": {
+      "tls_enforcement": 90,
+      "auth_strength": 75,
+      "scope_granularity": 68,
+      "dependency_hygiene": 72,
+      "secret_handling": 78,
+      "security_notes": "HTTPS via Reddit's API. Read-only design limits blast radius. Three-tier auth with OAuth scopes for authenticated tier. Credentials via environment variables. Community TypeScript project — dependency audit recommended. No server-side data storage. Reddit's 2023 API changes impacted reliability of the underlying platform."
+    },
+    "reliability_score_components": {
+      "uptime_documented": 70,
+      "version_stability": 72,
+      "breaking_changes_history": 68,
+      "error_recovery": 68,
+      "reliability_notes": "Depends on Reddit API availability. Reddit's 2023 API pricing/policy changes disrupted many integrations. 50MB cache provides some resilience for repeat queries. No retry guidance documented. Only 5 tools — niche Reddit features not accessible. No pagination for large result sets."
+    }
+  },
+  {
+    "id": "redis-api",
+    "af_score_components": {
+      "mcp_score": 0,
+      "api_doc_score": 88,
+      "error_handling_score": 80,
+      "auth_complexity_score": 82,
+      "rate_limit_clarity_score": 75,
+      "notes": "No MCP server. IMPORTANT: Redis has no REST API — agents must use Redis protocol via client library (redis-py, ioredis, etc.) or RESP protocol. Excellent SDK coverage in 7+ languages. AUTH command or ACL username:password for auth. Redis Cloud Management API uses separate key+secret for account management. Memory limits are the primary constraint, not rate limits. WATCH/MULTI/EXEC transactions can fail silently. Pub/sub messages fire-and-forget — use Redis Streams for replay."
+    },
+    "security_score_components": {
+      "tls_enforcement": 95,
+      "auth_strength": 85,
+      "scope_granularity": 78,
+      "dependency_hygiene": 88,
+      "secret_handling": 85,
+      "security_notes": "Redis Cloud: TLS enforced. Self-hosted: TLS needs explicit configuration. AUTH command with ACL supports per-command and per-key permissions for fine-grained access control. SOC2 Type II, GDPR, HIPAA, ISO27001, PCI-DSS compliant on Redis Cloud. Password/connection URL via environment variables. Widely audited codebase."
+    },
+    "reliability_score_components": {
+      "uptime_documented": 88,
+      "version_stability": 85,
+      "breaking_changes_history": 85,
+      "error_recovery": 82,
+      "reliability_notes": "Redis Cloud has SLA with SOC2/HIPAA. Decades of production stability. Retry guidance documented. SCAN cursor-based iteration. Persistence optional (AOF/RDB) — data loss on restart without configuration. Key eviction policies must be planned. Pub/sub missed message risk without Streams. Very mature and reliable in-memory store."
+    }
+  },
+  {
+    "id": "rednote-mcp",
+    "af_score_components": {
+      "mcp_score": 55,
+      "api_doc_score": 65,
+      "error_handling_score": 45,
+      "auth_complexity_score": 35,
+      "rate_limit_clarity_score": 45,
+      "notes": "Has MCP server (quality 55). auth_complexity_score=35 — browser cookie auth via Playwright requires manual user login, cookies expire and require re-login, not suitable for unattended agents. Potential Xiaohongshu ToS violation via cookie scraping. Limited to search and URL retrieval — no structured data or pagination. Playwright browser installation adds friction. No official API backing."
+    },
+    "security_score_components": {
+      "tls_enforcement": 72,
+      "auth_strength": 42,
+      "scope_granularity": 38,
+      "dependency_hygiene": 50,
+      "secret_handling": 45,
+      "security_notes": "HTTPS via Xiaohongshu's web interface. Browser cookie scraping is fragile and not a proper auth mechanism. Cookies saved to ~/.mcp/rednote/cookies.json in plaintext — concerning. No granular access control. Community TypeScript project — verify dependencies. Potential ToS violation. Chinese data residency for all processed content."
+    },
+    "reliability_score_components": {
+      "uptime_documented": 42,
+      "version_stability": 45,
+      "breaking_changes_history": 40,
+      "error_recovery": 42,
+      "reliability_notes": "Cookie-based web scraping can break without notice when Xiaohongshu updates their web interface. Manual re-login required when cookies expire — not suitable for automated pipelines. No official API means no versioning guarantees. Very fragile for production use. Best for occasional manual research."
+    }
+  },
+  {
+    "id": "ref-tools-mcp",
+    "af_score_components": {
+      "mcp_score": 82,
+      "api_doc_score": 80,
+      "error_handling_score": 65,
+      "auth_complexity_score": 85,
+      "rate_limit_clarity_score": 65,
+      "notes": "Has MCP server (quality 82) with 2 focused tools: ref_search_documentation and ref_read_url. Gives coding agents token-efficient access to API/library docs — filters to ~5k tokens per query, deduplicates within sessions. API key via REF_API_KEY env var (stdio mode) or query param (streamable HTTP). Prefer stdio mode — query param API key can appear in server logs. Private library indexing process not well documented. Session-scoped deduplication resets on restart."
+    },
+    "security_score_components": {
+      "tls_enforcement": 90,
+      "auth_strength": 72,
+      "scope_granularity": 62,
+      "dependency_hygiene": 72,
+      "secret_handling": 68,
+      "security_notes": "HTTPS for cloud MCP endpoint. API key authentication — simple but without scope control. Significant concern: streamable HTTP mode passes API key in URL query parameter which can appear in server logs. Prefer stdio mode for security. SaaS service — trust model with ref.tools infrastructure. No fine-grained scopes."
+    },
+    "reliability_score_components": {
+      "uptime_documented": 68,
+      "version_stability": 72,
+      "breaking_changes_history": 68,
+      "error_recovery": 65,
+      "reliability_notes": "Freemium SaaS with no published SLA. Intentionally minimal 2-tool interface is stable. Private library indexing SLA undocumented. Session-scoped deduplication means agent restarts may cause redundant lookups. Retry guidance not documented. Early service with limited production track record."
+    }
+  },
+  {
+    "id": "render-api",
+    "af_score_components": {
+      "mcp_score": 75,
+      "api_doc_score": 82,
+      "error_handling_score": 78,
+      "auth_complexity_score": 85,
+      "rate_limit_clarity_score": 68,
+      "notes": "Official MCP server (quality 75) from Render team. Cloud hosting platform for web services, workers, databases, static sites. API key with owner-level or read-only permissions. Deploys are async — agents must poll for completion status. Service type is fixed at creation — cannot change type later. Free tier services spin down after 15 minutes creating cold start delays. Free tier PostgreSQL deleted after 90 days. OpenAPI spec available."
+    },
+    "security_score_components": {
+      "tls_enforcement": 100,
+      "auth_strength": 80,
+      "scope_granularity": 72,
+      "dependency_hygiene": 82,
+      "secret_handling": 82,
+      "security_notes": "HTTPS mandatory for all deployments. API key with owner/read-only permission levels. SOC2 and GDPR compliant. Environment variables for secrets managed through Render's secure env var system. Cursor-based pagination for API. Webhook delivery for deploy events."
+    },
+    "reliability_score_components": {
+      "uptime_documented": 78,
+      "version_stability": 78,
+      "breaking_changes_history": 75,
+      "error_recovery": 70,
+      "reliability_notes": "Status page, SOC2. Stable OpenAPI spec. Async deploys require polling. Free tier cold starts affect agent timeout assumptions. Free PostgreSQL deleted after 90 days. MCP server is newer addition — evolving. Cursor-based pagination. Retry guidance not documented."
+    }
+  },
+  {
+    "id": "rentcast-api",
+    "af_score_components": {
+      "mcp_score": 0,
+      "api_doc_score": 88,
+      "error_handling_score": 78,
+      "auth_complexity_score": 95,
+      "rate_limit_clarity_score": 68,
+      "notes": "No MCP server. Developer-friendly rental market data API with OpenAPI spec. Simple X-Api-Key header authentication. Monthly call limits (not per-minute) — agents must track cumulative usage across billing cycle. Address standardization required — inconsistent formats return no results. Rent estimates are statistical models with uncertainty. Property records coverage varies by county/state. No webhooks — polling only."
+    },
+    "security_score_components": {
+      "tls_enforcement": 98,
+      "auth_strength": 78,
+      "scope_granularity": 62,
+      "dependency_hygiene": 78,
+      "secret_handling": 80,
+      "security_notes": "HTTPS enforced. Simple API key in X-Api-Key header — no fine-grained scopes. No particularly sensitive data handled — public property market data. API key via environment variables. US-only PropTech service with reasonable security practices."
+    },
+    "reliability_score_components": {
+      "uptime_documented": 72,
+      "version_stability": 78,
+      "breaking_changes_history": 72,
+      "error_recovery": 70,
+      "reliability_notes": "OpenAPI spec available. Monthly limits require usage tracking. No webhooks means polling required. Address normalization needed for consistent results. Property records availability varies by coverage area. Offset-based pagination. Relatively new service with growing reliability track record."
+    }
+  },
+  {
+    "id": "replicate-api",
+    "af_score_components": {
+      "mcp_score": 0,
+      "api_doc_score": 85,
+      "error_handling_score": 78,
+      "auth_complexity_score": 90,
+      "rate_limit_clarity_score": 72,
+      "notes": "No MCP server. Cloud ML inference for open-source models — image gen, LLMs, audio, video, computer vision. Simple API token authentication. Predictions are async — agents must poll or use webhooks. Cold start latency: 10-60 seconds for infrequently used models. Model versions can be deprecated — agents must pin specific version IDs. Input schema varies per model. Large file outputs (images, video) are URLs that expire after 1 hour. Concurrent prediction limits apply."
+    },
+    "security_score_components": {
+      "tls_enforcement": 100,
+      "auth_strength": 75,
+      "scope_granularity": 58,
+      "dependency_hygiene": 80,
+      "secret_handling": 78,
+      "security_notes": "HTTPS mandatory. Simple API token — no fine-grained scope control. SOC2 certified. Inputs sent to Replicate for processing — data privacy considerations for sensitive content. API token via environment variables. Output URLs expire after 1 hour — not suitable for long-term storage references."
+    },
+    "reliability_score_components": {
+      "uptime_documented": 78,
+      "version_stability": 72,
+      "breaking_changes_history": 70,
+      "error_recovery": 72,
+      "reliability_notes": "Status page, SOC2. Stable REST API. Model version deprecations require agent updates — pin version IDs. Cold start latency is significant reliability concern for time-sensitive workflows. Retry guidance documented. Concurrent prediction limits can throttle agents running parallel requests. Cursor-based pagination."
+    }
+  },
+  {
+    "id": "resend-api",
+    "af_score_components": {
+      "mcp_score": 0,
+      "api_doc_score": 92,
+      "error_handling_score": 88,
+      "auth_complexity_score": 95,
+      "rate_limit_clarity_score": 75,
+      "notes": "No MCP server. Modern developer-first transactional email API with React Email support. Simple Bearer token auth — cleanest API design of any email provider. Domain verification required before sending. Free tier rate limits lower than SendGrid/Postmark. Newer service with less battle-testing at high volumes. Batch sending API is newer. Retry guidance documented. OpenAPI spec available."
+    },
+    "security_score_components": {
+      "tls_enforcement": 100,
+      "auth_strength": 82,
+      "scope_granularity": 65,
+      "dependency_hygiene": 82,
+      "secret_handling": 88,
+      "security_notes": "HTTPS mandatory. Bearer token in Authorization header — very clean. SOC2 and GDPR compliant. Domain verification required prevents spoofing. No fine-grained scope control. API key via environment variables. Webhook delivery for email events."
+    },
+    "reliability_score_components": {
+      "uptime_documented": 80,
+      "version_stability": 80,
+      "breaking_changes_history": 75,
+      "error_recovery": 78,
+      "reliability_notes": "Status page, SOC2. OpenAPI spec. Retry guidance documented. Cursor-based pagination. Newer service — less battle-tested at high volume than established providers. Domain verification is a one-time reliability step. Generally excellent deliverability focus."
+    }
+  },
+  {
+    "id": "retool-api",
+    "af_score_components": {
+      "mcp_score": 0,
+      "api_doc_score": 78,
+      "error_handling_score": 72,
+      "auth_complexity_score": 85,
+      "rate_limit_clarity_score": 65,
+      "notes": "No MCP server. Management API for Retool low-code platform (apps, workflows, user access, audit logs). Simple API key — full org admin access with no resource scoping. Retool Management API and Retool Workflows have separate APIs — don't confuse them. App resources use UUID identifiers — store after creation. Self-hosted vs Cloud instances may have different API capabilities. Permission propagation can lag."
+    },
+    "security_score_components": {
+      "tls_enforcement": 100,
+      "auth_strength": 75,
+      "scope_granularity": 55,
+      "dependency_hygiene": 82,
+      "secret_handling": 78,
+      "security_notes": "HTTPS enforced. API key grants full org admin access — no resource-level scoping. SOC2 Type II, HIPAA, GDPR compliant. Retool apps may themselves expose other API keys — careful secret hygiene needed in app configuration. API key via environment variables. Key compromise exposes entire Retool organization."
+    },
+    "reliability_score_components": {
+      "uptime_documented": 82,
+      "version_stability": 78,
+      "breaking_changes_history": 75,
+      "error_recovery": 68,
+      "reliability_notes": "Status page, SOC2, HIPAA. OpenAPI spec. Self-hosted vs Cloud version differences affect API consistency. UUID management required for app references. Permission changes may lag before taking effect in UI. Retry guidance not documented. Offset-based pagination."
+    }
+  },
+  {
+    "id": "reverse-engineering-assistant",
+    "af_score_components": {
+      "mcp_score": 78,
+      "api_doc_score": 80,
+      "error_handling_score": 72,
+      "auth_complexity_score": 100,
+      "rate_limit_clarity_score": 60,
+      "notes": "Has MCP server (quality 78) at localhost:8080. Ghidra extension enabling AI-assisted reverse engineering — decompilation, symbol renaming, encryption detection, binary analysis. No authentication (localhost only by design) — auth_complexity_score=100 (no auth needed for local tool). Requires Ghidra 12.0+. Must activate plugin in both Project and Code Browser views. Context rot mitigation explicitly designed in. No rate limits (local tool). Excellent for CTF and security research."
+    },
+    "security_score_components": {
+      "tls_enforcement": 55,
+      "auth_strength": 48,
+      "scope_granularity": 45,
+      "dependency_hygiene": 70,
+      "secret_handling": 65,
+      "security_notes": "Local HTTP server on port 8080 — no TLS, no authentication. Any local process can send MCP requests — use only in trusted environments. Network isolation (localhost default) is the only security boundary. Sensitive data is the binary being analyzed — no credentials needed. Java/Ghidra codebase, open source. Not suitable for shared environments without additional access controls."
+    },
+    "reliability_score_components": {
+      "uptime_documented": 65,
+      "version_stability": 68,
+      "breaking_changes_history": 65,
+      "error_recovery": 68,
+      "reliability_notes": "Local tool — requires Ghidra UI running (or headless mode configured separately). Ghidra 12.0+ required. Ghidra release lag can be a dependency issue. Context rot mitigation by design helps long analysis sessions. Idempotent queries for stateful binary analysis. No SLA. Appropriate reliability for security research tooling."
+    }
+  }
+]

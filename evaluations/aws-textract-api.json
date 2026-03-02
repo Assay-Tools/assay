@@ -1,0 +1,104 @@
+{
+  "id": "aws-textract-api",
+  "name": "AWS Textract",
+  "version_evaluated": "current",
+  "homepage": "https://aws.amazon.com/textract/",
+  "repo_url": null,
+  "category": "ai-ml",
+  "subcategories": ["document-processing", "ocr", "data-extraction", "computer-vision"],
+  "tags": ["aws", "textract", "ocr", "document-ai", "pdf", "forms", "tables", "document-extraction"],
+  "what_it_does": "ML-powered document analysis service that extracts text, tables, forms, signatures, and structured data from PDFs and images — going beyond OCR to understand document layout and semantics.",
+  "use_cases": [
+    "Agents processing invoices, receipts, or purchase orders to extract line items and totals into structured data",
+    "Automating form ingestion (W-2s, insurance claims, medical records) by extracting field-value pairs",
+    "Document pipeline pre-processing — converting scanned PDFs to structured JSON before feeding to an LLM",
+    "Extracting tables from financial reports or research PDFs for downstream analysis"
+  ],
+  "not_for": [
+    "Simple plain-text PDFs — standard PDF parsing libraries (pdfplumber, PyMuPDF) are faster and cheaper",
+    "Handwritten text with low legibility — accuracy drops significantly vs. printed text",
+    "Real-time document processing with sub-second latency requirements — async API adds overhead for multi-page documents"
+  ],
+  "best_when": "You need to extract structured data (tables, key-value form fields) from scanned or photographed documents, not just raw text, and document layout understanding matters.",
+  "avoid_when": "Your documents are well-formed digital PDFs with embedded text — Textract adds cost and latency without benefit over direct text extraction.",
+  "alternatives": ["google-cloud-vision-api", "azure-document-intelligence", "adobe-pdf-services-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "node", "java", "go", "dotnet", "ruby", "cpp"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["aws_iam"],
+    "oauth": false,
+    "scopes": true,
+    "notes": "AWS SigV4 signing via IAM credentials or roles. Synchronous API (DetectDocumentText, AnalyzeDocument) requires textract:DetectDocumentText or textract:AnalyzeDocument. Async operations (StartDocumentAnalysis) additionally require SNS and S3 permissions for result delivery."
+  },
+  "pricing": {
+    "model": "pay-as-you-go",
+    "free_tier_exists": true,
+    "free_tier_limits": "1,000 pages/month for DetectDocumentText and AnalyzeDocument (Forms and Tables) for the first 3 months.",
+    "paid_tiers": "DetectDocumentText: $1.50/1,000 pages. AnalyzeDocument (Forms): $50/1,000 pages. AnalyzeDocument (Tables): $15/1,000 pages. Queries feature: $40/1,000 pages + $0.01/query.",
+    "requires_credit_card": true,
+    "notes": "Forms and Tables features cost significantly more than basic text detection. Async jobs for large documents use the same per-page pricing. Input documents must be stored in S3 for async operations."
+  },
+  "performance": {
+    "latency_p50_ms": 2000,
+    "latency_p99_ms": 10000,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "Synchronous: 100 TPS (DetectDocumentText), 100 TPS (AnalyzeDocument). Async: 2 concurrent jobs by default, increase via Service Quotas. Max 15 pages for synchronous; unlimited for async.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": true,
+    "domain_verification": false,
+    "data_residency": ["US", "EU", "APAC"],
+    "compliance": ["SOC1", "SOC2", "SOC3", "ISO27001", "ISO27017", "ISO27018", "HIPAA", "GDPR", "FedRAMP-Moderate", "PCI-DSS"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 83,
+    "error_message_quality": 74,
+    "error_message_notes": "Synchronous API errors are well-structured. Async job failures surface in the GetDocumentAnalysis response JobStatus field, not as exceptions — agents must check status rather than catching errors.",
+    "idempotency_support": "none",
+    "idempotency_notes": "Each API call triggers a new analysis job with a unique JobId. No built-in deduplication — agents submitting the same document twice will be charged twice. Implement S3-based caching keyed on document hash.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Async API (required for multi-page documents) requires polling GetDocumentAnalysis — there is no push callback without configuring SNS notifications",
+      "Document input for async jobs must be in S3 in the same region as the Textract call — cross-region S3 will fail",
+      "The response JSON for complex documents can be very large (MBs) — agents should process blocks incrementally rather than loading the full response",
+      "Table extraction quality varies significantly with table complexity; merged cells and nested tables reduce accuracy",
+      "Concurrent async job limit defaults to 2 — this is a hard bottleneck for agent pipelines processing many documents simultaneously"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 83,
+    "error_handling_score": 74,
+    "auth_complexity_score": 65,
+    "rate_limit_clarity_score": 75
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 92,
+    "scope_granularity": 88,
+    "dependency_hygiene": 88,
+    "secret_handling": 90,
+    "security_notes": "Documents are processed in AWS's isolated compute — not stored by Textract. Input must be in S3; server-side encryption (SSE-KMS) on the S3 bucket protects data at rest. VPC endpoints available for private network access. HIPAA-eligible for healthcare document workflows."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 87,
+    "breaking_changes_history": 85,
+    "error_recovery": 78
+  }
+}

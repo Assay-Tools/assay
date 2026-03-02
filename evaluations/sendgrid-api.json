@@ -1,29 +1,29 @@
 {
   "id": "sendgrid-api",
-  "name": "SendGrid API",
+  "name": "Twilio SendGrid Email API",
   "version_evaluated": "current",
-  "homepage": "https://sendgrid.com",
+  "homepage": "https://docs.sendgrid.com/api-reference",
   "repo_url": "https://github.com/sendgrid/sendgrid-python",
   "category": "communication",
-  "subcategories": ["email", "transactional-email", "marketing-email"],
-  "tags": ["sendgrid", "email", "transactional", "smtp", "twilio", "rest-api", "sdk"],
-  "what_it_does": "Twilio's cloud-based email delivery platform for sending transactional and marketing emails at scale with delivery tracking, templates, and analytics.",
+  "subcategories": ["email", "transactional-email", "marketing-email", "email-delivery"],
+  "tags": ["sendgrid", "twilio", "email", "transactional", "smtp", "deliverability", "rest-api", "sdk", "webhooks", "templates"],
+  "what_it_does": "Twilio's cloud-based transactional and marketing email delivery API, used by agents and applications to send reliable, tracked emails at scale with dynamic templates and suppression management.",
   "use_cases": [
-    "Sending transactional emails (receipts, confirmations, password resets) from agents",
-    "Email automation workflows triggered by agent actions",
-    "Bulk email sending with template management",
-    "Email delivery tracking and open/click analytics",
-    "Dynamic email content generation with Handlebars templates"
+    "Sending transactional emails (receipts, password resets, confirmations) from automated agent workflows",
+    "Bulk email campaigns with dynamic Handlebars templates and personalization",
+    "Tracking email delivery events (opens, clicks, bounces, spam reports) via Event Webhook",
+    "Managing suppression lists and unsubscribes programmatically to maintain sender reputation",
+    "Inline email validation before sending to reduce bounce rates"
   ],
   "not_for": [
     "Real-time chat or instant messaging",
-    "SMS or voice communications (use Twilio instead)",
+    "SMS or voice communications (use Twilio Messaging instead)",
     "End-to-end encrypted email",
-    "Teams needing completely free high-volume sending"
+    "Transactional email where developer experience and support quality are critical (Postmark is better for that use case)"
   ],
-  "best_when": "An agent needs to send transactional emails reliably at scale with good deliverability and tracking.",
-  "avoid_when": "You only need to send a handful of emails or need end-to-end encryption.",
-  "alternatives": ["postmark-api", "mailgun-api", "resend-api", "aws-ses"],
+  "best_when": "Applications and agents need high-volume transactional or marketing email delivery with strong deliverability infrastructure, extensive SDK support, and a free tier adequate for development.",
+  "avoid_when": "You need best-in-class transactional deliverability and fast support — Postmark has a stronger reputation for transactional-only email. For pure developer experience, Resend is a newer alternative.",
+  "alternatives": ["postmark-api", "mailgun-api", "resend-api", "aws-ses", "mailjet-api"],
   "interface": {
     "has_rest_api": true,
     "has_graphql": false,
@@ -38,22 +38,22 @@
   "auth": {
     "methods": ["api_key"],
     "oauth": false,
-    "scopes": false,
-    "notes": "API key authentication with granular permission scopes. Keys can be scoped to specific actions (send only, full access, etc.). Very agent-friendly."
+    "scopes": true,
+    "notes": "API key authentication with granular permission scopes — keys can be scoped to Mail Send only, reducing blast radius if a key is compromised. Full-access and restricted keys both supported. Subuser API keys allow multi-tenant sending. Very agent-friendly — no token rotation required."
   },
   "pricing": {
     "model": "freemium",
     "free_tier_exists": true,
-    "free_tier_limits": "100 emails/day forever free",
-    "paid_tiers": "Essentials from $19.95/month for 50k emails, Pro from $89.95/month",
+    "free_tier_limits": "100 emails/day forever on the free tier; includes basic templates and API access",
+    "paid_tiers": "Essentials from $19.95/month (50K emails); Pro from $89.95/month (100K emails, dedicated IP); Premier custom",
     "requires_credit_card": false,
-    "notes": "Free tier is genuinely useful for development and low-volume agents. Paid tiers unlock more features like dedicated IPs and advanced analytics."
+    "notes": "Free tier is useful for development and low-volume agents. Dedicated IPs available on Pro+ to avoid shared IP reputation issues. Volume discounts available. Twilio ownership has brought price stability."
   },
   "performance": {
     "latency_p50_ms": 150,
     "latency_p99_ms": 500,
     "uptime_sla_percent": 99.95,
-    "rate_limits": "600 requests/minute on free, higher on paid plans",
+    "rate_limits": "600 requests/minute on free; higher on paid plans; per-IP sending limits apply for deliverability",
     "data_source": "llm_estimated"
   },
   "requirements": {
@@ -61,29 +61,32 @@
     "requires_credit_card": false,
     "domain_verification": true,
     "data_residency": ["US", "EU"],
-    "compliance": ["SOC2", "GDPR", "HIPAA", "CCPA"],
+    "compliance": ["SOC2", "GDPR", "HIPAA", "CCPA", "CAN-SPAM"],
     "min_contract": "none"
   },
   "agent_readiness": {
-    "mcp_server_quality": 0,
-    "mcp_security_score": 82,
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
     "documentation_accuracy": 88,
     "error_message_quality": 80,
-    "error_message_notes": "Returns structured JSON errors with helpful messages. Error codes are well-documented with fix guidance.",
+    "error_message_notes": "Returns structured JSON error arrays with each error having a message and optional field/help attributes. Error codes are well-documented. Some delivery errors only surface via the Event Webhook rather than synchronous API responses, which agents must handle asynchronously.",
     "idempotency_support": "none",
-    "idempotency_notes": "No idempotency keys. Each API call sends a new email. Agent must track sent state externally to avoid duplicates.",
+    "idempotency_notes": "No idempotency keys. Each v3 mail/send call sends a new email. Agents must track sent state externally (e.g., by storing message IDs) to avoid duplicate sends on retry.",
     "pagination_style": "offset",
     "retry_guidance_documented": true,
     "known_agent_gotchas": [
-      "Domain authentication required for good deliverability - unauthenticated sends go to spam",
-      "No idempotency keys - retrying on failure can send duplicate emails",
-      "Free tier 100/day limit can be hit quickly in testing",
-      "Unsubscribe management required by law - agents must respect suppression lists",
-      "Template IDs must be pre-created in dashboard, not via API in free tier"
+      "Domain authentication (SPF, DKIM, DMARC) required for good deliverability — unauthenticated sends land in spam",
+      "No idempotency keys — retrying a failed send creates duplicate emails; agents must implement external deduplication",
+      "Free tier 100/day limit is hit quickly in any realistic testing; budget for at least the Essentials plan",
+      "Suppression lists (unsubscribes, bounces, spam reports) must be honored — agents that don't check suppression violate CAN-SPAM/GDPR",
+      "Event Webhook delivers delivery events asynchronously — agents needing delivery confirmation must process webhook payloads, not just the send API response",
+      "Shared IP reputation on lower tiers means deliverability depends on other customers' behavior; dedicated IP requires Pro plan",
+      "Template IDs (transactional templates) are account-scoped — must be created in the dashboard or Template API before use"
     ],
     "error_message_score": 80,
     "auth_complexity_score": 88,
     "rate_limit_score": 72,
-    "security_score": 82
-  }
+    "security_score": 84
+  },
+  "last_evaluated": "2026-03-01"
 }

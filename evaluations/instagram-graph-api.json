@@ -1,0 +1,119 @@
+{
+  "id": "instagram-graph-api",
+  "name": "Instagram Graph API",
+  "version_evaluated": "current",
+  "homepage": "https://developers.facebook.com/docs/instagram-api",
+  "repo_url": null,
+  "category": "social-media",
+  "subcategories": ["content-publishing", "social-media-management", "media", "analytics"],
+  "tags": ["instagram", "meta", "graph-api", "social-media", "oauth2", "business-accounts", "content-publishing", "media"],
+  "what_it_does": "Meta's REST API for Instagram business and creator accounts, enabling content publishing, comment management, mentions tracking, and insights retrieval for Instagram Business Accounts linked to Facebook Pages.",
+  "use_cases": [
+    "Scheduling and publishing photos, videos, carousels, and Stories to Instagram business accounts",
+    "Monitoring comments and @mentions for brand management and customer response workflows",
+    "Pulling account-level and post-level insights for analytics dashboards",
+    "Managing product catalog tags in Shopping posts for e-commerce brands",
+    "Reading media objects and hashtag feed data for content auditing"
+  ],
+  "not_for": [
+    "Personal Instagram accounts — Graph API is for Business/Creator accounts only",
+    "Reading other users' private feeds or stories — limited to public data and owned account data",
+    "Follower/following management or automated follow/unfollow — explicitly prohibited",
+    "Instagram DM automation beyond approved use cases — requires Messenger API approval",
+    "Any account that doesn't have a linked Facebook Page — prerequisite that blocks many creators"
+  ],
+  "best_when": "A social media management tool or brand agent needs to schedule posts and track engagement metrics for Instagram Business Accounts at a company that can handle Meta's App Review process.",
+  "avoid_when": "You need quick integration for a personal account, your app hasn't completed App Review, or you need to interact with other users' content programmatically.",
+  "alternatives": [
+    {"id": "threads-api", "reason": "Simpler Meta API with less setup friction for text-based content"},
+    {"id": "twitter-api-v2", "reason": "More widely used for content scheduling, though expensive"},
+    {"id": "bluesky-api", "reason": "No approval process, open protocol for social content publishing"}
+  ],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "php", "node", "java"],
+    "openapi_spec_url": null,
+    "webhooks": true
+  },
+  "auth": {
+    "methods": ["oauth2"],
+    "oauth": true,
+    "scopes": true,
+    "notes": "OAuth 2.0 only. Access tokens come in three types: User (short-lived 1-2 hours), Page (60-day), and System User (long-lived for server-to-server). Publishing requires instagram_content_publish scope. Webhooks require instagram_manage_insights scope. Long-lived tokens must be refreshed before 60-day expiry. System User tokens are the right approach for agents but require Business Manager setup. The 5-step setup (Instagram Business Account → Facebook Page → Facebook App → App Review → System User) is a significant barrier."
+  },
+  "pricing": {
+    "model": "free",
+    "free_tier_exists": true,
+    "free_tier_limits": "No charge per API call; rate limits apply based on app and account tier; publishing limited to 50 API-published posts per 24-hour period per account",
+    "paid_tiers": "No paid API tier; rate limits increase with app review approval level",
+    "requires_credit_card": false,
+    "notes": "API access is free but the hidden cost is App Review compliance time. Apps in Development mode can only access accounts of users added as testers/developers. Production access for publishing requires successful App Review submission including privacy policy, data handling disclosure, and sometimes video walkthroughs of your app's functionality."
+  },
+  "performance": {
+    "latency_p50_ms": 400,
+    "latency_p99_ms": 2000,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "200 calls per hour per user token for most endpoints; Business Discovery API: 200/hour; Media publishing: 50 posts/24h per account; Webhook delivery: no documented limit",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": false,
+    "domain_verification": true,
+    "data_residency": ["US", "EU"],
+    "compliance": ["GDPR", "CCPA"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 65,
+    "error_message_quality": 60,
+    "error_message_notes": "Errors return the standard Graph API format with error_code, error_subcode, and message fields. Error codes are documented but the mapping between codes and actionable fixes is often unclear. Many errors only appear after App Review approval — development mode testing can give false confidence that errors are resolved.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Media container creation (POST /{ig-user-id}/media) and publish (POST /{ig-user-id}/media_publish) are a two-step process. Re-publishing the same container ID is idempotent but creating a new container is not. Agents must persist container IDs to avoid duplicate posts on retry.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Two-step publishing model: create media container, wait for it to be ready (poll status), then publish — agents must implement polling loop with status checks",
+      "Instagram Business Account must be linked to a Facebook Page; if the Page link breaks, all API calls fail with confusing auth errors",
+      "App Review requires the app to be in production mode before it can access accounts it doesn't own; development mode only allows pre-approved test accounts",
+      "Video and Reel uploads require first uploading to a resumable upload endpoint, then passing the video handle — different from image upload flow",
+      "Long-lived tokens expire after 60 days with no auto-refresh; agents must implement proactive token refresh before expiry",
+      "Hashtag search API (IG Hashtag Search) has severe limits: 30 unique hashtags per 7 days per IG account",
+      "Business Discovery API (reading other public business accounts) requires your app to have instagram_business_basic permission approved",
+      "Webhook subscriptions for Instagram are managed through Facebook's Webhook system, not an Instagram-specific endpoint"
+    ],
+    "error_message_score": 60,
+    "auth_complexity_score": 45,
+    "rate_limit_score": 55,
+    "security_score": 72
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 65,
+    "error_handling_score": 60,
+    "auth_complexity_score": 45,
+    "rate_limit_clarity_score": 55
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 80,
+    "scope_granularity": 72,
+    "dependency_hygiene": 75,
+    "secret_handling": 78,
+    "security_notes": "TLS enforced. OAuth 2.0 with reasonable scope granularity for publishing vs. analytics vs. messaging. System User tokens are suitable for server-to-server agent use. App Secret is required for server-side API calls (appsecret_proof parameter) to prevent token hijacking. Meta's data use policy is complex; agent developers must ensure their data handling complies with Platform Terms, which are updated periodically."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 75,
+    "version_stability": 62,
+    "breaking_changes_history": 58,
+    "error_recovery": 62
+  },
+  "last_evaluated": "2026-03-01"
+}

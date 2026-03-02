@@ -1,0 +1,104 @@
+{
+  "id": "aws-bedrock-api",
+  "name": "AWS Bedrock",
+  "version_evaluated": "current",
+  "homepage": "https://aws.amazon.com/bedrock/",
+  "repo_url": null,
+  "category": "ai-ml",
+  "subcategories": ["foundation-models", "llm-api", "model-gateway"],
+  "tags": ["aws", "llm", "claude", "llama", "titan", "mistral", "cohere", "bedrock", "foundation-models", "enterprise"],
+  "what_it_does": "Provides a unified AWS API for accessing and running foundation models from Anthropic, Meta, Mistral, Cohere, Amazon, and others, with data remaining inside your AWS VPC.",
+  "use_cases": [
+    "Running Claude, Llama, or Mistral models within an AWS environment without data leaving the VPC",
+    "Building enterprise AI applications that require SOC2/HIPAA compliance and IAM-based access control",
+    "Comparing and switching between multiple foundation model providers through a single API surface",
+    "Fine-tuning and evaluating foundation models on private datasets using Bedrock Model Customization"
+  ],
+  "not_for": [
+    "Teams without an AWS account — setup overhead is significant compared to direct provider APIs",
+    "Quick prototyping or hobbyist use where OpenAI or Anthropic direct APIs are simpler",
+    "Lowest-cost inference — Bedrock pricing is comparable to direct providers but adds IAM complexity"
+  ],
+  "best_when": "Your team is already on AWS infrastructure, needs data residency guarantees, wants model portability across providers, or requires enterprise compliance (HIPAA, SOC2) without managing your own model serving.",
+  "avoid_when": "You want the fastest path to a working LLM integration and have no existing AWS infrastructure — direct Anthropic or OpenAI APIs will be much simpler to set up.",
+  "alternatives": ["anthropic-api", "openai-api", "google-vertex-ai-api", "azure-openai-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": true,
+    "mcp_server_url": "https://github.com/awslabs/mcp/tree/main/src/bedrock",
+    "has_sdk": true,
+    "sdk_languages": ["python", "node", "java", "go", "dotnet", "ruby", "cpp"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["aws_iam"],
+    "oauth": false,
+    "scopes": true,
+    "notes": "AWS SigV4 signing via IAM credentials or roles. IAM roles on EC2/ECS/Lambda are the recommended approach — no long-lived credentials needed. Model access must be explicitly requested per region in the Bedrock console before use."
+  },
+  "pricing": {
+    "model": "pay-as-you-go",
+    "free_tier_exists": false,
+    "free_tier_limits": null,
+    "paid_tiers": "On-demand pricing per input/output token, varies by model. Example: Claude 3.5 Sonnet ~$3/M input, $15/M output. Provisioned throughput available for committed workloads at lower per-token cost.",
+    "requires_credit_card": true,
+    "notes": "No free tier. Pricing matches or is very close to direct provider APIs. Provisioned throughput (monthly commitment) reduces costs for steady-state workloads. Cross-region inference adds slight cost."
+  },
+  "performance": {
+    "latency_p50_ms": 600,
+    "latency_p99_ms": 3000,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "Default TPS and token limits per model; vary by model family. Increase via AWS Service Quotas console. Provisioned throughput bypasses on-demand limits.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": true,
+    "domain_verification": false,
+    "data_residency": ["US", "EU", "APAC", "CA", "SA"],
+    "compliance": ["SOC1", "SOC2", "SOC3", "ISO27001", "ISO27017", "ISO27018", "HIPAA", "GDPR", "FedRAMP-Moderate", "PCI-DSS"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": 55,
+    "mcp_security_score": 80,
+    "documentation_accuracy": 82,
+    "error_message_quality": 76,
+    "error_message_notes": "Errors surface as structured AWS exceptions (e.g., ThrottlingException, ModelNotReadyException) with clear codes, but error messages can be generic for quota issues. Model access not enabled errors are clear.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "InvokeModel is not idempotent by design. Agent workflows should implement their own retry/deduplication. Converse API session tracking helps with multi-turn agents.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Model access must be manually enabled per region in the Bedrock console before the API will respond — a common source of confusing AccessDeniedException errors",
+      "Cross-region inference (using a profile instead of a model ID) is required for higher throughput but adds latency and subtle configuration differences",
+      "On-demand rate limits are per-account per-region and can be hit quickly at scale; provisioned throughput is the production solution",
+      "The official aws-mcp server is experimental and not production-ready as of early 2026",
+      "Streaming responses require different SDK handling than non-streaming — ensure your agent framework supports the EventStream pattern"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 25,
+    "api_doc_score": 82,
+    "error_handling_score": 76,
+    "auth_complexity_score": 68,
+    "rate_limit_clarity_score": 72
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 95,
+    "scope_granularity": 92,
+    "dependency_hygiene": 90,
+    "secret_handling": 95,
+    "security_notes": "IAM roles for EC2/Lambda are strongly preferred over access keys — AWS SDKs handle credential rotation automatically. All Bedrock traffic can be routed through VPC endpoints, keeping data off the public internet. Model invocations can be logged to CloudTrail for audit. IAM conditions can restrict which models a role can invoke."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 90,
+    "version_stability": 85,
+    "breaking_changes_history": 82,
+    "error_recovery": 80
+  }
+}

@@ -1,0 +1,104 @@
+{
+  "id": "cloudwatch-api",
+  "name": "Amazon CloudWatch",
+  "version_evaluated": "current",
+  "homepage": "https://aws.amazon.com/cloudwatch/",
+  "repo_url": null,
+  "category": "monitoring",
+  "subcategories": ["metrics", "logging", "alerting", "observability", "tracing"],
+  "tags": ["aws", "cloudwatch", "metrics", "logs", "alarms", "dashboards", "observability", "monitoring"],
+  "what_it_does": "AWS's native observability platform providing metrics collection, log aggregation, alarms, dashboards, and synthetic monitoring for AWS resources and custom applications.",
+  "use_cases": [
+    "Monitoring AWS-hosted AI agents with custom metrics (invocation counts, latency, error rates) and automated alarms",
+    "Aggregating logs from Lambda, ECS, EC2, and Bedrock invocations into a searchable log store",
+    "Setting up cost-alerting alarms when AI agent API spend exceeds thresholds",
+    "Building operational dashboards for multi-service agent pipelines"
+  ],
+  "not_for": [
+    "Teams running primarily on GCP or Azure — native observability tools (Cloud Monitoring, Azure Monitor) will integrate better",
+    "Advanced distributed tracing across polyglot microservices — AWS X-Ray or Datadog offer a better experience",
+    "Log analytics at very large scale — OpenSearch or Splunk offer richer query capabilities than CloudWatch Logs Insights"
+  ],
+  "best_when": "Your agents and infrastructure run on AWS and you want native, zero-configuration observability without managing a separate monitoring stack.",
+  "avoid_when": "You need cross-cloud observability or your team is already proficient with a third-party platform like Datadog or Grafana — the CloudWatch query language (Logs Insights) has a steep learning curve.",
+  "alternatives": ["datadog-api", "grafana-cloud-api", "new-relic-api", "aws-xray-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "node", "java", "go", "dotnet", "ruby", "cpp"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["aws_iam"],
+    "oauth": false,
+    "scopes": true,
+    "notes": "AWS SigV4 signing via IAM credentials or roles. Separate IAM policies exist for CloudWatch (metrics/alarms), CloudWatch Logs, and CloudWatch Evidently. Agents writing metrics need cloudwatch:PutMetricData; agents reading logs need logs:FilterLogEvents."
+  },
+  "pricing": {
+    "model": "pay-as-you-go",
+    "free_tier_exists": true,
+    "free_tier_limits": "10 custom metrics, 10 alarms, 5GB log ingestion, 5GB log storage, basic EC2 metrics (5-minute intervals), 3 dashboards, 1M API requests per month.",
+    "paid_tiers": "$0.30/metric/month for custom metrics; $0.50/GB log ingestion; $0.03/GB log storage; $0.10/alarm/month; detailed EC2 metrics $3.50/instance/month.",
+    "requires_credit_card": true,
+    "notes": "Costs scale quickly with high-cardinality metrics or verbose log ingestion from active agents. Log retention policy should be set explicitly — default is indefinite, which drives storage costs."
+  },
+  "performance": {
+    "latency_p50_ms": 200,
+    "latency_p99_ms": 1500,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "PutMetricData: 1000 metrics/request, 150 TPS; GetMetricData: 50 concurrent queries; Logs: 5MB/batch for PutLogEvents. Increase via Service Quotas.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": true,
+    "domain_verification": false,
+    "data_residency": ["US", "EU", "APAC", "CA", "SA", "ME", "AF"],
+    "compliance": ["SOC1", "SOC2", "SOC3", "ISO27001", "ISO27017", "ISO27018", "HIPAA", "GDPR", "FedRAMP-High", "PCI-DSS", "HITRUST"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 80,
+    "error_message_quality": 75,
+    "error_message_notes": "Standard AWS exceptions (ThrottlingException, InvalidParameterValueException) are well-documented. Logs Insights query errors can be cryptic. Metric math errors surface as data gaps rather than explicit errors.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "PutMetricData is eventually consistent — duplicate data points in the same minute are aggregated, making it safe to retry. PutLogEvents requires a sequence token to avoid duplicate log entries.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Metrics API and Logs API are completely separate sub-services with different IAM permissions, endpoints, and SDK clients (cloudwatch vs logs)",
+      "CloudWatch Logs Insights queries are asynchronous — agents must poll for query completion, not wait for immediate results",
+      "Default metric resolution is 1-minute; 1-second high-resolution metrics cost 10x more and must be explicitly requested",
+      "Log group retention defaults to indefinite — always set retention policy to avoid runaway storage costs in agent workloads",
+      "PutLogEvents requires a sequence token for sequential writes to the same log stream — parallel writers must use different streams"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 80,
+    "error_handling_score": 75,
+    "auth_complexity_score": 65,
+    "rate_limit_clarity_score": 78
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 92,
+    "scope_granularity": 90,
+    "dependency_hygiene": 88,
+    "secret_handling": 90,
+    "security_notes": "All CloudWatch traffic can be routed through VPC endpoints. Log data can be encrypted with KMS. CloudTrail logs all CloudWatch API calls. IAM conditions can restrict which log groups an agent can write to."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 90,
+    "version_stability": 92,
+    "breaking_changes_history": 90,
+    "error_recovery": 82
+  }
+}

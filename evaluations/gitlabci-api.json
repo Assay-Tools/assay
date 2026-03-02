@@ -1,0 +1,107 @@
+{
+  "id": "gitlabci-api",
+  "name": "GitLab CI/CD API",
+  "version_evaluated": "current",
+  "homepage": "https://docs.gitlab.com/ee/api/rest/",
+  "repo_url": "https://gitlab.com/gitlab-org/gitlab",
+  "category": "developer-tools",
+  "subcategories": ["ci-cd", "devops", "pipelines", "git-hosting"],
+  "tags": ["ci-cd", "gitlab", "pipelines", "rest-api", "graphql", "open-source", "devops", "git", "agents"],
+  "what_it_does": "Comprehensive REST and GraphQL API for GitLab's integrated DevOps platform, enabling programmatic control over CI/CD pipelines, jobs, repositories, merge requests, and the full software development lifecycle.",
+  "use_cases": [
+    "Triggering GitLab CI pipeline runs and polling job status from an agent via REST API",
+    "Creating merge requests, checking pipeline status, and automating code review workflows programmatically",
+    "Retrieving pipeline artifacts, test reports, and job logs for downstream agent processing",
+    "Managing GitLab repositories, branches, and tags as part of automated deployment workflows",
+    "Integrating GitLab pipeline status into multi-tool agent workflows alongside other DevOps platforms"
+  ],
+  "not_for": [
+    "Organizations not hosting code on GitLab — the CI/CD API is tightly coupled to GitLab repositories",
+    "Standalone workflow orchestration independent of a Git repository context",
+    "Complex business process workflows with human approval steps beyond merge request approvals",
+    "Very high-frequency pipeline triggering at scale (GitLab rate limits and CI minute quotas are a concern)"
+  ],
+  "best_when": "An agent needs to interact with an existing GitLab-hosted codebase — triggering pipelines, checking build status, creating MRs, or retrieving artifacts — as part of a broader DevOps automation workflow.",
+  "avoid_when": "Your code is not on GitLab, you need workflow orchestration beyond CI/CD, or GitLab's CI minute limits (especially on free tiers) are a constraint for your workload volume.",
+  "alternatives": ["buildkite-api", "gitlabci-api", "dagger-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": true,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "ruby", "go", "node"],
+    "openapi_spec_url": "https://gitlab.com/gitlab-org/gitlab/-/raw/master/doc/api/openapi/openapi.yaml",
+    "webhooks": true
+  },
+  "auth": {
+    "methods": ["api_key", "oauth", "bearer_token"],
+    "oauth": true,
+    "scopes": true,
+    "notes": "Personal Access Tokens (PAT) with fine-grained scopes (api, read_api, read_user, read_repository, write_repository, etc.). OAuth2 for user-delegated access. Project/Group access tokens for service account use. Job tokens for within-pipeline auth. Excellent scope granularity."
+  },
+  "pricing": {
+    "model": "freemium",
+    "free_tier_exists": true,
+    "free_tier_limits": "GitLab.com Free: 400 CI/CD minutes/month on shared runners; unlimited private repositories; 5GB storage",
+    "paid_tiers": "Premium $29/user/month (10,000 CI minutes/month); Ultimate $99/user/month (50,000 CI minutes); Self-hosted GitLab CE is free (open source)",
+    "requires_credit_card": false,
+    "notes": "Self-hosted GitLab CE is fully open source and free with unlimited CI minutes (you provide runners). SaaS free tier CI minute limit (400/month) is very restrictive for active agent-triggered pipelines."
+  },
+  "performance": {
+    "latency_p50_ms": 200,
+    "latency_p99_ms": 1000,
+    "uptime_sla_percent": 99.95,
+    "rate_limits": "Authenticated: 2,000 requests per minute per user token. Unauthenticated: 500 requests per minute per IP. Pipeline trigger API: 1,000 per project per minute.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["US", "EU"],
+    "compliance": ["SOC2", "GDPR", "ISO27001"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 88,
+    "error_message_quality": 82,
+    "error_message_notes": "REST API returns standard HTTP codes with JSON error arrays. Validation errors include field-level detail. GraphQL API returns errors in a consistent errors array. API documentation is comprehensive but the large surface area means some less-used endpoints have sparse docs.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Pipeline triggers create new pipeline instances on each call — no native idempotency key. Some write operations (create tag, create branch) return 400 if the resource already exists, which can be used as a de-facto idempotency check. MR creation does have some duplicate detection.",
+    "pagination_style": "link_header",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "CI minutes quota on GitLab.com free/paid tiers can be exhausted quickly when agents trigger many pipelines — monitor quota proactively",
+      "python-gitlab SDK is the most mature community SDK but is not officially maintained by GitLab; API coverage is good but may lag behind latest features",
+      "Link-header pagination (RFC 5988) is less common than cursor/offset — agents must parse Link headers to page through large result sets",
+      "Pipeline trigger tokens are separate from PATs and have different scoping; using the wrong token type causes confusing 403 errors",
+      "Job artifacts expire (default 30 days) and are deleted automatically — agents retrieving artifacts must do so before expiry",
+      "GraphQL API coverage is not 1:1 with REST — some older endpoints only exist in REST; always check both before assuming a feature is unavailable"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 88,
+    "error_handling_score": 82,
+    "auth_complexity_score": 88,
+    "rate_limit_clarity_score": 85
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 85,
+    "scope_granularity": 92,
+    "dependency_hygiene": 82,
+    "secret_handling": 85,
+    "security_notes": "Excellent scope granularity on PATs and OAuth tokens — one of the best in class for CI/CD platforms. CI/CD variables (secrets) are masked in job logs and can be protected (only available on protected branches). Self-hosted deployments control their own security posture. SOC 2 Type II and ISO 27001 certified for GitLab.com."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 90,
+    "version_stability": 88,
+    "breaking_changes_history": 85,
+    "error_recovery": 82
+  }
+}

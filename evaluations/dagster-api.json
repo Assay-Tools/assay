@@ -1,62 +1,62 @@
 {
   "id": "dagster-api",
-  "name": "Dagster",
+  "name": "Dagster Cloud API",
   "version_evaluated": "current",
   "homepage": "https://dagster.io",
-  "repo_url": "https://github.com/dagdagster-io/dagster",
+  "repo_url": "https://github.com/dagster-io/dagster",
   "category": "data-pipeline",
-  "subcategories": ["workflow-orchestration", "data-engineering", "asset-based"],
-  "tags": ["dagster", "data-orchestration", "asset-based", "data-engineering", "python", "lineage"],
-  "what_it_does": "Asset-based data orchestration platform that models pipelines as a graph of data assets with dependencies, offering a GraphQL API for pipeline management and observability in data platform engineering.",
+  "subcategories": ["workflow-orchestration", "data-pipeline", "data-assets"],
+  "tags": ["orchestration", "data-assets", "graphql", "python", "etl", "dbt", "data-engineering", "sensors", "schedules", "cloud", "open-source", "asset-graph"],
+  "what_it_does": "Asset-based data orchestration platform with a GraphQL API for managing software-defined assets, pipeline runs, sensors, and schedules — available open-source (self-hosted) or as Dagster Cloud.",
   "use_cases": [
-    "Triggering asset materialization runs programmatically for downstream pipeline automation",
-    "Querying asset lineage and materialization history for data observability workflows",
-    "Managing run schedules, sensors, and backfills via API",
-    "Building data platform dashboards from Dagster's rich pipeline metadata",
-    "Integrating data asset status into broader orchestration agents"
+    "Managing and materializing software-defined data assets with lineage tracking and freshness policies",
+    "Triggering pipeline runs and querying asset materialization status from AI agents via the GraphQL API",
+    "Orchestrating dbt, Spark, and custom Python transformations as part of a unified asset graph",
+    "Building sensor-driven pipelines that trigger on external events (new S3 objects, database changes)",
+    "Observing data freshness and partition materialization state across a complex data platform"
   ],
   "not_for": [
-    "Non-Python data teams (Dagster is Python-centric)",
-    "Real-time stream processing (batch-oriented; use Kafka or Flink)",
-    "Simple scripts without asset dependency modeling needs",
-    "Organizations preferring simpler task-based orchestration over asset-centric model"
+    "Teams who want a task-centric (not asset-centric) mental model — Prefect or Airflow may be a better fit",
+    "Simple cron scheduling without data lineage concerns — Dagster's power comes at setup complexity cost",
+    "Non-Python teams — Dagster is Python-first with no native support for other orchestration languages"
   ],
-  "best_when": "You're building a data platform with complex asset dependencies and want software engineering best practices (typing, testing, lineage) applied to data pipelines.",
-  "avoid_when": "Your data pipelines are simple, your team prefers task-based (not asset-based) thinking, or you already have Airflow or Prefect deeply integrated.",
-  "alternatives": ["prefect-api", "airbyte-api", "dbt-api"],
+  "best_when": "Your data platform uses software-defined assets with lineage tracking, and you need an agent to trigger materializations or query asset health via API.",
+  "avoid_when": "You need a simple task scheduler, your team is unfamiliar with asset-based thinking, or you want a REST API as the primary programmatic interface (GraphQL is required for most Dagster operations).",
+  "alternatives": ["prefect-cloud-api", "airflow-api", "temporal-api"],
   "interface": {
-    "has_rest_api": false,
+    "has_rest_api": true,
     "has_graphql": true,
     "has_grpc": false,
     "has_mcp_server": false,
+    "mcp_server_url": null,
     "has_sdk": true,
     "sdk_languages": ["python"],
-    "openapi_spec_url": "https://docs.dagster.io/_apidocs/",
+    "openapi_spec_url": null,
     "webhooks": false
   },
   "auth": {
-    "methods": ["api_key"],
+    "methods": ["api_key", "user_token"],
     "oauth": false,
     "scopes": false,
-    "notes": "Dagster Cloud uses user tokens and agent tokens. Self-hosted Dagster has no auth by default. Cloud tokens are user-scoped without fine-grained per-asset permissions."
+    "notes": "Dagster Cloud uses agent tokens (for deployment agents) and user tokens for API access. Set via DAGSTER_CLOUD_API_TOKEN environment variable. Tokens are workspace-scoped. Enterprise plans add SSO and RBAC. Self-hosted deployments can use any auth layer in front of the Dagit GraphQL endpoint."
   },
   "pricing": {
-    "model": "freemium",
+    "model": "open-source",
     "free_tier_exists": true,
-    "free_tier_limits": "Open source self-hosted: free; Dagster Cloud Serverless: free for 1 user with limits",
-    "paid_tiers": "Pro: $500/month; Enterprise: custom",
+    "free_tier_limits": "Open source (self-hosted): unlimited, Apache 2.0. Dagster Cloud Serverless: 1 user, limited compute credits per month.",
+    "paid_tiers": "Dagster Cloud Pro: starts at ~$500/month for Serverless; Hybrid (bring your own compute) pricing varies. Enterprise: custom pricing.",
     "requires_credit_card": false,
-    "notes": "Open source version is completely free and fully functional. Cloud adds managed infrastructure and team features."
+    "notes": "The open-source self-hosted path is production-capable and used by many large data teams. Dagster Cloud adds managed infrastructure, CI/CD branching deployments, and enterprise auth. Most API features are identical between OSS and Cloud."
   },
   "performance": {
-    "latency_p50_ms": 100,
-    "latency_p99_ms": 400,
+    "latency_p50_ms": 300,
+    "latency_p99_ms": 2000,
     "uptime_sla_percent": 99.9,
-    "rate_limits": "No documented rate limits for self-hosted; Cloud has undisclosed limits",
+    "rate_limits": "GraphQL API: no documented hard rate limits for Cloud; self-hosted limits depend on deployment infrastructure. Run launch is throttled per-deployment to prevent queue saturation.",
     "data_source": "llm_estimated"
   },
   "requirements": {
-    "requires_signup": false,
+    "requires_signup": true,
     "requires_credit_card": false,
     "domain_verification": false,
     "data_residency": ["US", "EU"],
@@ -66,24 +66,41 @@
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
-    "documentation_accuracy": 83,
+    "documentation_accuracy": 82,
     "error_message_quality": 78,
-    "error_message_notes": "GraphQL API errors returned in errors array. Run failure details accessible via run logs API. Error context is good but requires GraphQL knowledge.",
+    "error_message_notes": "GraphQL errors are returned in the standard errors array with message and extensions fields. Dagster-specific errors include run failure reasons and asset check failure details. Error messages are generally developer-friendly but GraphQL schema discovery is required to understand available mutations and their error shapes.",
     "idempotency_support": "partial",
-    "idempotency_notes": "Asset materialization requests create new runs — not idempotent. Asset definitions themselves are idempotent on redeploy.",
+    "idempotency_notes": "Asset materializations are idempotent by partition key — re-materializing the same partition replaces the previous result. Run launch is not idempotent; duplicate launches create separate run records.",
     "pagination_style": "cursor",
-    "retry_guidance_documented": false,
+    "retry_guidance_documented": true,
     "known_agent_gotchas": [
-      "API is GraphQL only — no REST alternative — agents must construct GraphQL queries",
-      "Asset keys are hierarchical paths (e.g., ['schema', 'table']) — agents must use correct key format",
-      "The asset-centric model is a paradigm shift from task-based orchestration — query patterns differ significantly",
-      "Self-hosted Dagster has no authentication by default — add auth middleware before exposing to agents",
-      "Run tags and metadata are the primary way to correlate Dagster runs with external systems — use them consistently"
-    ],
-    "error_message_score": 78,
-    "auth_complexity_score": 72,
-    "rate_limit_score": 72,
-    "security_score": 70
+      "GraphQL is the primary programmatic interface — agents must construct GraphQL queries, not simple REST calls",
+      "Asset keys use a path structure (e.g., [\"schema\", \"table_name\"]) that must be known in advance to target specific assets",
+      "Run tags and config must be passed as serialized YAML or JSON within the GraphQL mutation — not as typed fields",
+      "Sensor and schedule ticks are managed by Dagster's daemon process — external triggers go through launchRun mutation directly",
+      "Partitioned asset materializations require specifying the partition key — missing or wrong keys silently skip the partition",
+      "The GraphQL schema changes between Dagster versions — pin the dagster version and regenerate clients when upgrading"
+    ]
   },
-  "last_evaluated": "2026-02-28"
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 82,
+    "error_handling_score": 78,
+    "auth_complexity_score": 80,
+    "rate_limit_clarity_score": 72
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 78,
+    "scope_granularity": 65,
+    "dependency_hygiene": 85,
+    "secret_handling": 82,
+    "security_notes": "TLS enforced on Dagster Cloud. Self-hosted deployments are responsible for their own TLS setup. Resource-level secrets are managed via Dagster's resource system (environment variables, AWS Secrets Manager integration). Enterprise plans add RBAC and SSO. No fine-grained API scope control on standard plans. SOC2 Type II for Dagster Cloud."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 82,
+    "version_stability": 80,
+    "breaking_changes_history": 75,
+    "error_recovery": 80
+  }
 }

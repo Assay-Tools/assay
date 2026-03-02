@@ -1,0 +1,109 @@
+{
+  "id": "airflow-api",
+  "name": "Apache Airflow REST API",
+  "version_evaluated": "current",
+  "homepage": "https://airflow.apache.org",
+  "repo_url": "https://github.com/apache/airflow",
+  "category": "data-pipeline",
+  "subcategories": ["workflow-orchestration", "dag-scheduling", "data-engineering", "etl"],
+  "tags": ["airflow", "dag", "workflow", "orchestration", "data-pipeline", "etl", "python", "open-source", "scheduling", "batch"],
+  "what_it_does": "Workflow orchestration platform using Python-defined DAGs (Directed Acyclic Graphs) with a REST API (v1) for managing and triggering DAG runs, checking task status, and administering Airflow instances programmatically.",
+  "use_cases": [
+    "Triggering existing Airflow DAG runs from an agent and polling for DAG run completion status",
+    "Checking task instance status and retrieving task logs for pipeline observability in agent workflows",
+    "Orchestrating batch data processing pipelines (ETL, ML training runs, data quality checks) as scheduled or on-demand DAGs",
+    "Managing Airflow variables and connections programmatically via REST API to configure pipeline behavior",
+    "Integrating Airflow pipeline status into a broader agent-driven data orchestration system"
+  ],
+  "not_for": [
+    "Real-time or low-latency workflows — Airflow's scheduler polling adds significant latency",
+    "Event-driven architectures — DAGs are pull-based (scheduler-driven), not push-based (event-driven)",
+    "Application-level workflow orchestration (user signup flows, order processing) — use Temporal or Inngest",
+    "Teams without Python data engineering expertise — Airflow's complexity requires significant operator knowledge",
+    "Small teams without dedicated infrastructure for Airflow (scheduler, webserver, workers, metadata DB)"
+  ],
+  "best_when": "An agent needs to trigger and monitor existing batch data pipelines already orchestrated in Airflow, particularly in data engineering environments where Airflow is already the established platform.",
+  "avoid_when": "You're building a new workflow system from scratch (Airflow's operational overhead is high), your workflows are event-driven or real-time, or your team lacks data engineering experience with DAG-based orchestration.",
+  "alternatives": ["temporal-io-api", "windmill-api", "inngest-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": "https://airflow.apache.org/docs/apache-airflow/stable/stable-rest-api-ref.html",
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["basic_auth", "api_key", "oauth", "kerberos"],
+    "oauth": true,
+    "scopes": false,
+    "notes": "Default auth is HTTP Basic Auth (username/password) which is insecure for programmatic use. API key support and OAuth2/OIDC available via configuration and plugins. Managed providers (MWAA, Cloud Composer, Astronomer) may use their own auth mechanisms. No per-resource scope granularity — all-or-nothing access model."
+  },
+  "pricing": {
+    "model": "open_source_with_saas",
+    "free_tier_exists": true,
+    "free_tier_limits": "Self-hosted Apache Airflow is completely free (Apache 2.0). Managed services add their own pricing.",
+    "paid_tiers": "AWS MWAA: from ~$0.49/hour per environment + compute costs. GCP Cloud Composer: from ~$0.10/hour + Dataflow costs. Astronomer: from $200/month for Cloud; Enterprise custom.",
+    "requires_credit_card": false,
+    "notes": "Self-hosting is free but operationally expensive (significant engineer time for maintenance). Managed services (MWAA, Cloud Composer, Astronomer) abstract ops but add meaningful cost. The REST API is available across all deployment models."
+  },
+  "performance": {
+    "latency_p50_ms": 500,
+    "latency_p99_ms": 3000,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "No explicit rate limits documented for the REST API. Scheduler polling interval (minimum ~5-10 seconds) creates de facto minimum latency between DAG trigger and task execution start. Webserver response latency varies significantly with metadata DB load.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["US", "EU", "any"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 78,
+    "error_message_quality": 65,
+    "error_message_notes": "REST API error responses are inconsistent across endpoints — some return detailed messages, others return generic HTTP errors. DAG import errors (Python syntax in DAG files) manifest as confusing scheduler-side failures not visible through the REST API. Task failure reasons require fetching task logs separately.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "DAG runs can be assigned a run_id for de-duplication — if a run_id already exists, the trigger returns a conflict error. However, by default Airflow auto-generates run IDs and does not prevent duplicate triggers of the same DAG within the same time window.",
+    "pagination_style": "offset",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Default Basic Auth over HTTP is insecure — agents must ensure HTTPS is enforced and prefer token/OAuth auth in production",
+      "DAG scheduling introduces inherent latency — a triggered DAG run may not start executing for 5-30 seconds due to the scheduler's heartbeat interval",
+      "The REST API cannot deploy new DAGs or modify DAG files — DAG definitions must be managed separately (Git sync, S3 sync, etc.) before they can be triggered via API",
+      "Task log retrieval is a separate REST call per task instance; agents monitoring complex DAGs must poll many endpoints to get full execution status",
+      "No webhook or push notification support — agents must poll for DAG run status completion; polling too frequently can overload the Airflow webserver",
+      "Airflow version fragmentation is significant — v1, v2, and v3 have different API behaviors; managed services may run older versions with different endpoints",
+      "Backfill, catchup, and paused DAG states can cause unexpected behavior when agents trigger DAGs without understanding Airflow scheduling semantics"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 75,
+    "error_handling_score": 62,
+    "auth_complexity_score": 60,
+    "rate_limit_clarity_score": 55
+  },
+  "security_score_components": {
+    "tls_enforcement": 80,
+    "auth_strength": 62,
+    "scope_granularity": 50,
+    "dependency_hygiene": 72,
+    "secret_handling": 75,
+    "security_notes": "Default Basic Auth is a security anti-pattern for programmatic use — operators must configure OAuth2/API keys explicitly. No per-resource scope granularity on the REST API. Airflow Connections (for storing credentials to external systems) are encrypted but historically have had vulnerabilities. Self-hosted security posture entirely operator-dependent. Many provider packages introduce third-party dependencies that require careful auditing."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 70,
+    "version_stability": 72,
+    "breaking_changes_history": 68,
+    "error_recovery": 70
+  }
+}

@@ -1,0 +1,110 @@
+{
+  "id": "kibana-api",
+  "name": "Kibana API",
+  "version_evaluated": "current",
+  "homepage": "https://www.elastic.co/guide/en/kibana/current/api.html",
+  "repo_url": "https://github.com/elastic/kibana",
+  "category": "search-analytics",
+  "subcategories": ["observability", "log-analytics", "dashboard-management", "alerting", "search"],
+  "tags": ["kibana", "elasticsearch", "elk-stack", "observability", "dashboards", "alerting", "rest-api", "elastic", "log-analytics", "siem"],
+  "what_it_does": "Kibana's REST API exposes programmatic control over the Kibana layer of the Elastic Stack — managing dashboards, saved objects, alerting rules, data views, spaces, and fleet agents. Primarily used for automation and configuration management of Kibana instances rather than data querying (which goes through the Elasticsearch API).",
+  "use_cases": [
+    "Automating Kibana dashboard and visualization deployment as code (GitOps for dashboards)",
+    "Agent-driven alerting rule management — creating, updating, and muting alert rules",
+    "Space management and access control automation in multi-tenant Elastic deployments",
+    "Exporting and importing saved objects (dashboards, visualizations) across environments",
+    "Programmatic management of data views, index patterns, and fleet agent policies"
+  ],
+  "not_for": [
+    "Querying Elasticsearch data — use the Elasticsearch API directly for search and aggregations",
+    "Standalone data analytics without an existing Elasticsearch deployment",
+    "Teams who just want to visualize data without operating ELK infrastructure",
+    "Serverless-only use cases — Kibana requires an Elasticsearch cluster backend"
+  ],
+  "best_when": "You're operating an ELK stack deployment and need to automate Kibana configuration management, dashboard-as-code workflows, or alerting rule administration as part of a DevOps or SecOps pipeline.",
+  "avoid_when": "You need to query data — go straight to the Elasticsearch API. If you need a standalone analytics platform without operating infrastructure, consider Elastic Cloud with its managed APIs or alternatives like Grafana Cloud.",
+  "alternatives": ["elasticsearch-api", "grafana-api", "datadog-api", "splunk-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": false,
+    "sdk_languages": [],
+    "openapi_spec_url": "https://www.elastic.co/guide/en/kibana/current/api.html",
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["api_key", "basic_auth", "bearer_token"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Elasticsearch API keys (created via the Elasticsearch /_security/api_key endpoint) are the recommended method — passed as Authorization: ApiKey <encoded> header. Basic auth with Elasticsearch native realm credentials also works. Kibana-specific API keys can be created in the UI. On Elastic Cloud, cloud API keys add a layer for cloud management operations. Role-based access control (RBAC) in Elasticsearch governs what the key can access."
+  },
+  "pricing": {
+    "model": "freemium",
+    "free_tier_exists": true,
+    "free_tier_limits": "Open-source (Apache 2.0 for older versions; Elastic License 2.0 for recent versions) — self-hosted is free with basic features; Elastic Cloud free trial available",
+    "paid_tiers": "Elastic Cloud from ~$16/month (2GB RAM); Standard, Gold, Platinum, Enterprise tiers add security, ML, and SLA features",
+    "requires_credit_card": false,
+    "notes": "Self-hosted Kibana with Elasticsearch is free. Elastic Cloud is the managed offering with pricing based on compute and storage. Advanced security features (RBAC, Spaces, document-level security) require a Gold or above subscription on Elastic Cloud, or are available in the self-hosted basic tier with limitations."
+  },
+  "performance": {
+    "latency_p50_ms": 150,
+    "latency_p99_ms": 800,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "No published rate limits for the Kibana API; depends on cluster resources and deployment size",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted", "US", "EU", "APAC"],
+    "compliance": ["SOC2", "ISO27001", "HIPAA", "GDPR", "FedRAMP"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 72,
+    "error_message_quality": 70,
+    "error_message_notes": "Error responses return JSON with statusCode, error, and message fields. Quality varies by API section — the Alerts API and Saved Objects API have reasonable error messages, while some older internal APIs (marked with _) return opaque errors. The distinction between stable public APIs and internal APIs is not always clearly marked in documentation.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Saved object import supports overwrite mode for idempotent re-deployment of dashboards. Other write operations (create rule, create space) are not idempotent — duplicates will be created. Agents should use GET-then-create or update patterns.",
+    "pagination_style": "page",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Many Kibana API endpoints are prefixed with /internal/ — these are undocumented, unstable, and may break between minor versions; only use /api/ prefixed endpoints",
+      "Kibana API and Elasticsearch API are distinct — Kibana runs on port 5601, Elasticsearch on 9200; agents need both URLs for complete stack automation",
+      "API keys for Kibana auth must be created in Elasticsearch (_security/api_key), not in Kibana — the indirection confuses many integrators",
+      "Saved object import/export uses NDJSON format, not standard JSON — agents must handle the multi-document streaming format",
+      "Kibana Spaces must be specified in the URL path (/s/{space_id}/api/...) — missing the space prefix operates on the default space silently",
+      "Alerting rules use connector_type_id and action group configuration that requires prior knowledge of installed connectors",
+      "Breaking changes between Elastic Stack versions can affect API behavior — always pin to a specific version in automation",
+      "Self-hosted deployments may have TLS disabled by default in development mode — verify TLS in production"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 72,
+    "error_handling_score": 68,
+    "auth_complexity_score": 65,
+    "rate_limit_clarity_score": 50
+  },
+  "security_score_components": {
+    "tls_enforcement": 85,
+    "auth_strength": 80,
+    "scope_granularity": 78,
+    "dependency_hygiene": 78,
+    "secret_handling": 80,
+    "security_notes": "TLS enforced on Elastic Cloud; self-hosted deployments may require explicit TLS configuration. Elasticsearch RBAC provides meaningful scope control — API keys can be restricted to specific indices, actions, and document fields. API keys have configurable expiry. FedRAMP Moderate authorized on Elastic Cloud GovCloud. Self-hosted security depends heavily on deployment configuration. Large Java/Node codebase with broad dependency surface."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 78,
+    "version_stability": 72,
+    "breaking_changes_history": 68,
+    "error_recovery": 72
+  },
+  "last_evaluated": "2026-03-01"
+}

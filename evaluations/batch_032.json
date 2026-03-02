@@ -1,0 +1,262 @@
+[
+  {
+    "id": "mixpanel-api",
+    "af_score_components": {
+      "mcp_score": 0,
+      "api_doc_score": 82,
+      "error_handling_score": 75,
+      "auth_complexity_score": 65,
+      "rate_limit_clarity_score": 72,
+      "notes": "Product analytics platform with no MCP server (has_mcp_server=false). Good documentation and OpenAPI reference. Critical agent gotcha: Ingestion API ALWAYS returns 200 even on failure — agents must parse response body for errors, not rely on HTTP status. Three different auth methods across Ingestion (project token), Query API (service account), and Export API (API secret) — agent must know which credential to use per endpoint. JQL required for complex queries. Data has 3-5 minute ingestion delay."
+    },
+    "security_score_components": {
+      "tls_enforcement": 90,
+      "auth_strength": 78,
+      "scope_granularity": 62,
+      "dependency_hygiene": 82,
+      "secret_handling": 78,
+      "security_notes": "Commercial SaaS with HTTPS enforced; SOC2, GDPR, CCPA, HIPAA compliant. Project token is intentionally public (client-side tracking); service account secret is private. Three different credentials across APIs is a management overhead. No fine-grained scopes within each API endpoint. Service account username:secret should be stored in env vars. $insert_id deduplication provides some protection against duplicate event injection."
+    },
+    "reliability_score_components": {
+      "uptime_documented": 88,
+      "version_stability": 82,
+      "breaking_changes_history": 80,
+      "error_recovery": 68,
+      "reliability_notes": "Commercial SaaS with SLA. Stable versioned API with backward compatibility. Retry guidance documented. Ingestion API returns 200 on failure making error recovery logic non-obvious. $insert_id deduplication only within 7-day window. Query API rate limits vary by plan tier. 3-5 minute data delay means agents must account for processing lag in analytics workflows."
+    }
+  },
+  {
+    "id": "modal-api",
+    "af_score_components": {
+      "mcp_score": 0,
+      "api_doc_score": 90,
+      "error_handling_score": 82,
+      "auth_complexity_score": 90,
+      "rate_limit_clarity_score": 75,
+      "notes": "Serverless GPU compute platform with no MCP server (has_mcp_server=false) — Python SDK only, no REST API. Excellent documentation and error messages. Modal functions require @app.function decorator — standard Python functions cannot be called remotely. Cold start latency (seconds to minutes) is the primary agent reliability concern. GPU container images cache after first build. Secrets must be created in Modal workspace — cannot use local env vars directly in remote execution. Python-only means agents must use the Modal Python SDK."
+    },
+    "security_score_components": {
+      "tls_enforcement": 92,
+      "auth_strength": 85,
+      "scope_granularity": 62,
+      "dependency_hygiene": 85,
+      "secret_handling": 85,
+      "security_notes": "Commercial cloud with HTTPS enforced; SOC2 certified. Modal token (ID + secret) for authentication. No fine-grained scopes — token grants full access. Secrets explicitly isolated: Modal workspace secrets are separate from local environment variables in remote execution contexts (security improvement). SOC2 compliance implies strong operational security practices. Token set via env vars or 'modal token set' command."
+    },
+    "reliability_score_components": {
+      "uptime_documented": 82,
+      "version_stability": 85,
+      "breaking_changes_history": 80,
+      "error_recovery": 62,
+      "reliability_notes": "Commercial cloud with SLA; SOC2 compliant. Actively maintained Python package with versioned releases. No idempotency support — duplicate function calls create duplicate executions. Cold start latency is the primary reliability concern for latency-sensitive agentic workflows (seconds to minutes after idle). Persistent volumes required for model weights to avoid re-downloading per call. GPU container images must be cached for predictable startup times."
+    }
+  },
+  {
+    "id": "monday-api",
+    "af_score_components": {
+      "mcp_score": 0,
+      "api_doc_score": 78,
+      "error_handling_score": 72,
+      "auth_complexity_score": 75,
+      "rate_limit_clarity_score": 60,
+      "notes": "Monday.com work management GraphQL API with no MCP server (has_mcp_server=false). GraphQL means agents must construct queries/mutations — no simple REST calls. Column values use complex JSON string format that differs per column type — significant agent friction. Board and item IDs (integers) required for all operations; human-readable names require lookup. Complexity scoring limits per request can reject complex queries. Account-level vs board-level permissions cause confusing 403 errors. Webhook registration requires challenge-response."
+    },
+    "security_score_components": {
+      "tls_enforcement": 88,
+      "auth_strength": 80,
+      "scope_granularity": 78,
+      "dependency_hygiene": 85,
+      "secret_handling": 80,
+      "security_notes": "Commercial SaaS with HTTPS enforced; SOC2, ISO27001, GDPR, HIPAA compliant. OAuth2 for marketplace apps with scoped permissions; personal API tokens are account-wide (less granular). Entra ID OAuth2 support for enterprise. API tokens via env vars as standard practice. Token management is enterprise-grade. No fine-grained scope control for personal API tokens."
+    },
+    "reliability_score_components": {
+      "uptime_documented": 88,
+      "version_stability": 75,
+      "breaking_changes_history": 72,
+      "error_recovery": 60,
+      "reliability_notes": "Enterprise SaaS with SLA. GraphQL schema may evolve with potential breaking changes. No idempotency support — duplicate mutations can create duplicate items. Complexity limits per request may reject legitimate complex queries unpredictably. No retry guidance documented. Strict rate limits on heavy usage plans. GraphQL mutations for dashboard/item updates require fetching full state first."
+    }
+  },
+  {
+    "id": "mongodb-api",
+    "af_score_components": {
+      "mcp_score": 0,
+      "api_doc_score": 87,
+      "error_handling_score": 82,
+      "auth_complexity_score": 85,
+      "rate_limit_clarity_score": 75,
+      "notes": "MongoDB Atlas Data API (HTTP-based) for cloud-hosted MongoDB with no MCP server (has_mcp_server=false). HTTP Data API enables CRUD without MongoDB driver — ideal for agents. Excellent documentation with OpenAPI spec. Data API is slower than native driver — use native driver for production agents. Free M0 clusters have connection limits agents can exhaust. Vector search index must be created separately before similarity queries. Atlas Search and vector search require paid tiers. Cursor pagination with retry guidance documented."
+    },
+    "security_score_components": {
+      "tls_enforcement": 95,
+      "auth_strength": 88,
+      "scope_granularity": 78,
+      "dependency_hygiene": 90,
+      "secret_handling": 88,
+      "security_notes": "Atlas enforces HTTPS for all connections. FedRAMP authorized, SOC2, HIPAA, PCI-DSS, GDPR, ISO27001 compliant — best-in-class compliance stack. API keys can be scoped to specific clusters and operations. IP access lists restrict connection sources. VPC peering available for private connectivity. Connection strings and API keys via env vars. Excellent credential rotation tooling. Mature security posture from enterprise MongoDB team."
+    },
+    "reliability_score_components": {
+      "uptime_documented": 90,
+      "version_stability": 88,
+      "breaking_changes_history": 85,
+      "error_recovery": 78,
+      "reliability_notes": "99.995% SLA for M10+ Atlas clusters with multi-region replication available. Stable, enterprise-grade API with backward compatibility guarantees. Cursor pagination with retry guidance documented. Partial idempotency. M0 (free tier) has connection limits that agentic loops can exhaust. Aggregation pipeline syntax has steep learning curve for agents not trained on MongoDB query patterns."
+    }
+  },
+  {
+    "id": "mongodb-mcp-server",
+    "af_score_components": {
+      "mcp_score": 85,
+      "api_doc_score": 82,
+      "error_handling_score": 65,
+      "auth_complexity_score": 82,
+      "rate_limit_clarity_score": 68,
+      "notes": "Official MongoDB MCP server from mongodb-js with 20+ tools covering CRUD, schema inspection, index management, and Atlas cluster administration. Read-only by default — write mode must be explicitly enabled (excellent safety default). Connection via MDB_MCP_CONNECTION_STRING env var or Atlas service account. Node.js 20.19+ or 22.12+ required — older versions fail unhelpfully. Atlas API tools require separate service account credentials from the database connection string. Error message quality rated 65/100 in agent data."
+    },
+    "security_score_components": {
+      "tls_enforcement": 85,
+      "auth_strength": 82,
+      "scope_granularity": 80,
+      "dependency_hygiene": 80,
+      "secret_handling": 82,
+      "security_notes": "Atlas connections use TLS by default. Read-only mode by default is an excellent security feature — agents cannot accidentally modify data without explicit opt-in. Env vars strongly recommended; CLI arg credentials are visible in process lists (documented warning). Atlas service account for admin tools provides separate, scoped credentials from database access. Official mongodb-js maintained with Node.js 20+ requirement for modern security patches."
+    },
+    "reliability_score_components": {
+      "uptime_documented": 70,
+      "version_stability": 78,
+      "breaking_changes_history": 72,
+      "error_recovery": 65,
+      "reliability_notes": "MCP server reliability depends on underlying Atlas cluster SLA. Official MongoDB-JS maintained with reasonable update cadence. Node.js version requirement (20.19+ or 22.12+) could cause subtle failures on older systems. Cursor pagination available. No retry guidance documented. Partial idempotency. Atlas and database connection string are separate credentials requiring careful dual management."
+    }
+  },
+  {
+    "id": "moralis-api",
+    "af_score_components": {
+      "mcp_score": 0,
+      "api_doc_score": 80,
+      "error_handling_score": 75,
+      "auth_complexity_score": 90,
+      "rate_limit_clarity_score": 62,
+      "notes": "Multi-chain Web3 data platform with no MCP server (has_mcp_server=false). Simple X-API-Key header auth is straightforward. Compute unit costs per endpoint not clearly documented — agents can exhaust quota faster than expected. NFT metadata may be stale for recently minted/updated tokens. Cross-chain queries require specifying chain parameter precisely (default: Ethereum mainnet). Price data from DEX liquidity pools can be manipulated or thin. HMAC verification for Streams webhooks requires publicly accessible HTTPS endpoint."
+    },
+    "security_score_components": {
+      "tls_enforcement": 88,
+      "auth_strength": 78,
+      "scope_granularity": 60,
+      "dependency_hygiene": 80,
+      "secret_handling": 78,
+      "security_notes": "Commercial SaaS with HTTPS enforced; GDPR compliant. Single API key = access to all endpoints (no fine-grained scopes). X-API-Key header is a simple, well-understood pattern. HMAC signature verification for Streams webhooks is a good security practice. API key management via env vars. No key rotation tooling documented. Single key compromise = full account access."
+    },
+    "reliability_score_components": {
+      "uptime_documented": 82,
+      "version_stability": 78,
+      "breaking_changes_history": 75,
+      "error_recovery": 68,
+      "reliability_notes": "Commercial SaaS with GDPR-compliant operations. Multi-chain data means reliability depends on underlying blockchain node health. Full idempotency for read operations. Cursor pagination available. No retry guidance documented. Compute unit quotas can exhaust unexpectedly. NFT metadata staleness is a data reliability issue for freshly minted tokens. DEX price data quality varies by liquidity depth."
+    }
+  },
+  {
+    "id": "mqtt-api",
+    "af_score_components": {
+      "mcp_score": 0,
+      "api_doc_score": 82,
+      "error_handling_score": 70,
+      "auth_complexity_score": 65,
+      "rate_limit_clarity_score": 62,
+      "notes": "HiveMQ MQTT broker with REST management API and no MCP server (has_mcp_server=false). MQTT is a binary protocol — agents need a MQTT client library, not just HTTP calls. Multiple auth methods (Basic, OAuth2, X.509, API key) for different contexts. Topic wildcard subscriptions (+, #) can flood agents with unexpected messages. QoS levels determine delivery semantics: QoS 0 (fire-and-forget), 1 (at-least-once), 2 (exactly-once). Retained messages delivered immediately on subscribe. MQTT over WebSocket uses different URL format. Management REST API is separate from MQTT connection endpoints."
+    },
+    "security_score_components": {
+      "tls_enforcement": 85,
+      "auth_strength": 85,
+      "scope_granularity": 78,
+      "dependency_hygiene": 85,
+      "secret_handling": 80,
+      "security_notes": "MQTT over TLS is the standard for production; HiveMQ Cloud enforces TLS. X.509 client certificates provide mutual TLS authentication — strong security model for IoT devices. OAuth2 for management API. Topic-level ACL for fine-grained subscription/publish control. SOC2, GDPR, ISO27001 compliant. Enterprise platform with mature security practices. Multiple auth options appropriately matched to use cases."
+    },
+    "reliability_score_components": {
+      "uptime_documented": 85,
+      "version_stability": 85,
+      "breaking_changes_history": 82,
+      "error_recovery": 70,
+      "reliability_notes": "MQTT is a decades-old stable protocol; HiveMQ implementation is enterprise-grade. HiveMQ Cloud offers SLA. SOC2 compliant. QoS 2 provides exactly-once delivery guarantee at protocol level. Persistent sessions survive disconnection. Offset pagination for management API. No documented retry guidance for management REST API. MQTT protocol itself provides session resumption for reconnecting clients."
+    }
+  },
+  {
+    "id": "msteams-api",
+    "af_score_components": {
+      "mcp_score": 72,
+      "api_doc_score": 82,
+      "error_handling_score": 72,
+      "auth_complexity_score": 50,
+      "rate_limit_clarity_score": 72,
+      "notes": "Microsoft Teams via Microsoft Graph with official teams-mcp server (MCP server quality 70/100). Comprehensive API for messaging, channel management, meetings. OAuth2 with admin consent is the biggest agent deployment friction — requires IT department involvement. Token expiry at 1 hour requires agent token refresh logic. Throttling policies vary by endpoint and tenant — agents must handle 429 with exponential backoff. Teams channel messages require bot team membership. Change notifications require publicly accessible HTTPS endpoint. Retry guidance documented."
+    },
+    "security_score_components": {
+      "tls_enforcement": 95,
+      "auth_strength": 92,
+      "scope_granularity": 90,
+      "dependency_hygiene": 90,
+      "secret_handling": 90,
+      "security_notes": "Microsoft enterprise security: FedRAMP, HIPAA, SOC1/2, ISO27001, GDPR compliant. Entra ID OAuth2 with application permissions requiring admin consent — proper enterprise governance. Highly granular scopes (Chat.Read, ChannelMessage.Send, Teams.ReadBasic.All, etc.). Token rotation every hour enforced. MFA support. Client credentials flow for daemon agents with admin consent. Excellent security model appropriate for enterprise environments."
+    },
+    "reliability_score_components": {
+      "uptime_documented": 90,
+      "version_stability": 82,
+      "breaking_changes_history": 82,
+      "error_recovery": 72,
+      "reliability_notes": "Enterprise Microsoft SLA (99.9% for M365). Graph API v1.0 stable with documented deprecation process; beta endpoints less stable. Retry guidance documented for throttling. Token refresh required every hour. Partial idempotency. Cursor pagination. 429 throttling varies by tenant and endpoint — requires adaptive backoff. Adaptive Card schema version compatibility varies by Teams client version."
+    }
+  },
+  {
+    "id": "multimodal-agents-course",
+    "af_score_components": {
+      "mcp_score": 55,
+      "api_doc_score": 65,
+      "error_handling_score": 40,
+      "auth_complexity_score": 72,
+      "rate_limit_clarity_score": 50,
+      "notes": "Educational course and codebase for building multimodal MCP servers — NOT a production-ready service. MCP server implemented for teaching with FastMCP; MCP server quality 55/100. Error message quality rated 40/100. Requires Docker Compose and multiple external API keys (OpenAI $5 credit, Groq 500K tokens/day free) before anything runs. High setup complexity is intentional for learning purposes but makes time-to-first-tool-call significant. MCP Inspector required for local debugging. Should NOT be deployed as-is to production."
+    },
+    "security_score_components": {
+      "tls_enforcement": 45,
+      "auth_strength": 45,
+      "scope_granularity": 40,
+      "dependency_hygiene": 55,
+      "secret_handling": 55,
+      "security_notes": "Local educational MCP server with no TLS or authentication. No auth on the MCP server itself. API keys for external services (OpenAI, Groq) configured via environment variables — correct pattern. Educational code may not follow production security practices for error handling or input validation. Multiple external API dependencies with potential version pinning issues. Not designed for multi-user or production deployments."
+    },
+    "reliability_score_components": {
+      "uptime_documented": 30,
+      "version_stability": 52,
+      "breaking_changes_history": 48,
+      "error_recovery": 40,
+      "reliability_notes": "Local development/educational tool with no uptime concept or SLA. GitHub repository may update for curriculum changes without versioning. Docker Compose setup must be maintained as dependencies evolve. Educational code prioritizes clarity over error recovery and resilience. Multiple external API dependencies (OpenAI, Groq, Pixeltable) each add reliability risk. Not suitable for production or always-on agent deployments."
+    }
+  },
+  {
+    "id": "mux-api",
+    "af_score_components": {
+      "mcp_score": 0,
+      "api_doc_score": 92,
+      "error_handling_score": 88,
+      "auth_complexity_score": 88,
+      "rate_limit_clarity_score": 80,
+      "notes": "Developer-first video platform with no MCP server (has_mcp_server=false). Excellent documentation (92/100) and error messages (88/100). Token ID + Token Secret as Basic Auth is simple and clear. Video processing is async — agents must poll asset status or use webhooks before playback URL is ready. Direct upload URLs expire after 12 hours — agents must generate fresh upload URLs per upload. No idempotency keys — duplicate uploads create duplicate assets. Live streams have distinct lifecycle states (idle, active, disconnected) requiring state machine logic. Playback IDs created separately from assets."
+    },
+    "security_score_components": {
+      "tls_enforcement": 92,
+      "auth_strength": 85,
+      "scope_granularity": 65,
+      "dependency_hygiene": 85,
+      "secret_handling": 85,
+      "security_notes": "Commercial video SaaS with HTTPS enforced; SOC2, GDPR compliant. Token ID + Token Secret in Basic Auth — straightforward. Webhook signing secrets for HMAC verification of incoming webhooks. Separate test vs production environments provide isolation for development. No fine-grained scopes — access key grants full API access. Signing secrets for secure webhook verification is good practice. Token/secret stored as env vars with clear documentation."
+    },
+    "reliability_score_components": {
+      "uptime_documented": 88,
+      "version_stability": 85,
+      "breaking_changes_history": 82,
+      "error_recovery": 72,
+      "reliability_notes": "Commercial SaaS with SLA; SOC2 compliant. Mature, stable video API with backward compatibility. Retry guidance documented. Async video processing requires polling or webhook-driven workflows. No idempotency keys means duplicate upload requests create duplicate assets — agents must deduplicate. Live stream lifecycle management adds state complexity. Cursor pagination with retry guidance. Upload URLs expire after 12 hours requiring refresh logic."
+    }
+  }
+]

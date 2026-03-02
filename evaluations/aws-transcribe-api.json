@@ -1,0 +1,104 @@
+{
+  "id": "aws-transcribe-api",
+  "name": "AWS Transcribe",
+  "version_evaluated": "current",
+  "homepage": "https://aws.amazon.com/transcribe/",
+  "repo_url": null,
+  "category": "ai-ml",
+  "subcategories": ["speech-to-text", "audio-processing", "transcription"],
+  "tags": ["aws", "transcribe", "speech-to-text", "asr", "transcription", "audio", "voice", "speaker-diarization"],
+  "what_it_does": "Automatic speech recognition (ASR) service that converts audio and video recordings to accurate text transcripts, with speaker identification, custom vocabulary, and streaming support.",
+  "use_cases": [
+    "Agents processing recorded customer calls or support sessions to extract text for analysis or compliance archiving",
+    "Meeting transcription pipeline — transcribing Zoom/Chime recordings into searchable notes with speaker labels",
+    "Voice-to-task agents that receive audio input (from a phone system or recording) and convert to structured action items",
+    "Call analytics at scale — batch transcribing thousands of audio files for sentiment analysis or QA workflows"
+  ],
+  "not_for": [
+    "Real-time voice-to-text in browser applications — Web Speech API or Deepgram have simpler client-side integration",
+    "Short one-off transcriptions where Whisper running locally would be faster and cheaper",
+    "Languages outside the supported set — coverage is good but not universal; check documentation for your target language"
+  ],
+  "best_when": "You are building an AWS-integrated voice or audio processing pipeline that needs accurate transcription with speaker attribution, custom vocabulary for domain terminology, or PII redaction built in.",
+  "avoid_when": "You need ultra-low latency streaming transcription for interactive voice applications — Transcribe Streaming adds meaningful latency compared to edge/local alternatives.",
+  "alternatives": ["google-cloud-speech-api", "openai-whisper-api", "deepgram-api", "assembly-ai-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "node", "java", "go", "dotnet", "ruby", "cpp"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["aws_iam"],
+    "oauth": false,
+    "scopes": true,
+    "notes": "AWS SigV4 signing via IAM credentials or roles. Batch transcription requires transcribe:StartTranscriptionJob and S3 read/write permissions. Streaming transcription uses a WebSocket-based API with SigV4 query string signing — more complex than standard REST auth."
+  },
+  "pricing": {
+    "model": "pay-as-you-go",
+    "free_tier_exists": true,
+    "free_tier_limits": "60 minutes/month of transcription for the first 12 months.",
+    "paid_tiers": "Batch transcription: $0.024/minute. Streaming transcription: $0.024/minute. Call Analytics: $0.0286/minute. Medical transcription: $0.048–$0.075/minute. Custom vocabulary: free to create, charged at standard rate when used.",
+    "requires_credit_card": true,
+    "notes": "Pricing is per second of audio, rounded up to the nearest second. Silence in audio still counts toward billed time. PII redaction and custom vocabulary use standard per-minute pricing — no surcharge."
+  },
+  "performance": {
+    "latency_p50_ms": 5000,
+    "latency_p99_ms": 30000,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "Default: 100 concurrent batch jobs, 5 concurrent streaming sessions. Batch jobs complete in roughly real-time to 2x audio duration. Increase via Service Quotas. Streaming: 5 TPS per session.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": true,
+    "domain_verification": false,
+    "data_residency": ["US", "EU", "APAC", "CA"],
+    "compliance": ["SOC1", "SOC2", "SOC3", "ISO27001", "ISO27017", "ISO27018", "HIPAA", "GDPR", "FedRAMP-Moderate"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 81,
+    "error_message_quality": 76,
+    "error_message_notes": "Batch job failures are reported in the TranscriptionJob object's FailureReason field — agents must poll or handle SNS notifications to detect failures. Streaming errors surface as exceptions on the WebSocket connection. Audio format errors are described clearly.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Each StartTranscriptionJob call requires a unique job name — reusing a name fails with ConflictException. Use deterministic job names (e.g., hash of S3 URI + timestamp) to detect already-running or completed jobs and skip re-submission.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Batch transcription is asynchronous — agents must poll GetTranscriptionJob or configure SNS notifications; there is no synchronous batch API",
+      "Streaming transcription uses a WebSocket API with SigV4 query-string signing, which differs from standard AWS REST auth — most generic AWS SDKs do not abstract this cleanly",
+      "Job names must be unique per account per region — collision handling is the agent's responsibility",
+      "Speaker diarization (identifying who said what) requires setting MaxSpeakerLabels and is not compatible with all other features (e.g., channel identification)",
+      "Audio must be in S3 for batch jobs and in a supported format (MP3, MP4, WAV, FLAC, OGG, AMR, WebM) — format mismatches fail at submission time"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 81,
+    "error_handling_score": 76,
+    "auth_complexity_score": 60,
+    "rate_limit_clarity_score": 74
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 92,
+    "scope_granularity": 88,
+    "dependency_hygiene": 88,
+    "secret_handling": 90,
+    "security_notes": "Audio files are not stored by Transcribe beyond the transcription job lifetime. Output transcripts are written to customer-controlled S3. KMS encryption supported for output. VPC endpoints available. HIPAA-eligible — appropriate for medical transcription workloads with a BAA."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 86,
+    "breaking_changes_history": 84,
+    "error_recovery": 80
+  }
+}
