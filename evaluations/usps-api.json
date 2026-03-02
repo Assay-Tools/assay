@@ -1,0 +1,105 @@
+{
+  "id": "usps-api",
+  "name": "USPS Web Tools API",
+  "version_evaluated": "current",
+  "homepage": "https://www.usps.com/business/web-tools-apis/",
+  "repo_url": null,
+  "category": "logistics",
+  "subcategories": ["shipping", "tracking", "address-validation"],
+  "tags": ["usps", "shipping", "postal", "tracking", "address-validation", "rates", "domestic"],
+  "what_it_does": "Provides XML-based access to USPS postal services including rate calculation, package tracking, address standardization, and label generation for domestic mail.",
+  "use_cases": [
+    "Calculate domestic postage rates for various USPS mail classes to display shipping costs at e-commerce checkout",
+    "Track USPS package status using tracking numbers to update customers on delivery progress",
+    "Standardize and validate US mailing addresses to reduce undeliverable mail and improve data quality",
+    "Generate shipping labels for Priority Mail, First-Class, and other USPS service types",
+    "Look up ZIP code information and city/state associations for address form auto-complete"
+  ],
+  "not_for": [
+    "International shipping label generation (limited international support, use a multi-carrier API instead)",
+    "High-volume automated label printing where the developer registration and XML overhead add unacceptable friction",
+    "Any use case requiring a modern REST or JSON interface without XML parsing overhead"
+  ],
+  "best_when": "You need low-cost domestic US postage rates or address validation and already have the USPS Web Tools account provisioned.",
+  "avoid_when": "You are starting a new integration today — the newer USPS REST API or a third-party aggregator like EasyPost is a better long-term investment than the legacy XML Web Tools.",
+  "alternatives": ["ups-api", "fedex-api", "easypost-api", "shippo-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": false,
+    "sdk_languages": [],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["api_key"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Authentication uses a USPS-issued User ID passed as a parameter in every XML request body. No token exchange or OAuth flow. The User ID is obtained after registering on the Web Tools portal; USPS mails a physical confirmation letter during registration, which can take several days."
+  },
+  "pricing": {
+    "model": "usage_based",
+    "free_tier_exists": true,
+    "free_tier_limits": "API access is free; postage costs apply per shipment through a USPS business account",
+    "paid_tiers": "No separate API fee; production postage billed at USPS Commercial Plus or retail rates depending on account type",
+    "requires_credit_card": false,
+    "notes": "Web Tools API access is free. Developer registration requires waiting for a physical confirmation mailing from USPS before production access is granted, which is a significant onboarding friction point."
+  },
+  "performance": {
+    "latency_p50_ms": 600,
+    "latency_p99_ms": 4000,
+    "uptime_sla_percent": 99.0,
+    "rate_limits": "Not publicly documented; USPS enforces undisclosed throttling; production accounts have higher limits than test accounts",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["US"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 65,
+    "error_message_quality": 62,
+    "error_message_notes": "Error responses are XML-encoded with numeric codes and short descriptions. Many codes are undocumented or only explained in legacy PDF guides. Agents must parse XML error envelopes rather than structured JSON errors.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Tracking and rate queries are safe to retry. Label creation can result in duplicate postage charges if retried without voidance.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Registration requires physical mail confirmation from USPS — agents or CI pipelines cannot self-provision test credentials programmatically",
+      "All requests and responses are XML, not JSON — agents using JSON-native tooling must handle XML serialization and parsing at every step",
+      "User ID is passed in the XML request body, not in HTTP headers — standard bearer token injection middleware will not work",
+      "The Web Tools API is being deprecated in favor of a new USPS REST API; new integrations built on Web Tools will require migration",
+      "Production and test environments share the same base URL but use different User IDs; mixing them causes misleading successes in test that fail in production"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 65,
+    "error_handling_score": 62,
+    "auth_complexity_score": 60,
+    "rate_limit_clarity_score": 45
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 55,
+    "scope_granularity": 40,
+    "dependency_hygiene": 65,
+    "secret_handling": 60,
+    "security_notes": "User ID in request body is a weak auth pattern — no expiry, no rotation mechanism documented, no scopes. TLS is enforced. This is a legacy design that predates modern API security practices."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 65,
+    "version_stability": 70,
+    "breaking_changes_history": 72,
+    "error_recovery": 60
+  }
+}
