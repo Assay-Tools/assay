@@ -1,0 +1,105 @@
+{
+  "id": "alertmanager-api",
+  "name": "Prometheus Alertmanager API",
+  "version_evaluated": "current",
+  "homepage": "https://prometheus.io/docs/alerting/latest/alertmanager/",
+  "repo_url": "https://github.com/prometheus/alertmanager",
+  "category": "infrastructure",
+  "subcategories": ["monitoring", "alerting", "observability", "self-hosted"],
+  "tags": ["prometheus", "alertmanager", "monitoring", "alerts", "silences", "open-source", "self-hosted"],
+  "what_it_does": "Prometheus Alertmanager REST API — manages alert silences, inhibition rules, and alert routing for Prometheus-based monitoring stacks; queries active alerts and receivers in self-hosted or managed Alertmanager deployments.",
+  "use_cases": [
+    "Agents creating maintenance silences — automatically silencing alert groups during planned maintenance windows without manual dashboard interaction",
+    "Incident response automation — agents querying active firing alerts, grouping by severity, and routing to appropriate on-call workflows",
+    "Alert lifecycle management — agents expiring or extending silences based on deployment status or external change management system events",
+    "Runbook automation — agents polling Alertmanager for specific alert labels and triggering remediation scripts in response to known alert patterns",
+    "Observability dashboards — agents fetching current alert counts, silence durations, and receiver health to populate NOC status pages"
+  ],
+  "not_for": [
+    "Cloud-native managed alerting without Prometheus — use PagerDuty, OpsGenie, or AWS CloudWatch Alarms for managed alert delivery without self-hosting",
+    "Metric collection or querying — Alertmanager handles alert routing only; use the Prometheus query API for metric data",
+    "External-facing alerting SaaS — Alertmanager is an internal infrastructure component, not a customer-facing notification service"
+  ],
+  "best_when": "You operate a Prometheus-based monitoring stack and need to automate silence management, alert routing configuration, or integrate alert state into incident response workflows.",
+  "avoid_when": "You do not already run Prometheus/Alertmanager infrastructure — the operational overhead of self-hosting is not justified if you need managed alerting.",
+  "alternatives": ["pagerduty-api", "opsgenie-api", "grafana-api", "victoriametrics-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": false,
+    "sdk_languages": [],
+    "openapi_spec_url": "https://raw.githubusercontent.com/prometheus/alertmanager/main/api/v2/openapi.yaml",
+    "webhooks": true
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Alertmanager has no built-in authentication by default — it is designed for internal cluster use and assumes network-level security. Authentication (basic auth, OAuth2 proxy) must be added via a reverse proxy (nginx, Traefik) in front of Alertmanager. Many deployments run completely unauthenticated inside private networks."
+  },
+  "pricing": {
+    "model": "free",
+    "free_tier_exists": true,
+    "free_tier_limits": "Fully open source and free — no usage limits beyond your own infrastructure capacity",
+    "paid_tiers": "No paid tiers. Managed Alertmanager is available through Grafana Cloud and other hosted Prometheus services.",
+    "requires_credit_card": false,
+    "notes": "Alertmanager is Apache 2.0 licensed open-source software. Self-hosting is free. Infrastructure costs are your own. Managed hosting via Grafana Cloud or AWS Managed Service for Prometheus may incur costs."
+  },
+  "performance": {
+    "latency_p50_ms": 20,
+    "latency_p99_ms": 100,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "No built-in rate limiting. Performance depends on self-hosted infrastructure. Alertmanager is very lightweight for typical alert volumes.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 80,
+    "error_message_quality": 72,
+    "error_message_notes": "HTTP status codes are used consistently. Error responses are plain text or minimal JSON. The API is simple enough that error scenarios are limited — most errors are malformed requests or silence ID not found. Error messages are functional but not highly descriptive.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "GET operations are fully idempotent. POST /silences creates new silences each call (not idempotent); agents should query existing silences before creating to avoid duplicates. DELETE operations are idempotent.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "No built-in auth — agents must handle whatever auth layer is in front of Alertmanager (basic auth headers, bearer tokens via proxy) which varies per deployment",
+      "Silence matchers use a label selector syntax that must match exactly — partial label matches do not work; agents must know the exact label set of the alerts to silence",
+      "Silences require an explicit end time — agents must calculate and set an absolute expiry timestamp, not a duration; forgetting this creates permanent silences",
+      "The v1 and v2 APIs have different paths and response formats — agents must confirm which API version the target Alertmanager deployment exposes",
+      "Alert state in Alertmanager (active, suppressed, silenced) is ephemeral — if Alertmanager restarts without persistent storage configured, all active silences are lost"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 80,
+    "error_handling_score": 70,
+    "auth_complexity_score": 60,
+    "rate_limit_clarity_score": 85
+  },
+  "security_score_components": {
+    "tls_enforcement": 70,
+    "auth_strength": 40,
+    "scope_granularity": 30,
+    "dependency_hygiene": 85,
+    "secret_handling": 60,
+    "security_notes": "No built-in authentication is the primary security concern — Alertmanager must be secured at the network or reverse-proxy layer. TLS is not enforced by default. As an internal tool, this is acceptable in air-gapped environments but unacceptable if exposed to the internet. The open-source codebase has good dependency hygiene and a strong security track record."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 80,
+    "version_stability": 88,
+    "breaking_changes_history": 85,
+    "error_recovery": 78
+  }
+}
