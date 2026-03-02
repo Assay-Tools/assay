@@ -1,0 +1,105 @@
+{
+  "id": "cloudflare-pages-api",
+  "name": "Cloudflare Pages API",
+  "version_evaluated": "current",
+  "homepage": "https://developers.cloudflare.com/pages/",
+  "repo_url": null,
+  "category": "infrastructure",
+  "subcategories": ["hosting", "deployment", "edge", "ci-cd"],
+  "tags": ["hosting", "static-site", "jamstack", "edge", "cloudflare", "deployment", "workers", "fullstack", "ci-cd"],
+  "what_it_does": "Provides a REST API to manage Cloudflare Pages projects, trigger deployments, and inspect deployment status for static sites and fullstack applications running at the Cloudflare edge.",
+  "use_cases": [
+    "Agent triggers a new Pages deployment via API after completing a content generation or code modification task, automating the publish step",
+    "Agent polls deployment status after triggering a build to confirm a site is live before notifying stakeholders or running smoke tests",
+    "Agent creates new Pages projects programmatically as part of a scaffolding workflow that provisions full-stack applications for new tenants",
+    "Agent retrieves deployment logs via API to diagnose build failures and surface error summaries to developers without requiring manual log inspection",
+    "Agent manages environment variable configuration for Pages projects as part of a secrets rotation or environment promotion workflow"
+  ],
+  "not_for": [
+    "Dynamically serving or modifying page content at runtime — use Cloudflare Workers for server-side logic; Pages is for deploying built assets",
+    "Hosting applications that require persistent server processes or WebSockets beyond what Cloudflare Workers supports",
+    "Teams not using Cloudflare as their CDN/edge provider"
+  ],
+  "best_when": "Your agent manages deployment pipelines for static or JAMstack sites already hosted on Cloudflare Pages and needs to trigger or verify deployments programmatically.",
+  "avoid_when": "You need a full CI/CD pipeline with complex build orchestration — Pages build system is simple and not a replacement for GitHub Actions or CircleCI.",
+  "alternatives": ["vercel-api", "netlify-api", "github-actions-api", "render-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["node", "typescript"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["api_key"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Cloudflare API tokens with Pages-specific permissions (Cloudflare Pages:Edit). Account ID required in all API paths. API tokens support fine-grained permission scoping via the Cloudflare dashboard."
+  },
+  "pricing": {
+    "model": "freemium",
+    "free_tier_exists": true,
+    "free_tier_limits": "500 builds/month, 1 concurrent build, unlimited static asset requests, 100 custom domains",
+    "paid_tiers": "Workers Paid plan ($5/month) includes 5,000 builds/month, 5 concurrent builds; additional builds at $0.005 each",
+    "requires_credit_card": false,
+    "notes": "Static asset serving is free with no bandwidth charges. Build minutes are the primary constraint. Agent-triggered deployments consume build quota — agents that trigger frequent deployments should monitor build usage."
+  },
+  "performance": {
+    "latency_p50_ms": 150,
+    "latency_p99_ms": 800,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "Cloudflare API: 1,200 requests per 5 minutes globally per API token; Pages-specific actions (deploy trigger) are additionally limited by build queue capacity",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["global"],
+    "compliance": ["SOC2"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 82,
+    "error_message_quality": 78,
+    "error_message_notes": "Cloudflare API errors are well-structured JSON with codes and messages. Build-level errors (e.g., compilation failures) are accessible via deployment logs API but not surfaced in the trigger response — agents must poll logs separately.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Deployment trigger API (POST) always creates a new deployment and is not idempotent. GET operations for project/deployment status are fully idempotent. Agents must track deployment IDs to avoid triggering duplicate builds.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Deployment builds are asynchronous — the trigger API returns a deployment ID immediately but build completion takes minutes; agents must implement polling against the deployment status endpoint",
+      "Build failures return a successful HTTP 200 on the trigger call — success is determined by polling the deployment's 'latest_stage' status field, not the trigger response",
+      "Direct upload deployments (via the API without Git) require multipart form data with all site assets — not suitable for large sites; Git-connected deployments are simpler for most workflows",
+      "Environment variables set via API are encrypted at rest and not readable back — agents cannot verify current values, only overwrite them",
+      "Pages Functions (server-side Workers within a Pages project) have their own deployment lifecycle that is coupled to the Pages build — agents cannot deploy Functions independently"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 82,
+    "error_handling_score": 78,
+    "auth_complexity_score": 85,
+    "rate_limit_clarity_score": 80
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 85,
+    "scope_granularity": 82,
+    "dependency_hygiene": 85,
+    "secret_handling": 85,
+    "security_notes": "API tokens can be scoped to Cloudflare Pages permissions only, limiting blast radius. Environment variables are encrypted at rest and write-only via API. Build logs may contain sensitive values if not carefully managed in build scripts."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 85,
+    "version_stability": 83,
+    "breaking_changes_history": 82,
+    "error_recovery": 80
+  }
+}

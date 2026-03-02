@@ -1,0 +1,105 @@
+{
+  "id": "couchdb-api",
+  "name": "Apache CouchDB REST API",
+  "version_evaluated": "current",
+  "homepage": "https://couchdb.apache.org",
+  "repo_url": "https://github.com/apache/couchdb",
+  "category": "database",
+  "subcategories": ["document", "sync"],
+  "tags": ["nosql", "document-store", "replication", "offline-first", "http-native", "open-source", "apache"],
+  "what_it_does": "CouchDB REST API gives agents a fully HTTP-native document database with built-in replication, conflict resolution, and change feeds for offline-first and sync-heavy workflows.",
+  "use_cases": [
+    "Replicate datasets between agent instances or edge nodes using CouchDB's built-in bi-directional replication protocol",
+    "Monitor real-time document changes via the _changes feed to trigger agent workflows on data mutations",
+    "Store and retrieve schema-free JSON documents with automatic revision tracking and conflict detection",
+    "Implement offline-capable agent pipelines where data is written locally and synced to a central CouchDB instance when connectivity resumes",
+    "Run MapReduce views to pre-aggregate documents for reporting without a separate ETL step"
+  ],
+  "not_for": [
+    "High-throughput OLAP analytics where a columnar database (ClickHouse, QuestDB) would be orders of magnitude faster",
+    "Complex relational queries with multi-table joins that require a SQL optimizer",
+    "Write-heavy workloads at Cassandra or ScyllaDB scale — CouchDB's MVCC write throughput is limited by single-node architecture"
+  ],
+  "best_when": "An agent needs reliable document sync across distributed or occasionally-connected nodes with automatic conflict resolution.",
+  "avoid_when": "The workload demands high write throughput, complex aggregations, or strict relational integrity.",
+  "alternatives": ["couchbase-api", "arangodb-api", "mongodb-atlas-api", "pocketbase-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "node", "java", "ruby", "php", "go"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["basic", "cookie", "proxy"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Basic auth supported on every request. Session cookie auth available via /_session endpoint. Proxy auth allows delegating identity from a trusted reverse proxy. Per-database read/write permissions can be set via security documents. No built-in JWT or API key mechanism — agents typically use basic auth with dedicated service accounts."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Free self-hosted with no restrictions; IBM Cloudant (managed CouchDB) has a Lite plan with 1GB storage and 20 reads/sec",
+    "paid_tiers": "IBM Cloudant Standard: $0.15/GB storage + $0.015 per 100 reads + $0.05 per 100 writes; enterprise pricing available",
+    "requires_credit_card": false,
+    "notes": "Apache CouchDB itself is fully open-source (Apache 2). IBM Cloudant is the primary managed offering. PouchDB provides a JavaScript-native compatible client."
+  },
+  "performance": {
+    "latency_p50_ms": 5,
+    "latency_p99_ms": 60,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "None for self-hosted; Cloudant Lite caps at 20 reads/sec and 10 writes/sec",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted", "cloudant-ibm"],
+    "compliance": ["SOC2", "ISO27001"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 78,
+    "error_message_notes": "HTTP status codes are semantically correct and well-documented. Error JSON bodies include 'error' and 'reason' fields which are human-readable. Conflict errors (409) are common and must be explicitly handled in agent retry logic.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Reads are fully idempotent. Document updates require the current _rev to be passed; missing or stale _rev returns 409 Conflict. Agents must implement a read-modify-write loop with retry to handle concurrent updates safely.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Every document update requires the current _rev value; agents that cache _rev values will encounter 409 Conflict errors under concurrent access and must implement read-modify-write retry loops",
+      "The _changes feed can return the same sequence multiple times if a node restarts; agents must handle duplicate change events idempotently",
+      "Deleted documents retain a tombstone revision forever; agents querying for 'all documents' will include deleted tombstones unless explicitly filtered with include_docs and checking _deleted flag",
+      "MapReduce views are built lazily and may return stale data until rebuilt; agents requiring fresh aggregates must use stale=false which triggers a blocking index rebuild",
+      "CouchDB does not support server-side joins; agents querying related documents must issue multiple HTTP requests and join data client-side, which can be slow at scale"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 78,
+    "auth_complexity_score": 80,
+    "rate_limit_clarity_score": 83
+  },
+  "security_score_components": {
+    "tls_enforcement": 78,
+    "auth_strength": 72,
+    "scope_granularity": 68,
+    "dependency_hygiene": 80,
+    "secret_handling": 75,
+    "security_notes": "TLS must be configured manually in self-hosted deployments and is off by default. Basic auth sends credentials on every request — TLS is essential. No native API key or JWT support; service accounts with dedicated credentials recommended. Per-database ACLs provide some granularity but are coarser than modern RBAC systems."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 78,
+    "version_stability": 82,
+    "breaking_changes_history": 80,
+    "error_recovery": 76
+  }
+}
