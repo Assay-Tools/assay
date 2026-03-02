@@ -1,0 +1,105 @@
+{
+  "id": "gitpod-api",
+  "name": "Gitpod API",
+  "version_evaluated": "current",
+  "homepage": "https://www.gitpod.io",
+  "repo_url": "https://github.com/gitpod-io/gitpod",
+  "category": "developer-tools",
+  "subcategories": ["cloud-development-environments", "workspace-automation"],
+  "tags": ["cde", "cloud-ide", "workspace", "devcontainer", "ephemeral-environments"],
+  "what_it_does": "Provides programmatic control over Gitpod cloud development environments, enabling agents to create, start, stop, and manage ephemeral workspaces tied to git repositories.",
+  "use_cases": [
+    "Spin up a pre-configured dev environment for a pull request review without local setup",
+    "Automate workspace creation for onboarding pipelines that provision environments per-developer",
+    "Monitor and shut down idle workspaces to control cloud spend",
+    "List and audit all running workspaces across an organization for compliance reporting",
+    "Trigger workspace builds to validate that a repository's devcontainer configuration is functional"
+  ],
+  "not_for": [
+    "Running arbitrary long-lived server processes — workspaces time out when idle",
+    "Persistent database hosting — ephemeral nature means data is lost unless explicitly persisted",
+    "Replacing CI/CD runners for heavy build pipelines — cost and latency are higher than dedicated CI"
+  ],
+  "best_when": "An agent needs to provision a fully pre-configured, browser-accessible coding environment from a git URL without managing local infrastructure.",
+  "avoid_when": "You need long-running stateful compute or sub-second workspace start times, as cold starts can take 30-90 seconds.",
+  "alternatives": ["replit-api", "github-codespaces-api", "coder-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": true,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["node", "go"],
+    "openapi_spec_url": "https://gitpod.io/static/media/gitpod-openapi-public.yaml",
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["api_key", "oauth2"],
+    "oauth": true,
+    "scopes": true,
+    "notes": "Personal Access Tokens (PATs) are the primary method for agent use. OAuth2 is available for user-delegated flows. PATs are scoped to workspace read/write and org-level access."
+  },
+  "pricing": {
+    "model": "freemium",
+    "free_tier_exists": true,
+    "free_tier_limits": "50 hours/month of workspace usage on the free plan",
+    "paid_tiers": "Individual paid plans start around $9/month for more hours; Team plans scale by seat",
+    "requires_credit_card": false,
+    "notes": "Free tier is sufficient for light agent experimentation. Heavy automation scenarios require a paid plan."
+  },
+  "performance": {
+    "latency_p50_ms": 300,
+    "latency_p99_ms": 1500,
+    "uptime_sla_percent": 99.5,
+    "rate_limits": "Not publicly documented; generous for typical API usage, workspace creation is the bottleneck (30-90s per workspace)",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["EU"],
+    "compliance": ["SOC2"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 78,
+    "error_message_quality": 75,
+    "error_message_notes": "gRPC errors include status codes but REST error bodies are sometimes generic; workspace state transitions can fail silently if the underlying VM is unhealthy.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Workspace creation by context URL is idempotent in practice (reuses running workspace), but the API does not guarantee this; stopping an already-stopped workspace returns an error rather than a no-op.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Workspace start is asynchronous — polling workspace status is required; there is no webhook to signal readiness",
+      "Free-tier workspaces are rate-limited on concurrent count (typically 4), causing 429s during burst creation",
+      "Context URLs must be exact git refs; malformed URLs produce unhelpful 400 errors without field-level detail",
+      "The REST API and gRPC API have feature parity gaps — some workspace controls only exist in gRPC",
+      "Personal Access Tokens expire; agents must handle 401s and surface token rotation to operators"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 78,
+    "error_handling_score": 75,
+    "auth_complexity_score": 80,
+    "rate_limit_clarity_score": 60
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 82,
+    "scope_granularity": 75,
+    "dependency_hygiene": 78,
+    "secret_handling": 80,
+    "security_notes": "All traffic over TLS. PATs can be scoped but granularity is coarse (workspace vs org). No IP allowlisting on free tier."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 78,
+    "version_stability": 75,
+    "breaking_changes_history": 70,
+    "error_recovery": 74
+  }
+}
