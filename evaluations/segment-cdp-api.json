@@ -1,0 +1,105 @@
+{
+  "id": "segment-cdp-api",
+  "name": "Twilio Segment",
+  "version_evaluated": "current",
+  "homepage": "https://segment.com",
+  "repo_url": null,
+  "category": "data-engineering",
+  "subcategories": ["customer-data", "analytics"],
+  "tags": ["cdp", "event-tracking", "data-pipeline", "analytics", "identity-resolution", "twilio", "etl"],
+  "what_it_does": "Customer Data Platform that collects user events from sources via a unified tracking API and routes them to hundreds of analytics, marketing, and data warehouse destinations.",
+  "use_cases": [
+    "Instrument an application to send `track`, `identify`, and `page` events from a single SDK call that fans out to all configured destinations",
+    "Build an agent that reads Segment Profiles API to enrich a user record with behavioral history before personalizing a response",
+    "Automate Connections API calls to create or update Sources and Destinations programmatically as part of a data infrastructure provisioning workflow",
+    "Use the Public API to query warehouse sync status and alert on failed destination deliveries",
+    "Replay historical events to a newly added destination without re-instrumenting the source application"
+  ],
+  "not_for": [
+    "Real-time query of individual event streams with sub-second latency — Segment is a routing layer, not a time-series database",
+    "Storing or querying raw event data directly; data lives in downstream destinations like BigQuery or Snowflake",
+    "Free forever high-volume tracking; free tier is limited to 1,000 MTUs per month"
+  ],
+  "best_when": "You need a single instrumentation point that routes behavioral data to multiple analytics and marketing tools without maintaining separate integrations for each.",
+  "avoid_when": "You only use one downstream tool and don't need cross-destination routing — direct SDK integration is simpler and cheaper.",
+  "alternatives": ["rudderstack-api", "amplitude-api", "mixpanel-api", "heap-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["node", "python", "java", "go", "ruby"],
+    "openapi_spec_url": "https://docs.segmentapis.com/openapi/",
+    "webhooks": true
+  },
+  "auth": {
+    "methods": ["api_key", "bearer_token"],
+    "oauth": true,
+    "scopes": true,
+    "notes": "Tracking API uses a Write Key per source (included in SDK init). Public API and Connections API use Personal Access Tokens or OAuth 2.0 with workspace-level scopes. Separate keys per source is best practice."
+  },
+  "pricing": {
+    "model": "freemium",
+    "free_tier_exists": true,
+    "free_tier_limits": "Free tier: 1,000 Monthly Tracked Users (MTUs), 2 sources, unlimited destinations",
+    "paid_tiers": "Team from ~$120/month for more MTUs; Business tier custom pricing with advanced features like HIPAA BAA and unlimited warehouses",
+    "requires_credit_card": false,
+    "notes": "MTU-based pricing can be surprising — each unique user ID counts once per month regardless of event volume. Anonymous users on free tier count too."
+  },
+  "performance": {
+    "latency_p50_ms": 150,
+    "latency_p99_ms": 600,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "Tracking API: no hard published rate limit but recommends batching; Public API: 600 requests/min per token",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["US", "EU"],
+    "compliance": ["SOC2", "GDPR", "HIPAA", "ISO27001"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 87,
+    "error_message_quality": 83,
+    "error_message_notes": "Tracking API returns 200 for all calls even on schema violations — errors surface only in the Segment debugger UI or Destination error logs, not in the HTTP response.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Events can be deduplicated using the `messageId` field; agents should generate and store a stable messageId per event to enable replay deduplication.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Tracking API always returns HTTP 200 regardless of event validity — agents cannot detect bad payloads from status codes alone; use the Source Debugger or schema violations webhook",
+      "Write Keys are source-specific; using the wrong Write Key silently routes events to the wrong source with no error",
+      "Destinations have their own per-event transformation and filter logic — an event tracked in Segment may not appear in a destination if it fails destination-level filters",
+      "MTU counting is per workspace per month; test environments sharing a workspace with production will inflate MTU count and affect billing",
+      "Profiles API (Unify) is only available on Business tier — agents assuming profile enrichment is available on free/Team plans will hit 403 errors"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 87,
+    "error_handling_score": 75,
+    "auth_complexity_score": 80,
+    "rate_limit_clarity_score": 78
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 85,
+    "scope_granularity": 82,
+    "dependency_hygiene": 85,
+    "secret_handling": 83,
+    "security_notes": "Write Keys are low-privilege append-only credentials. Public API tokens support fine-grained workspace scopes. OAuth 2.0 available for production integrations. HIPAA BAA available on Business tier."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 90,
+    "version_stability": 88,
+    "breaking_changes_history": 85,
+    "error_recovery": 80
+  }
+}

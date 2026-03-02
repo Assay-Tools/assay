@@ -1,28 +1,28 @@
 {
   "id": "google-maps-api",
-  "name": "Google Maps Platform API",
+  "name": "Google Maps Platform",
   "version_evaluated": "current",
   "homepage": "https://developers.google.com/maps",
-  "repo_url": "https://github.com/googlemaps/google-maps-services-python",
-  "category": "maps",
-  "subcategories": ["geocoding", "directions", "places", "geolocation"],
-  "tags": ["google-maps", "geocoding", "directions", "places", "geolocation", "routing", "rest-api", "sdk"],
-  "what_it_does": "Google's comprehensive mapping platform providing geocoding, reverse geocoding, directions, distance matrix, places search, and static/dynamic maps APIs for location-aware applications.",
+  "repo_url": null,
+  "category": "developer-tools",
+  "subcategories": ["geospatial", "mapping"],
+  "tags": ["maps", "geocoding", "directions", "places", "geospatial", "routing", "static-maps"],
+  "what_it_does": "Provides REST APIs for geocoding addresses, computing directions and routes, searching places, rendering static map images, and embedding interactive maps in applications.",
   "use_cases": [
-    "Geocoding addresses to coordinates in agent workflows",
-    "Calculating routes and travel times between locations",
-    "Searching for places (businesses, points of interest) by name or category",
-    "Distance matrix calculations for logistics optimization",
-    "Reverse geocoding coordinates to addresses"
+    "Geocode a user-supplied address to lat/lng coordinates for storage or display",
+    "Compute turn-by-turn driving, cycling, or transit directions between two points",
+    "Search for nearby businesses or points of interest using Places API text or nearby search",
+    "Render a static map image thumbnail of a location for embedding in emails or reports",
+    "Validate and autocomplete partial address strings in real-time forms using Places Autocomplete"
   ],
   "not_for": [
-    "Custom map styling for embedded map UIs (complex)",
-    "Real-time traffic data streaming",
-    "Teams with tight budgets at high query volumes (pricing adds up quickly)"
+    "Offline or air-gapped map rendering without internet access to Google servers",
+    "Bulk geocoding millions of addresses cheaply — costs add up quickly beyond free credit",
+    "Open-source or self-hosted map tile serving where vendor lock-in is a concern"
   ],
-  "best_when": "An agent needs geocoding, routing, or places data and you want the most comprehensive and accurate location dataset globally.",
-  "avoid_when": "You need cost control at high volume or want to avoid Google vendor lock-in.",
-  "alternatives": ["mapbox-api", "here-maps-api"],
+  "best_when": "You need accurate geocoding, routing, and places data backed by Google's global dataset with a well-documented REST API and official SDKs.",
+  "avoid_when": "Your workload exceeds the $200/month free credit and budget is constrained, or you need open-source infrastructure free of Google's terms of service.",
+  "alternatives": ["maplibre-api", "mapbox-api", "here-maps-api", "openstreetmap-nominatim"],
   "interface": {
     "has_rest_api": true,
     "has_graphql": false,
@@ -30,29 +30,29 @@
     "has_mcp_server": false,
     "mcp_server_url": null,
     "has_sdk": true,
-    "sdk_languages": ["python", "node", "java", "go"],
-    "openapi_spec_url": "https://developers.google.com/maps/documentation/webservices",
+    "sdk_languages": ["node", "python", "java", "go"],
+    "openapi_spec_url": null,
     "webhooks": false
   },
   "auth": {
     "methods": ["api_key"],
     "oauth": false,
     "scopes": false,
-    "notes": "API key in query parameter or header. Restriction by HTTP referrer or IP recommended. Simple for agents. Billing account required even for free tier."
+    "notes": "Single API key passed as query parameter `key=`. Keys can be restricted by HTTP referrer, IP address, or specific APIs via the Cloud Console. Unrestricted keys are a common security risk."
   },
   "pricing": {
-    "model": "pay-as-you-go",
+    "model": "usage_based",
     "free_tier_exists": true,
-    "free_tier_limits": "$200/month free credit (~40k geocoding requests or 10k directions requests)",
-    "paid_tiers": "Geocoding: $5/1000 requests; Directions: $5/1000; Places: $17-32/1000 depending on field mask",
+    "free_tier_limits": "$200/month free credit (~40,000 geocoding requests or ~28,000 directions requests)",
+    "paid_tiers": "Pay-as-you-go per API call after credit exhausted; e.g., Geocoding $5/1000, Directions $10/1000, Places Nearby $32/1000",
     "requires_credit_card": true,
-    "notes": "$200/month free credit covers most small-scale usage. Requires credit card even for free tier. Costs can escalate quickly with high-volume agent queries."
+    "notes": "Billing account and credit card required to enable APIs even within free tier. Set budget alerts to avoid surprise charges."
   },
   "performance": {
-    "latency_p50_ms": 100,
-    "latency_p99_ms": 500,
+    "latency_p50_ms": 80,
+    "latency_p99_ms": 350,
     "uptime_sla_percent": 99.9,
-    "rate_limits": "Geocoding: 50 requests/second; Directions: 50/second; Places: 100/second",
+    "rate_limits": "Geocoding: 50 QPS per project; Directions: 50 QPS; Places: 100 QPS. Monthly quota caps apply per API.",
     "data_source": "llm_estimated"
   },
   "requirements": {
@@ -60,29 +60,46 @@
     "requires_credit_card": true,
     "domain_verification": false,
     "data_residency": ["US", "EU"],
-    "compliance": ["SOC2", "GDPR", "ISO27001"],
+    "compliance": ["SOC2", "ISO27001", "GDPR"],
     "min_contract": "none"
   },
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
-    "documentation_accuracy": 92,
+    "documentation_accuracy": 90,
     "error_message_quality": 85,
-    "error_message_notes": "Clear status field (OK, ZERO_RESULTS, OVER_QUERY_LIMIT, etc.) plus error_message field. Excellent documentation.",
+    "error_message_notes": "HTTP status codes with JSON `error_message` field and `status` string (e.g., ZERO_RESULTS, OVER_QUERY_LIMIT) are clear and actionable for agents.",
     "idempotency_support": "full",
-    "idempotency_notes": "All GET requests are fully idempotent - same input produces same output.",
-    "pagination_style": "cursor",
+    "idempotency_notes": "All endpoints are GET-based read operations; safe to retry without side effects.",
+    "pagination_style": "token",
     "retry_guidance_documented": true,
     "known_agent_gotchas": [
-      "Requires credit card for API key even if staying within $200/month free credit",
-      "Places API field masks required or charged for all fields - expensive if not specified",
-      "Geocoding results may return multiple candidates - agent must select the best match",
-      "Distance Matrix API has element limits per request (100 origins x destinations)",
-      "API key must be restricted to prevent unauthorized use and unexpected bills"
-    ],
-    "error_message_score": 85,
+      "API key passed as a query parameter can be logged in server access logs — use environment variables and restrict key permissions",
+      "OVER_QUERY_LIMIT errors require exponential backoff; aggressive retry loops will rapidly exhaust quota",
+      "Places API Next Page Token has a mandatory 2-second delay before it becomes valid — polling immediately returns INVALID_REQUEST",
+      "Geocoding returns multiple results ordered by relevance; agents must handle ambiguous results rather than assuming index 0 is always correct",
+      "Static Maps URL length is capped at 8192 characters; complex polyline overlays may need encoding or splitting"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 90,
+    "error_handling_score": 85,
     "auth_complexity_score": 85,
-    "rate_limit_score": 80,
-    "security_score": 82
+    "rate_limit_clarity_score": 82
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 75,
+    "scope_granularity": 80,
+    "dependency_hygiene": 88,
+    "secret_handling": 72,
+    "security_notes": "API key in query string is a well-known exposure risk. Key restrictions (IP, referrer, API) partially mitigate this. No OAuth or per-token scoping available for server-side use."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 92,
+    "version_stability": 88,
+    "breaking_changes_history": 85,
+    "error_recovery": 87
   }
 }

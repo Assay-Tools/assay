@@ -1,28 +1,28 @@
 {
   "id": "mixpanel-api",
-  "name": "Mixpanel API",
+  "name": "Mixpanel",
   "version_evaluated": "current",
   "homepage": "https://mixpanel.com",
-  "repo_url": "https://github.com/mixpanel/mixpanel-python",
-  "category": "analytics",
-  "subcategories": ["product-analytics", "event-tracking", "user-analytics"],
-  "tags": ["mixpanel", "analytics", "product-analytics", "events", "funnels", "retention", "rest-api", "sdk"],
-  "what_it_does": "Product analytics platform for tracking user events and behaviors, building funnels and retention analyses, with Ingestion and Query APIs for agent-driven data pipelines.",
+  "repo_url": null,
+  "category": "data-engineering",
+  "subcategories": ["product-analytics", "event-tracking"],
+  "tags": ["analytics", "event-tracking", "product-analytics", "funnels", "retention", "cohorts", "behavioral"],
+  "what_it_does": "Product analytics platform with REST APIs for ingesting user events and querying funnels, retention, segmentation, and cohort reports programmatically.",
   "use_cases": [
-    "Ingesting custom events from agent workflows via Track API",
-    "Querying funnel completion rates and retention data",
-    "Exporting raw event data for downstream processing",
-    "Creating and updating user profiles with custom properties",
-    "Triggering cohort exports for targeting campaigns"
+    "Ingest server-side events via the Ingestion API to track actions taken by agents or backend services without a frontend SDK",
+    "Query the JQL or Query API to pull funnel conversion rates or retention data for automated reporting pipelines",
+    "Create or update user profiles via the Engage API to store agent-computed attributes alongside behavioral data",
+    "Export raw event data via the Data Export API for downstream processing in a data warehouse or ML pipeline",
+    "Use the Cohorts API to programmatically sync computed user segments from an agent into Mixpanel for targeted analysis"
   ],
   "not_for": [
-    "Real-time dashboarding at low latency (data processing has delays)",
-    "Log analytics or infrastructure monitoring",
-    "Teams needing HIPAA-compliant analytics without Business plan"
+    "Real-time streaming analytics with millisecond latency — Mixpanel batch-processes events and reports have minutes of lag",
+    "Storing structured relational data or serving as a general-purpose database",
+    "Infrastructure or system-level metrics monitoring — Mixpanel is scoped to product and user behavioral events"
   ],
-  "best_when": "You need to track product usage events, analyze user behavior funnels, and query analytics data programmatically from agents.",
-  "avoid_when": "You need real-time data or primarily do infrastructure/ops analytics.",
-  "alternatives": ["amplitude-api", "posthog-api", "segment-api"],
+  "best_when": "You need to track user behavior in a product and query it through funnel, retention, or segmentation lenses via a well-documented REST API.",
+  "avoid_when": "Your primary need is infrastructure metrics, log aggregation, or sub-second real-time alerting rather than behavioral product analytics.",
+  "alternatives": ["segment-cdp-api", "amplitude-api", "posthog-api", "heap-api"],
   "interface": {
     "has_rest_api": true,
     "has_graphql": false,
@@ -30,29 +30,29 @@
     "has_mcp_server": false,
     "mcp_server_url": null,
     "has_sdk": true,
-    "sdk_languages": ["python", "node", "ruby", "java", "go", "swift", "android"],
-    "openapi_spec_url": "https://developer.mixpanel.com/reference/overview",
+    "sdk_languages": ["python", "node", "java", "ruby", "swift", "kotlin"],
+    "openapi_spec_url": null,
     "webhooks": false
   },
   "auth": {
-    "methods": ["api_key", "service_account"],
+    "methods": ["bearer_token", "api_key"],
     "oauth": false,
     "scopes": false,
-    "notes": "Ingestion uses project token (public). Query API uses service account credentials (username:secret) with Basic auth. Export API uses API secret. Three different auth methods for different APIs."
+    "notes": "Ingestion API uses a Project Token (public, safe to embed in clients). Query and Export APIs use a Service Account username/secret or Project Secret via HTTP Basic Auth. Project Secret is high-privilege — prefer Service Accounts."
   },
   "pricing": {
     "model": "freemium",
     "free_tier_exists": true,
-    "free_tier_limits": "20M monthly events free on Starter plan",
-    "paid_tiers": "Growth from $24/month, Enterprise custom pricing",
+    "free_tier_limits": "Free plan: 20 million events/month, unlimited data history, core reports",
+    "paid_tiers": "Growth from ~$28/month for advanced features; Enterprise custom pricing with SSO, data pipelines, and SLA",
     "requires_credit_card": false,
-    "notes": "Generous free tier for event ingestion. Query API access and data export require paid plans. Pricing is event-volume based."
+    "notes": "Generous free tier makes Mixpanel accessible for startups and agents at moderate event volumes. Event limits reset monthly."
   },
   "performance": {
-    "latency_p50_ms": 200,
-    "latency_p99_ms": 1000,
+    "latency_p50_ms": 120,
+    "latency_p99_ms": 500,
     "uptime_sla_percent": 99.9,
-    "rate_limits": "Ingestion: 2000 events/second per project; Query API: 60 requests/hour on free",
+    "rate_limits": "Ingestion API: 2GB/hour per project; Query API: 5 concurrent queries; Export API: 60 requests/hour",
     "data_source": "llm_estimated"
   },
   "requirements": {
@@ -66,24 +66,40 @@
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
-    "documentation_accuracy": 82,
-    "error_message_quality": 75,
-    "error_message_notes": "Ingestion API returns minimal error detail (200 with error codes in body). Query API has better error messages.",
+    "documentation_accuracy": 84,
+    "error_message_quality": 80,
+    "error_message_notes": "Ingestion API returns 1 for success and 0 for failure with an error array; agents must check the response body not just HTTP status. Query API errors are more standard JSON.",
     "idempotency_support": "partial",
-    "idempotency_notes": "Events can have an $insert_id for deduplication within a 7-day window. Profile updates are idempotent.",
+    "idempotency_notes": "Events can include a `$insert_id` for deduplication within a 7-day window; agents should generate stable insert IDs to prevent duplicate event counts on retry.",
     "pagination_style": "offset",
     "retry_guidance_documented": true,
     "known_agent_gotchas": [
-      "Ingestion API always returns 200 even on failure - must check response body for errors",
-      "Three different authentication methods across different APIs (token, service account, API secret)",
-      "Query API has strict hourly rate limits on free/growth plans",
-      "Data export lag: events typically available for query after 3-5 minute delay",
-      "JQL (JavaScript Query Language) required for complex queries - not SQL",
-      "$insert_id deduplication only works within 7-day window"
-    ],
-    "error_message_score": 75,
-    "auth_complexity_score": 65,
-    "rate_limit_score": 60,
-    "security_score": 78
+      "Project Token and Project Secret serve different purposes — Project Token is for ingestion only; using it for Query API calls will return 401 with a confusing error",
+      "Event ingestion is eventually consistent; querying immediately after ingestion may not reflect newly sent events — allow 1-2 minutes for data to appear in reports",
+      "The `$insert_id` deduplication window is only 7 days; replaying older events will create duplicates",
+      "Data Export API is rate-limited to 60 requests/hour and exports are by date range; agents exporting large date ranges must paginate by day",
+      "EU data residency requires configuring the EU ingestion endpoint (api-eu.mixpanel.com) — using the US endpoint from an EU project will fail data residency requirements"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 84,
+    "error_handling_score": 80,
+    "auth_complexity_score": 78,
+    "rate_limit_clarity_score": 82
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 80,
+    "scope_granularity": 72,
+    "dependency_hygiene": 83,
+    "secret_handling": 80,
+    "security_notes": "Two-tier credential model (Project Token vs Service Account) is reasonable but lacks fine-grained per-resource scoping. Project Secret is effectively a root credential and should be rotated regularly."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 85,
+    "breaking_changes_history": 83,
+    "error_recovery": 82
   }
 }

@@ -1,29 +1,28 @@
 {
   "id": "monday-api",
-  "name": "Monday.com API",
+  "name": "monday.com",
   "version_evaluated": "current",
-  "homepage": "https://developer.monday.com",
+  "homepage": "https://monday.com",
   "repo_url": null,
-  "category": "project-management",
-  "subcategories": ["tasks", "boards", "workflow", "crm"],
-  "tags": ["monday", "project-management", "boards", "workflow", "graphql", "sdk", "automation", "no-code"],
-  "what_it_does": "Monday.com's GraphQL API for managing boards, items, columns, and workflows in Monday.com's work management and CRM platform.",
+  "category": "developer-tools",
+  "subcategories": ["project-management"],
+  "tags": ["project-management", "graphql", "boards", "automations", "work-os", "no-code", "workflows"],
+  "what_it_does": "Work management platform with a GraphQL API for programmatically creating and updating boards, items, columns, groups, and automations in the monday.com Work OS.",
   "use_cases": [
-    "Creating and updating board items from agent workflows",
-    "Reading board data for automated reporting and dashboards",
-    "Triggering Monday.com automations via API",
-    "Syncing CRM and project data between Monday.com and external systems",
-    "Managing team workflows and approval processes via agents"
+    "Create a new item on a monday.com board when an agent detects an event, setting column values for status, date, owner, and custom fields via a single GraphQL mutation",
+    "Query board items with specific column filters to extract a list of in-progress tasks for automated status reporting",
+    "Update item column values (status, numbers, text, dates) as an agent progresses through a workflow, keeping the board current without human input",
+    "Use webhooks to trigger an agent when an item changes status or a new item is created, enabling event-driven automation without polling",
+    "Create sub-items to break a parent work item into tracked steps that an agent generates dynamically during task decomposition"
   ],
   "not_for": [
-    "Teams not using Monday.com",
-    "Developers who prefer REST over GraphQL",
-    "High-frequency API calls (strict rate limits)",
-    "Budget-conscious teams (Monday.com is expensive)"
+    "Lightweight task management without a monday.com subscription — free tier is limited to 2 seats and basic features",
+    "Complex relational data queries; GraphQL access is scoped to boards/items and does not expose a general-purpose database interface",
+    "Real-time sub-second event processing; monday.com is a work management UI-first platform, not a streaming data system"
   ],
-  "best_when": "An agent needs to interact with Monday.com boards and items as part of a workflow automation tied to an existing Monday.com deployment.",
-  "avoid_when": "Your team doesn't use Monday.com, you prefer REST APIs, or you have tight budget constraints.",
-  "alternatives": ["asana-api", "clickup-api", "trello-api"],
+  "best_when": "Your team already uses monday.com and you need an agent to read and write work items via a well-structured GraphQL API with webhook event support.",
+  "avoid_when": "Your team does not use monday.com; the platform's pricing and complexity is overkill if the goal is purely programmatic task management without the UI.",
+  "alternatives": ["asana-api", "linear-api", "jira-api", "clickup-api"],
   "interface": {
     "has_rest_api": false,
     "has_graphql": true,
@@ -31,7 +30,7 @@
     "has_mcp_server": false,
     "mcp_server_url": null,
     "has_sdk": true,
-    "sdk_languages": ["javascript", "python"],
+    "sdk_languages": ["node", "python"],
     "openapi_spec_url": null,
     "webhooks": true
   },
@@ -39,21 +38,21 @@
     "methods": ["api_key", "oauth2"],
     "oauth": true,
     "scopes": true,
-    "notes": "Personal API tokens for direct access. OAuth2 for building apps on the Monday marketplace. Tokens grant account-wide access. Simple bearer token for agents."
+    "notes": "Personal API tokens for agent/server use; OAuth 2.0 for user-delegated app integrations. API token passed as `Authorization: <token>` header (no Bearer prefix). OAuth scopes include me:read, boards:read, boards:write, and others. Use API token for non-interactive agent workflows."
   },
   "pricing": {
-    "model": "paid",
+    "model": "freemium",
     "free_tier_exists": true,
-    "free_tier_limits": "Free: up to 2 seats, 3 boards",
-    "paid_tiers": "Basic $12/seat/month, Standard $14/seat/month, Pro $24/seat/month, Enterprise custom",
+    "free_tier_limits": "Free plan: up to 2 seats, 3 boards, unlimited items",
+    "paid_tiers": "Basic ~$12/seat/month; Standard ~$14/seat/month; Pro ~$24/seat/month; Enterprise custom pricing",
     "requires_credit_card": false,
-    "notes": "Free tier is very limited (2 seats). Most real use cases require Standard or Pro. Enterprise features (SAML, advanced security) require Enterprise tier."
+    "notes": "API access available on all plans. Automations and integrations (including webhook triggers) require Standard plan or above. Free plan API access is primarily for read/write of basic board data."
   },
   "performance": {
-    "latency_p50_ms": 200,
-    "latency_p99_ms": 800,
+    "latency_p50_ms": 150,
+    "latency_p99_ms": 600,
     "uptime_sla_percent": 99.9,
-    "rate_limits": "5,000 requests/minute (varies by plan)",
+    "rate_limits": "5,000 requests/minute per account on most plans; complexity-based limits apply to GraphQL queries (max 5,000,000 complexity units/minute)",
     "data_source": "llm_estimated"
   },
   "requirements": {
@@ -66,25 +65,41 @@
   },
   "agent_readiness": {
     "mcp_server_quality": null,
-    "mcp_security_score": 72,
-    "documentation_accuracy": 78,
-    "error_message_quality": 72,
-    "error_message_notes": "GraphQL errors returned in errors array with message field. Column value errors can be cryptic. Documentation has improved but GraphQL introspection is the most reliable reference.",
+    "mcp_security_score": null,
+    "documentation_accuracy": 83,
+    "error_message_quality": 80,
+    "error_message_notes": "GraphQL errors return a top-level `errors` array with message and locations. HTTP status is always 200 for GraphQL responses regardless of errors — agents must inspect the response body for the errors field.",
     "idempotency_support": "none",
-    "idempotency_notes": "No idempotency mechanism. Item creation via GraphQL mutation is not idempotent.",
+    "idempotency_notes": "No idempotency keys; duplicate mutations create duplicate items. Agents must query for existing items before creating to avoid duplicates.",
     "pagination_style": "cursor",
-    "retry_guidance_documented": false,
+    "retry_guidance_documented": true,
     "known_agent_gotchas": [
-      "GraphQL-only API means agents must construct queries/mutations — no simple REST calls",
-      "Column values use a complex JSON string format that differs per column type",
-      "Board and item IDs are required for all operations — human-readable names require lookup",
-      "Complexity scoring limits per request — complex queries may be rejected",
-      "Webhook verification requires challenge-response during registration",
-      "Account-level vs board-level permissions can cause confusing 403 errors"
-    ],
-    "error_message_score": 72,
+      "GraphQL always returns HTTP 200 — agents must check for a top-level `errors` array in the JSON response body to detect failures; checking HTTP status alone will miss all API errors",
+      "Authorization header uses the token directly without a Bearer prefix, unlike most REST APIs — `Authorization: <token>` not `Authorization: Bearer <token>`",
+      "Column values must be submitted as JSON-encoded strings within the GraphQL mutation string, creating a double-serialization requirement that is easy to get wrong",
+      "Webhook payloads require HTTPS callback URLs with a valid TLS certificate; self-signed certificates or HTTP endpoints will fail verification and not receive events",
+      "GraphQL query complexity is enforced with a complexity budget per minute; agents running deeply nested queries across large boards can exhaust the budget and receive rate limit errors with no remaining quota"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 83,
+    "error_handling_score": 78,
     "auth_complexity_score": 80,
-    "rate_limit_score": 82,
-    "security_score": 72
+    "rate_limit_clarity_score": 80
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 83,
+    "scope_granularity": 82,
+    "dependency_hygiene": 83,
+    "secret_handling": 82,
+    "security_notes": "OAuth 2.0 scopes provide reasonable access control for user-delegated flows. Personal API tokens are full-account-access for the user — no per-token scope restriction available. HIPAA BAA on Enterprise."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 84,
+    "breaking_changes_history": 82,
+    "error_recovery": 80
   }
 }
