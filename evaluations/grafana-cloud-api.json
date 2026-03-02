@@ -1,0 +1,105 @@
+{
+  "id": "grafana-cloud-api",
+  "name": "Grafana Cloud API",
+  "version_evaluated": "current",
+  "homepage": "https://grafana.com/docs/grafana-cloud/",
+  "repo_url": "https://github.com/grafana/grafana",
+  "category": "monitoring",
+  "subcategories": ["observability", "dashboards", "alerting", "metrics", "logs", "traces"],
+  "tags": ["grafana", "observability", "monitoring", "dashboards", "alerting", "prometheus", "loki", "tempo", "metrics"],
+  "what_it_does": "Managed observability platform API providing programmatic access to Grafana dashboards, alerting rules, data sources, Prometheus metrics, Loki logs, and Tempo traces via REST and native query protocols.",
+  "use_cases": [
+    "Querying Prometheus metrics or Loki logs from agent workflows to detect anomalies or trigger remediation",
+    "Creating or updating Grafana dashboards and alert rules programmatically as part of infrastructure automation",
+    "Fetching active alert states and silences for incident response agents that need current system health",
+    "Provisioning data sources and notification channels as part of infrastructure-as-code pipelines",
+    "Pulling time-series metric data for AI/ML agents performing capacity planning or predictive analysis"
+  ],
+  "not_for": [
+    "Application performance monitoring with code-level tracing in non-instrumented apps — requires existing Prometheus/OpenTelemetry instrumentation",
+    "Teams without existing metrics or log infrastructure — Grafana Cloud visualizes data, it doesn't replace the underlying observability stack",
+    "Non-technical stakeholders needing a no-code analytics platform"
+  ],
+  "best_when": "An agent needs to read operational metrics, logs, or alert states from an existing Grafana Cloud stack, or automate dashboard and alerting configuration at scale.",
+  "avoid_when": "You have no existing observability instrumentation or are building a fresh monitoring stack from scratch with no prior investment in Prometheus or similar.",
+  "alternatives": ["datadog-api", "new-relic-api", "cloudwatch-api", "prometheus-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": true,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "go", "javascript"],
+    "openapi_spec_url": "https://editor.swagger.io/?url=https://raw.githubusercontent.com/grafana/grafana/main/public/api-merged.json",
+    "webhooks": true
+  },
+  "auth": {
+    "methods": ["api_key", "service_account"],
+    "oauth": false,
+    "scopes": true,
+    "notes": "Service accounts with fine-grained RBAC roles are the modern auth pattern. Legacy API keys (being deprecated) are account-wide. Service account tokens are scoped to specific org roles (Viewer, Editor, Admin). Cloud API uses separate Grafana Cloud API keys for account-level management vs instance-level service accounts for data access."
+  },
+  "pricing": {
+    "model": "freemium",
+    "free_tier_exists": true,
+    "free_tier_limits": "Free forever plan: 10k metrics series, 50GB logs, 50GB traces, 14-day retention, 3 users",
+    "paid_tiers": "Pro plan starts at usage-based pricing (~$8/1000 active series/month for metrics); usage metered across metrics, logs, and traces",
+    "requires_credit_card": false,
+    "notes": "Free tier is genuinely capable for small teams and agent development. Pro tier pricing can escalate significantly with high cardinality metrics. Grafana Cloud is separate from self-hosted OSS Grafana."
+  },
+  "performance": {
+    "latency_p50_ms": 200,
+    "latency_p99_ms": 1000,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "Query API: varies by endpoint, typically 6,000 req/min for Prometheus query; write API limited by ingestion rate on plan; rate limits documented per product",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["US", "EU", "AU"],
+    "compliance": ["SOC2", "GDPR", "HIPAA", "ISO27001"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 82,
+    "error_message_quality": 78,
+    "error_message_notes": "REST API errors return JSON with message field. Prometheus query errors return PromQL-specific error strings that require PromQL knowledge to interpret. gRPC errors use standard status codes. Error consistency varies across the different product APIs (Grafana, Mimir, Loki, Tempo each have separate APIs).",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Read endpoints (query metrics, fetch dashboards) are idempotent. Write endpoints (create dashboard, update alert rule) use PUT for full replacement (idempotent) but POST for creation is not idempotent. Grafana uses JSON model versioning for dashboards.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Grafana Cloud is actually multiple separate APIs (Grafana HTTP API, Mimir/Prometheus API, Loki API, Tempo API) each with different auth patterns and base URLs — agents must manage separate endpoint configurations",
+      "Dashboard JSON model is complex and version-sensitive — generating valid dashboard JSON programmatically requires deep understanding of the panel model",
+      "PromQL query errors return HTTP 200 with a status: error body — agents must inspect the response body status field, not just HTTP status code",
+      "API keys are being deprecated in favor of service accounts — new integrations should use service account tokens to avoid future breakage",
+      "High-cardinality metric queries can time out silently at the query layer — agents need explicit timeout handling and query optimization for wide time ranges"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 82,
+    "error_handling_score": 78,
+    "auth_complexity_score": 78,
+    "rate_limit_clarity_score": 75
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 88,
+    "scope_granularity": 85,
+    "dependency_hygiene": 88,
+    "secret_handling": 85,
+    "security_notes": "Service accounts with RBAC are a strong auth model — agents should use Viewer-role tokens for read-only metric queries to minimize blast radius. SOC2 Type II, ISO 27001, and HIPAA BAA available. Multi-region data residency options for compliance. Org-level isolation between Grafana instances."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 90,
+    "version_stability": 85,
+    "breaking_changes_history": 82,
+    "error_recovery": 82
+  }
+}

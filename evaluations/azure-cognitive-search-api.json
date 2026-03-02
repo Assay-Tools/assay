@@ -1,0 +1,105 @@
+{
+  "id": "azure-cognitive-search-api",
+  "name": "Azure AI Search (Cognitive Search) API",
+  "version_evaluated": "current",
+  "homepage": "https://learn.microsoft.com/en-us/azure/search/search-what-is-azure-search",
+  "repo_url": null,
+  "category": "developer-tools",
+  "subcategories": ["search", "vector-search", "rag", "indexing"],
+  "tags": ["azure", "microsoft", "search", "vector-search", "semantic-search", "rag", "embeddings", "cognitive-search", "ai-search"],
+  "what_it_does": "Azure AI Search (formerly Cognitive Search) provides a fully managed search service with hybrid search (keyword + vector), semantic ranking, AI-powered indexing with built-in skillsets, and RAG (retrieval-augmented generation) pipeline support.",
+  "use_cases": [
+    "Building RAG pipelines where an agent queries an Azure AI Search index to retrieve semantically relevant document chunks before passing them to a language model for grounded responses",
+    "Hybrid search over enterprise document corpora — combining BM25 keyword search with dense vector similarity search and semantic reranking in a single query",
+    "Automated document indexing pipelines that use Azure AI skillsets (OCR, entity extraction, key phrase extraction, embeddings) to enrich and vectorize documents at ingest time",
+    "Faceted search and filtering over structured enterprise data — product catalogs, knowledge bases, or HR document repositories — with dynamic faceting and geo-filtering",
+    "Multi-tenant search isolation using index aliases or security trimming to ensure agents only retrieve documents appropriate for the current user or tenant context"
+  ],
+  "not_for": [
+    "Teams not on Azure who would need to add a new cloud provider — Elasticsearch, OpenSearch, or Pinecone are cross-cloud alternatives without the Azure dependency",
+    "Simple full-text search over small datasets — Azure AI Search has a minimum service cost even at the Basic tier; SQLite FTS or Postgres full-text search is sufficient for small corpora",
+    "Pure vector database use cases requiring fine-grained ANN index tuning — specialized vector databases (Pinecone, Weaviate, Qdrant) offer more control over HNSW parameters and filtering behavior"
+  ],
+  "best_when": "You are already on Azure, building a RAG or enterprise search solution, and want hybrid keyword + vector search with semantic reranking and AI enrichment in a fully managed service that integrates natively with Azure OpenAI.",
+  "avoid_when": "You need a lightweight vector search solution without the Azure ecosystem overhead — standalone vector databases like Qdrant or Chroma offer simpler setup and lower cost for pure embedding search.",
+  "alternatives": ["elasticsearch-api", "opensearch-api", "pinecone-api", "weaviate-api", "qdrant-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "node", "java", "dotnet"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["api_key", "azure_ad", "managed_identity"],
+    "oauth": true,
+    "scopes": true,
+    "notes": "Two API key types: admin keys (full control, read/write) and query keys (read-only, for search operations). Admin keys should never be used in agents — create query keys for search-only agents. Azure AD with managed identity is the recommended production approach for agents running on Azure. Role assignments: Search Index Data Reader (query), Search Index Data Contributor (read/write), Search Service Contributor (manage indexes)."
+  },
+  "pricing": {
+    "model": "tiered",
+    "free_tier_exists": true,
+    "free_tier_limits": "Free tier: 1 service per subscription, up to 3 indexes, 50 MB storage, no SLA. Suitable only for development and testing.",
+    "paid_tiers": "Basic: ~$75/month (1 replica, 2GB). Standard S1: ~$250/month (36 indexes, 25 GB). Standard S2/S3 for higher capacity. Semantic ranking: $1,000/month per service (flat fee). Vector search: included in all paid tiers. Indexer runs: included. Skillset execution: billed separately per enrichment transaction.",
+    "requires_credit_card": true,
+    "notes": "Semantic ranking is an additional flat-fee add-on ($1,000/month) that can dominate costs for smaller deployments. Free tier is single-replica with no SLA — not suitable for production. Storage and replica counts scale independently. Skillset AI enrichment costs are billed via linked Cognitive Services resource."
+  },
+  "performance": {
+    "latency_p50_ms": 50,
+    "latency_p99_ms": 500,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "No hard per-query rate limits documented for paid tiers. Throughput is constrained by service tier and replica count — adding replicas increases query throughput linearly. Indexing throughput limited by indexer concurrent runs (max 3 per service on S1). Queries per second typically scales with replicas.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": true,
+    "domain_verification": false,
+    "data_residency": ["US", "EU", "UK", "AU", "CA", "APAC", "JP", "IN", "ZA", "UAE"],
+    "compliance": ["SOC1", "SOC2", "ISO27001", "ISO27018", "HIPAA", "FedRAMP-Moderate", "GDPR", "PCI-DSS"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 84,
+    "error_message_quality": 80,
+    "error_message_notes": "REST API errors return standard JSON with error.code and error.message. Index schema validation errors are detailed and identify the specific field causing issues. Skillset execution errors are logged per-document in indexer run history but not surfaced in real-time API responses. Query syntax errors (OData filter or Lucene syntax) include position information but can be cryptic for dynamically generated queries.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Index document upload operations (mergeOrUpload action) are idempotent — re-uploading the same document key overwrites the existing document safely. Index creation with the same name and schema is idempotent. Indexer runs are idempotent for the same data source state. Queries are pure reads and naturally idempotent.",
+    "pagination_style": "offset",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Vector search requires pre-computed embeddings to be stored in the index — agents must generate embeddings via Azure OpenAI or another model before indexing; the search service does not auto-embed documents unless an integrated vectorization skillset is configured",
+      "Hybrid search (keyword + vector) uses Reciprocal Rank Fusion (RRF) by default — the relative weighting of keyword vs. vector scores is not directly configurable, which can produce unexpected ranking if agents expect intuitive score interpretation",
+      "Semantic ranking is a separate paid add-on ($1,000/month flat) and must be enabled on the service before queries using queryType=semantic work — missing this causes silent fallback to BM25 without an error",
+      "The OData filter syntax used for field filtering is non-standard and has specific operator names (eq, ne, gt, lt, ge, le, and, or, not) — agents generating dynamic filters must produce valid OData expressions, not SQL or standard JSON filter objects",
+      "Index schema changes (adding vector fields, changing data types) require re-indexing all documents — there is no in-place schema migration; agents automating schema evolution must handle full re-index operations which can be time-consuming on large corpora"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 84,
+    "error_handling_score": 80,
+    "auth_complexity_score": 72,
+    "rate_limit_clarity_score": 76
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 92,
+    "scope_granularity": 90,
+    "dependency_hygiene": 87,
+    "secret_handling": 88,
+    "security_notes": "Query keys (read-only) enable least-privilege search access without exposing admin capabilities. Managed identity integration eliminates key management for Azure-hosted agents. Private endpoints available to restrict search service to VNet-only access. Security trimming (document-level access control) available via custom filter expressions on user identity fields. Customer-managed keys (CMK) supported for index encryption at rest."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 86,
+    "breaking_changes_history": 82,
+    "error_recovery": 84
+  }
+}

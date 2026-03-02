@@ -1,0 +1,108 @@
+{
+  "id": "redpanda-api",
+  "name": "Redpanda API",
+  "version_evaluated": "current",
+  "homepage": "https://redpanda.com",
+  "repo_url": "https://github.com/redpanda-data/redpanda",
+  "category": "data-pipeline",
+  "subcategories": ["event-streaming", "message-queue", "kafka-compatible", "infrastructure"],
+  "tags": ["redpanda", "kafka", "kafka-compatible", "streaming", "no-zookeeper", "c++", "low-latency", "wasm", "schema-registry", "cloud"],
+  "what_it_does": "Kafka-compatible streaming platform written in C++ that eliminates ZooKeeper, delivers lower tail latency than Apache Kafka, and provides a built-in Schema Registry and HTTP Proxy — available as self-hosted open source or fully managed Redpanda Cloud.",
+  "use_cases": [
+    "Drop-in Kafka replacement for agent event pipelines requiring lower p99 latency and simpler operations",
+    "High-frequency agent telemetry ingestion where Kafka's JVM overhead is a bottleneck",
+    "Self-hosted streaming infrastructure on edge or air-gapped environments where Kafka + ZooKeeper overhead is prohibitive",
+    "Schema Registry for enforcing Avro/Protobuf message contracts across agent producer/consumer pairs",
+    "HTTP Proxy (Pandaproxy) for REST-based event production and consumption without a native Kafka client"
+  ],
+  "not_for": [
+    "Teams requiring the full Apache Kafka ecosystem including all Kafka Streams and ksqlDB features (compatibility gaps exist)",
+    "Workloads deeply integrated with Kafka Connector ecosystem where connector compatibility has not been verified",
+    "Organizations that must use Confluent's managed service due to compliance or vendor requirements"
+  ],
+  "best_when": "You want Kafka API compatibility with lower operational complexity (no ZooKeeper), better tail latency, and prefer a single-binary deployment — especially in self-hosted or edge environments.",
+  "avoid_when": "You rely heavily on advanced Kafka Streams features, ksqlDB, or specific Confluent-only connectors that have not been validated against Redpanda's compatibility layer.",
+  "alternatives": ["confluent-cloud-api", "kafka-api", "upstash-kafka-api", "aws-kinesis-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "java", "go", "javascript", "rust", "dotnet"],
+    "openapi_spec_url": "https://docs.redpanda.com/api/pandaproxy-rest/",
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["api_key", "sasl_scram", "mtls"],
+    "oauth": false,
+    "scopes": true,
+    "notes": "Self-hosted: SASL/SCRAM-SHA-256 and SASL/SCRAM-SHA-512 for Kafka protocol auth. mTLS for inter-broker and client-broker TLS mutual auth. ACLs at topic and consumer group level. Redpanda Cloud: API keys per user/service account scoped to namespace. Schema Registry and HTTP Proxy use HTTP Basic auth or API key headers."
+  },
+  "pricing": {
+    "model": "open_source_with_saas",
+    "free_tier_exists": true,
+    "free_tier_limits": "Redpanda Community Edition is free and open source (BSL 1.1, converts to Apache 2.0 after 4 years). Redpanda Cloud free tier: up to 2 GiB storage included in Serverless tier.",
+    "paid_tiers": "Redpanda Cloud Serverless: pay-per-use from ~$0.10/GiB-month storage + egress. Dedicated: from ~$0.20/hr per tier. BYOC (Bring Your Own Cloud): custom pricing with your cloud account.",
+    "requires_credit_card": false,
+    "notes": "Community Edition is free self-hosted with no feature limitations in the open-source tier. Enterprise Edition adds tiered storage, RBAC, and audit logging. Cloud free tier is generous for development. BYOC model allows data to stay in your VPC while Redpanda manages the control plane."
+  },
+  "performance": {
+    "latency_p50_ms": 2,
+    "latency_p99_ms": 10,
+    "uptime_sla_percent": 99.95,
+    "rate_limits": "No enforced rate limits on self-hosted; Redpanda Cloud Serverless has throughput limits by tier. Single partition throughput typically 150+ MB/s.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["US", "EU", "APAC"],
+    "compliance": ["SOC2", "GDPR"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 82,
+    "error_message_quality": 78,
+    "error_message_notes": "Error codes follow Kafka protocol standard — agents using Kafka client libraries get the same error handling behavior as with Apache Kafka. HTTP Proxy (Pandaproxy) REST errors return JSON with error_code and message fields. Schema Registry errors follow Confluent Schema Registry API error format for compatibility.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Supports Kafka idempotent producer semantics (enable.idempotence=true) and transactional APIs. Producer deduplication is built into the broker. Exactly-once semantics available with transactional producers matching Kafka's EOS implementation.",
+    "pagination_style": "offset",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Kafka compatibility is not 100% — some advanced Kafka Streams and connector features may behave differently; always test against Redpanda specifically",
+      "HTTP Proxy (Pandaproxy) has higher latency than native Kafka protocol — do not use it for high-throughput production data paths",
+      "Topic configuration properties differ slightly from Apache Kafka — some Kafka-specific configs are ignored or rejected",
+      "Redpanda uses the Raft consensus protocol instead of ZooKeeper — metadata propagation semantics differ and can affect coordinator election timing",
+      "Schema Registry is bundled but must be explicitly enabled in configuration — not active by default on self-hosted installs",
+      "BSL license (not Apache 2.0) on current versions — commercial use in production requires reviewing license terms; converts to Apache 2.0 after 4 years",
+      "Wasm transforms (inline data transformation) are an alpha/preview feature — not stable for production agent pipelines"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 82,
+    "error_handling_score": 78,
+    "auth_complexity_score": 75,
+    "rate_limit_clarity_score": 78
+  },
+  "security_score_components": {
+    "tls_enforcement": 95,
+    "auth_strength": 82,
+    "scope_granularity": 78,
+    "dependency_hygiene": 85,
+    "secret_handling": 78,
+    "security_notes": "TLS enforced on Redpanda Cloud. Self-hosted TLS requires explicit configuration. SASL/SCRAM provides strong authentication. ACL-based authorization at topic/group level. Enterprise Edition adds RBAC. BSL license requires legal review for commercial production use."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 85,
+    "version_stability": 80,
+    "breaking_changes_history": 78,
+    "error_recovery": 85
+  },
+  "last_evaluated": "2026-03-01"
+}

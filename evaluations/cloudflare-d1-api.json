@@ -1,0 +1,105 @@
+{
+  "id": "cloudflare-d1-api",
+  "name": "Cloudflare D1 API",
+  "version_evaluated": "current",
+  "homepage": "https://developers.cloudflare.com/d1/",
+  "repo_url": null,
+  "category": "database",
+  "subcategories": ["edge-database", "serverless", "sql"],
+  "tags": ["sqlite", "edge", "cloudflare", "workers", "serverless", "sql", "relational"],
+  "what_it_does": "Provides a managed SQLite-compatible relational database that runs at the edge and is accessible from Cloudflare Workers via REST API or Workers bindings.",
+  "use_cases": [
+    "Agent persists structured workflow state across invocations using SQL queries from a Worker",
+    "Agent queries a product catalog stored in D1 to answer user questions without round-tripping to a central DB",
+    "Agent executes batch SQL mutations to update records after completing a multi-step task",
+    "Agent creates and populates ephemeral D1 databases for per-user or per-session data isolation",
+    "Agent uses D1 as a lightweight task queue, inserting jobs and polling for completion status"
+  ],
+  "not_for": [
+    "High-throughput OLAP workloads or analytical queries over millions of rows",
+    "Applications requiring MySQL/PostgreSQL-specific features like stored procedures or advanced JSON operators",
+    "Teams not already using Cloudflare Workers as their compute layer"
+  ],
+  "best_when": "Your agent logic runs inside Cloudflare Workers and needs a co-located relational store with zero cold-start latency.",
+  "avoid_when": "You need a database accessible from non-Cloudflare runtimes or require strong multi-region write consistency.",
+  "alternatives": ["neon-api", "planetscale-api", "supabase-api", "turso-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["node", "typescript"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["api_key", "workers_binding"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "REST API uses Cloudflare API tokens with D1 permissions; within Workers, D1 is accessed via environment bindings with no additional auth required."
+  },
+  "pricing": {
+    "model": "usage_based",
+    "free_tier_exists": true,
+    "free_tier_limits": "5 million rows read/day, 100K rows written/day, 5 GB storage total",
+    "paid_tiers": "Workers Paid plan ($5/month) includes 25 billion rows read/month, 50 million rows written/month, 25 GB storage; additional reads $0.001/million, writes $1.00/million",
+    "requires_credit_card": false,
+    "notes": "Free tier is generous for development; production workloads typically need paid plan. Pricing is per-account across all D1 databases."
+  },
+  "performance": {
+    "latency_p50_ms": 5,
+    "latency_p99_ms": 40,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "No published per-database rate limit; throughput constrained by Worker CPU limits (10ms free, 30s paid) and SQLite single-writer model",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["global"],
+    "compliance": ["SOC2"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 88,
+    "error_message_quality": 78,
+    "error_message_notes": "SQL errors surface with SQLite error codes; REST API errors return structured JSON with Cloudflare error codes, but D1-specific error messages can be cryptic for constraint violations.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "SQL INSERT OR REPLACE and upsert patterns are supported; no built-in idempotency keys on the REST layer — agents must implement idempotency via SQL logic.",
+    "pagination_style": "offset",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "D1 uses SQLite's single-writer model, so concurrent writes from multiple Worker instances can cause 'SQLITE_BUSY' errors requiring retry logic",
+      "The REST API (via /client/v4/accounts/{id}/d1/database/{id}/query) is separate from the Workers binding — agents using REST need account ID and database ID in every request",
+      "SQLite type affinity can cause unexpected coercion (e.g., storing '123' as integer) — use explicit CAST in queries",
+      "D1 does not support WAL mode toggling or ATTACH DATABASE — some SQLite tooling assumptions will break",
+      "Row size and result set limits exist (1 MB per row, 10 MB per query result) — bulk data operations must be chunked"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 88,
+    "error_handling_score": 78,
+    "auth_complexity_score": 82,
+    "rate_limit_clarity_score": 70
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 82,
+    "scope_granularity": 75,
+    "dependency_hygiene": 85,
+    "secret_handling": 82,
+    "security_notes": "API tokens support fine-grained permission scopes. Worker bindings avoid credential exposure in code. No row-level security — access control must be implemented in application logic."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 85,
+    "version_stability": 82,
+    "breaking_changes_history": 80,
+    "error_recovery": 78
+  }
+}

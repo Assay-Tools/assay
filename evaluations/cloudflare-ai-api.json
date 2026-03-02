@@ -1,0 +1,105 @@
+{
+  "id": "cloudflare-ai-api",
+  "name": "Cloudflare Workers AI API",
+  "version_evaluated": "current",
+  "homepage": "https://developers.cloudflare.com/workers-ai/",
+  "repo_url": null,
+  "category": "ai-ml",
+  "subcategories": ["inference", "edge-ai", "embeddings", "llm"],
+  "tags": ["inference", "llm", "embeddings", "image-generation", "speech", "edge", "cloudflare", "workers", "serverless"],
+  "what_it_does": "Runs inference on a curated catalog of open-source LLMs, embedding models, image generation models, and speech models directly at the Cloudflare edge from within Workers.",
+  "use_cases": [
+    "Agent generates text embeddings for semantic search by calling an embedding model co-located with its Worker logic",
+    "Agent runs a local LLM (e.g., Llama 3) via Workers AI to avoid sending sensitive data to third-party APIs",
+    "Agent classifies user input using a text-classification model to route requests to the appropriate sub-agent",
+    "Agent generates images or thumbnails on-demand as part of a content pipeline running entirely on Cloudflare",
+    "Agent uses automatic speech recognition (Whisper) to transcribe audio files uploaded to R2 within the same Worker"
+  ],
+  "not_for": [
+    "Fine-tuning or training models — Workers AI is inference-only",
+    "Workloads requiring proprietary frontier models (GPT-4o, Claude) — catalog is limited to open-source models",
+    "High-volume batch inference jobs where per-neuron pricing at scale exceeds dedicated GPU costs"
+  ],
+  "best_when": "Your agent runs on Cloudflare Workers and needs low-latency inference with no egress to external AI providers.",
+  "avoid_when": "You need the latest frontier model capabilities, streaming with very long context windows, or fine-tuned proprietary models.",
+  "alternatives": ["openai-api", "anthropic-api", "together-ai-api", "fireworks-ai-api", "groq-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["node", "typescript", "python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["api_key", "workers_binding"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Within Workers, accessed via AI binding (env.AI) with no token required. REST API uses Cloudflare API tokens. Account ID required in REST URL path."
+  },
+  "pricing": {
+    "model": "usage_based",
+    "free_tier_exists": true,
+    "free_tier_limits": "10,000 neurons/day on free plan",
+    "paid_tiers": "Workers Paid plan includes 10,000 neurons/day; additional neurons at $0.011 per 1,000 neurons; neuron cost varies by model and input/output tokens",
+    "requires_credit_card": false,
+    "notes": "Neurons are a Cloudflare-specific compute unit that varies by model. Mapping neurons to token counts requires consulting per-model documentation. Can be difficult to cost-estimate upfront."
+  },
+  "performance": {
+    "latency_p50_ms": 300,
+    "latency_p99_ms": 2000,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "Workers CPU time limits apply (30s on paid); no published per-model rate limits but throughput is constrained by GPU availability at edge PoPs",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["global"],
+    "compliance": ["SOC2"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 75,
+    "error_message_notes": "Errors are returned as JSON with Cloudflare error codes; model-specific errors (e.g., context length exceeded) may not always be clearly distinguished from infrastructure errors.",
+    "idempotency_support": "none",
+    "idempotency_notes": "Inference requests are stateless and non-idempotent by design; agents must handle retries by re-issuing requests, potentially incurring duplicate costs.",
+    "pagination_style": "none",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "The 'neuron' pricing unit is model-specific and not directly mappable to tokens — cost estimation requires per-model lookup tables",
+      "Model catalog is curated and changes over time; model IDs include version strings (e.g., @cf/meta/llama-3.1-8b-instruct) that can be deprecated without notice",
+      "Streaming responses use SSE; agents must handle chunked parsing and be aware that Workers have a 30-second CPU time limit which can cut off long generations",
+      "Context window sizes vary significantly by model — agents must validate input length against each model's limits before calling",
+      "Not all models support system prompts or tool/function calling — agent orchestration patterns must be tested per model"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 75,
+    "auth_complexity_score": 85,
+    "rate_limit_clarity_score": 68
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 82,
+    "scope_granularity": 75,
+    "dependency_hygiene": 80,
+    "secret_handling": 85,
+    "security_notes": "Worker binding pattern keeps API credentials out of code entirely. Models run on Cloudflare infrastructure; prompts are not used for training. No data residency controls for inference requests."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 82,
+    "version_stability": 75,
+    "breaking_changes_history": 75,
+    "error_recovery": 78
+  }
+}

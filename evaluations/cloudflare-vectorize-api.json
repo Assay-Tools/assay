@@ -1,0 +1,105 @@
+{
+  "id": "cloudflare-vectorize-api",
+  "name": "Cloudflare Vectorize API",
+  "version_evaluated": "current",
+  "homepage": "https://developers.cloudflare.com/vectorize/",
+  "repo_url": null,
+  "category": "database",
+  "subcategories": ["vector-database", "semantic-search", "edge"],
+  "tags": ["vector", "embeddings", "semantic-search", "rag", "edge", "cloudflare", "workers", "ann"],
+  "what_it_does": "Provides a managed vector database accessible from Cloudflare Workers for storing and querying high-dimensional embedding vectors with approximate nearest-neighbor search.",
+  "use_cases": [
+    "Agent implements RAG by storing document embeddings in Vectorize and querying them with Workers AI-generated query embeddings before each LLM call",
+    "Agent performs semantic deduplication by inserting new item embeddings and querying for nearest neighbors above a similarity threshold",
+    "Agent builds a personalized recommendation system by storing user preference embeddings and retrieving top-K similar items at query time",
+    "Agent uses Vectorize as a long-term memory store, retrieving contextually relevant past interactions to include in prompts",
+    "Agent combines Vectorize vector search with D1 metadata filtering to implement hybrid search over a knowledge base"
+  ],
+  "not_for": [
+    "Full-text keyword search — Vectorize is purely vector-based with no BM25 or inverted index support",
+    "Storing very large vector collections (hundreds of millions of vectors) — designed for edge-scale workloads",
+    "Teams not using Cloudflare Workers as their compute layer"
+  ],
+  "best_when": "Your agent already runs on Cloudflare Workers and needs a zero-latency vector store co-located with Workers AI embeddings.",
+  "avoid_when": "You need hybrid keyword+vector search, complex metadata filtering, or are running outside the Cloudflare ecosystem.",
+  "alternatives": ["pinecone-api", "weaviate-api", "qdrant-api", "chroma-api", "supabase-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["node", "typescript"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["api_key", "workers_binding"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Accessed via Vectorize binding (env.VECTORIZE) within Workers — no credentials needed in code. REST management API uses Cloudflare API tokens with Vectorize permissions."
+  },
+  "pricing": {
+    "model": "usage_based",
+    "free_tier_exists": true,
+    "free_tier_limits": "100 million vector dimensions queried/month, 5 million vector dimensions stored/month on free plan",
+    "paid_tiers": "Workers Paid plan ($5/month) includes 50 billion dimensions queried/month and 5 billion dimensions stored/month; additional usage billed per dimension",
+    "requires_credit_card": false,
+    "notes": "Pricing is based on 'dimensions' (vector size * count), not number of vectors. A 1536-dimension embedding index costs 1536x more per vector than a 64-dimension index."
+  },
+  "performance": {
+    "latency_p50_ms": 10,
+    "latency_p99_ms": 80,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "No published per-index rate limits; query throughput bounded by Worker concurrency limits; index size limit of 5 million vectors per index",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["global"],
+    "compliance": ["SOC2"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 83,
+    "error_message_quality": 74,
+    "error_message_notes": "Errors are structured JSON with Cloudflare error codes; dimension mismatch errors are clear, but capacity and rate errors can be generic and hard to distinguish programmatically.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Vector upsert operations (insert with same ID overwrite) are idempotent by design; bulk insert without IDs is not idempotent.",
+    "pagination_style": "none",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Index dimension count is fixed at creation time — agents cannot change embedding model without recreating the index and re-ingesting all vectors",
+      "Metadata filters are limited to equality checks on string/number/boolean values; no range queries or complex boolean logic on metadata",
+      "Maximum of 5 million vectors per index — agents building large knowledge bases need sharding strategies",
+      "Query results include a 'score' that is cosine similarity or euclidean distance depending on index configuration — easy to confuse the two if index config is forgotten",
+      "Vectorize is eventually consistent on inserts — vectors may not be immediately queryable after upsert, requiring agents to handle stale-read scenarios"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 83,
+    "error_handling_score": 74,
+    "auth_complexity_score": 85,
+    "rate_limit_clarity_score": 70
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 82,
+    "scope_granularity": 75,
+    "dependency_hygiene": 82,
+    "secret_handling": 85,
+    "security_notes": "Worker binding pattern eliminates credential exposure. No access control within an index — all code with the binding can read/write all vectors. Namespace isolation requires separate indexes."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 82,
+    "version_stability": 78,
+    "breaking_changes_history": 78,
+    "error_recovery": 76
+  }
+}
