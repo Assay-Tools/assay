@@ -3,31 +3,26 @@
   "name": "Helicone API",
   "version_evaluated": "current",
   "homepage": "https://helicone.ai",
-  "repo_url": "https://github.com/Helicone/helicone",
-  "category": "developer-tools",
-  "subcategories": ["observability", "llm-monitoring", "ai-infrastructure"],
-  "tags": ["llm-observability", "monitoring", "logging", "openai-proxy", "cost-tracking", "caching", "agent-monitoring"],
-  "what_it_does": "Helicone is an LLM observability and proxy platform. Drop one header into any OpenAI (or Anthropic, Azure, Mistral, etc.) API call and all requests are logged, analyzed, and monitored. Features include: request/response logging, cost tracking, latency monitoring, user-level analytics, prompt management and versioning, A/B testing, smart caching (LLM semantic cache), rate limiting, and custom dashboards. Supports agent tracing with session IDs and custom properties for debugging multi-step agent workflows.",
+  "repo_url": null,
+  "category": "ai-ml",
+  "subcategories": ["llm-observability", "proxy", "analytics", "monitoring"],
+  "tags": ["helicone", "llm", "observability", "proxy", "logging", "analytics", "openai", "monitoring"],
+  "what_it_does": "Helicone LLM observability proxy — a drop-in proxy that intercepts LLM API calls (OpenAI, Anthropic, etc.) to log requests/responses, track costs, enable caching, rate limiting, and provide analytics dashboards with minimal code changes.",
   "use_cases": [
-    "Monitoring LLM API costs across all providers from a single dashboard",
-    "Debugging failed agent runs by replaying exact prompts and responses",
-    "Tracking LLM latency and error rates in production agent systems",
-    "Implementing semantic caching to reduce duplicate LLM API costs",
-    "User-level usage tracking and quota enforcement in multi-tenant AI apps",
-    "Prompt versioning and A/B testing to measure prompt quality improvements",
-    "Session-based tracing of multi-step agent workflows for debugging"
+    "Zero-code LLM logging — agents route OpenAI calls through oai.hconeai.com instead of api.openai.com with a Helicone-Auth header added, logging everything without changing business logic",
+    "Cost tracking — agents querying Helicone's REST API to get per-user or per-session LLM cost breakdowns for chargeback, budgeting, or billing alerts",
+    "Request caching — agents enabling Helicone's cache feature to return cached responses for identical prompts, reducing costs and latency for repeated queries",
+    "Rate limiting — agents configuring Helicone rate limits per user or API key to prevent runaway LLM usage without implementing custom rate limit logic",
+    "Quality monitoring — agents using Helicone feedback API to submit scores on LLM responses, building quality tracking dashboards over time"
   ],
   "not_for": [
-    "Teams that cannot route LLM traffic through a third-party proxy for security/compliance reasons",
-    "Local development without internet access",
-    "Non-LLM API monitoring (use Datadog or similar for general API monitoring)"
+    "Providers not yet supported — Helicone primarily proxies OpenAI-compatible APIs; some providers require gateway configuration",
+    "Air-gapped or strict data residency — proxying through Helicone means LLM inputs/outputs pass through Helicone's servers; use self-hosted Helicone (open-source) for strict data control",
+    "Full LLM tracing/evaluation — Helicone is a proxy logger; for structured traces, evals, and datasets use LangSmith or Arize"
   ],
-  "best_when": "You're running LLM-powered agents in production and need visibility into costs, errors, and performance. The proxy-based architecture means zero code changes beyond adding one header — just change your base URL and add the Helicone-Auth header.",
-  "avoid_when": "You cannot accept a proxy in your LLM call path for latency or compliance reasons, or your compliance requirements prohibit routing API responses through third parties.",
-  "alternatives": [
-    {"id": "langsmith-api", "reason": "LangSmith focuses on LangChain-native tracing with richer agent workflow visualization; Helicone is provider-agnostic and works with any LLM API"},
-    {"id": "wandb-api", "reason": "W&B is better for ML experiment tracking; Helicone is better for production LLM API monitoring"}
-  ],
+  "best_when": "You want instant LLM observability (logs, costs, latency) with minimal code changes by adding a proxy URL and one header — no SDK instrumentation needed.",
+  "avoid_when": "You need structured multi-step tracing, automated evaluations, or your data cannot pass through third-party proxy infrastructure.",
+  "alternatives": ["langsmith-api", "arize-api", "traceloop-api", "portkey-ai-api"],
   "interface": {
     "has_rest_api": true,
     "has_graphql": false,
@@ -36,28 +31,28 @@
     "mcp_server_url": null,
     "has_sdk": true,
     "sdk_languages": ["python", "javascript", "typescript"],
-    "openapi_spec_url": null,
-    "webhooks": true
+    "openapi_spec_url": "https://docs.helicone.ai",
+    "webhooks": false
   },
   "auth": {
     "methods": ["api_key"],
     "oauth": false,
     "scopes": false,
-    "notes": "Two keys required: (1) Helicone-Auth: Bearer {HELICONE_API_KEY} added to proxied LLM calls, (2) original LLM API key still passed as Authorization header. The SDK handles this automatically. Management API uses the same Helicone key."
+    "notes": "Helicone API key passed as Helicone-Auth header (Bearer token) in proxy requests. Same key used for REST API access to logs and analytics. Separate keys for different environments. No granular scopes — full account access per key."
   },
   "pricing": {
     "model": "freemium",
     "free_tier_exists": true,
-    "free_tier_limits": "10,000 requests/month free. No credit card required. Free tier includes logging, cost tracking, and basic dashboard.",
-    "paid_tiers": "Growth: $20/month for 100,000 requests. Pro: $200/month for 2M requests. Enterprise: custom. Caching and advanced features available on paid tiers.",
+    "free_tier_limits": "Free: 100K requests/month, 1-day retention, basic analytics",
+    "paid_tiers": "Pro: $20/month (1M requests, 30-day retention); Team: $200/month; Enterprise: custom",
     "requires_credit_card": false,
-    "notes": "Open source (MIT) — can self-host for unlimited logging without per-request costs. Managed cloud is the easiest option. Self-hosting requires Clickhouse and Postgres."
+    "notes": "Request-based pricing. Free tier is generous for development. Retention period determines how far back you can query logs. Enterprise offers SOC2 report, SLA, and on-premises deployment."
   },
   "performance": {
-    "latency_p50_ms": 20,
-    "latency_p99_ms": 100,
+    "latency_p50_ms": 10,
+    "latency_p99_ms": 50,
     "uptime_sla_percent": 99.9,
-    "rate_limits": "Proxy adds ~5-20ms latency overhead per call. No rate limits on the proxy itself — limits are enforced by the underlying LLM API.",
+    "rate_limits": "No documented rate limits on proxy traffic; analytics API has reasonable undocumented limits",
     "data_source": "llm_estimated"
   },
   "requirements": {
@@ -65,31 +60,46 @@
     "requires_credit_card": false,
     "domain_verification": false,
     "data_residency": ["US", "EU"],
-    "compliance": ["SOC2", "GDPR"],
+    "compliance": ["SOC2"],
     "min_contract": "none"
   },
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
     "documentation_accuracy": 88,
-    "error_message_quality": 82,
-    "error_message_notes": "Proxy errors are clearly distinguished from upstream LLM errors. Dashboard surfaces error rates and message content. SDK wraps errors to indicate whether failure was in proxy or LLM.",
+    "error_message_quality": 80,
+    "error_message_notes": "Proxy transparently passes provider errors through. Helicone-specific errors (auth failure, quota exceeded) surface as 400/429 before reaching the provider. Clean pass-through means existing OpenAI error handling continues to work.",
     "idempotency_support": "full",
-    "idempotency_notes": "Proxy is pass-through — idempotency depends on underlying LLM API. Session IDs and request IDs in headers enable deduplication in dashboard.",
+    "idempotency_notes": "Proxy is stateless — each request independently logged. Cache feature provides idempotent responses for identical inputs when enabled. Analytics API queries are read-only and idempotent.",
     "pagination_style": "cursor",
-    "retry_guidance_documented": true,
+    "retry_guidance_documented": false,
     "known_agent_gotchas": [
-      "Two separate API keys (Helicone key + LLM key) must both be present — common misconfiguration point",
-      "Semantic cache hits return cached responses which may be stale for time-sensitive agent queries — disable caching for time-sensitive tools",
-      "Session ID headers must be consistently set across all agent steps or tracing will be fragmented",
-      "Self-hosted Helicone requires Clickhouse which has significant infrastructure overhead",
-      "Webhook notifications for specific events (errors, high cost) are on paid tiers only",
-      "Response streaming (SSE) is fully supported but session-level aggregation may be delayed"
-    ],
-    "error_message_score": 82,
-    "auth_complexity_score": 78,
-    "rate_limit_score": 88,
-    "security_score": 80
+      "Proxy adds 5-20ms latency per request — latency-critical applications may see measurable overhead from routing through Helicone's proxy layer",
+      "Custom properties (Helicone-Property-{Name} headers) must be set per-request — there is no global property configuration; agents must inject metadata headers consistently",
+      "Cache keys include the full request body — any variation in prompt (including whitespace) creates a cache miss; agents must normalize prompts before sending for cache hit rates",
+      "LLM credentials still passed through the proxy — Helicone never stores provider API keys, but they transit Helicone servers; evaluate trust posture accordingly",
+      "Free tier log retention is 1 day — agents relying on Helicone for compliance logging or audit trails must be on paid plans with adequate retention"
+    ]
   },
-  "last_evaluated": "2026-03-01"
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 88,
+    "error_handling_score": 80,
+    "auth_complexity_score": 90,
+    "rate_limit_clarity_score": 70
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 72,
+    "scope_granularity": 58,
+    "dependency_hygiene": 75,
+    "secret_handling": 72,
+    "security_notes": "SOC2 certified. TLS enforced. Open-source for self-hosting. Provider API keys transit but are not stored. No granular key scopes. EU data residency available. For strict compliance, self-hosted Helicone keeps all data on-premises."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 85,
+    "version_stability": 85,
+    "breaking_changes_history": 82,
+    "error_recovery": 80
+  }
 }

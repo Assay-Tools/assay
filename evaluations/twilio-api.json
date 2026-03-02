@@ -2,28 +2,27 @@
   "id": "twilio-api",
   "name": "Twilio API",
   "version_evaluated": "current",
-  "homepage": "https://www.twilio.com",
-  "repo_url": "https://github.com/twilio/twilio-python",
-  "category": "communication",
-  "subcategories": ["sms", "voice", "messaging", "email"],
-  "tags": ["twilio", "sms", "voice", "whatsapp", "messaging", "rest-api", "sdk", "telephony"],
-  "what_it_does": "Cloud communications platform providing programmable SMS, voice calls, WhatsApp messaging, email, and video APIs for building communication workflows into applications.",
+  "homepage": "https://twilio.com",
+  "repo_url": null,
+  "category": "communications",
+  "subcategories": ["sms", "voice", "messaging", "phone-numbers"],
+  "tags": ["twilio", "sms", "voice", "phone", "messaging", "programmable", "communications"],
+  "what_it_does": "Twilio REST API — cloud communications platform enabling agents to programmatically send SMS/MMS, make and receive voice calls, manage phone numbers, and build communication workflows via a simple REST interface with webhooks for inbound messages and calls.",
   "use_cases": [
-    "Sending SMS notifications and alerts from agent workflows",
-    "Automated phone call initiation and IVR systems",
-    "WhatsApp messaging for customer communication automation",
-    "Two-factor authentication via SMS or voice",
-    "Building AI-powered customer support phone systems"
+    "Agents sending SMS notifications — POST to /Messages to send OTP codes, appointment reminders, or system alerts to users' phone numbers",
+    "Voice call automation — agents initiating outbound calls with pre-built TwiML (Twilio Markup Language) for IVR flows, announcements, or call routing",
+    "Inbound message handling — agents processing webhook callbacks when users reply to SMS, parsing keywords, and triggering appropriate workflows",
+    "Phone number provisioning — agents searching for and purchasing available phone numbers via API for new customer accounts or campaigns",
+    "Conversation tracking — agents using Twilio Conversations API to manage multi-channel message threads (SMS + WhatsApp + chat) with participant state"
   ],
   "not_for": [
-    "Free high-volume messaging (costs add up quickly)",
-    "Real-time chat applications (use dedicated chat APIs)",
-    "Email marketing campaigns at scale (use SendGrid instead)",
-    "Teams without budget for per-message pricing"
+    "High-volume marketing campaigns at minimal cost — Twilio's per-message pricing becomes expensive at scale; use dedicated bulk SMS providers or Twilio's marketing products",
+    "WhatsApp business messaging without Twilio sandbox approval — WhatsApp via Twilio requires Meta Business approval which takes weeks; use Meta Cloud API for direct access",
+    "Real-time sub-100ms voice processing — Twilio Media Streams work but adding AI processing introduces latency; purpose-built voice AI platforms (Vapi, Bland) are better for AI voice agents"
   ],
-  "best_when": "An agent needs to send SMS messages, make phone calls, or communicate via WhatsApp as part of a business workflow.",
-  "avoid_when": "You need free or very-low-cost messaging at scale, or you need a dedicated MCP server integration.",
-  "alternatives": ["vonage-api", "messagebird-api", "aws-sns"],
+  "best_when": "You need reliable SMS/voice communications with simple REST API integration, good webhook support, and broad carrier coverage for notification and verification workflows.",
+  "avoid_when": "You need ultra-high-volume SMS at lowest cost, real-time AI voice conversations, or WhatsApp messaging without going through Twilio's approval process.",
+  "alternatives": ["vonage-api", "messagebird-api", "bandwidth-api", "sinch-api"],
   "interface": {
     "has_rest_api": true,
     "has_graphql": false,
@@ -31,59 +30,76 @@
     "has_mcp_server": false,
     "mcp_server_url": null,
     "has_sdk": true,
-    "sdk_languages": ["python", "node", "ruby", "java", "csharp", "go", "php"],
-    "openapi_spec_url": "https://github.com/twilio/twilio-oai",
+    "sdk_languages": ["python", "javascript", "ruby", "java", "csharp", "php", "go"],
+    "openapi_spec_url": "https://www.twilio.com/docs/usage/api",
     "webhooks": true
   },
   "auth": {
-    "methods": ["api_key"],
+    "methods": ["basic_auth"],
     "oauth": false,
     "scopes": false,
-    "notes": "Uses Account SID + Auth Token pair as HTTP Basic Auth credentials. API keys can be created for more granular access. Simple to set up for agents."
+    "notes": "HTTP Basic Auth with Account SID (username) and Auth Token (password). API Keys can be created as scoped credentials (safer than Auth Token). Webhook requests signed with X-Twilio-Signature header (HMAC-SHA1) for request validation. Separate credentials per sub-account for multi-tenant isolation."
   },
   "pricing": {
-    "model": "pay-as-you-go",
+    "model": "usage-based",
     "free_tier_exists": true,
-    "free_tier_limits": "Trial account with $15 credit, limited to verified numbers",
-    "paid_tiers": "SMS ~$0.0079/message, voice ~$0.014/min, phone numbers ~$1/month",
-    "requires_credit_card": true,
-    "notes": "Pay-as-you-go pricing. Volume discounts available. Trial accounts can only send to verified phone numbers which limits agent testing."
+    "free_tier_limits": "Trial account: $15.50 credit, can only send to verified numbers",
+    "paid_tiers": "SMS: $0.0079/message (US outbound); phone numbers: $1.15/month (US local); voice: $0.014/min; pricing varies by country",
+    "requires_credit_card": false,
+    "notes": "Per-message and per-minute pricing. Geographic pricing varies significantly. Volume discounts available. Messaging Services (toll-free, A2P 10DLC) have different pricing. Trial account restricted to verified phone numbers only."
   },
   "performance": {
     "latency_p50_ms": 200,
     "latency_p99_ms": 1000,
     "uptime_sla_percent": 99.95,
-    "rate_limits": "100 requests/second per account by default, higher limits available",
+    "rate_limits": "Default: 1 message/second per phone number; Messaging Services: up to 1000/s with message queuing; API requests: 100/s",
     "data_source": "llm_estimated"
   },
   "requirements": {
     "requires_signup": true,
-    "requires_credit_card": true,
+    "requires_credit_card": false,
     "domain_verification": false,
-    "data_residency": ["US", "EU", "AU"],
-    "compliance": ["HIPAA", "SOC2", "GDPR"],
+    "data_residency": ["US", "EU", "APAC"],
+    "compliance": ["SOC2", "ISO-27001", "HIPAA", "GDPR"],
     "min_contract": "none"
   },
   "agent_readiness": {
-    "mcp_server_quality": 0,
-    "mcp_security_score": 75,
-    "documentation_accuracy": 90,
-    "error_message_quality": 85,
-    "error_message_notes": "Twilio returns structured error codes (21xxx series) with links to documentation. Very agent-friendly error messages with clear remediation guidance.",
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 92,
+    "error_message_quality": 88,
+    "error_message_notes": "Excellent documentation with code examples in 7 languages. Error responses include numeric error codes (21211 = invalid To number, 21610 = unsubscribed recipient) with links to error documentation. SDK exceptions map to HTTP errors cleanly.",
     "idempotency_support": "partial",
-    "idempotency_notes": "No native idempotency keys. Duplicate SMS sends are possible if agent retries. Use MessagingServiceSid for some deduplication.",
-    "pagination_style": "cursor",
+    "idempotency_notes": "Message sending is not idempotent — same call creates duplicate messages. Agents must implement application-level deduplication. Webhook status callbacks (sent/delivered/failed) are idempotent by MessageSid. Phone number purchases idempotent by number.",
+    "pagination_style": "page",
     "retry_guidance_documented": true,
     "known_agent_gotchas": [
-      "Trial accounts can only send to verified phone numbers - breaks agent testing",
-      "US A2P 10DLC registration required for business SMS - can take days to approve",
-      "Rate limits can throttle agents sending many messages in burst",
-      "No MCP server available - agents must use REST API or SDK directly",
-      "Phone number formatting must be E.164 (+1XXXXXXXXXX) - common agent mistake"
-    ],
-    "error_message_score": 85,
-    "auth_complexity_score": 90,
-    "rate_limit_score": 70,
-    "security_score": 80
+      "Trial accounts can only send to verified phone numbers — agents in dev/test must verify recipient numbers in Twilio console or upgrade to a paid account",
+      "A2P 10DLC registration required for US SMS campaigns — agents sending marketing SMS without registration face carrier filtering; registration takes days to weeks to approve",
+      "Message queuing for high-throughput requires Messaging Services — sending via direct phone number at >1 msg/s causes queuing delays; use Messaging Services for throughput",
+      "Webhook validation using X-Twilio-Signature is critical for security — agents accepting Twilio webhooks without signature validation are vulnerable to spoofed requests",
+      "Opt-out keywords (STOP, UNSUBSCRIBE) are automatically processed by Twilio and result in 21610 errors on future sends — agents must handle these gracefully and maintain suppression lists"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 92,
+    "error_handling_score": 88,
+    "auth_complexity_score": 85,
+    "rate_limit_clarity_score": 85
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 82,
+    "scope_granularity": 78,
+    "dependency_hygiene": 85,
+    "secret_handling": 82,
+    "security_notes": "SOC2 Type II, ISO 27001, HIPAA BAA available. TLS enforced. Webhook signature validation (HMAC-SHA1). API Key scoping available (safer than Auth Token). Sub-accounts for tenant isolation. Auth Token rotation supported. GDPR compliant with EU data residency."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 95,
+    "version_stability": 90,
+    "breaking_changes_history": 88,
+    "error_recovery": 90
   }
 }
