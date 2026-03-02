@@ -1,0 +1,105 @@
+{
+  "id": "logto-api",
+  "name": "Logto",
+  "version_evaluated": "v1.18.x",
+  "homepage": "https://logto.io/",
+  "repo_url": "https://github.com/logto-io/logto",
+  "category": "security",
+  "subcategories": ["authentication", "identity-management", "ciam"],
+  "tags": ["auth", "ciam", "identity", "oidc", "oauth2", "saml", "rbac", "multi-tenancy", "self-hosted", "social-login"],
+  "what_it_does": "Logto is an open-source Customer Identity and Access Management (CIAM) platform providing OIDC-compliant authentication, built-in social login connectors (20+ providers), multi-tenancy, RBAC, and SDKs for 20+ platforms — available as self-hosted or Logto Cloud with a built-in admin UI.",
+  "use_cases": [
+    "Integrate user authentication with Google, GitHub, Microsoft, or any OIDC provider in minutes using Logto's pre-built social connectors and SDK for your platform (React, Next.js, Python, Node, etc.)",
+    "Implement multi-tenant SaaS authentication where each organization has isolated user pools, roles, and OIDC configurations — managed via Logto's Organizations API",
+    "Define and enforce RBAC policies by creating roles and permissions in the Logto admin console and verifying scopes in access tokens issued to users and machine-to-machine clients",
+    "Provision machine-to-machine (M2M) application credentials for agent services via the Management API, issuing scoped Client Credentials tokens for inter-service authentication",
+    "Customize the sign-in experience (branding, color, logo, custom domain, custom CSS) via the Admin Console without touching authentication logic code"
+  ],
+  "not_for": [
+    "Fine-grained resource-level authorization (row-level security, relationship-based access) — Logto provides role/scope RBAC only; use OpenFGA for Zanzibar-style authz",
+    "Complex enterprise SAML federation with legacy IdPs requiring deep SAML attribute mapping — Logto's SAML support is growing but not as mature as commercial IAM platforms",
+    "High-volume token issuance at millions of requests per second on the free cloud tier — Logto Cloud free tier has MAU and rate limits; self-hosted removes these but requires operational investment"
+  ],
+  "best_when": "You need a developer-friendly, open-source CIAM with social login, multi-tenancy, and SDKs out of the box, and want to avoid building authentication infrastructure from scratch.",
+  "avoid_when": "You need deep enterprise SAML federation, complex attribute-based access control, or a fully managed service with a guaranteed SLA above 99.9% without operational involvement.",
+  "alternatives": ["ory-kratos-api", "ory-hydra-api", "openfga-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "node", "react", "vue", "angular", "next", "go", "java", "swift", "kotlin", "flutter", "dotnet", "php", "ruby"],
+    "openapi_spec_url": "https://openapi.logto.io/",
+    "webhooks": true
+  },
+  "auth": {
+    "methods": ["api_key", "bearer_token", "client_credentials"],
+    "oauth": true,
+    "scopes": true,
+    "notes": "Management API requires a machine-to-machine app with Client Credentials grant and the appropriate management API resource/scopes. User-facing APIs use OIDC Bearer tokens. Admin Console uses session-based auth."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Logto Cloud Free: 50 MAU, unlimited social connectors, basic RBAC, community support",
+    "paid_tiers": "Pro ($16/mo for 500 MAU + $0.08/extra MAU), Enterprise (custom) with SSO, advanced org features, SLA",
+    "requires_credit_card": false,
+    "notes": "Self-hosted (open source, Apache 2.0) is free with no MAU limits. Logto Cloud Free tier is generous for development and small apps. Pro tier adds advanced features and higher limits."
+  },
+  "performance": {
+    "latency_p50_ms": 80,
+    "latency_p99_ms": 350,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "Cloud: varies by tier; self-hosted: no imposed limits",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self_hosted", "us", "eu"],
+    "compliance": ["OIDC", "OAuth2", "GDPR"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 80,
+    "error_message_notes": "Logto Management API returns structured JSON errors with error codes (e.g., 'entity.not_exists', 'auth.unauthorized') and human-readable messages. OIDC endpoints follow RFC 6749 error format. Error codes are reasonably consistent but some edge cases return generic 500 responses.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Resource creation (users, applications, roles) is not idempotent by default — creating the same email twice returns a conflict error. Use GET-then-create patterns or upsert where available. Token issuance is not idempotent.",
+    "pagination_style": "offset",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Management API access requires a machine-to-machine application with the Logto Management API resource explicitly added as an authorized resource — this is separate from regular OIDC app creation and is a common setup mistake",
+      "RBAC scopes must be explicitly requested in the authorization request AND configured in the application's allowed scopes; tokens silently omit unrequested or unconfigured scopes without an error",
+      "Webhook event delivery is at-least-once with no built-in deduplication — agents consuming Logto webhooks must implement idempotency using the hookId and event timestamp as a compound deduplication key",
+      "Multi-tenant organization membership changes (adding/removing users from organizations) via API take effect immediately but cached OIDC tokens retain the old organization claims until they expire — agents must account for up to token TTL delay in permission changes",
+      "Social connector token storage: Logto stores social provider access tokens internally but does not expose them via Management API; agents that need to call social provider APIs on behalf of users must implement their own token storage after the OAuth callback"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 80,
+    "auth_complexity_score": 72,
+    "rate_limit_clarity_score": 80
+  },
+  "security_score_components": {
+    "tls_enforcement": 98,
+    "auth_strength": 90,
+    "scope_granularity": 85,
+    "dependency_hygiene": 85,
+    "secret_handling": 88,
+    "security_notes": "Logto enforces HTTPS, uses argon2id for password hashing, supports MFA (TOTP + backup codes), and implements PKCE for all public clients. Management API secrets must be stored securely; rotating M2M credentials is a manual process."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 80,
+    "version_stability": 78,
+    "breaking_changes_history": 75,
+    "error_recovery": 82
+  }
+}

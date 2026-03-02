@@ -1,0 +1,105 @@
+{
+  "id": "openfga-api",
+  "name": "OpenFGA (Fine-Grained Authorization)",
+  "version_evaluated": "v1.5.x",
+  "homepage": "https://openfga.dev/",
+  "repo_url": "https://github.com/openfga/openfga",
+  "category": "security",
+  "subcategories": ["authorization", "fine-grained-auth"],
+  "tags": ["authz", "authorization", "fga", "zanzibar", "rbac", "rebac", "okta", "open-source", "self-hosted", "tuple"],
+  "what_it_does": "OpenFGA is an open-source fine-grained authorization engine (Google Zanzibar-inspired, by Okta) that evaluates relationship-based access control (ReBAC) via a tuple model — agents write (user, relation, object) tuples and call the Check API to determine if a user has a specific permission on a specific resource.",
+  "use_cases": [
+    "Check whether a user has 'editor' access to a specific document by calling the Check API with a (user:alice, relation:editor, object:document:123) tuple — in under 10ms for cached results",
+    "Define a hierarchical authorization model (organization → workspace → project → document) using the OpenFGA DSL and let the engine traverse the relationship graph automatically",
+    "Perform batch authorization checks via the BatchCheck API to evaluate multiple (user, relation, object) combinations in a single request — useful for filtering UI elements or search results",
+    "Write relationship tuples programmatically when users are added to roles, teams, or resource ACLs — and delete tuples when access is revoked — keeping the authorization state synchronized",
+    "Use the ListObjects API to answer 'what documents can user:alice view?' without scanning every document — the engine traverses the relationship graph and returns all matching objects"
+  ],
+  "not_for": [
+    "Authentication — OpenFGA only answers authorization questions (can user X do Y to Z?); it has no concept of identity verification, sessions, or login flows",
+    "Simple flat RBAC with 3-5 roles and no resource-level permissions — OpenFGA's tuple model is overkill; a simple role check in your application code or a basic RBAC library suffices",
+    "Real-time streaming permission changes with sub-millisecond latency — OpenFGA uses eventual consistency for tuple propagation; there is a brief window after writes where reads may return stale results"
+  ],
+  "best_when": "You need resource-level, relationship-based authorization (like Google Drive sharing: 'Alice can edit document 42 because she's a member of team 7 which has editor access to folder 3') that cannot be expressed in simple roles.",
+  "avoid_when": "Your authorization model is simple enough to express as flat roles in a JWT claim — OpenFGA adds operational complexity (running a separate service, managing tuple storage) that is not justified for simple use cases.",
+  "alternatives": ["ory-kratos-api", "ory-hydra-api", "logto-api", "oauth2-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": true,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "node", "go", "java", "dotnet"],
+    "openapi_spec_url": "https://raw.githubusercontent.com/openfga/api/main/docs/openapiv2/apidocs.swagger.json",
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["api_key", "bearer_token", "client_credentials"],
+    "oauth": true,
+    "scopes": false,
+    "notes": "OpenFGA supports no-auth (development), pre-shared API key, and OIDC Client Credentials auth modes. The auth method is configured at server startup. Okta FGA (managed) uses API key auth."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Fully open source (Apache 2.0) for self-hosted — no limits on tuples, checks, or stores",
+    "paid_tiers": "Okta FGA (managed): free developer tier (1M checks/mo), Pay-as-you-go ($0.10/100k checks above free), Enterprise (custom)",
+    "requires_credit_card": false,
+    "notes": "Self-hosted OpenFGA is free and unlimited. Okta FGA is the managed cloud offering with a generous free tier and consumption-based pricing above that."
+  },
+  "performance": {
+    "latency_p50_ms": 5,
+    "latency_p99_ms": 30,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "None for self-hosted; Okta FGA enforces per-tier rate limits (default 1000 req/s on free tier)",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self_hosted", "us"],
+    "compliance": ["SOC2 (Okta FGA)"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 88,
+    "error_message_quality": 82,
+    "error_message_notes": "OpenFGA returns gRPC status codes mapped to HTTP equivalents with descriptive error messages (e.g., 'tuple not found', 'model validation failed'). Authorization model validation errors include the specific DSL line that failed. Error messages are more informative than most authorization services.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Write (tuple creation) is idempotent if the tuple already exists — writing a duplicate tuple returns success. Delete of a non-existent tuple returns an error (not idempotent). Check is a pure read and fully idempotent.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Authorization model versioning: each Write of a new model creates a new model ID; the Check API uses the latest model by default but existing tuples are not migrated — agents that update the model must verify all existing tuples are still valid under the new schema",
+      "Eventual consistency: tuple writes are asynchronous in clustered deployments; a Check immediately after a Write may return the old result — build retry logic with a short delay (100-500ms) for latency-sensitive authorization gates",
+      "The Check API returns {allowed: false} for any error condition including invalid store ID, invalid model, or missing tuple — agents must separately verify that a false result is an authorization denial and not a configuration error by checking the HTTP status code",
+      "Tuple fan-out limits: deeply nested relationship graphs (e.g., user → member_of → group → member_of → group → ... → has_access → document) can cause expensive recursive checks; OpenFGA enforces a default max depth of 25 hops — model complex permissions as direct tuples to avoid timeouts",
+      "Store isolation: each OpenFGA store is completely isolated (no cross-store lookups); agents managing multi-tenant systems must decide between one store per tenant (isolated but high operational overhead) or shared store with tenant-prefixed object IDs (efficient but requires careful model design)"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 88,
+    "error_handling_score": 82,
+    "auth_complexity_score": 70,
+    "rate_limit_clarity_score": 85
+  },
+  "security_score_components": {
+    "tls_enforcement": 98,
+    "auth_strength": 90,
+    "scope_granularity": 98,
+    "dependency_hygiene": 90,
+    "secret_handling": 88,
+    "security_notes": "OpenFGA's relationship tuple model provides the highest granularity of any authorization approach — every permission is explicit. Backed by Okta with regular security reviews. Self-hosted deployments must secure the admin API (no auth by default in dev mode)."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 78,
+    "version_stability": 85,
+    "breaking_changes_history": 82,
+    "error_recovery": 85
+  }
+}

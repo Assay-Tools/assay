@@ -1,0 +1,105 @@
+{
+  "id": "ory-hydra-api",
+  "name": "Ory Hydra",
+  "version_evaluated": "v2.2.x",
+  "homepage": "https://www.ory.sh/hydra/",
+  "repo_url": "https://github.com/ory/hydra",
+  "category": "security",
+  "subcategories": ["authentication", "authorization", "oauth2", "oidc"],
+  "tags": ["oauth2", "oidc", "auth", "security", "token", "hydra", "ory", "self-hosted", "pkce"],
+  "what_it_does": "Ory Hydra is a hardened, open-source OAuth 2.0 and OpenID Connect authorization server that issues access/refresh/ID tokens, manages consent flows, and integrates with any identity provider via a login/consent redirect API — without managing users itself.",
+  "use_cases": [
+    "Issue OAuth2 access tokens and OIDC ID tokens for a custom identity provider by implementing the Hydra login and consent redirect API in your own backend",
+    "Enable third-party developers to OAuth2-authorize into your platform by running Hydra as a standards-compliant authorization server with PKCE and refresh token rotation",
+    "Introspect access tokens at API gateways by calling the Hydra token introspection endpoint (/oauth2/introspect) to validate tokens without shared secrets",
+    "Implement machine-to-machine Client Credentials grant for agent-to-agent service auth, issuing short-lived scoped tokens via Hydra's admin API",
+    "Manage OAuth2 clients programmatically via Hydra admin REST API — create, rotate secrets, and revoke clients as part of an agent-driven developer portal"
+  ],
+  "not_for": [
+    "User identity management (login UI, registration, password reset) — Hydra deliberately has no user store; pair it with Ory Kratos or your own IdP for user management",
+    "Fine-grained resource authorization — Hydra manages token issuance and scopes, not row-level or attribute-based policies; use OpenFGA or Ory Keto for those",
+    "Simple internal auth where OAuth2 overhead is unnecessary — for pure service-to-service auth within a trusted boundary, mutual TLS or a simpler token mechanism may be more appropriate"
+  ],
+  "best_when": "You need a standards-compliant, self-hosted OAuth2/OIDC authorization server that decouples token issuance from identity management and can serve as an authorization layer for third-party integrations.",
+  "avoid_when": "You need an all-in-one identity platform with built-in user management UI — use Logto or Auth0 instead; Hydra requires you to build or integrate a separate login/consent UI.",
+  "alternatives": ["ory-kratos-api", "logto-api", "oauth2-api", "openfga-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "node", "go", "java", "dotnet", "php", "ruby"],
+    "openapi_spec_url": "https://raw.githubusercontent.com/ory/hydra/master/spec/api.json",
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["api_key", "client_credentials", "bearer_token"],
+    "oauth": true,
+    "scopes": true,
+    "notes": "Admin API is protected by network policy (no built-in auth by design — expose only internally). Public endpoints use standard OAuth2 client authentication (client_secret_basic, client_secret_post, private_key_jwt). Ory Network uses API keys."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Fully open source (Apache 2.0) for self-hosted — no limits on clients, tokens, or users",
+    "paid_tiers": "Ory Network: Developer (free), Essentials ($29/mo), Scale (custom) with managed infrastructure and SLA",
+    "requires_credit_card": false,
+    "notes": "Self-hosted Hydra is free and unlimited. Ory Network provides managed Hydra with observability and SLA for teams that do not want to operate it themselves."
+  },
+  "performance": {
+    "latency_p50_ms": 10,
+    "latency_p99_ms": 50,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "None for self-hosted; Ory Network enforces per-tier limits",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self_hosted", "eu", "us"],
+    "compliance": ["SOC2 (Ory Network)", "GDPR", "OpenID Connect"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 80,
+    "error_message_notes": "Hydra returns RFC 6749-compliant error objects (error, error_description) for OAuth2 endpoints and structured JSON for admin API errors. Error descriptions are more informative than most OAuth servers but consent flow errors can be opaque.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Admin client creation is idempotent via PUT (upsert). Token issuance is not idempotent. Consent acceptance is idempotent for the same challenge ID. Refresh token rotation is non-idempotent — store the new token atomically.",
+    "pagination_style": "offset",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "The Hydra admin API has no built-in authentication by design — it is intended to be network-restricted (internal only); exposing it publicly is a critical security misconfiguration that allows any caller to create OAuth clients or revoke tokens",
+      "Login and consent challenge tokens are single-use and have a short TTL (default 30 minutes); agents implementing the login/consent redirect flow must complete the challenge before it expires — no retry is possible without restarting the authorization flow",
+      "Refresh token rotation: after a successful token refresh, the old refresh token is immediately invalid; a network error between Hydra's response and the client persisting the new token causes permanent session loss — implement atomic token storage",
+      "Token introspection (/oauth2/introspect) returns HTTP 200 with {active: false} for invalid tokens, NOT HTTP 401 — agents that check status code for validity will incorrectly treat revoked tokens as valid",
+      "PKCE is supported but not enforced by default on public clients in Hydra v1.x; v2.x requires explicit configuration — always set require_pkce=true for public clients to prevent authorization code interception attacks"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 80,
+    "auth_complexity_score": 65,
+    "rate_limit_clarity_score": 85
+  },
+  "security_score_components": {
+    "tls_enforcement": 98,
+    "auth_strength": 95,
+    "scope_granularity": 90,
+    "dependency_hygiene": 90,
+    "secret_handling": 92,
+    "security_notes": "Hydra uses the fosite OAuth2 framework with hardened defaults: PKCE support, refresh token rotation, token introspection, and JWT access tokens (optional). Built by a security-focused team with regular audits. Admin API network isolation is a critical operational requirement."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 75,
+    "version_stability": 82,
+    "breaking_changes_history": 78,
+    "error_recovery": 85
+  }
+}
