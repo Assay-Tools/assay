@@ -1,0 +1,105 @@
+{
+  "id": "svix-api",
+  "name": "Svix Webhook Infrastructure API",
+  "version_evaluated": "current",
+  "homepage": "https://www.svix.com",
+  "repo_url": "https://github.com/svix/svix-webhooks",
+  "category": "developer-tools",
+  "subcategories": ["webhooks", "messaging", "event-delivery"],
+  "tags": ["webhooks", "event-delivery", "retries", "signatures", "developer-portal", "idempotency"],
+  "what_it_does": "Provides reliable webhook sending infrastructure with automatic retries, HMAC signature verification, a hosted developer portal, and delivery analytics.",
+  "use_cases": [
+    "Send signed webhooks to customer endpoints when agent-triggered events occur (e.g., payment processed, job completed)",
+    "Automatically retry failed webhook deliveries with exponential backoff without custom retry logic",
+    "Generate per-tenant webhook portal URLs so end-users can self-manage their endpoint subscriptions",
+    "Replay historical webhook events to a new endpoint after a customer fixes a broken integration",
+    "Verify incoming webhook signatures in agent pipelines to authenticate event sources"
+  ],
+  "not_for": [
+    "Receiving or ingesting webhooks from third-party services (use Hookdeck instead)",
+    "Real-time bidirectional messaging or pub/sub with latency under 100ms (use Ably or Pusher)",
+    "Internal event bus or message queue between microservices (use Kafka or SQS)"
+  ],
+  "best_when": "You are building a SaaS product that needs to send reliable, signed webhooks to your customers' endpoints with minimal infrastructure overhead.",
+  "avoid_when": "You only need to receive and process inbound webhooks from external services rather than send webhooks to consumers.",
+  "alternatives": ["hookdeck-api", "trigger-dev-api", "courier-notifications"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "node", "go", "java", "ruby", "csharp", "kotlin", "rust"],
+    "openapi_spec_url": "https://api.svix.com/api/v1/openapi.json",
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["bearer_token"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Authentication uses a server-side API key passed as a Bearer token. Separate application tokens exist for the consumer portal. Webhook payloads are signed with HMAC-SHA256 per endpoint."
+  },
+  "pricing": {
+    "model": "freemium",
+    "free_tier_exists": true,
+    "free_tier_limits": "25,000 message attempts per month, 5 environments",
+    "paid_tiers": "Startup ~$99/mo, Business ~$299/mo, Enterprise custom; scales by message volume",
+    "requires_credit_card": false,
+    "notes": "Free tier is generous for development and low-volume production. Paid tiers unlock higher message volumes, data retention, and SSO."
+  },
+  "performance": {
+    "latency_p50_ms": 150,
+    "latency_p99_ms": 800,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "Varies by plan; typical default is 300 requests/min on API management endpoints; message delivery throughput scales with plan",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["US", "EU"],
+    "compliance": ["SOC2"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 88,
+    "error_message_quality": 85,
+    "error_message_notes": "REST API returns structured JSON errors with codes and descriptive messages. SDK exceptions wrap HTTP errors with context. Rate limit responses include Retry-After headers.",
+    "idempotency_support": "full",
+    "idempotency_notes": "All message send requests accept an idempotency key (event UID). Sending the same UID twice delivers only one message, safe for agent retry loops.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Application IDs and endpoint IDs are required in every API path — agents must track these per-tenant rather than using a single global identifier",
+      "The consumer portal URL expires; agents generating portal links must handle re-generation on expiry",
+      "Webhook delivery retries are managed by Svix, but agents must not implement their own retry layer on top or duplicate messages will be sent",
+      "Message payloads are limited to 256KB; agents sending large event bodies must truncate or reference external storage",
+      "Event type schemas must be registered before sending typed messages if using the schema validation feature; unregistered types will be rejected"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 88,
+    "error_handling_score": 85,
+    "auth_complexity_score": 88,
+    "rate_limit_clarity_score": 80
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 88,
+    "scope_granularity": 78,
+    "dependency_hygiene": 85,
+    "secret_handling": 90,
+    "security_notes": "HMAC-SHA256 signatures on every delivery with timestamp to prevent replay attacks. Endpoint secrets are rotatable. Portal tokens are scoped per application."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 85,
+    "breaking_changes_history": 82,
+    "error_recovery": 88
+  }
+}

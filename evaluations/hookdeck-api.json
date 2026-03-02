@@ -1,0 +1,105 @@
+{
+  "id": "hookdeck-api",
+  "name": "Hookdeck Webhook Management API",
+  "version_evaluated": "current",
+  "homepage": "https://hookdeck.com",
+  "repo_url": null,
+  "category": "developer-tools",
+  "subcategories": ["webhooks", "event-ingestion", "data-pipeline"],
+  "tags": ["webhooks", "inbound", "filtering", "transformation", "retry", "fan-out", "observability"],
+  "what_it_does": "Manages inbound webhooks from third-party services with reliable queuing, filtering, transformation, fan-out routing, and automatic retry on delivery failures.",
+  "use_cases": [
+    "Receive webhooks from Stripe, GitHub, or other SaaS tools and route them to agent pipelines without missing events during downtime",
+    "Filter and transform webhook payloads before they reach an agent so the agent only processes relevant, normalized events",
+    "Fan-out a single inbound webhook event to multiple downstream agent workers or endpoints simultaneously",
+    "Replay failed or missed webhook deliveries to an agent endpoint after a bug fix or deployment",
+    "Inspect and debug full webhook request/response history to diagnose why an agent pipeline processed an event incorrectly"
+  ],
+  "not_for": [
+    "Sending outbound webhooks to your own customers' endpoints (use Svix instead)",
+    "Real-time sub-100ms pub/sub messaging between services (use Ably or Pusher)",
+    "General-purpose task queues or job scheduling (use a dedicated queue like SQS or BullMQ)"
+  ],
+  "best_when": "You need a reliable inbound webhook gateway that decouples third-party event producers from your agent consumers with filtering, transformation, and replay capabilities.",
+  "avoid_when": "Your primary need is sending webhooks outbound to customers rather than receiving them from external services.",
+  "alternatives": ["svix-api", "trigger-dev-api", "aws-api-gateway"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["node", "python", "go", "ruby", "php"],
+    "openapi_spec_url": "https://api.hookdeck.com/openapi.json",
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["api_key", "bearer_token"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "API key passed as Bearer token. Inbound webhook sources use auto-generated signing secrets per source for verification. Team-level and project-level key scoping available."
+  },
+  "pricing": {
+    "model": "freemium",
+    "free_tier_exists": true,
+    "free_tier_limits": "100,000 events per month, 3-day event retention, 1 workspace",
+    "paid_tiers": "Developer $25/mo, Team $100/mo, Business $500/mo; enterprise custom; scales on event volume and retention",
+    "requires_credit_card": false,
+    "notes": "Free tier sufficient for development. Retention period and event volume are the main upgrade drivers for production workloads."
+  },
+  "performance": {
+    "latency_p50_ms": 100,
+    "latency_p99_ms": 600,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "Ingest: effectively unlimited at the source URL; delivery API: ~600 req/min default; replay and management APIs have lower limits per plan",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["US", "EU"],
+    "compliance": ["SOC2"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 87,
+    "error_message_quality": 84,
+    "error_message_notes": "API returns structured JSON errors with code and message fields. Dashboard UI provides detailed delivery attempt logs. Webhook verification errors are clearly surfaced.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Hookdeck assigns a unique event ID to each inbound webhook; agents can use this for deduplication. No idempotency key on outbound management API calls.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Connections (source + destination pairs) must be pre-configured; agents cannot dynamically create routing on the fly without an API call to create the connection first",
+      "Transformation functions are JavaScript snippets executed server-side; agents calling the API to deploy transformations must validate JS syntax before submission",
+      "Event retention limits mean older events cannot be replayed on free/lower tiers — agents that need audit replay should check plan limits",
+      "Fan-out to multiple destinations requires separate connection objects per destination, not a single multi-target configuration",
+      "Rate limiting on the management API is separate from the ingest rate; agents that programmatically create many connections may hit management API limits"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 87,
+    "error_handling_score": 84,
+    "auth_complexity_score": 86,
+    "rate_limit_clarity_score": 82
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 85,
+    "scope_granularity": 78,
+    "dependency_hygiene": 83,
+    "secret_handling": 87,
+    "security_notes": "Per-source signing secrets enable inbound signature verification. Secrets are not exposed after initial creation. TLS enforced on all endpoints."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 87,
+    "version_stability": 84,
+    "breaking_changes_history": 80,
+    "error_recovery": 86
+  }
+}
