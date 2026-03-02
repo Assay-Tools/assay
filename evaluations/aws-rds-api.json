@@ -1,0 +1,105 @@
+{
+  "id": "aws-rds-api",
+  "name": "Amazon RDS API",
+  "version_evaluated": "current",
+  "homepage": "https://aws.amazon.com/rds/",
+  "repo_url": null,
+  "category": "database",
+  "subcategories": ["managed-database", "postgresql", "mysql", "relational"],
+  "tags": ["aws", "rds", "postgres", "mysql", "aurora", "managed-database", "relational"],
+  "what_it_does": "Amazon RDS REST API — managed relational database service enabling agents to provision, configure, backup, and scale PostgreSQL, MySQL, MariaDB, Oracle, and SQL Server instances, and manage Aurora clusters without infrastructure management.",
+  "use_cases": [
+    "Agents provisioning database instances on-demand — CreateDBInstance to spin up a Postgres or MySQL instance for a new customer environment",
+    "Automated backups and snapshots — agents triggering CreateDBSnapshot before major migrations and listing snapshots for PITR restore operations",
+    "Read replica management — agents adding or removing read replicas (CreateDBInstanceReadReplica) based on application load patterns",
+    "Multi-AZ failover management — agents modifying instances to enable/disable Multi-AZ for different environments (production vs dev)",
+    "Parameter group management — agents creating and applying DB parameter groups to tune database configuration programmatically"
+  ],
+  "not_for": [
+    "Serverless auto-scaling to zero — standard RDS instances run continuously; use Aurora Serverless v2 for scale-to-zero capability",
+    "Sub-millisecond queries — managed RDS has overhead vs self-hosted; for extreme performance use EC2-hosted Postgres with custom tuning",
+    "NoSQL workloads — RDS is for relational data only; use DynamoDB, DocumentDB, or other AWS NoSQL services for document/key-value needs"
+  ],
+  "best_when": "You need fully managed relational databases (PostgreSQL/MySQL/Aurora) in AWS with automated backups, patching, and failover, and want API control over provisioning and configuration.",
+  "avoid_when": "You need scale-to-zero cost model (use Aurora Serverless), sub-millisecond query latency, or NoSQL data models.",
+  "alternatives": ["aurora-api", "neon-database-api", "supabase-api", "planetscale-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "javascript", "java", "go", "ruby", "csharp", "php"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["aws-iam"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "AWS IAM SigV4 for all management API calls. RDS IAM authentication allows IAM users/roles to authenticate to the database itself (no password required) for supported engines. Resource-level IAM policies control which instances agents can modify."
+  },
+  "pricing": {
+    "model": "usage-based",
+    "free_tier_exists": true,
+    "free_tier_limits": "750 hours/month of db.t2.micro/t3.micro instances for 12 months; 20 GB storage; 20 GB backup",
+    "paid_tiers": "db.t3.micro: ~$0.017/hour; db.m5.large: ~$0.192/hour; storage: $0.115/GB-month; I/O: $0.20/1M requests",
+    "requires_credit_card": true,
+    "notes": "Costs include instance hours (even when idle), storage, I/O operations, backup storage, and data transfer. Multi-AZ doubles instance cost. Reserved instances (1-3 year) provide significant discounts for steady-state workloads."
+  },
+  "performance": {
+    "latency_p50_ms": 1,
+    "latency_p99_ms": 10,
+    "uptime_sla_percent": 99.95,
+    "rate_limits": "Management API: varies by operation (DescribeDBInstances: 40/s); database queries limited only by instance size",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": true,
+    "domain_verification": false,
+    "data_residency": ["US", "EU", "APAC", "CA", "SA", "ME"],
+    "compliance": ["SOC2", "ISO-27001", "HIPAA", "PCI-DSS", "FedRAMP"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 80,
+    "error_message_notes": "AWS SDK provides typed exceptions (DBInstanceNotFound, InvalidDBInstanceState, etc.). Management operations are async with polling required. Events system (DescribeEvents) provides operational context for errors.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "CreateDBInstance not idempotent — second call with same identifier throws DBInstanceAlreadyExistsFault. ModifyDBInstance is idempotent. Snapshot creation idempotent by identifier. Agents should describe before create to check existence.",
+    "pagination_style": "token",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Instance modifications are often async and may require apply-immediately=false (applied at next maintenance window) — agents must specify apply-immediately=true and poll ModifyDBInstance status for immediate changes",
+      "Security groups and subnet groups must be pre-configured — CreateDBInstance will fail if VPC security groups or DB subnet groups don't exist; agents must manage these dependencies",
+      "RDS IAM authentication tokens expire after 15 minutes — agents using IAM auth for DB connections must regenerate tokens regularly, not cache them long-term",
+      "Multi-AZ failover takes 60-120 seconds — agents monitoring for instance availability must implement retry with backoff during planned or unplanned failovers",
+      "Deletion protection flag (DeletionProtection=true) prevents both API and console deletion — agents managing instance lifecycle must explicitly disable this flag before DeleteDBInstance"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 80,
+    "auth_complexity_score": 72,
+    "rate_limit_clarity_score": 80
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 92,
+    "scope_granularity": 90,
+    "dependency_hygiene": 90,
+    "secret_handling": 88,
+    "security_notes": "IAM SigV4 with resource-level policies. RDS IAM authentication for database access (no static credentials). Encryption at rest with KMS. SSL/TLS for database connections. VPC isolation. CloudTrail logging. HIPAA, PCI-DSS, FedRAMP eligible."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 95,
+    "version_stability": 90,
+    "breaking_changes_history": 88,
+    "error_recovery": 90
+  }
+}
