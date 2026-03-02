@@ -1,0 +1,105 @@
+{
+  "id": "jwt-api",
+  "name": "JSON Web Tokens (RFC 7519 / PyJWT / jose)",
+  "version_evaluated": "RFC 7519 (2015); PyJWT 2.8.x; jose 4.x (JavaScript)",
+  "homepage": "https://jwt.io/",
+  "repo_url": null,
+  "category": "security",
+  "subcategories": ["authentication", "token", "protocol"],
+  "tags": ["jwt", "auth", "security", "token", "rsa", "hmac", "bearer", "rfc7519"],
+  "what_it_does": "JSON Web Tokens (RFC 7519) are a compact, URL-safe means of representing claims as a signed (JWS) or encrypted (JWE) JSON object; agents use them to verify identity and authorization without a database round-trip by validating the cryptographic signature against a known key.",
+  "use_cases": [
+    "Verify a Bearer token in an API request by checking the RS256 signature against a JWKS endpoint without calling an external service on every request",
+    "Issue short-lived (15-minute exp) signed claims tokens for agent-to-agent service authentication inside a trust boundary",
+    "Decode the payload of an OIDC ID token to extract user identity claims (sub, email, roles) after verifying the signature",
+    "Implement stateless session tokens for agent tasks where storing server-side session state is impractical",
+    "Pass tamper-evident context (user_id, permissions, tenant) through a multi-step agent pipeline where each step validates the JWT"
+  ],
+  "not_for": [
+    "Storing sensitive data in the payload — JWT payloads are base64-encoded, not encrypted by default (JWS ≠ JWE); anyone can decode them",
+    "Revocation of individual tokens before expiry without maintaining a denylist (JWTs are stateless; there is no built-in invalidation mechanism)",
+    "Long-lived sessions where a stolen token cannot be revoked — prefer opaque tokens with server-side session stores in high-risk contexts"
+  ],
+  "best_when": "An agent needs stateless, cryptographically verifiable claims that can be validated offline without a database or introspection call.",
+  "avoid_when": "You need immediate token revocation capability or must store sensitive PII in the token payload without implementing JWE encryption.",
+  "alternatives": ["oauth2-api", "ory-hydra-api", "ory-kratos-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "node", "java", "go", "ruby", "php", "rust", "dotnet", "swift"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "This is a token standard and library. Authentication to the issuing authority varies by implementation (OAuth server, custom issuer, etc.)."
+  },
+  "pricing": {
+    "model": "free",
+    "free_tier_exists": true,
+    "free_tier_limits": "Open IETF standard and open-source libraries — free to use",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "RFC 7519 is a free IETF standard. PyJWT (MIT), python-jose (MIT), and jose (MIT) are all open-source. jwt.io debugger is free."
+  },
+  "performance": {
+    "latency_p50_ms": 1,
+    "latency_p99_ms": 5,
+    "uptime_sla_percent": null,
+    "rate_limits": "None (library-level operation; in-process crypto)",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self_hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 90,
+    "error_message_quality": 75,
+    "error_message_notes": "PyJWT raises typed exceptions (ExpiredSignatureError, InvalidSignatureError, DecodeError) which are agent-friendly; jose and jsonwebtoken errors are less consistent across versions.",
+    "idempotency_support": "full",
+    "idempotency_notes": "JWT verification is a pure function — given the same token and key, validation always returns the same result. Issuance is not idempotent (each call generates a unique token with a new iat).",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "The 'none' algorithm vulnerability: always explicitly specify allowed algorithms (e.g., algorithms=['RS256']) when decoding — never let the library accept the algorithm from the token header without a whitelist",
+      "RS256 vs HS256 confusion: if a library defaults to HS256 but the token was signed with RS256, validation silently fails or can be exploited by passing the public key as the HMAC secret — always specify the expected algorithm",
+      "Clock skew: agents running in containers or VMs with drifted clocks will reject valid tokens or accept expired ones — use the leeway/options.clockTolerance parameter (60s is safe)",
+      "Fetching JWKS on every request is expensive; cache the JWKS response with a TTL (e.g., 5 minutes) but handle key rotation by retrying on signature failure before reporting an error",
+      "JWT payload is not encrypted by default — agents that log or store the raw token expose all claims (user IDs, roles, email) in plaintext; never log full JWT strings"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 90,
+    "error_handling_score": 75,
+    "auth_complexity_score": 80,
+    "rate_limit_clarity_score": 95
+  },
+  "security_score_components": {
+    "tls_enforcement": 95,
+    "auth_strength": 88,
+    "scope_granularity": 85,
+    "dependency_hygiene": 87,
+    "secret_handling": 82,
+    "security_notes": "Critical: the 'none' algorithm and algorithm confusion attacks (CVE-2015-9235 class) must be mitigated by explicit algorithm allowlists. Short expiry (exp) is essential. JWE (RFC 7516) required for sensitive payload data."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 0,
+    "version_stability": 90,
+    "breaking_changes_history": 85,
+    "error_recovery": 82
+  }
+}

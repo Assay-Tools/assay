@@ -1,0 +1,105 @@
+{
+  "id": "ory-kratos-api",
+  "name": "Ory Kratos",
+  "version_evaluated": "v1.2.x",
+  "homepage": "https://www.ory.sh/kratos/",
+  "repo_url": "https://github.com/ory/kratos",
+  "category": "security",
+  "subcategories": ["authentication", "identity-management"],
+  "tags": ["auth", "identity", "self-hosted", "ory", "login", "registration", "headless", "oidc"],
+  "what_it_does": "Ory Kratos is a headless, open-source identity management server that handles login, registration, account recovery, email verification, and settings flows via a REST API — agents integrate by driving self-service flows and reading identity objects, while the UI is fully custom.",
+  "use_cases": [
+    "Implement a complete login and registration flow for a web app by calling Kratos self-service flow APIs and rendering the returned form fields in a custom UI",
+    "Retrieve and update user identity objects (traits: email, name, roles) via the admin REST API from an agent managing user lifecycle events",
+    "Trigger account recovery and email verification flows programmatically via admin API for bulk user onboarding or password-reset automation",
+    "Integrate social login (Google, GitHub, OIDC) by configuring Kratos OIDC providers and letting Kratos handle the OAuth callback and identity linking",
+    "Use Kratos session cookies or session tokens to authenticate downstream service requests — verify session validity via the /sessions/whoami endpoint"
+  ],
+  "not_for": [
+    "OAuth2 / OIDC authorization server functionality — Kratos manages identities only; pair it with Ory Hydra for issuing OAuth2 tokens to third parties",
+    "Fine-grained resource authorization — Kratos handles who the user is, not what they can access; use OpenFGA or Ory Keto for authorization policies",
+    "Embedded mobile-only authentication without a backend — Kratos requires a server-side component for flow management and cannot operate purely client-side"
+  ],
+  "best_when": "You need a self-hosted, customizable identity server with full control over the UI and identity schema, without building login/registration/recovery flows from scratch.",
+  "avoid_when": "You need a managed, no-code identity solution with a built-in hosted UI — use Logto or Auth0 instead; Kratos requires significant integration work for the frontend.",
+  "alternatives": ["logto-api", "ory-hydra-api", "openfga-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "node", "go", "java", "dotnet", "php"],
+    "openapi_spec_url": "https://raw.githubusercontent.com/ory/kratos/master/spec/api.json",
+    "webhooks": true
+  },
+  "auth": {
+    "methods": ["api_key", "session_cookie", "session_token"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Admin API endpoints require an API key or mutual TLS in self-hosted deployments. Self-service (public) endpoints use session tokens or cookies. Ory Network uses API keys for cloud deployments."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Fully open source (Apache 2.0) for self-hosted with no user or feature limits",
+    "paid_tiers": "Ory Network: Developer (free), Essentials ($29/mo), Scale (custom) — cloud-managed with SLA",
+    "requires_credit_card": false,
+    "notes": "Self-hosted is free and unlimited under Apache 2.0. Ory Network cloud tiers offer managed infrastructure; Developer tier is free with rate limits."
+  },
+  "performance": {
+    "latency_p50_ms": 15,
+    "latency_p99_ms": 80,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "None for self-hosted; Ory Network enforces per-tier request quotas",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self_hosted", "eu", "us"],
+    "compliance": ["SOC2 (Ory Network)", "GDPR"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 84,
+    "error_message_quality": 78,
+    "error_message_notes": "Kratos returns structured JSON errors with an id field (e.g., 'session_inactive', 'browser_location_change_required') and a ui.messages array with human-readable text — reasonably agent-friendly but flow state machine errors require understanding the self-service flow lifecycle.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Self-service flow IDs are single-use; submitting a flow twice returns an error. Admin identity creation supports upsert patterns via traits matching. Flow initialization is idempotent within the flow TTL if the same session is reused.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Self-service flows (login, registration) are stateful and tied to a flow ID with a TTL (default 1h for browser, 15m for API); agents that cache flow IDs across requests will encounter 'flow expired' errors requiring flow re-initialization",
+      "Browser vs API flow type mismatch: flows initialized with the browser flow type expect a Cookie header; API flow types expect an X-Session-Token header — mixing these causes 400 errors that are hard to diagnose",
+      "The /sessions/whoami endpoint returns 401 with no body (not JSON) when the session is invalid — agents must check status code before attempting JSON decode to avoid parse errors",
+      "Identity schema changes (adding/removing traits) require a schema migration and may invalidate existing identity objects if required fields are added without defaults — always version schemas",
+      "Webhook delivery for post-login/post-registration hooks is at-least-once; agents consuming Kratos webhooks must implement idempotency on the receiving end using the identity ID and event type as a deduplication key"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 84,
+    "error_handling_score": 78,
+    "auth_complexity_score": 68,
+    "rate_limit_clarity_score": 82
+  },
+  "security_score_components": {
+    "tls_enforcement": 98,
+    "auth_strength": 92,
+    "scope_granularity": 82,
+    "dependency_hygiene": 88,
+    "secret_handling": 90,
+    "security_notes": "Kratos enforces CSRF protection on browser flows, argon2id for password hashing, and supports MFA via TOTP and WebAuthn. Secrets (OIDC client secrets, cookie secrets) must be managed externally (Vault, Kubernetes secrets)."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 72,
+    "version_stability": 80,
+    "breaking_changes_history": 75,
+    "error_recovery": 82
+  }
+}

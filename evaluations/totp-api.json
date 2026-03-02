@@ -1,0 +1,105 @@
+{
+  "id": "totp-api",
+  "name": "TOTP — Time-Based One-Time Passwords (RFC 6238 / pyotp)",
+  "version_evaluated": "RFC 6238 (2011); pyotp 2.9.x",
+  "homepage": "https://pyauth.github.io/pyotp/",
+  "repo_url": null,
+  "category": "security",
+  "subcategories": ["authentication", "mfa", "protocol"],
+  "tags": ["totp", "mfa", "2fa", "otp", "auth", "security", "rfc6238", "pyotp"],
+  "what_it_does": "TOTP (RFC 6238) generates time-synchronized 6–8 digit one-time codes using HMAC-SHA1 over a shared secret and a 30-second time counter, enabling a second authentication factor that requires no network call — commonly implemented via pyotp in Python or otplib in JavaScript.",
+  "use_cases": [
+    "Generate a TOTP provisioning URI and QR code at account setup so users can scan it into Google Authenticator, Authy, or a hardware token",
+    "Verify a TOTP code submitted during login by checking the current and adjacent time windows (±1 step) to tolerate moderate clock skew",
+    "Implement backup/recovery codes at enrollment time as single-use alternatives when the user's authenticator is unavailable",
+    "Add TOTP as a second factor to a CLI tool or agent dashboard where hardware passkeys are not available",
+    "Validate TOTP in a rate-limited, attempt-counting loop (lock after N failures) to prevent brute-force attacks on the 6-digit space"
+  ],
+  "not_for": [
+    "Phishing-resistant authentication — TOTP codes can be intercepted in real-time phishing attacks; use WebAuthn/FIDO2 for phishing resistance",
+    "Passwordless authentication as the sole factor — TOTP is a second factor; it requires a first factor (password, passkey) to be meaningful",
+    "High-security environments where SIM-swap or voice-phishing attacks are a concern — TOTP shared secrets can be extracted from unprotected devices or databases"
+  ],
+  "best_when": "You need a widely compatible, low-complexity second factor that works offline and is supported by all major authenticator apps without requiring hardware tokens.",
+  "avoid_when": "Your threat model includes real-time phishing or you need phishing-resistant authentication — in that case, use WebAuthn instead.",
+  "alternatives": ["webauthn-api", "ory-kratos-api", "logto-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "node", "java", "go", "ruby", "php", "rust", "dotnet", "swift"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "TOTP is a pure library/algorithm — no external service or authentication required. The shared secret is generated and stored by the application."
+  },
+  "pricing": {
+    "model": "free",
+    "free_tier_exists": true,
+    "free_tier_limits": "Open IETF standard; pyotp is MIT-licensed and free",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "RFC 6238 is a free IETF standard. pyotp (MIT), otplib (MIT), and speakeasy (MIT) are all open-source. No external service required."
+  },
+  "performance": {
+    "latency_p50_ms": 1,
+    "latency_p99_ms": 2,
+    "uptime_sla_percent": null,
+    "rate_limits": "None (in-process library; no network calls)",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self_hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 88,
+    "error_message_quality": 80,
+    "error_message_notes": "pyotp raises clear Python exceptions; validation returns a boolean, so error handling is application-level. Mismatched secrets produce silent False returns rather than exceptions — agents must log context for debugging.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "TOTP verification is idempotent for a given code within the same time window but the same code cannot be reused (replay prevention requires storing the last verified counter/code). The 30-second window means codes expire automatically.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Clock skew: the TOTP algorithm is sensitive to host clock accuracy; containers and VMs can drift — always enable a ±1 window (valid_window=1 in pyotp) and monitor host NTP sync status",
+      "Shared secret storage: the base32-encoded TOTP secret is equivalent to a password; it must be encrypted at rest (never stored in plaintext in a database column or environment variable log)",
+      "Backup code exhaustion: agents provisioning TOTP must generate and store backup codes at enrollment and handle the case where all backup codes are consumed — there is no RFC-defined recovery path",
+      "QR code provisioning URI (otpauth://) must use the exact issuer and account name that will be displayed in the authenticator app; changing these fields after enrollment breaks re-scanning without re-enrollment",
+      "Replay attack prevention: TOTP codes are valid for 30 seconds; an agent that does not track and reject previously used codes within a window allows the same code to be submitted twice — maintain a short-lived used-code cache keyed by (secret_hash, counter)"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 88,
+    "error_handling_score": 80,
+    "auth_complexity_score": 82,
+    "rate_limit_clarity_score": 95
+  },
+  "security_score_components": {
+    "tls_enforcement": 90,
+    "auth_strength": 78,
+    "scope_granularity": 70,
+    "dependency_hygiene": 90,
+    "secret_handling": 80,
+    "security_notes": "TOTP secrets must be encrypted at rest and transmitted only over TLS. The 6-digit code space (1M values) is vulnerable to brute force without rate limiting. TOTP does not provide phishing resistance — codes can be replayed in real time."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 0,
+    "version_stability": 95,
+    "breaking_changes_history": 95,
+    "error_recovery": 85
+  }
+}

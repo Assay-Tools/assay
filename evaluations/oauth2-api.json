@@ -1,0 +1,105 @@
+{
+  "id": "oauth2-api",
+  "name": "OAuth 2.0 (Protocol / RFC 6749)",
+  "version_evaluated": "RFC 6749 / RFC 6750 (2012, updated via BCP 212)",
+  "homepage": "https://oauth.net/2/",
+  "repo_url": "https://github.com/nickvdyck/oauth2",
+  "category": "security",
+  "subcategories": ["authentication", "authorization", "protocol"],
+  "tags": ["oauth2", "auth", "security", "token", "pkce", "oidc", "rfc6749"],
+  "what_it_does": "OAuth 2.0 is a delegated authorization protocol (RFC 6749/6750) that allows agents to obtain short-lived access tokens via grant types (Authorization Code + PKCE, Client Credentials, Device Flow) to access protected resources on behalf of a user or service.",
+  "use_cases": [
+    "Obtain a client_credentials access token to call third-party APIs on behalf of a service (machine-to-machine agent workflows)",
+    "Implement Authorization Code + PKCE flow to act on behalf of a human user without storing their credentials",
+    "Use Device Authorization Flow to authenticate an agent running in a headless or CLI environment",
+    "Refresh expired access tokens automatically using a refresh_token to maintain long-running agent sessions",
+    "Validate incoming Bearer tokens at an API gateway before routing requests to downstream agent tools"
+  ],
+  "not_for": [
+    "User authentication identity (OAuth 2.0 is authorization only; use OIDC or a dedicated IdP for identity)",
+    "Storing user passwords or managing credentials directly (it is a delegation protocol, not an identity store)",
+    "Fine-grained resource permissions within an application (use a dedicated authz layer like OpenFGA on top)"
+  ],
+  "best_when": "An agent needs to call APIs on behalf of users or services using industry-standard delegated authorization with scoped, short-lived tokens.",
+  "avoid_when": "You need a full identity management system, session management, or user registration — OAuth 2.0 alone does not provide those.",
+  "alternatives": ["ory-hydra-api", "logto-api", "ory-kratos-api", "openfga-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "node", "java", "go", "ruby", "php", "rust", "dotnet"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "This is the protocol itself. Individual authorization servers (Hydra, Okta, Auth0, etc.) implement the spec and define their own credential requirements."
+  },
+  "pricing": {
+    "model": "free",
+    "free_tier_exists": true,
+    "free_tier_limits": "Open IETF standard — free to implement",
+    "paid_tiers": "None (protocol spec); managed OAuth servers vary",
+    "requires_credit_card": false,
+    "notes": "RFC 6749/6750 are open IETF standards. Costs arise from choosing a managed OAuth server (Auth0, Okta, Logto Cloud, Ory Network)."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "None (protocol/library); depends on authorization server implementation",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self_hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 88,
+    "error_message_quality": 72,
+    "error_message_notes": "Error responses are defined by RFC 6749 (error, error_description, error_uri fields) but quality varies widely by authorization server implementation; many servers return vague error codes like 'invalid_grant'.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Token endpoint requests are not idempotent by spec (each call issues a new token). Refresh token rotation means retrying a failed refresh can invalidate the token — agents must handle this carefully.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Refresh token rotation: if a network error occurs mid-rotation, the old refresh token may be invalidated before the agent stores the new one — always persist the new token atomically before using it",
+      "Clock skew: the 'exp' claim in access tokens uses absolute Unix timestamps; if the agent host clock drifts, tokens may appear expired or valid when they are not — build in a 60-second skew buffer",
+      "PKCE code_verifier must be generated per-authorization request and stored server-side; agents that reuse or cache verifiers break the PKCE security guarantee",
+      "state parameter is required for CSRF protection in Authorization Code flow; agents that skip it or use a static value are vulnerable to authorization code injection",
+      "Client Credentials grant issues non-refreshable tokens — agents in long-running loops must proactively re-authenticate before expiry rather than waiting for a 401"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 88,
+    "error_handling_score": 72,
+    "auth_complexity_score": 65,
+    "rate_limit_clarity_score": 85
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 90,
+    "scope_granularity": 92,
+    "dependency_hygiene": 88,
+    "secret_handling": 88,
+    "security_notes": "RFC 6749 mandates TLS for all token endpoints. PKCE (RFC 7636) and DPoP (RFC 9449) extensions significantly harden security. The 'none' algorithm and implicit flow are deprecated in OAuth 2.1 BCP."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 0,
+    "version_stability": 92,
+    "breaking_changes_history": 90,
+    "error_recovery": 78
+  }
+}

@@ -1,0 +1,105 @@
+{
+  "id": "webauthn-api",
+  "name": "Web Authentication API (WebAuthn / FIDO2 / Passkeys)",
+  "version_evaluated": "W3C WebAuthn Level 3 (2023); FIDO2; Passkeys (CTAP2.1)",
+  "homepage": "https://webauthn.io/",
+  "repo_url": null,
+  "category": "security",
+  "subcategories": ["authentication", "passkeys", "protocol"],
+  "tags": ["webauthn", "fido2", "passkeys", "auth", "security", "mfa", "biometric"],
+  "what_it_does": "WebAuthn (W3C + FIDO2) is a browser and platform API for phishing-resistant public-key authentication; the server issues a challenge, the authenticator (hardware key, platform biometric, or synced passkey) signs it, and the server verifies the signature — eliminating password transmission entirely.",
+  "use_cases": [
+    "Implement passkey (synced FIDO2 credential) registration and login for a web application so users authenticate with Face ID, Touch ID, or Windows Hello without passwords",
+    "Add hardware security key (YubiKey, FIDO token) support as a phishing-resistant MFA step after password verification",
+    "Perform server-side attestation verification during credential registration to enforce authenticator policy (e.g., require enterprise hardware tokens)",
+    "Store and manage credential IDs and public keys server-side using a library like py_webauthn or SimpleWebAuthn to handle the full assertion verification flow",
+    "Implement cross-device authentication flows where a passkey stored on a phone is used to authenticate on a desktop browser via QR code (CTAP2 hybrid transport)"
+  ],
+  "not_for": [
+    "Headless or non-browser agent contexts — WebAuthn requires a user-present authenticator interaction; it cannot be automated or called without a human and a FIDO2 device",
+    "Server-to-server machine authentication — use client certificates or OAuth Client Credentials instead; WebAuthn is designed for human presence verification",
+    "Simple MFA via TOTP codes — WebAuthn is significantly more complex to implement; use TOTP (RFC 6238) if phishing resistance is not a hard requirement"
+  ],
+  "best_when": "You are building user-facing authentication that must be phishing-resistant, and your users have access to a FIDO2 authenticator (modern phone, Mac, Windows Hello, or hardware key).",
+  "avoid_when": "You need fully automated or headless authentication flows — WebAuthn's user-presence requirement makes it incompatible with non-interactive agent pipelines.",
+  "alternatives": ["totp-api", "ory-kratos-api", "logto-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "node", "java", "go", "ruby", "dotnet", "swift"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "WebAuthn is an authentication standard. Server-side verification libraries (py_webauthn, SimpleWebAuthn, webauthn4j) are open-source with no auth requirements. Managed FIDO2 services (Hanko, Passage) use their own API keys."
+  },
+  "pricing": {
+    "model": "free",
+    "free_tier_exists": true,
+    "free_tier_limits": "W3C open standard; browser API is free; server-side verification libraries are open-source",
+    "paid_tiers": "None for the standard; managed services (Hanko Cloud, Passage) offer paid tiers",
+    "requires_credit_card": false,
+    "notes": "The WebAuthn standard and FIDO2 spec are free and open. Open-source server libraries (py_webauthn MIT, SimpleWebAuthn MIT) are free. Costs arise only if using a managed passkey service."
+  },
+  "performance": {
+    "latency_p50_ms": 200,
+    "latency_p99_ms": 2000,
+    "uptime_sla_percent": null,
+    "rate_limits": "None (library/browser API); depends on FIDO2 authenticator and network for cross-device flows",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": true,
+    "data_residency": ["self_hosted"],
+    "compliance": ["FIDO2", "W3C WebAuthn"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 82,
+    "error_message_quality": 68,
+    "error_message_notes": "Browser-side errors (NotAllowedError, SecurityError, AbortError) are DOMException types with limited detail; server-side library errors vary by implementation and often require decoding CBOR/COSE structures to diagnose.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Registration produces a new credential keypair each time (not idempotent). Assertion (login) challenges are single-use; replaying a signed challenge will fail signature counter checks.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "rpID (Relying Party ID) must exactly match the effective domain of the page — including subdomains — or the browser silently blocks the ceremony; always derive rpID from window.location.hostname at runtime",
+      "Challenge must be cryptographically random and single-use; storing challenges in an in-memory map without expiry enables replay attacks — always expire challenges (e.g., 5-minute TTL) server-side",
+      "Signature counter validation: if the stored counter equals or exceeds the authenticator's counter, reject the assertion as a potential credential clone — many implementations skip this check",
+      "CBOR encoding of authenticatorData must be parsed server-side (not JSON); libraries that incorrectly decode AAGUID or attestation formats will silently corrupt credential storage",
+      "Cross-device (hybrid) flows using QR codes require BLE and the CTAP2 hybrid transport; server-side code does not change but the UX flow is entirely different and fails silently if the platform does not support caBLE"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 82,
+    "error_handling_score": 68,
+    "auth_complexity_score": 55,
+    "rate_limit_clarity_score": 90
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 99,
+    "scope_granularity": 80,
+    "dependency_hygiene": 88,
+    "secret_handling": 98,
+    "security_notes": "WebAuthn is the gold standard for phishing-resistant authentication: private keys never leave the authenticator, challenges are origin-bound, and there are no shared secrets to steal. Requires HTTPS (or localhost) — no exceptions."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 0,
+    "version_stability": 85,
+    "breaking_changes_history": 88,
+    "error_recovery": 72
+  }
+}
