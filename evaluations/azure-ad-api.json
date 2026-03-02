@@ -1,28 +1,28 @@
 {
-  "id": "azure-ad-api",
-  "name": "Microsoft Entra ID (Azure AD) API",
-  "version_evaluated": "current",
-  "homepage": "https://learn.microsoft.com/en-us/graph/api/resources/azure-ad-overview",
-  "repo_url": "https://github.com/microsoftgraph/microsoft-graph-docs",
+  "id": "azure-ad",
+  "name": "Microsoft Entra ID (Azure AD)",
+  "version_evaluated": "v2.0",
+  "homepage": "https://learn.microsoft.com/en-us/entra/identity",
+  "repo_url": null,
   "category": "security",
-  "subcategories": ["identity", "authentication", "user-management", "access-control"],
-  "tags": ["azure", "microsoft", "entra", "active-directory", "identity", "oauth2", "saml", "service-principals", "rbac", "sso"],
-  "what_it_does": "Microsoft Entra ID (formerly Azure Active Directory) provides identity and access management APIs for managing users, groups, service principals, app registrations, conditional access policies, and OAuth 2.0/OIDC authentication flows.",
+  "subcategories": ["identity", "authentication", "enterprise-sso"],
+  "tags": ["azure", "microsoft", "oauth2", "oidc", "saml", "enterprise", "identity"],
+  "what_it_does": "Microsoft's cloud identity platform that provides OAuth2/OIDC SSO, MFA, conditional access, and user/group management for enterprise Microsoft 365 and custom applications.",
   "use_cases": [
-    "Provisioning and deprovisioning user accounts and group memberships automatically in response to HR system events or onboarding workflows",
-    "Creating and managing service principals and app registrations for agents that need to authenticate as applications to Azure resources",
-    "Querying user attributes, manager hierarchies, and group memberships to make authorization decisions in enterprise agents",
-    "Implementing conditional access policy evaluation and sign-in risk checks to enforce Zero Trust access decisions",
-    "Automating role assignment (RBAC) to Azure resources by assigning or revoking directory roles and Azure resource roles for users and managed identities"
+    "Authenticate users via OAuth2 authorization code flow and acquire tokens for Microsoft Graph API calls",
+    "Register background service principals and use client credentials grant for daemon app auth",
+    "Implement conditional access policies via Graph API to enforce MFA for sensitive operations",
+    "Sync user provisioning/deprovisioning from your app to Azure AD via SCIM 2.0 endpoint",
+    "Query group memberships and assign app roles to users via Microsoft Graph API for RBAC"
   ],
   "not_for": [
-    "Non-Azure identity providers — if your org uses Okta, Auth0, or Ping Identity as the primary IdP, those native APIs are a better fit",
-    "Simple end-user authentication in consumer apps — Azure AD B2C is a separate product; Entra ID targets workforce identity",
-    "Directory lookups in environments without Microsoft 365 or Azure — Entra ID requires an Azure tenant"
+    "Consumer-facing apps without Microsoft 365 dependency — use Clerk, Auth0, or Cognito",
+    "Simple API key authentication — Azure AD adds OAuth complexity not justified for internal tools",
+    "Non-enterprise environments where multi-tenant consent flows create deployment friction"
   ],
-  "best_when": "Your organization runs on Microsoft 365/Azure and you need to automate enterprise identity tasks — user lifecycle, group management, app permissions, or audit log retrieval — within an existing Entra tenant.",
-  "avoid_when": "You only need simple OAuth 2.0 token validation and have no Microsoft tenant — adding Entra ID solely for auth introduces unnecessary Azure dependency.",
-  "alternatives": ["okta-api", "auth0-api", "google-workspace-admin-api", "aws-iam-api"],
+  "best_when": "Building enterprise apps in the Microsoft ecosystem where users already have Azure AD identities.",
+  "avoid_when": "Your user base doesn't have Microsoft accounts or Azure AD licenses — provisioning costs add up.",
+  "alternatives": ["okta-api", "auth0", "keycloak-api", "clerk-dev"],
   "interface": {
     "has_rest_api": true,
     "has_graphql": false,
@@ -30,76 +30,76 @@
     "has_mcp_server": false,
     "mcp_server_url": null,
     "has_sdk": true,
-    "sdk_languages": ["python", "node", "java", "dotnet", "go", "php", "ruby"],
-    "openapi_spec_url": "https://raw.githubusercontent.com/microsoftgraph/msgraph-metadata/master/openapi/v1.0/openapi.yaml",
+    "sdk_languages": ["python", "node", "java", "dotnet", "go"],
+    "openapi_spec_url": "https://learn.microsoft.com/en-us/graph/api/overview",
     "webhooks": true
   },
   "auth": {
-    "methods": ["oauth2", "client_credentials", "managed_identity", "certificate"],
+    "methods": ["oauth2", "client_credentials", "bearer_token"],
     "oauth": true,
     "scopes": true,
-    "notes": "OAuth 2.0 and OIDC are the primary auth mechanisms. Application permissions (client credentials flow) are used for agent/daemon scenarios — no user interaction required. Delegated permissions require a signed-in user context. Managed identity is the preferred method for Azure-hosted agents. Certificate-based authentication is supported and preferred over client secrets for application auth. Scopes follow the pattern https://graph.microsoft.com/{scope}."
+    "notes": "Microsoft identity platform v2.0; client_credentials for daemon apps; auth code + PKCE for users; MSAL library recommended"
   },
   "pricing": {
-    "model": "tiered",
+    "model": "freemium",
     "free_tier_exists": true,
-    "free_tier_limits": "Entra ID Free tier included with any Azure or Microsoft 365 subscription. Covers basic user/group management, SSO for 10 apps, and MFA. Microsoft Graph API calls are free — no per-call charges.",
-    "paid_tiers": "Entra ID P1 (~$6/user/month) adds conditional access, group-based access, self-service password reset. Entra ID P2 (~$9/user/month) adds Identity Protection, Privileged Identity Management (PIM), and access reviews.",
-    "requires_credit_card": true,
-    "notes": "API calls themselves are not metered or billed. Costs are based on per-user licensing tiers for premium features. Many identity automation use cases only require Free or P1."
+    "free_tier_limits": "50,000 MAU free for external identities; internal users included in M365 license",
+    "paid_tiers": "Entra ID P1/P2 from $6/$9/user/month for conditional access and advanced features",
+    "requires_credit_card": false,
+    "notes": "Core auth is free with Azure subscription; premium features (conditional access, PIM) require P1/P2 license"
   },
   "performance": {
-    "latency_p50_ms": 150,
-    "latency_p99_ms": 800,
-    "uptime_sla_percent": 99.99,
-    "rate_limits": "Microsoft Graph enforces service-level throttling. Default: 10,000 requests per 10 minutes per tenant. Some resources have per-resource limits. Responses include Retry-After header when throttled. Batch requests support up to 20 requests in a single HTTP call.",
+    "latency_p50_ms": 100,
+    "latency_p99_ms": 500,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "Microsoft Graph: 10,000 req/10min per app; token endpoint: 200 req/sec per tenant",
     "data_source": "llm_estimated"
   },
   "requirements": {
     "requires_signup": true,
-    "requires_credit_card": true,
-    "domain_verification": false,
-    "data_residency": ["US", "EU", "UK", "AU", "CA", "APAC", "JP", "IN", "ZA", "UAE"],
-    "compliance": ["SOC1", "SOC2", "ISO27001", "ISO27018", "HIPAA", "FedRAMP-High", "GDPR", "PCI-DSS", "HITRUST", "DoD-IL5", "CJIS", "IRAP"],
+    "requires_credit_card": false,
+    "domain_verification": true,
+    "data_residency": ["US", "EU", "AU", "global"],
+    "compliance": ["SOC2", "ISO27001", "FedRAMP", "HIPAA"],
     "min_contract": "none"
   },
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
-    "documentation_accuracy": 84,
+    "documentation_accuracy": 85,
     "error_message_quality": 80,
-    "error_message_notes": "Microsoft Graph returns well-structured JSON error responses with error.code and error.message fields. Common errors like Authorization_RequestDenied and Request_ResourceNotFound are well-documented. Throttling errors include Retry-After headers. Error granularity is good but some permission-denied errors are ambiguous about which scope is missing.",
+    "error_message_notes": "OAuth errors return structured JSON with error and error_description; Graph API errors include code and message",
     "idempotency_support": "partial",
-    "idempotency_notes": "GET operations are naturally idempotent. PATCH updates are idempotent for the same payload. POST creates (e.g., creating users) are not idempotent — duplicate calls create duplicate resources. Use GET-then-PATCH patterns for upsert behavior.",
+    "idempotency_notes": "Token requests are idempotent with caching; Graph mutations may not be idempotent",
     "pagination_style": "cursor",
     "retry_guidance_documented": true,
     "known_agent_gotchas": [
-      "Application permissions (used in agent/daemon flows) require admin consent — agents cannot self-authorize; a tenant administrator must grant permissions via the Azure portal or consent endpoint",
-      "The Microsoft Graph API and the legacy Azure AD Graph API (graph.windows.net) are different endpoints; Azure AD Graph is deprecated — always use Microsoft Graph (graph.microsoft.com)",
-      "Delta query tokens expire after a period of inactivity — agents doing incremental sync must handle deltaLink expiration and fall back to full sync",
-      "Service principal creation requires two steps: create the application registration, then create the service principal from it — they are distinct objects with separate IDs",
-      "Throttling is per-tenant and can affect all apps in the tenant simultaneously — a noisy agent can degrade Graph API access for all other applications in the same tenant"
+      "Access tokens expire in 1 hour — agents must implement MSAL token cache or silent refresh; don't store raw tokens",
+      "Admin consent required for most Microsoft Graph scopes — agents cannot self-consent; must coordinate with tenant admin",
+      "Multi-tenant apps require tenant-specific endpoints or /common/ — wrong endpoint causes AADSTS errors",
+      "Client credentials grant cannot access user-delegated resources (e.g., user's calendar) — different permission model",
+      "Conditional access policies can block token issuance and return AADSTS65001 — agents must handle CA policy failures gracefully"
     ]
   },
   "af_score_components": {
     "mcp_score": 0,
-    "api_doc_score": 84,
+    "api_doc_score": 85,
     "error_handling_score": 80,
-    "auth_complexity_score": 65,
-    "rate_limit_clarity_score": 82
+    "auth_complexity_score": 62,
+    "rate_limit_clarity_score": 78
   },
   "security_score_components": {
     "tls_enforcement": 100,
-    "auth_strength": 96,
-    "scope_granularity": 95,
+    "auth_strength": 95,
+    "scope_granularity": 92,
     "dependency_hygiene": 90,
-    "secret_handling": 90,
-    "security_notes": "Industry-leading security posture. Certificate credentials are strongly preferred over client secrets. Managed identity eliminates all credential handling for Azure-hosted agents. Conditional access policies, PIM for just-in-time privilege, and continuous access evaluation (CAE) make this one of the most hardened identity APIs available. Entra ID supports token binding and device compliance signals."
+    "secret_handling": 88,
+    "security_notes": "Use MSAL; never store tokens in logs; use certificate credentials over client secrets for production service principals"
   },
   "reliability_score_components": {
-    "uptime_documented": 95,
+    "uptime_documented": 90,
     "version_stability": 88,
-    "breaking_changes_history": 82,
+    "breaking_changes_history": 85,
     "error_recovery": 85
   }
 }
