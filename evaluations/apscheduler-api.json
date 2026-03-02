@@ -1,0 +1,105 @@
+{
+  "id": "apscheduler-api",
+  "name": "APScheduler",
+  "version_evaluated": "4.x",
+  "homepage": "https://apscheduler.readthedocs.io/",
+  "repo_url": "https://github.com/agronholm/apscheduler",
+  "category": "developer-tools",
+  "subcategories": ["scheduling", "task-management", "background-jobs"],
+  "tags": ["python", "scheduler", "cron", "background-jobs", "task-scheduling", "open-source"],
+  "what_it_does": "A Python library for scheduling Python functions to run at specific times or intervals using cron, interval, or one-off date triggers, with pluggable job stores backed by memory, Redis, or SQLAlchemy.",
+  "use_cases": [
+    "Schedule periodic data sync or ETL jobs to run at cron-defined intervals within a Python agent process",
+    "Queue one-off delayed tasks (e.g., send a follow-up message 24 hours after user action) using date triggers",
+    "Run recurring maintenance jobs (cache invalidation, report generation) with interval triggers inside a long-running agent service",
+    "Persist scheduled jobs across process restarts using Redis or SQLAlchemy job stores so tasks survive crashes",
+    "Coordinate multiple background tasks with misfire grace time and coalesce settings to handle missed schedules gracefully"
+  ],
+  "not_for": [
+    "Distributed task queues across multiple workers — use Celery or Redis Queue for multi-process task distribution",
+    "High-throughput job pipelines with thousands of concurrent workers — APScheduler is not a message broker",
+    "Environments where the scheduler process cannot stay alive (serverless functions, ephemeral containers without persistent job stores)"
+  ],
+  "best_when": "You need in-process Python scheduling within a long-running service and want cron/interval/date triggers without standing up a separate scheduler daemon.",
+  "avoid_when": "You need horizontally scaled workers, distributed locking across many machines, or a persistent queue that survives complete infrastructure teardown.",
+  "alternatives": ["celery", "rq", "prefect-api", "dagster-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No authentication required — APScheduler is an in-process Python library. Authentication is handled by the underlying job stores (Redis, database) and the functions being scheduled."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free — MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "APScheduler is open source under the MIT license. No commercial tiers exist."
+  },
+  "performance": {
+    "latency_p50_ms": 5,
+    "latency_p99_ms": 50,
+    "uptime_sla_percent": null,
+    "rate_limits": "No API rate limits; performance constrained by Python GIL for CPU-bound jobs and job store backend latency",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 82,
+    "error_message_quality": 78,
+    "error_message_notes": "Python exceptions are raised directly in the calling context or passed to error listeners. Error reporting is clear for common issues (ConflictingIdError, JobLookupError) but asynchronous job errors require explicit error handler registration.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Job IDs can be used to prevent duplicate job registration (replace=False). Jobs with persistent stores survive restarts but may execute missed runs depending on misfire_grace_time setting.",
+    "pagination_style": "none",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "APScheduler v4.x has a significantly different API than v3.x — many tutorials and Stack Overflow answers are for v3; verify docs version before using examples",
+      "BackgroundScheduler runs in a daemon thread; if the main process exits without calling scheduler.shutdown(), jobs are silently lost — always use try/finally or context managers",
+      "misfire_grace_time defaults to 1 second — if a job is missed (system sleep, process restart) by more than 1 second it is silently skipped; increase this for critical jobs",
+      "coalesce=True (default) merges multiple missed executions into one; if your job must run exactly N times for N missed intervals, set coalesce=False",
+      "In-memory job stores do not survive process restarts — agents expecting job persistence must configure SQLAlchemy or Redis stores explicitly, or scheduled jobs vanish on crash"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 82,
+    "error_handling_score": 78,
+    "auth_complexity_score": 100,
+    "rate_limit_clarity_score": 90
+  },
+  "security_score_components": {
+    "tls_enforcement": null,
+    "auth_strength": null,
+    "scope_granularity": null,
+    "dependency_hygiene": 85,
+    "secret_handling": 88,
+    "security_notes": "Security is entirely determined by the job functions and job store backends configured. APScheduler itself has no network surface; all security considerations are in the scheduled code and database credentials."
+  },
+  "reliability_score_components": {
+    "uptime_documented": null,
+    "version_stability": 75,
+    "breaking_changes_history": 65,
+    "error_recovery": 78
+  }
+}
