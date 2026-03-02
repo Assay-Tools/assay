@@ -3,26 +3,26 @@
   "name": "OpenAI Whisper API",
   "version_evaluated": "current",
   "homepage": "https://platform.openai.com/docs/guides/speech-to-text",
-  "repo_url": null,
+  "repo_url": "https://github.com/openai/whisper",
   "category": "ai-ml",
-  "subcategories": ["speech-to-text", "audio-transcription", "translation"],
-  "tags": ["openai", "whisper", "speech-to-text", "transcription", "audio", "translation", "rest-api"],
-  "what_it_does": "OpenAI's hosted Whisper API endpoint that transcribes or translates audio files to text using the Whisper large-v2 model, supporting 57 languages with high accuracy.",
+  "subcategories": ["speech-to-text", "transcription"],
+  "tags": ["stt", "transcription", "openai", "whisper", "audio", "ai", "open-source"],
+  "what_it_does": "Transcribes or translates audio files to text via OpenAI's hosted Whisper model at $0.006/minute, with the underlying model also available for self-hosting.",
   "use_cases": [
-    "Transcribing meeting recordings or voice memos into structured text for downstream processing",
-    "Building voice-to-action agents that convert spoken commands to structured instructions",
-    "Multilingual content pipelines that need transcription plus translation to English",
-    "Automated subtitling and captioning with timestamped word-level output",
-    "Customer support call analysis and summarization workflows"
+    "Transcribe uploaded audio or video files in agent pipelines that tolerate batch-style latency",
+    "Translate spoken foreign-language audio directly to English text without a separate translation step",
+    "Generate timestamped transcripts for indexing podcast or meeting recordings",
+    "Extract spoken commands from audio files submitted to an async agent workflow",
+    "Use the open-source model locally for air-gapped or cost-sensitive transcription workloads"
   ],
   "not_for": [
-    "Real-time streaming transcription requiring sub-second latency (API processes complete files)",
-    "Audio files longer than 25MB without pre-splitting (hard limit per request)",
-    "On-premise deployments where data cannot leave your environment"
+    "Real-time streaming transcription where sub-second latency is required (API is file-upload only, not streaming)",
+    "Production workloads requiring a formal uptime SLA (OpenAI API SLAs cover the platform broadly)",
+    "Very long audio files exceeding 25 MB without pre-chunking the audio client-side"
   ],
-  "best_when": "An agent needs reliable, multi-language transcription with minimal setup and can tolerate file-upload latency rather than streaming.",
-  "avoid_when": "You need live streaming transcription, speaker diarization, or have strict data residency requirements preventing upload to OpenAI.",
-  "alternatives": ["rev-ai-api", "speechmatics-api", "assembly-ai-api", "deepgram-api"],
+  "best_when": "You are already using the OpenAI ecosystem and need straightforward file-based transcription with broad language support at low cost.",
+  "avoid_when": "Your use case requires real-time streaming transcription or you need to avoid vendor lock-in to OpenAI's platform.",
+  "alternatives": ["deepgram-api", "google-cloud-speech", "assemblyai-api"],
   "interface": {
     "has_rest_api": true,
     "has_graphql": false,
@@ -30,34 +30,34 @@
     "has_mcp_server": false,
     "mcp_server_url": null,
     "has_sdk": true,
-    "sdk_languages": ["python", "javascript", "go", "java", "csharp", "ruby"],
-    "openapi_spec_url": "https://raw.githubusercontent.com/openai/openai-openapi/master/openapi.yaml",
+    "sdk_languages": ["python", "node"],
+    "openapi_spec_url": null,
     "webhooks": false
   },
   "auth": {
-    "methods": ["bearer_token"],
+    "methods": ["api_key"],
     "oauth": false,
     "scopes": false,
-    "notes": "Uses OpenAI API key passed as Authorization: Bearer header. Same key used across all OpenAI APIs. No per-endpoint scoping — full account access with any key."
+    "notes": "Standard OpenAI API key via Authorization: Bearer header; shared with all OpenAI API services under the same account"
   },
   "pricing": {
     "model": "usage_based",
-    "free_tier_exists": true,
-    "free_tier_limits": "$5 in free credits for new accounts",
-    "paid_tiers": "$0.006 per minute of audio transcribed",
-    "requires_credit_card": true,
-    "notes": "Pricing is per audio minute, rounded to the nearest second. Costs are predictable for file-based workloads. Free credits expire after 3 months."
+    "free_tier_exists": false,
+    "free_tier_limits": "No dedicated free tier; new OpenAI accounts receive $5 in trial credits applicable across all API services",
+    "paid_tiers": "$0.006 per minute of audio (whisper-1 model); billed in one-second increments",
+    "requires_credit_card": false,
+    "notes": "The self-hosted open-source Whisper model is free; this evaluation covers the hosted API at api.openai.com/v1/audio only"
   },
   "performance": {
     "latency_p50_ms": 3000,
     "latency_p99_ms": 15000,
-    "uptime_sla_percent": 99.9,
-    "rate_limits": "500 RPM and 25 requests per minute by default on tier 1; scales with account tier",
+    "uptime_sla_percent": 99.5,
+    "rate_limits": "500 RPM and 25,000 audio minutes per day on Tier 1; limits increase with usage tier",
     "data_source": "llm_estimated"
   },
   "requirements": {
     "requires_signup": true,
-    "requires_credit_card": true,
+    "requires_credit_card": false,
     "domain_verification": false,
     "data_residency": ["US"],
     "compliance": ["SOC2"],
@@ -66,40 +66,40 @@
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
-    "documentation_accuracy": 90,
-    "error_message_quality": 82,
-    "error_message_notes": "OpenAI returns structured JSON errors with type, code, message, and param fields. Audio-specific errors (invalid file format, size exceeded) are clearly described with actionable messages.",
+    "documentation_accuracy": 88,
+    "error_message_quality": 83,
+    "error_message_notes": "OpenAI error responses follow a consistent schema with error.type and error.message; audio-specific errors could be more descriptive",
     "idempotency_support": "none",
-    "idempotency_notes": "No idempotency keys. Each request is independent; retrying produces a new transcription job. Results are deterministic for the same audio input.",
+    "idempotency_notes": "File-based transcription is effectively deterministic for the same audio; no idempotency key mechanism provided",
     "pagination_style": "none",
     "retry_guidance_documented": true,
     "known_agent_gotchas": [
-      "25MB hard file size limit — agents must split large audio files before submitting, which requires knowing the audio bitrate",
-      "No streaming — agents block until the full file is transcribed; long files can stall agent loops for 30+ seconds",
-      "Language must be specified or auto-detected; misdetection on short clips can silently return wrong-language transcripts",
-      "The response_format parameter defaults to json but verbose_json is needed for timestamps — agents often miss this",
-      "File must be uploaded as multipart/form-data, not JSON body — many generic HTTP clients need explicit configuration"
+      "Hard 25 MB file size limit requires agents to pre-chunk long audio before submission; no server-side chunking is offered",
+      "The API accepts multipart/form-data only; agents must encode audio files as form fields, not JSON body payloads",
+      "Language auto-detection works well but specifying the wrong language hint can degrade accuracy significantly",
+      "Timestamps in verbose_json mode are word-level only for some models; agents expecting segment-level granularity must handle optional fields",
+      "The hosted API model version (whisper-1) may lag behind the latest open-source Whisper release; accuracy parity is not guaranteed"
     ]
   },
   "af_score_components": {
     "mcp_score": 0,
-    "api_doc_score": 90,
-    "error_handling_score": 82,
+    "api_doc_score": 88,
+    "error_handling_score": 83,
     "auth_complexity_score": 88,
-    "rate_limit_clarity_score": 80
+    "rate_limit_clarity_score": 82
   },
   "security_score_components": {
     "tls_enforcement": 100,
-    "auth_strength": 78,
-    "scope_granularity": 55,
-    "dependency_hygiene": 85,
-    "secret_handling": 80,
-    "security_notes": "HTTPS enforced. API keys have no scope restriction — a leaked key grants full OpenAI account access. OpenAI recommends using project-scoped API keys (newer feature) to limit blast radius. Audio data is processed in OpenAI's US infrastructure with SOC2 compliance."
+    "auth_strength": 82,
+    "scope_granularity": 68,
+    "dependency_hygiene": 86,
+    "secret_handling": 82,
+    "security_notes": "Single API key grants access to all OpenAI services; no audio-specific key scoping available; use org-level keys for production"
   },
   "reliability_score_components": {
-    "uptime_documented": 85,
-    "version_stability": 88,
-    "breaking_changes_history": 82,
+    "uptime_documented": 82,
+    "version_stability": 85,
+    "breaking_changes_history": 80,
     "error_recovery": 80
   }
 }

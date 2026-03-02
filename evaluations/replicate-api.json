@@ -2,28 +2,27 @@
   "id": "replicate-api",
   "name": "Replicate API",
   "version_evaluated": "current",
-  "homepage": "https://replicate.com/docs",
-  "repo_url": "https://github.com/replicate/replicate-python",
+  "homepage": "https://replicate.com",
+  "repo_url": null,
   "category": "ai-ml",
-  "subcategories": ["model-inference", "image-generation", "llm-inference"],
-  "tags": ["replicate", "ml", "inference", "image-generation", "llm", "models", "rest-api", "sdk", "gpu", "open-source-models"],
-  "what_it_does": "Cloud platform for running open-source machine learning models via API — including image generation, LLMs, audio, and video — with pay-per-second GPU billing and official Python/Node clients.",
+  "subcategories": ["model-hosting", "gpu-compute"],
+  "tags": ["ml", "gpu", "inference", "open-source", "image-generation", "llm", "ai", "model-hosting"],
+  "what_it_does": "Runs 1000+ open-source ML models via REST API on pay-per-second GPU compute, with webhook support for async predictions.",
   "use_cases": [
-    "Running Stable Diffusion and other image generation models from agents",
-    "Inference with open-source LLMs (Llama, Mistral, etc.) via simple API",
-    "Video generation and processing via cloud GPU models",
-    "Audio transcription and generation using hosted models",
-    "Rapid prototyping with diverse ML models without GPU infrastructure"
+    "Run open-source image generation models (Stable Diffusion, FLUX) without managing GPU infrastructure",
+    "Integrate specialized open-source LLMs or fine-tuned models into agent pipelines via a single consistent API",
+    "Execute async batch inference jobs with webhooks to trigger downstream agent steps on completion",
+    "Prototype and evaluate multiple open-source models quickly before committing to self-hosted deployment",
+    "Fine-tune or run custom models by pushing a Cog-packaged container to Replicate's platform"
   ],
   "not_for": [
-    "Production serving of models at high throughput (latency is variable)",
-    "Fine-tuning models at scale (better done with dedicated ML platforms)",
-    "Teams needing data privacy guarantees (inputs are sent to Replicate)",
-    "Sub-100ms inference requirements (cold start latency applies)"
+    "Latency-critical inference where cold-start times of seconds are unacceptable",
+    "Applications with very high request volume where per-second GPU billing becomes more expensive than reserved instances",
+    "Highly regulated environments requiring data residency guarantees or private deployment"
   ],
-  "best_when": "An agent needs access to diverse open-source ML models for image, audio, or text processing without managing GPU infrastructure.",
-  "avoid_when": "You need guaranteed low latency, model privacy, or high-throughput production inference.",
-  "alternatives": ["huggingface-api", "modal-api", "together-api", "fal-api"],
+  "best_when": "You need to experiment with or deploy a wide variety of open-source models without provisioning GPU infrastructure.",
+  "avoid_when": "Your workload is high-throughput and predictable enough to justify reserved GPU capacity at a lower per-unit cost.",
+  "alternatives": ["modal-labs-api", "runpod-api", "huggingface-inference-api"],
   "interface": {
     "has_rest_api": true,
     "has_graphql": false,
@@ -31,29 +30,29 @@
     "has_mcp_server": false,
     "mcp_server_url": null,
     "has_sdk": true,
-    "sdk_languages": ["python", "javascript", "go", "swift", "kotlin", "elixir"],
-    "openapi_spec_url": null,
+    "sdk_languages": ["python", "node"],
+    "openapi_spec_url": "https://api.replicate.com/openapi.json",
     "webhooks": true
   },
   "auth": {
     "methods": ["api_key"],
     "oauth": false,
     "scopes": false,
-    "notes": "Simple API token authentication. Token from Replicate account settings. Full account access per token — no scopes or permissions granularity. Very straightforward for agents."
+    "notes": "API token passed via Authorization: Token <key> header; tokens are account-scoped with no per-model scope granularity"
   },
   "pricing": {
-    "model": "pay-as-you-go",
+    "model": "usage_based",
     "free_tier_exists": false,
-    "free_tier_limits": "No ongoing free tier; new accounts may receive trial credits.",
-    "paid_tiers": "Pay per second of GPU compute. Image generation ~$0.0023/run; LLMs priced per token. Varies significantly by model.",
+    "free_tier_limits": "No free tier; billing starts on first prediction",
+    "paid_tiers": "Pay-per-second of GPU compute; pricing varies by hardware (CPU $0.0001/sec, T4 ~$0.00055/sec, A100 ~$0.0014/sec); no monthly minimum",
     "requires_credit_card": true,
-    "notes": "No free tier after trial credits are exhausted. Credit card required to continue. Pay per model run based on GPU seconds. Cost-effective for sporadic usage."
+    "notes": "Credit card required to run predictions; billing is by the second of actual GPU/CPU time used during the prediction"
   },
   "performance": {
-    "latency_p50_ms": 3000,
+    "latency_p50_ms": 4000,
     "latency_p99_ms": 30000,
-    "uptime_sla_percent": 99.5,
-    "rate_limits": "Depends on plan; typically 10-50 concurrent predictions",
+    "uptime_sla_percent": 99.0,
+    "rate_limits": "Default 50 concurrent predictions; can be increased by contacting support; no documented RPM cap",
     "data_source": "llm_estimated"
   },
   "requirements": {
@@ -67,28 +66,40 @@
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
-    "documentation_accuracy": 85,
-    "error_message_quality": 78,
-    "error_message_notes": "Error responses include detail field with human-readable messages. Model-specific errors are surfaced clearly. Timeout errors and cold start states are well-documented. Prediction status polling is straightforward.",
+    "documentation_accuracy": 88,
+    "error_message_quality": 82,
+    "error_message_notes": "Prediction error details are returned in the error field of the prediction object; model-specific errors vary widely by model author",
     "idempotency_support": "none",
-    "idempotency_notes": "Each prediction creates a new run with a unique ID. No idempotency keys. Agents should track prediction IDs to avoid duplicate runs on retry.",
+    "idempotency_notes": "Predictions are non-deterministic by default; seed parameters exist on some models but are model-dependent",
     "pagination_style": "cursor",
     "retry_guidance_documented": true,
     "known_agent_gotchas": [
-      "Predictions are asynchronous by default — agents must poll for completion or configure webhooks",
-      "Cold start latency can add 10-60 seconds for infrequently used models",
-      "Model versions can be deprecated — agents must pin to specific version IDs or use latest tag carefully",
-      "Input schema varies significantly per model — agents must inspect model schema before calling",
-      "Large file outputs (images, video) are URLs that expire after 1 hour — download promptly",
-      "Concurrent prediction limits apply — agents running many parallel predictions may be throttled",
-      "Credit card required — agent pipelines will silently fail if billing lapses"
+      "Cold starts on infrequently used models can take 30-60+ seconds; agents must use webhooks or polling with generous timeouts",
+      "Webhook delivery is best-effort with no guaranteed delivery; agents should poll prediction status as a fallback",
+      "Model outputs are temporarily hosted URLs (not permanent storage); agents must download and store outputs before the URL expires",
+      "Model behavior and output schema are defined per-model by authors and are not standardized across the platform",
+      "Canceling a running prediction does not guarantee billing stops immediately; partial compute seconds may still be charged"
     ]
   },
-  "af_score": 63,
-  "fq_score": 72,
-  "score_rationale": "Replicate offers an excellent breadth of ML models with a clean REST API that is very agent-accessible. fq_score reflects the good API design, SDK coverage across many languages, and webhook support. af_score is dragged down by mandatory credit card (blocking automated provisioning), no idempotency, expiring output URLs that require prompt handling, and highly variable latency from cold starts. Well-suited for agents doing creative/generative work but not for latency-sensitive workflows.",
-  "score_version": "1.0",
-  "evaluated_at": "2026-03-02",
-  "evaluator": "claude-sonnet-4-6",
-  "confidence": "medium"
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 88,
+    "error_handling_score": 82,
+    "auth_complexity_score": 85,
+    "rate_limit_clarity_score": 78
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 80,
+    "scope_granularity": 65,
+    "dependency_hygiene": 82,
+    "secret_handling": 80,
+    "security_notes": "No scope controls on API tokens; model inputs and outputs transit Replicate's infrastructure; not suitable for sensitive PII without review"
+  },
+  "reliability_score_components": {
+    "uptime_documented": 78,
+    "version_stability": 80,
+    "breaking_changes_history": 82,
+    "error_recovery": 78
+  }
 }

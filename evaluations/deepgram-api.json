@@ -2,28 +2,27 @@
   "id": "deepgram-api",
   "name": "Deepgram API",
   "version_evaluated": "current",
-  "homepage": "https://developers.deepgram.com",
-  "repo_url": "https://github.com/deepgram/deepgram-python-sdk",
+  "homepage": "https://deepgram.com",
+  "repo_url": null,
   "category": "ai-ml",
-  "subcategories": ["speech-to-text", "audio", "transcription", "real-time"],
-  "tags": ["deepgram", "speech-to-text", "transcription", "audio", "real-time", "rest-api", "sdk", "websocket", "voice"],
-  "what_it_does": "Deepgram's speech-to-text API offering fast, accurate audio transcription with real-time streaming, speaker diarization, sentiment analysis, and language detection.",
+  "subcategories": ["speech-to-text", "transcription"],
+  "tags": ["stt", "transcription", "voice", "streaming", "websocket", "ai", "real-time"],
+  "what_it_does": "Provides real-time and batch speech-to-text transcription via REST and WebSocket, supporting 200+ languages with the Nova-3 model.",
   "use_cases": [
-    "Transcribing audio files for agent processing and analysis",
-    "Real-time speech-to-text for voice-enabled AI agents",
-    "Call center audio analysis and automated quality scoring",
-    "Meeting transcription with speaker identification",
-    "Building voice interfaces for conversational AI systems"
+    "Transcribe live phone calls or voice sessions in real time for agent decision-making",
+    "Convert recorded meeting audio to searchable text for knowledge extraction pipelines",
+    "Power voice-command interfaces where an agent listens and acts on spoken instructions",
+    "Generate accurate captions or subtitles for audio/video content at scale",
+    "Extract structured data (names, dates, intents) from spoken customer interactions via post-transcription NLP"
   ],
   "not_for": [
-    "Text-to-speech (use ElevenLabs or similar)",
-    "Very low-budget projects (costs add up for long audio)",
-    "Languages with limited training data (accuracy varies by language)",
-    "Offline/edge transcription without internet connectivity"
+    "Applications that need on-device, fully offline speech recognition without any cloud dependency",
+    "Use cases requiring speaker diarization with more than ~10 speakers at very high accuracy",
+    "Scenarios where per-minute transcription cost must approach zero (self-hosted Whisper may be preferable)"
   ],
-  "best_when": "An agent needs to transcribe speech with high accuracy and speed, especially for real-time voice applications or batch audio processing.",
-  "avoid_when": "You need text-to-speech, offline transcription, or have very tight latency requirements beyond Deepgram's capabilities.",
-  "alternatives": ["elevenlabs-api", "replicate-api"],
+  "best_when": "You need low-latency, production-grade streaming transcription or batch processing of audio at scale with strong SDK support.",
+  "avoid_when": "Your budget is near zero and latency tolerance is high enough to run open-source Whisper locally.",
+  "alternatives": ["whisper-api", "openai-api", "google-cloud-speech"],
   "interface": {
     "has_rest_api": true,
     "has_graphql": false,
@@ -31,60 +30,76 @@
     "has_mcp_server": false,
     "mcp_server_url": null,
     "has_sdk": true,
-    "sdk_languages": ["python", "javascript", "go", "dotnet", "rust"],
+    "sdk_languages": ["python", "node", "go", "dotnet"],
     "openapi_spec_url": null,
-    "webhooks": true
+    "webhooks": false
   },
   "auth": {
     "methods": ["api_key"],
     "oauth": false,
-    "scopes": true,
-    "notes": "API key with configurable permissions (Member, Admin, Owner). Keys can be scoped to specific capabilities. Simple bearer token for agents. Project-scoped keys available."
+    "scopes": false,
+    "notes": "API key passed via Authorization: Token <key> header; keys are project-scoped and can be created per project in the console"
   },
   "pricing": {
-    "model": "pay-as-you-go",
+    "model": "usage_based",
     "free_tier_exists": true,
-    "free_tier_limits": "$200 free credit for new accounts",
-    "paid_tiers": "Nova-2 model ~$0.0043/minute, streaming ~$0.0059/minute",
-    "requires_credit_card": true,
-    "notes": "Very competitive pricing for transcription. $200 free credit covers extensive testing. Credit card required after credits. Batch processing is cheapest."
+    "free_tier_limits": "$200 in free credits on signup; no ongoing free monthly allowance after credits are exhausted",
+    "paid_tiers": "Pay-as-you-go starting at $0.0059/minute for Nova-3; volume discounts available; Growth and Enterprise plans with committed spend",
+    "requires_credit_card": false,
+    "notes": "$200 credit requires no credit card; credit card needed when credits are exhausted to continue usage"
   },
   "performance": {
     "latency_p50_ms": 300,
-    "latency_p99_ms": 1500,
+    "latency_p99_ms": 900,
     "uptime_sla_percent": 99.9,
-    "rate_limits": "100 concurrent streams for real-time, generous batch limits",
+    "rate_limits": "Default 100 concurrent connections; REST batch: 100 requests/minute on pay-as-you-go; limits increase with plan",
     "data_source": "llm_estimated"
   },
   "requirements": {
     "requires_signup": true,
-    "requires_credit_card": true,
+    "requires_credit_card": false,
     "domain_verification": false,
     "data_residency": ["US", "EU"],
-    "compliance": ["SOC2", "GDPR", "HIPAA"],
+    "compliance": ["SOC2", "HIPAA"],
     "min_contract": "none"
   },
   "agent_readiness": {
     "mcp_server_quality": null,
-    "mcp_security_score": 78,
-    "documentation_accuracy": 88,
-    "error_message_quality": 80,
-    "error_message_notes": "Well-structured error responses with err_code and err_msg. Real-time WebSocket errors are clearly typed. Error documentation covers common issues thoroughly.",
+    "mcp_security_score": null,
+    "documentation_accuracy": 90,
+    "error_message_quality": 85,
+    "error_message_notes": "Errors include a code and reason field; WebSocket close codes are documented and actionable",
     "idempotency_support": "none",
-    "idempotency_notes": "Transcription is a processing operation — not idempotent by nature. Callback URLs can be used to avoid duplicate processing.",
-    "pagination_style": "none",
+    "idempotency_notes": "Transcription results are deterministic for the same audio and model version, but the API provides no idempotency keys",
+    "pagination_style": "cursor",
     "retry_guidance_documented": true,
     "known_agent_gotchas": [
-      "Real-time streaming uses WebSocket protocol — different from REST, agents need WS client",
-      "Audio format must be specified correctly — wrong mimetype causes silent failures",
-      "Diarization (speaker labels) adds latency — don't enable unless needed",
-      "Callback URLs for async transcription must be publicly accessible",
-      "Smart formatting changes transcription text — agents must account for punctuation injection",
-      "Language detection has minimum audio length requirements"
-    ],
-    "error_message_score": 80,
-    "auth_complexity_score": 82,
-    "rate_limit_score": 78,
-    "security_score": 78
+      "WebSocket connections require sending a CloseStream message to flush final transcript; omitting it causes incomplete final transcripts",
+      "The is_final vs speech_final distinction in streaming results is critical: agents acting on interim results risk acting on incorrect partial text",
+      "Audio format must be explicitly declared (encoding, sample_rate, channels) or auto-detection may produce degraded accuracy",
+      "Free $200 credit expires; agents hitting production without a billing method will receive 402 errors with no grace period",
+      "The Nova-3 model ID may differ by use case (nova-3 vs nova-3-medical); using the wrong model tier affects both accuracy and cost"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 90,
+    "error_handling_score": 85,
+    "auth_complexity_score": 88,
+    "rate_limit_clarity_score": 84
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 82,
+    "scope_granularity": 70,
+    "dependency_hygiene": 85,
+    "secret_handling": 82,
+    "security_notes": "Project-scoped API keys are a good practice; HIPAA BAA available for healthcare use cases on qualifying plans"
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 84,
+    "breaking_changes_history": 82,
+    "error_recovery": 84
   }
 }

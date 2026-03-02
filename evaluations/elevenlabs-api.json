@@ -2,28 +2,27 @@
   "id": "elevenlabs-api",
   "name": "ElevenLabs API",
   "version_evaluated": "current",
-  "homepage": "https://elevenlabs.io/docs",
-  "repo_url": "https://github.com/elevenlabs/elevenlabs-python",
+  "homepage": "https://elevenlabs.io",
+  "repo_url": null,
   "category": "ai-ml",
-  "subcategories": ["text-to-speech", "audio", "voice-cloning", "speech"],
-  "tags": ["elevenlabs", "text-to-speech", "voice-cloning", "audio", "speech", "rest-api", "sdk", "voice-ai", "tts"],
-  "what_it_does": "ElevenLabs' API for generating ultra-realistic text-to-speech audio, voice cloning, and real-time audio streaming using AI-powered voice synthesis.",
+  "subcategories": ["text-to-speech", "voice-cloning"],
+  "tags": ["voice", "tts", "voice-cloning", "audio", "streaming", "ai"],
+  "what_it_does": "Converts text to lifelike speech with voice cloning capabilities, supporting 29 languages with streaming audio output.",
   "use_cases": [
-    "Generating natural-sounding voice output for conversational AI agents",
-    "Creating audio content from text for podcasts, videos, and narration",
-    "Building voice cloning for personalized AI assistants",
-    "Real-time voice synthesis for low-latency voice applications",
-    "Converting documents and articles to audiobook format"
+    "Generate spoken responses for voice-enabled AI assistants and chatbots",
+    "Clone a customer's voice for personalized audio notifications and alerts",
+    "Produce narration for dynamically generated content like news summaries or reports",
+    "Build multilingual voice interfaces without per-language model management",
+    "Stream low-latency audio for real-time conversational agents"
   ],
   "not_for": [
-    "Speech-to-text transcription (use Deepgram or Whisper)",
-    "Very high volume TTS where cost is a concern",
-    "Offline or edge voice synthesis",
-    "Teams needing voice moderation features"
+    "High-volume bulk audio production on a tight budget (costs scale quickly beyond free tier)",
+    "Applications requiring on-premise or fully offline TTS with no cloud dependency",
+    "Use cases needing raw audio waveform manipulation or DSP pipelines"
   ],
-  "best_when": "An agent needs to produce high-quality, natural-sounding voice output as part of a voice-enabled AI system or content generation workflow.",
-  "avoid_when": "You need speech recognition rather than synthesis, or require on-device/offline voice.",
-  "alternatives": ["deepgram-api", "replicate-api"],
+  "best_when": "You need high-quality, natural-sounding speech or custom voice cloning in a streaming-capable cloud workflow.",
+  "avoid_when": "Your application processes millions of characters per month and cost-per-character is a primary constraint.",
+  "alternatives": ["cartesia-api", "openai-api", "google-cloud-tts"],
   "interface": {
     "has_rest_api": true,
     "has_graphql": false,
@@ -31,7 +30,7 @@
     "has_mcp_server": false,
     "mcp_server_url": null,
     "has_sdk": true,
-    "sdk_languages": ["python", "javascript"],
+    "sdk_languages": ["python", "node"],
     "openapi_spec_url": "https://api.elevenlabs.io/openapi.json",
     "webhooks": false
   },
@@ -39,52 +38,68 @@
     "methods": ["api_key"],
     "oauth": false,
     "scopes": false,
-    "notes": "Simple API key in xi-api-key header. Keys from ElevenLabs dashboard. Full account access per key. No scopes. Very easy for agents."
+    "notes": "Single API key passed via xi-api-key header; key is tied to account quota"
   },
   "pricing": {
-    "model": "freemium",
+    "model": "usage_based",
     "free_tier_exists": true,
-    "free_tier_limits": "Free: 10,000 characters/month",
-    "paid_tiers": "Starter $5/month (30K chars), Creator $22/month (100K chars), Pro $99/month (500K chars)",
+    "free_tier_limits": "10,000 characters per month on the free plan",
+    "paid_tiers": "Starter $5/mo (30K chars), Creator $22/mo (100K chars), Pro $99/mo (500K chars), Scale and Enterprise above that",
     "requires_credit_card": false,
-    "notes": "Free tier is limited but enough for prototyping. Character-based pricing is predictable. Voice cloning requires paid plan. Commercial use requires appropriate license tier."
+    "notes": "Characters are the billing unit; voice cloning and commercial licensing require paid plans"
   },
   "performance": {
-    "latency_p50_ms": 800,
-    "latency_p99_ms": 3000,
+    "latency_p50_ms": 400,
+    "latency_p99_ms": 1500,
     "uptime_sla_percent": 99.5,
-    "rate_limits": "2 concurrent requests on free tier, higher on paid",
+    "rate_limits": "Free: 2 concurrent requests; paid plans increase concurrency limits; no hard per-minute token cap documented publicly",
     "data_source": "llm_estimated"
   },
   "requirements": {
     "requires_signup": true,
     "requires_credit_card": false,
     "domain_verification": false,
-    "data_residency": ["US", "EU"],
-    "compliance": ["SOC2", "GDPR"],
+    "data_residency": ["US"],
+    "compliance": ["SOC2"],
     "min_contract": "none"
   },
   "agent_readiness": {
     "mcp_server_quality": null,
-    "mcp_security_score": 72,
-    "documentation_accuracy": 85,
-    "error_message_quality": 75,
-    "error_message_notes": "JSON error responses with detail field. HTTP status codes are semantically correct. Error messages clearly indicate quota exhaustion and invalid voice IDs. Generally agent-friendly.",
+    "mcp_security_score": null,
+    "documentation_accuracy": 86,
+    "error_message_quality": 80,
+    "error_message_notes": "HTTP status codes are standard; error bodies include a detail field but messages can be generic for quota errors",
     "idempotency_support": "none",
-    "idempotency_notes": "Each TTS request generates a new audio file. No idempotency — identical requests produce similar but not identical audio.",
+    "idempotency_notes": "Audio generation is non-deterministic; same text may produce slightly different output each call",
     "pagination_style": "cursor",
-    "retry_guidance_documented": false,
+    "retry_guidance_documented": true,
     "known_agent_gotchas": [
-      "Free tier character limit exhausts quickly for agentic use cases",
-      "Voice IDs differ per account — cloned voices are not portable",
-      "Streaming audio uses chunked transfer encoding — agents need streaming HTTP client",
-      "Long text requires chunking — single requests have character limits per call",
-      "Voice stability and similarity settings significantly affect quality — agents need tuning",
-      "Commercial licensing for voice cloning requires verifying voice ownership"
-    ],
-    "error_message_score": 75,
+      "Streaming responses require chunked HTTP handling; agents must buffer or pipe audio bytes rather than awaiting a complete JSON response",
+      "Character quota is deducted even for failed or partially streamed requests in some error scenarios",
+      "Voice IDs are account-scoped; sharing a voice ID between accounts or environments requires re-cloning",
+      "The free tier blocks commercial use and voice cloning; agents deployed in production need at minimum the Creator plan",
+      "Rate limit errors (429) do not include a Retry-After header on all endpoints, requiring exponential backoff logic"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 86,
+    "error_handling_score": 80,
     "auth_complexity_score": 90,
-    "rate_limit_score": 62,
-    "security_score": 72
+    "rate_limit_clarity_score": 72
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 80,
+    "scope_granularity": 65,
+    "dependency_hygiene": 82,
+    "secret_handling": 80,
+    "security_notes": "API key has full account access with no scope restrictions; recommend storing in secrets manager and rotating regularly"
+  },
+  "reliability_score_components": {
+    "uptime_documented": 80,
+    "version_stability": 82,
+    "breaking_changes_history": 78,
+    "error_recovery": 78
   }
 }

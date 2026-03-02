@@ -2,27 +2,27 @@
   "id": "runpod-api",
   "name": "RunPod API",
   "version_evaluated": "current",
-  "homepage": "https://docs.runpod.io",
-  "repo_url": "https://github.com/runpod/runpod-python",
-  "category": "ai-ml",
-  "subcategories": ["gpu-compute", "inference", "ml-infrastructure", "serverless"],
-  "tags": ["gpu-cloud", "serverless-gpu", "inference", "training", "ai-infrastructure", "graphql", "spot-instances"],
-  "what_it_does": "RunPod is a GPU cloud platform with a GraphQL API and Python SDK for deploying serverless GPU inference endpoints, spinning up persistent GPU pod instances, and running batch AI/ML workloads — enabling agents to provision compute and invoke ML models on demand.",
+  "homepage": "https://runpod.io",
+  "repo_url": null,
+  "category": "infrastructure",
+  "subcategories": ["gpu-compute", "model-hosting"],
+  "tags": ["gpu", "serverless", "inference", "ml", "training", "infrastructure", "graphql"],
+  "what_it_does": "Provides on-demand GPU cloud via REST and GraphQL APIs for ML inference and training, offering both Serverless endpoints and persistent Pod instances.",
   "use_cases": [
-    "Invoking RunPod Serverless endpoints to run GPU-accelerated ML inference (image generation, LLM serving, embeddings) as agent tool calls with auto-scaling",
-    "Provisioning and managing persistent GPU pod instances for long-running ML training jobs via the GraphQL API",
-    "Submitting batch inference jobs to a RunPod Serverless endpoint and polling for results to process large queues of inputs in parallel",
-    "Deploying custom Docker containers with ML models as RunPod Serverless workers and routing agent inference requests through the endpoint",
-    "Querying GPU availability and pricing to programmatically select cost-optimal instance types for training workload scheduling"
+    "Deploy custom ML model containers as serverless endpoints that scale based on request queue depth",
+    "Rent persistent GPU pods for iterative model training or experiments requiring an always-on environment",
+    "Run high-throughput batch inference jobs by routing requests to a Serverless worker fleet",
+    "Host self-managed inference servers (e.g., vLLM, Ollama) on a Pod with full Docker control",
+    "Compare GPU instance costs and availability across community and secure cloud offerings from one API"
   ],
   "not_for": [
-    "CPU-only workloads — RunPod is GPU-focused; CPU-only tasks are better served by cheaper commodity compute providers",
-    "Always-on low-latency APIs requiring sub-200ms cold starts — RunPod serverless has cold start latency when scaling from zero workers",
-    "Enterprise-grade compliance environments — RunPod has limited compliance certifications compared to hyperscalers; not suitable for HIPAA/PCI workloads without additional controls"
+    "Applications requiring millisecond-level cold starts — Serverless workers have non-trivial initialization times",
+    "Teams without experience managing Docker containers and GPU driver configuration",
+    "Workloads requiring strict enterprise SLAs with financial penalties — RunPod targets developers and researchers"
   ],
-  "best_when": "An agent needs on-demand GPU compute for AI/ML inference or training without managing Kubernetes or cloud infrastructure, and cost is a priority over enterprise SLAs.",
-  "avoid_when": "You need enterprise compliance certifications, sub-200ms p99 latency guarantees, or purely CPU-based compute.",
-  "alternatives": ["modal-api", "replicate-api", "lambda-labs-api", "vast-ai-api"],
+  "best_when": "You need flexible on-demand GPU access at competitive prices and are comfortable managing your own container images.",
+  "avoid_when": "You need a fully managed model serving platform where you can deploy without building and maintaining Docker images.",
+  "alternatives": ["modal-labs-api", "replicate-api", "aws-sagemaker"],
   "interface": {
     "has_rest_api": true,
     "has_graphql": true,
@@ -30,29 +30,29 @@
     "has_mcp_server": false,
     "mcp_server_url": null,
     "has_sdk": true,
-    "sdk_languages": ["python"],
+    "sdk_languages": ["python", "node"],
     "openapi_spec_url": null,
-    "webhooks": true
+    "webhooks": false
   },
   "auth": {
     "methods": ["api_key"],
     "oauth": false,
     "scopes": false,
-    "notes": "Authentication uses a personal API key passed in the Authorization header as Bearer token for REST endpoints, or as a query parameter for the GraphQL API. The Python SDK accepts the API key via runpod.api_key = 'key' or RUNPOD_API_KEY environment variable. Keys are account-scoped with no fine-grained permissions or scoping."
+    "notes": "API key passed as a query parameter or Authorization header depending on the API surface (GraphQL vs Serverless REST); separate keys for platform management vs endpoint invocation"
   },
   "pricing": {
-    "model": "usage-based",
+    "model": "usage_based",
     "free_tier_exists": false,
-    "free_tier_limits": "No free tier. New account credit promotions may apply periodically.",
-    "paid_tiers": "Serverless GPU pricing from ~$0.00019/second for RTX 3090 to ~$0.00080/second for A100-80GB. Spot instances available at 50-80% discount with interruption risk. Pod pricing varies by GPU type and whether on-demand or spot.",
+    "free_tier_limits": "No free tier; account requires a deposit or credit card to start",
+    "paid_tiers": "Serverless: billed per GPU second at rates from ~$0.00019/sec (RTX 3090) to ~$0.00111/sec (A100 SXM); Pods: hourly rates from ~$0.20/hr; community cloud is cheaper than secure cloud",
     "requires_credit_card": true,
-    "notes": "Credit card required at signup. Billing is usage-based with per-second granularity. Spot instances offer significant cost savings but can be interrupted — agent workflows using spot must implement checkpoint/resume logic. Community cloud (spot) vs Secure Cloud (on-demand) distinction is important for reliability."
+    "notes": "Prepaid credits model; minimum deposit required; community cloud GPUs are cheaper but may have less reliability than secure cloud"
   },
   "performance": {
-    "latency_p50_ms": 800,
-    "latency_p99_ms": 15000,
+    "latency_p50_ms": 2000,
+    "latency_p99_ms": 20000,
     "uptime_sla_percent": 99.0,
-    "rate_limits": "Serverless endpoint concurrency limited by worker count and max_workers configuration. Cold start latency (scaling from 0 workers) ranges from 10-60 seconds depending on container size and GPU availability. API management calls have no published rate limits.",
+    "rate_limits": "Serverless worker concurrency scales with available GPU supply; Pod instances are persistent once allocated; no documented API rate limits for management calls",
     "data_source": "llm_estimated"
   },
   "requirements": {
@@ -66,41 +66,40 @@
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
-    "documentation_accuracy": 75,
-    "error_message_quality": 70,
-    "error_message_notes": "GraphQL API returns standard GraphQL error objects with message arrays. REST API errors are less consistent — some return structured JSON, others plain text. Serverless job status includes error fields when jobs fail but the error messages from the worker container are passed through raw without normalization.",
+    "documentation_accuracy": 78,
+    "error_message_quality": 74,
+    "error_message_notes": "GraphQL errors follow standard GraphQL error format; Serverless REST errors are less consistently documented; handler-level errors depend on the worker implementation",
     "idempotency_support": "none",
-    "idempotency_notes": "Serverless job submissions create new jobs each time — there is no idempotency key mechanism. Pod provisioning operations are also non-idempotent. Agents must track job IDs externally and check status before resubmitting to avoid duplicate work.",
-    "pagination_style": "none",
+    "idempotency_notes": "Job submissions have no idempotency keys; duplicate submissions create duplicate jobs",
+    "pagination_style": "cursor",
     "retry_guidance_documented": false,
     "known_agent_gotchas": [
-      "Cold start latency for serverless workers can be 10-60 seconds when scaling from zero — agents must implement polling with appropriate timeouts (minimum 60-120 seconds) rather than expecting immediate responses from GPU inference endpoints.",
-      "Community Cloud (spot) GPU pods can be interrupted with minimal notice — agents using spot instances for training must implement checkpointing within their workloads; RunPod does not automatically handle interruption recovery.",
-      "Serverless endpoint URLs include an endpoint ID that changes if the endpoint is deleted and recreated — agents storing endpoint URLs must handle the case where an endpoint is redeployed and its ID changes.",
-      "The GraphQL API is the primary interface for pod management operations — the Python SDK wraps this, but raw GraphQL mutations require knowing the specific mutation names and argument structures that are not always well-documented.",
-      "GPU availability for specific instance types can be intermittent, especially for high-demand GPUs like A100s — agents that hard-code GPU type requirements may fail with 'no workers available' errors and need fallback GPU type logic."
+      "Serverless workers must implement a specific handler interface (runpod.serverless.start); agents deploying custom models must conform to this contract or requests will silently fail",
+      "Community cloud GPU availability is not guaranteed; jobs may queue for minutes to hours during high-demand periods with no ETA provided",
+      "Cold start times for Serverless workers range from 30 seconds to several minutes depending on container image size and GPU availability",
+      "The platform has two distinct API surfaces (GraphQL for platform management, REST for Serverless invocation) with different auth patterns that must not be confused",
+      "Worker output size limits and timeout values must be configured in the template; hitting undocumented defaults causes silent job failures"
     ]
   },
   "af_score_components": {
     "mcp_score": 0,
-    "api_doc_score": 75,
-    "error_handling_score": 70,
-    "auth_complexity_score": 78,
-    "rate_limit_clarity_score": 62
+    "api_doc_score": 78,
+    "error_handling_score": 74,
+    "auth_complexity_score": 76,
+    "rate_limit_clarity_score": 68
   },
   "security_score_components": {
     "tls_enforcement": 100,
-    "auth_strength": 72,
-    "scope_granularity": 55,
-    "dependency_hygiene": 72,
-    "secret_handling": 70,
-    "security_notes": "API keys are account-scoped with no permission granularity — a leaked key allows full account access including spending funds and terminating workloads. No built-in secret injection mechanism for worker containers (secrets must be passed via environment variables in pod/endpoint configuration). TLS enforced on all endpoints. No published compliance certifications."
+    "auth_strength": 76,
+    "scope_granularity": 65,
+    "dependency_hygiene": 76,
+    "secret_handling": 74,
+    "security_notes": "Community cloud GPUs are shared hardware; secure cloud provides dedicated instances; no formal compliance certifications published as of evaluation date"
   },
   "reliability_score_components": {
     "uptime_documented": 72,
     "version_stability": 75,
-    "breaking_changes_history": 72,
-    "error_recovery": 68
-  },
-  "last_evaluated": "2026-03-02"
+    "breaking_changes_history": 74,
+    "error_recovery": 72
+  }
 }
