@@ -1,0 +1,105 @@
+{
+  "id": "aws-ssm-api",
+  "name": "AWS Systems Manager Parameter Store",
+  "version_evaluated": "current",
+  "homepage": "https://aws.amazon.com/systems-manager/features/parameter-store",
+  "repo_url": null,
+  "category": "infrastructure",
+  "subcategories": ["configuration", "secrets-management", "parameter-management"],
+  "tags": ["aws", "ssm", "parameter-store", "configuration", "secrets", "hierarchical"],
+  "what_it_does": "AWS hierarchical key-value store for configuration data and secrets with free standard tier, KMS encryption for SecureString parameters, and IAM access control.",
+  "use_cases": [
+    "Storing and retrieving agent configuration values (feature flags, endpoints, thresholds) with hierarchy",
+    "Storing encrypted secrets as SecureString parameters as a cheaper alternative to Secrets Manager",
+    "Environment-specific configuration using hierarchical paths (e.g., /prod/agent/api-key vs /dev/)",
+    "Sharing configuration across EC2/Lambda/ECS agents without code changes via SDK retrieval",
+    "Change notifications via EventBridge when parameter values are updated by operators"
+  ],
+  "not_for": [
+    "Automatic secret rotation (use Secrets Manager for credentials needing rotation)",
+    "Very frequent reads without caching — Standard tier is free but Advanced tier charges per API call",
+    "Non-AWS workloads (use Vault, Doppler, or cloud-native alternatives)"
+  ],
+  "best_when": "Storing non-rotating configuration and low-security secrets in AWS where cost matters — free standard tier beats Secrets Manager pricing for simple config.",
+  "avoid_when": "You need automatic rotation, cross-account secret sharing, or detailed rotation audit logs — use Secrets Manager instead.",
+  "alternatives": ["aws-secrets-manager-api", "hashicorp-vault-api", "doppler-api", "azure-key-vault-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "node", "java", "go", "dotnet", "ruby", "php"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["service_account"],
+    "oauth": false,
+    "scopes": true,
+    "notes": "AWS IAM with resource-based policies on parameter hierarchy paths. ssm:GetParameter, ssm:GetParametersByPath with path prefix conditions. Instance Profile recommended."
+  },
+  "pricing": {
+    "model": "freemium",
+    "free_tier_exists": true,
+    "free_tier_limits": "Standard parameters: free up to 10,000 parameters, free API calls",
+    "paid_tiers": "Advanced: $0.05/parameter/month + $0.05/10K API calls; Higher throughput add-on available",
+    "requires_credit_card": true,
+    "notes": "Standard tier is free — excellent for most use cases. Advanced adds parameter size limits increase (8KB vs 4KB) and TTL."
+  },
+  "performance": {
+    "latency_p50_ms": 15,
+    "latency_p99_ms": 80,
+    "uptime_sla_percent": 99.99,
+    "rate_limits": "Standard: 40 transactions/second (shared); Advanced: 100 TPS (requestable increase)",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": true,
+    "domain_verification": false,
+    "data_residency": ["all_aws_regions"],
+    "compliance": ["SOC2", "ISO27001", "HIPAA", "PCI_DSS", "FedRAMP"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 83,
+    "error_message_notes": "Standard AWS error codes; ParameterNotFound is common and clearly named",
+    "idempotency_support": "full",
+    "idempotency_notes": "PutParameter with Overwrite=true is idempotent; without Overwrite fails if exists",
+    "pagination_style": "token",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "GetParametersByPath has 40 TPS limit on Standard tier — paginated bulk reads can throttle agents",
+      "SecureString requires KMS key permission in ADDITION to SSM permission — double IAM check required",
+      "Parameter names are case-sensitive — /prod/API-Key and /prod/api-key are different parameters",
+      "Standard parameters: 4096 byte value limit; Advanced: 8192 — plan for JSON-encoded configs",
+      "Parameter history keeps last 100 versions — GetParameterHistory useful for change auditing in agents"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 83,
+    "auth_complexity_score": 80,
+    "rate_limit_clarity_score": 82
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 90,
+    "scope_granularity": 92,
+    "dependency_hygiene": 88,
+    "secret_handling": 88,
+    "security_notes": "Path-based IAM policies enable fine-grained access. SecureString uses KMS — must grant kms:Decrypt permission separately. CloudTrail audit trail available."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 92,
+    "version_stability": 92,
+    "breaking_changes_history": 90,
+    "error_recovery": 90
+  }
+}

@@ -1,0 +1,105 @@
+{
+  "id": "azure-key-vault-api",
+  "name": "Azure Key Vault",
+  "version_evaluated": "7.4",
+  "homepage": "https://azure.microsoft.com/en-us/products/key-vault",
+  "repo_url": null,
+  "category": "infrastructure",
+  "subcategories": ["secrets-management", "key-management", "certificate-management"],
+  "tags": ["azure", "key-vault", "secrets", "key-management", "certificates", "hsm"],
+  "what_it_does": "Azure managed key vault for secrets, encryption keys, and certificate lifecycle management with HSM-backed hardware security and Azure AD RBAC integration.",
+  "use_cases": [
+    "Retrieving API secrets and connection strings for Azure-deployed agents via Managed Identity",
+    "Managing encryption keys for agent-processed sensitive data with BYOK (Bring Your Own Key)",
+    "Automatic TLS certificate renewal and rotation for agent service endpoints",
+    "Storing and rotating database passwords with Key Vault references in App Service/AKS",
+    "Audit logging all secret access with Azure Monitor and Diagnostic Settings for compliance"
+  ],
+  "not_for": [
+    "Non-Azure deployments (use Vault or Secrets Manager for multi-cloud)",
+    "High-frequency secret reads without caching — latency adds up at 10K+ reads/day",
+    "Teams unfamiliar with Azure AD RBAC — access configuration can be complex"
+  ],
+  "best_when": "Your agents run in Azure and need production-grade secrets management with HSM-backed keys, certificate management, and deep Azure AD integration.",
+  "avoid_when": "You're on AWS or GCP, need cross-cloud secrets management, or find Azure RBAC complexity prohibitive.",
+  "alternatives": ["aws-secrets-manager-api", "hashicorp-vault-api", "aws-ssm-api", "gcp-secret-manager-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "node", "dotnet", "java", "go"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["service_account", "oauth2"],
+    "oauth": true,
+    "scopes": true,
+    "notes": "Azure AD with Managed Identity (recommended) or service principal. RBAC roles: Key Vault Secrets User (read), Key Vault Secrets Officer (write). Access policies (legacy) or RBAC (recommended)."
+  },
+  "pricing": {
+    "model": "usage_based",
+    "free_tier_exists": false,
+    "free_tier_limits": "No free tier; very low cost",
+    "paid_tiers": "Standard: $0.03/10K operations for secrets; HSM-protected keys: $1/key/month + $0.03/10K ops; Premium: hardware security",
+    "requires_credit_card": true,
+    "notes": "Extremely cost-efficient — most agents spend <$5/month. HSM-backed keys are significantly more expensive but required for compliance."
+  },
+  "performance": {
+    "latency_p50_ms": 20,
+    "latency_p99_ms": 150,
+    "uptime_sla_percent": 99.99,
+    "rate_limits": "2000 transactions/10s for secrets; 400 TPS for keys",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": true,
+    "domain_verification": false,
+    "data_residency": ["all_azure_regions"],
+    "compliance": ["SOC2", "ISO27001", "HIPAA", "PCI_DSS", "FedRAMP"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 83,
+    "error_message_notes": "Azure SDK errors have ErrorCode property; 403 can mean either missing role or soft-deleted vault",
+    "idempotency_support": "full",
+    "idempotency_notes": "SetSecret with same name creates new version; all operations are effectively idempotent",
+    "pagination_style": "token",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Two permission models: Access Policies (legacy) vs RBAC — choose RBAC for new vaults, they don't mix well",
+      "Soft-delete is enabled by default and CANNOT be disabled — deleted secrets enter 7-90 day recoverable state",
+      "Vault endpoint uses vault-specific URL (https://myvault.vault.azure.net) not a regional endpoint — hardcode carefully",
+      "Key Vault references in App Service/AKS use @Microsoft.KeyVault(VaultName=...) syntax — URI format not URL",
+      "Secret versions are immutable — update creates a new version; disable old versions to prevent rotation issues"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 83,
+    "auth_complexity_score": 78,
+    "rate_limit_clarity_score": 82
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 93,
+    "scope_granularity": 90,
+    "dependency_hygiene": 90,
+    "secret_handling": 95,
+    "security_notes": "HSM-backed keys with FIPS 140-2 Level 3 for Premium tier. Managed Identity eliminates credential management. Private endpoints for VNet isolation."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 93,
+    "version_stability": 92,
+    "breaking_changes_history": 90,
+    "error_recovery": 90
+  }
+}
