@@ -1,0 +1,105 @@
+{
+  "id": "google-workspace-gmail-api",
+  "name": "Gmail API",
+  "version_evaluated": "current",
+  "homepage": "https://developers.google.com/gmail/api",
+  "repo_url": "https://github.com/googleapis/google-api-python-client",
+  "category": "communication",
+  "subcategories": ["email", "productivity", "messaging"],
+  "tags": ["google", "gmail", "email", "workspace", "productivity", "oauth2", "labels", "threads", "drafts"],
+  "what_it_does": "Gmail API provides programmatic access to Gmail mailboxes — reading, sending, labeling, searching, and organizing messages and threads for both personal Google accounts and Google Workspace.",
+  "use_cases": [
+    "Inbox automation agents that read, classify, and label incoming emails using AI-powered categorization and then apply actions like archiving, forwarding, or replying",
+    "Automated email sending for transactional notifications, scheduled reports, or agent-generated summaries on behalf of a user or service account",
+    "Email data extraction pipelines that search, filter, and parse message content (including attachments) to feed downstream workflows or analysis",
+    "Thread monitoring agents that watch for replies to specific email threads and trigger follow-up actions when responses arrive",
+    "Draft management workflows where agents compose draft emails for human review before sending — supporting human-in-the-loop email generation"
+  ],
+  "not_for": [
+    "High-volume transactional email sending (newsletters, marketing, system alerts) — use SendGrid, Mailgun, or Amazon SES which are purpose-built for bulk sending without Gmail's per-day send limits",
+    "Reading email from non-Google providers (Outlook, Apple Mail, iCloud) — use IMAP/SMTP or provider-specific APIs for non-Gmail mailboxes",
+    "Real-time message streaming — Gmail API is poll-based or webhook-based (push notifications via Pub/Sub) and is not suitable for true real-time chat-like messaging"
+  ],
+  "best_when": "You need to automate Gmail inbox management or send email on behalf of a user or service account within Google Workspace — especially for workflows that combine reading, labeling, and replying to messages.",
+  "avoid_when": "You need to send high-volume transactional emails or marketing campaigns — Gmail API enforces daily send limits (500/day for personal, 2,000/day for Workspace) that make it unsuitable for bulk sending.",
+  "alternatives": ["microsoft-graph-mail-api", "sendgrid-api", "mailgun-api", "nylas-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "node", "java", "go", "dotnet", "php", "ruby"],
+    "openapi_spec_url": "https://www.googleapis.com/discovery/v1/apis/gmail/v1/rest",
+    "webhooks": true
+  },
+  "auth": {
+    "methods": ["oauth2", "service_account"],
+    "oauth": true,
+    "scopes": true,
+    "notes": "OAuth 2.0 is required for all access. User-level access requires the standard OAuth consent flow — no API key option. Google Workspace service accounts can use domain-wide delegation to impersonate users without per-user consent. Scopes range from gmail.readonly (least privilege) to gmail.modify and mail.google.com (full access). Always request minimum necessary scopes — overly broad scope requests are flagged in Google's security review and discourage user consent."
+  },
+  "pricing": {
+    "model": "free",
+    "free_tier_exists": true,
+    "free_tier_limits": "Gmail API is free to use. Quota: 250 quota units per user per second; 1 billion quota units per day per project. Different operations cost different quota units (list=5, get=5, send=100, modify=5).",
+    "paid_tiers": "No direct API charges. Google Workspace subscription required for business use ($6-$18/user/month). Personal Gmail is free.",
+    "requires_credit_card": false,
+    "notes": "The API itself has no direct cost. Quota is generous for most use cases. Apps requesting sensitive scopes (gmail.modify, gmail.send) must go through Google's OAuth app verification process, which can take 4-6 weeks for external apps."
+  },
+  "performance": {
+    "latency_p50_ms": 200,
+    "latency_p99_ms": 1500,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "250 quota units/user/second (burst). 1 billion quota units/day/project. Send limit: 500 emails/day for personal Gmail, 2,000/day for Google Workspace. Batch requests supported (up to 100 calls per batch). Push notifications via Pub/Sub for near-real-time inbox monitoring.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["US", "EU"],
+    "compliance": ["SOC2", "SOC3", "ISO27001", "ISO27018", "FedRAMP-Moderate", "GDPR", "HIPAA"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 88,
+    "error_message_quality": 82,
+    "error_message_notes": "Error responses follow Google API error format with error.code (HTTP status), error.errors array, and error.message. Quota exceeded errors (429) are clear. Invalid message ID errors are specific. OAuth scope errors clearly identify the missing scope. Rate limit errors include a usable message but lack Retry-After headers — exponential backoff must be implemented manually.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Read operations (get, list) are fully idempotent. Label modifications are idempotent. Send operations are not idempotent — retrying a failed send can result in duplicate emails. Draft creation is not idempotent. Agents should check for existing drafts or use message IDs to detect duplicates before sending.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Gmail API message bodies are base64url-encoded and nested within a MIME part structure — extracting plain text or HTML body content requires traversing the payload.parts tree and decoding each part; this is not straightforward for agents expecting a simple body field",
+      "OAuth apps accessing sensitive Gmail scopes (gmail.modify, gmail.send) must complete Google's OAuth verification process — unverified apps show a security warning to users and are limited to 100 test users; this can block production deployment for weeks",
+      "Push notifications (watch) expire after 7 days and must be renewed — agents using Pub/Sub-based inbox monitoring must implement automatic watch renewal or miss new message events",
+      "The Gmail API does not support sending emails larger than 36 MB including attachments via the simple upload endpoint — large attachments require resumable upload with multipart MIME construction",
+      "Deleting a message via the API moves it to Trash (not permanent deletion) — permanently deleting requires a separate DELETE call to /messages/{id}/trash or using messages.batchDelete; agents that expect permanent deletion will leave messages recoverable for 30 days"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 88,
+    "error_handling_score": 82,
+    "auth_complexity_score": 70,
+    "rate_limit_clarity_score": 80
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 90,
+    "scope_granularity": 95,
+    "dependency_hygiene": 90,
+    "secret_handling": 85,
+    "security_notes": "Fine-grained OAuth scopes are a major security strength — gmail.readonly, gmail.send, and gmail.modify are distinct and enable least-privilege access. Service account domain-wide delegation requires careful scoping to prevent over-access across the entire organization. Google's OAuth verification process for sensitive scopes adds a security gate for external apps. Refresh tokens for offline access are long-lived and should be stored securely."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 92,
+    "version_stability": 92,
+    "breaking_changes_history": 90,
+    "error_recovery": 85
+  }
+}

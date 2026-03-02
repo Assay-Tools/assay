@@ -1,0 +1,105 @@
+{
+  "id": "upstash-redis-api",
+  "name": "Upstash Serverless Redis",
+  "version_evaluated": "current",
+  "homepage": "https://upstash.com/redis",
+  "repo_url": "https://github.com/upstash/upstash-redis",
+  "category": "database",
+  "subcategories": ["cache", "key-value-store", "serverless"],
+  "tags": ["redis", "serverless", "http-api", "cache", "rate-limiting", "session-store", "per-request-pricing"],
+  "what_it_does": "Provides a fully managed serverless Redis database accessible over HTTP/REST with per-request pricing and zero idle cost.",
+  "use_cases": [
+    "Cache LLM responses or expensive API call results to reduce latency and cost in agent pipelines",
+    "Implement distributed rate limiting across multiple agent instances using atomic Redis commands",
+    "Store and retrieve short-lived session state or conversation history between stateless agent invocations",
+    "Use sorted sets to maintain priority queues for agent task scheduling across serverless functions",
+    "Pub/sub messaging between coordinating agent workers using Redis channels over HTTP"
+  ],
+  "not_for": [
+    "Primary persistent data storage requiring durability guarantees beyond Redis AOF/RDB",
+    "Large binary blob storage — Redis is optimized for small structured values, not file storage",
+    "Applications needing Redis Cluster with multi-shard horizontal scaling (Upstash uses single-region sharding)"
+  ],
+  "best_when": "You need a low-latency cache or ephemeral store callable from serverless functions or edge runtimes where a persistent TCP Redis connection is not viable.",
+  "avoid_when": "Your workload requires very high sustained throughput (millions of ops/sec) at low cost, where a dedicated Redis cluster would be more economical.",
+  "alternatives": ["redis-cloud-api", "momento-api", "vercel-kv-api", "dragonfly-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "node", "typescript", "go", "ruby", "php"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["api_key"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Each database has a unique REST URL and token. Token is passed as a Bearer token in the Authorization header or as a query parameter. Read-only tokens are available for scoped access."
+  },
+  "pricing": {
+    "model": "usage-based",
+    "free_tier_exists": true,
+    "free_tier_limits": "10,000 commands/day, 256 MB storage, 1 database",
+    "paid_tiers": "Pay-as-you-go at $0.2 per 100K commands; Pro plans from $280/month for dedicated databases with higher throughput",
+    "requires_credit_card": false,
+    "notes": "No idle cost — you only pay per command executed. Free tier resets daily. Bandwidth charges apply above free limits."
+  },
+  "performance": {
+    "latency_p50_ms": 5,
+    "latency_p99_ms": 50,
+    "uptime_sla_percent": 99.99,
+    "rate_limits": "Free tier: 10K commands/day; Pay-as-you-go: 1000 requests/second per database by default; higher limits on Pro",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["US", "EU", "AP"],
+    "compliance": ["SOC2"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 90,
+    "error_message_quality": 82,
+    "error_message_notes": "HTTP status codes are standard and well-documented; Redis-level errors are surfaced in the response body with descriptive messages. Rate limit errors include Retry-After headers.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Redis commands like SET with NX flag are inherently idempotent; general commands are not — agents must design for idempotency at the application layer.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "HTTP overhead adds 2-10ms vs raw TCP Redis — avoid using it for ultra-low-latency tight loops",
+      "Default TTL is none — agents must explicitly set EXPIRE or keys persist indefinitely and accumulate storage cost",
+      "Pipeline batching (multiple commands in one HTTP request) is supported but requires specific REST payload format that differs from standard Redis client usage",
+      "Rate limit is per database, not per key — one runaway agent loop can exhaust the daily free quota for all agents sharing the database",
+      "The REST API does not support all Redis commands — SUBSCRIBE/PSUBSCRIBE for real-time pub/sub are not available; use Upstash QStash or polling patterns instead"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 90,
+    "error_handling_score": 82,
+    "auth_complexity_score": 92,
+    "rate_limit_clarity_score": 85
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 82,
+    "scope_granularity": 75,
+    "dependency_hygiene": 85,
+    "secret_handling": 82,
+    "security_notes": "TLS enforced on all connections. Read-only tokens provide some scope separation. No fine-grained per-key ACLs as in self-hosted Redis ACL system. Token rotation requires manual database token regeneration."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 90,
+    "version_stability": 88,
+    "breaking_changes_history": 85,
+    "error_recovery": 83
+  }
+}

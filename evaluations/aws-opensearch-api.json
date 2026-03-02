@@ -1,0 +1,105 @@
+{
+  "id": "aws-opensearch-api",
+  "name": "Amazon OpenSearch Service API",
+  "version_evaluated": "current",
+  "homepage": "https://aws.amazon.com/opensearch-service/",
+  "repo_url": "https://github.com/boto/boto3",
+  "category": "database",
+  "subcategories": ["search", "analytics", "log-analytics", "vector-search"],
+  "tags": ["aws", "boto3", "search", "elasticsearch", "opensearch", "analytics", "log-analytics", "vector-search", "devops"],
+  "what_it_does": "Deploy and manage OpenSearch (Elasticsearch-compatible) clusters on AWS for full-text search, log analytics, and vector similarity search with managed infrastructure and AWS integrations.",
+  "use_cases": [
+    "Index and full-text search large document corpora with relevance ranking, faceting, and aggregations for a product search or knowledge base feature",
+    "Ingest and analyze application logs from CloudWatch or Kinesis Firehose using OpenSearch Dashboards for real-time operational visibility",
+    "Store dense vector embeddings and run approximate nearest neighbor (ANN) k-NN queries for semantic search and RAG retrieval pipelines",
+    "Perform time-series analytics and anomaly detection on IoT or observability data using OpenSearch's ML-powered anomaly detection",
+    "Use the OpenSearch Service management API to automate cluster provisioning, index policy management, and cross-cluster replication configuration"
+  ],
+  "not_for": [
+    "Simple key-value lookups or relational queries — DynamoDB or RDS are far more cost-effective for structured data access patterns",
+    "Transactional workloads requiring ACID guarantees — OpenSearch is an analytics and search store, not a transactional database",
+    "Teams needing a fully serverless, zero-ops search API — consider Typesense or Algolia for simpler managed search"
+  ],
+  "best_when": "You need powerful full-text search, log analytics, or vector search with deep AWS ecosystem integrations (IAM, Kinesis, CloudWatch, Lambda) and are comfortable managing cluster sizing.",
+  "avoid_when": "Your team lacks OpenSearch/Elasticsearch operational experience — cluster sizing, shard management, and index lifecycle policies require careful tuning to avoid costly performance problems.",
+  "alternatives": ["algolia-api", "typesense-api", "elastic-cloud-api", "aws-cloudwatch-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "node", "java", "go", "dotnet", "ruby"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["aws_iam", "basic_auth", "saml"],
+    "oauth": false,
+    "scopes": true,
+    "notes": "Two separate auth layers: AWS SigV4 for the OpenSearch Service management API (boto3 es/opensearch client), and either IAM SigV4 or HTTP Basic Auth (fine-grained access control) for the OpenSearch REST API (es/_search, etc.). Both layers must be configured correctly."
+  },
+  "pricing": {
+    "model": "pay-as-you-go",
+    "free_tier_exists": true,
+    "free_tier_limits": "750 hours/month of t3.small.search for 12 months. 10GB of storage on magnetic instances free.",
+    "paid_tiers": "Instance pricing from ~$0.036/hr (t3.small) to $12+/hr for large memory-optimized instances. Storage charged separately at EBS rates. OpenSearch Serverless: $0.24/OCU/hr. UltraWarm storage: reduced cost for infrequently accessed data.",
+    "requires_credit_card": true,
+    "notes": "Dedicated master nodes (recommended for production) add to cost. Multi-AZ deployments double or triple instance costs. OR Security features (fine-grained access control) are free but require enabling during domain creation."
+  },
+  "performance": {
+    "latency_p50_ms": 20,
+    "latency_p99_ms": 200,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "No hard API rate limits for OpenSearch REST queries — limits are determined by cluster capacity. Management API (CreateDomain, UpdateDomain) has low TPS limits. Cluster throughput scales horizontally.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": true,
+    "domain_verification": false,
+    "data_residency": ["US", "EU", "APAC", "SA", "ME"],
+    "compliance": ["SOC1", "SOC2", "ISO27001", "HIPAA", "PCI-DSS", "FedRAMP"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 82,
+    "error_message_quality": 78,
+    "error_message_notes": "OpenSearch REST API returns standard HTTP errors with JSON bodies. Management API errors are typed AWS exceptions. Cluster-level errors (shard failures, merge policy errors) surface in _cluster/health and _cat/shards, not as exceptions — agents must actively inspect cluster health.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Index creation is not idempotent — creating an existing index returns ResourceAlreadyExistsException unless if_not_exists logic is used. Document indexing with explicit IDs is idempotent (upsert semantics). Management API CreateDomain fails if domain name exists.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Domain creation takes 10-15 minutes to reach an ACTIVE state; agents must poll DescribeDomain for the Processing flag rather than assuming the domain is ready immediately after CreateDomain returns",
+      "The boto3 opensearch client is for domain management only — all actual search/index/query operations go through the OpenSearch HTTP REST API using the domain endpoint, requiring separate HTTP client setup with SigV4 request signing",
+      "Enabling fine-grained access control (FGAC) cannot be done post-creation on existing domains — it must be enabled at domain creation time, a common misconfiguration that requires destroying and recreating the domain",
+      "k-NN vector search indexes cannot be converted to standard indexes after creation — the knn setting in index creation is permanent, requiring separate indexes for vector vs. keyword search",
+      "Default shard counts and refresh intervals are not optimized for all workloads; bulk indexing performance requires setting refresh_interval to -1 during ingestion and manually refreshing afterward — the defaults cause significant write performance degradation"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 82,
+    "error_handling_score": 78,
+    "auth_complexity_score": 60,
+    "rate_limit_clarity_score": 72
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 88,
+    "scope_granularity": 85,
+    "dependency_hygiene": 85,
+    "secret_handling": 86,
+    "security_notes": "Dual auth model requires careful configuration of both IAM and FGAC. Encryption at rest via KMS and in transit via TLS enforced. VPC deployment recommended to prevent public endpoint exposure. Node-to-node encryption available. HIPAA eligible with BAA."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 82,
+    "breaking_changes_history": 78,
+    "error_recovery": 80
+  }
+}

@@ -1,0 +1,108 @@
+{
+  "id": "confluent-cloud-api",
+  "name": "Confluent Cloud API",
+  "version_evaluated": "current",
+  "homepage": "https://www.confluent.io/confluent-cloud/",
+  "repo_url": "https://github.com/confluentinc/confluent-kafka-python",
+  "category": "data-pipeline",
+  "subcategories": ["event-streaming", "message-queue", "kafka", "schema-registry"],
+  "tags": ["kafka", "confluent", "event-streaming", "schema-registry", "avro", "protobuf", "managed-kafka", "cloud", "connectors", "flink"],
+  "what_it_does": "Fully managed Apache Kafka service with Schema Registry, Kafka Connect connectors, and Flink stream processing — enabling agents to produce, consume, and transform high-throughput event streams without operating Kafka infrastructure.",
+  "use_cases": [
+    "Publishing agent-generated events to Kafka topics for downstream consumers to process asynchronously",
+    "Consuming real-time event streams (user actions, IoT telemetry, CDC changes) for agent analysis",
+    "Schema Registry enforcement ensuring all agent-produced messages conform to Avro or Protobuf contracts",
+    "Triggering agent workflows from Kafka Connect sources (database CDC, S3 file arrivals, HTTP webhooks)",
+    "Fan-out architectures where one agent action produces events consumed by multiple downstream agent microservices"
+  ],
+  "not_for": [
+    "Simple task queues or job scheduling where SQS, RabbitMQ, or Redis Queues suffice",
+    "Teams without Apache Kafka expertise — the learning curve is steep and Confluent does not eliminate it",
+    "Low-volume messaging where cost-per-message is a concern (Confluent Cloud pricing is volume-based)"
+  ],
+  "best_when": "You need high-throughput, ordered, replayable event streams with schema enforcement and ecosystem integrations, and want managed infrastructure rather than self-hosting Kafka.",
+  "avoid_when": "Your message volumes are modest, your team lacks Kafka expertise, or you need simple queue semantics without replay — use SQS or RabbitMQ instead.",
+  "alternatives": ["kafka-api", "redpanda-api", "aws-kinesis-api", "aws-sqs-api", "upstash-kafka-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "java", "go", "javascript", "dotnet", "csharp"],
+    "openapi_spec_url": "https://docs.confluent.io/cloud/current/api.html",
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["api_key"],
+    "oauth": false,
+    "scopes": true,
+    "notes": "Two distinct API key types: Cloud API Keys (for management REST API, cluster provisioning, environment management) and Kafka API Keys (for Kafka protocol access per-cluster). Schema Registry has its own API keys. Each set of credentials is scoped to specific resources. Keys are created via the Confluent Cloud Console or CLI. Service accounts are recommended for production use with RBAC role bindings."
+  },
+  "pricing": {
+    "model": "pay-as-you-go",
+    "free_tier_exists": true,
+    "free_tier_limits": "$400 free credits for new accounts (30 days); Basic clusters start at ~$1/hour with 0 commitment",
+    "paid_tiers": "Basic: ~$1-2/CKU/hour. Standard: ~$3/CKU/hour with SLA. Dedicated: custom pricing for isolated clusters. Flink and connectors billed separately per usage.",
+    "requires_credit_card": true,
+    "notes": "Confluent Cloud pricing is complex: CKU-hour for compute, storage per GB-month, network egress, Schema Registry requests, connector task-hours, and Flink CFU-hours are all billed separately. Cost can escalate quickly with high-throughput production workloads."
+  },
+  "performance": {
+    "latency_p50_ms": 5,
+    "latency_p99_ms": 25,
+    "uptime_sla_percent": 99.95,
+    "rate_limits": "Throughput bounded by CKUs (Confluent Kafka Units); 1 CKU = ~250 MB/s write, ~750 MB/s read on Dedicated. Basic clusters have lower throughput limits.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": true,
+    "domain_verification": false,
+    "data_residency": ["US", "EU", "APAC"],
+    "compliance": ["SOC2", "GDPR", "HIPAA", "PCI-DSS", "ISO27001"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 78,
+    "error_message_notes": "Kafka protocol errors (e.g., OFFSET_OUT_OF_RANGE, GROUP_COORDINATOR_NOT_AVAILABLE) are standardized Kafka error codes returned by the broker — well-documented in Apache Kafka docs. The Confluent Cloud Management REST API returns JSON errors with code and message. Schema Registry errors include schema compatibility violation details. Errors from the librdkafka layer can be lower-level and harder to parse.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Kafka producers support idempotent delivery (enable.idempotence=true) which prevents duplicate messages on retry. Exactly-once semantics (EOS) available with transactional producers. Consumer offset commits are the application's responsibility for at-least-once vs exactly-once processing.",
+    "pagination_style": "offset",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Two separate authentication systems (Cloud API Keys vs Kafka API Keys) confuse agents — management operations and data plane operations use different credentials",
+      "Consumer group lag is a critical operational metric — agents that don't monitor consumer lag can fall behind and process stale data",
+      "Topic auto-creation is disabled by default on Confluent Cloud — agents must pre-create topics or the producer will fail",
+      "Schema Registry compatibility mode (BACKWARD, FORWARD, FULL) must be planned before schemas evolve — breaking changes silently fail if compatibility is not set",
+      "Kafka consumer poll loop must be called regularly or the consumer is evicted from the group (heartbeat timeout) — long-running agent operations between polls will cause rebalances",
+      "REST Proxy (if used) has much higher latency than native Kafka protocol — not suitable for high-throughput production workloads",
+      "Retention policy defaults (7 days) will delete events — agents relying on long-term replay must configure retention explicitly"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 78,
+    "auth_complexity_score": 62,
+    "rate_limit_clarity_score": 75
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 85,
+    "scope_granularity": 82,
+    "dependency_hygiene": 85,
+    "secret_handling": 80,
+    "security_notes": "TLS enforced for all Kafka and REST connections. SASL/PLAIN and SASL/OAUTHBEARER supported. RBAC at the topic, consumer group, and cluster level on paid tiers. ACLs are enforced by default. Dedicated clusters provide network isolation. SOC 2 Type II, HIPAA BAA available."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 90,
+    "version_stability": 88,
+    "breaking_changes_history": 82,
+    "error_recovery": 88
+  },
+  "last_evaluated": "2026-03-01"
+}

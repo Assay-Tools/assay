@@ -1,0 +1,105 @@
+{
+  "id": "aws-sagemaker-api",
+  "name": "Amazon SageMaker API",
+  "version_evaluated": "current",
+  "homepage": "https://aws.amazon.com/sagemaker/",
+  "repo_url": "https://github.com/boto/boto3",
+  "category": "ai-ml",
+  "subcategories": ["machine-learning", "model-training", "mlops", "inference"],
+  "tags": ["aws", "boto3", "machine-learning", "mlops", "model-training", "inference", "sagemaker", "deep-learning"],
+  "what_it_does": "Build, train, tune, deploy, and monitor ML models at scale on managed AWS infrastructure, covering the full MLOps lifecycle from data preparation to production inference.",
+  "use_cases": [
+    "Launch a distributed training job on GPU instances using a custom Docker container and track metrics via SageMaker Experiments",
+    "Deploy a trained model to a SageMaker real-time endpoint with auto-scaling and invoke it via InvokeEndpoint for low-latency predictions",
+    "Run hyperparameter optimization with SageMaker Automatic Model Tuning across dozens of parallel training jobs",
+    "Orchestrate a full ML pipeline (preprocessing, training, evaluation, registration, deployment) using SageMaker Pipelines",
+    "Register versioned models in the Model Registry and automate approval and deployment workflows via CI/CD integration"
+  ],
+  "not_for": [
+    "Accessing pre-built foundation models without custom training — use Amazon Bedrock for serverless FM inference",
+    "Simple batch inference on small datasets where Lambda plus a lightweight model is sufficient",
+    "Teams without ML engineering experience — SageMaker's surface area is large and misconfiguration is common and costly"
+  ],
+  "best_when": "You need a managed, end-to-end MLOps platform for custom model training, experiment tracking, pipeline orchestration, and production deployment with deep AWS integrations.",
+  "avoid_when": "You only need to call pre-trained foundation models for inference — Bedrock is cheaper, simpler, and has no idle endpoint costs.",
+  "alternatives": ["aws-bedrock-api", "google-vertex-ai-api", "azure-ml-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "node", "java", "go", "dotnet"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["aws_iam"],
+    "oauth": false,
+    "scopes": true,
+    "notes": "AWS SigV4. SageMaker requires an execution role (IAM role) passed at job/endpoint creation for the managed infrastructure to access S3, ECR, and other resources. Separate IAM permissions for management API vs runtime InvokeEndpoint. Studio uses IAM Identity Center or IAM auth."
+  },
+  "pricing": {
+    "model": "pay-as-you-go",
+    "free_tier_exists": true,
+    "free_tier_limits": "250 hours/month of ml.t3.medium Studio notebooks, 50 hours training on ml.m4.xlarge, and 125 hours inference on ml.m4.xlarge for 2 months.",
+    "paid_tiers": "Training: instance-hour rates (e.g., ml.p3.2xlarge ~$3.06/hr). Inference endpoints billed per instance-hour regardless of request volume. Processing jobs billed per instance-hour. Data storage and transfer charged separately.",
+    "requires_credit_card": true,
+    "notes": "Real-time endpoints accrue cost while running even with zero traffic — a common cost trap. Use serverless inference or asynchronous inference for sporadic workloads. SageMaker Savings Plans available for committed usage."
+  },
+  "performance": {
+    "latency_p50_ms": 50,
+    "latency_p99_ms": 500,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "InvokeEndpoint: depends on instance type and model. Management API: varies by action (CreateTrainingJob ~1 TPS, ListTrainingJobs ~5 TPS). Real-time endpoint TPS scales with instance count and type.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": true,
+    "domain_verification": false,
+    "data_residency": ["US", "EU", "APAC", "SA"],
+    "compliance": ["SOC1", "SOC2", "ISO27001", "HIPAA", "PCI-DSS", "FedRAMP"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 80,
+    "error_message_quality": 75,
+    "error_message_notes": "Management API errors are typed but training job failures often require reading CloudWatch Logs to get the actual error — the DescribeTrainingJob FailureReason field is often truncated and lacks root cause detail.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "CreateTrainingJob and CreateEndpoint require unique names per invocation — re-running with the same name returns ResourceInUse. Agents must generate unique job names (e.g., with timestamps or UUIDs) or check for existence first.",
+    "pagination_style": "page_token",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Training job names must be globally unique within an account/region; re-running automation without generating new names will fail with ResourceInUseException on the second run",
+      "Real-time endpoints continue to incur instance-hour costs until explicitly deleted; agents that provision endpoints must have cleanup logic or the cost will accumulate indefinitely",
+      "Training job status transitions are asynchronous and can take minutes to hours; polling DescribeTrainingJob is required — there is no push notification by default unless CloudWatch Events are configured",
+      "Model artifacts produced by training jobs are stored in S3 at the path specified at job creation; agents must parse the ModelArtifacts.S3ModelArtifacts field from DescribeTrainingJob rather than assuming a fixed path",
+      "SageMaker SDK (high-level Python) and boto3 (low-level) have different abstractions for the same resources; mixing them in the same codebase can cause confusion about resource naming, role ARNs, and response formats"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 80,
+    "error_handling_score": 75,
+    "auth_complexity_score": 60,
+    "rate_limit_clarity_score": 72
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 92,
+    "scope_granularity": 89,
+    "dependency_hygiene": 86,
+    "secret_handling": 88,
+    "security_notes": "Execution roles provide scoped access for training and inference infrastructure. VPC mode isolates compute from internet. Network isolation mode prevents containers from making outbound calls. KMS encryption for data at rest and in transit. Sensitive artifacts in S3 encrypted separately."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 82,
+    "breaking_changes_history": 78,
+    "error_recovery": 76
+  }
+}

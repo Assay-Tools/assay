@@ -1,0 +1,105 @@
+{
+  "id": "upstash-qstash-api",
+  "name": "Upstash QStash",
+  "version_evaluated": "current",
+  "homepage": "https://upstash.com/qstash",
+  "repo_url": "https://github.com/upstash/sdk-qstash-ts",
+  "category": "infrastructure",
+  "subcategories": ["message-queue", "serverless", "task-scheduling"],
+  "tags": ["queue", "serverless", "http", "retry", "delay", "scheduling", "webhook", "fan-out"],
+  "what_it_does": "Serverless HTTP message queue that delivers webhooks to any URL with built-in retry, delay, scheduling, and fan-out — no broker infrastructure required.",
+  "use_cases": [
+    "Queue long-running agent subtasks as HTTP callbacks so the originating serverless function can return immediately without timeout risk",
+    "Schedule recurring agent jobs (cron) to trigger data collection, report generation, or model re-evaluation at defined intervals",
+    "Fan-out a single agent event to multiple downstream services simultaneously using QStash topics",
+    "Implement delayed retries when an external API is rate-limited — publish message with a delay of minutes or hours",
+    "Decouple agent pipeline stages by publishing intermediate results as messages rather than chaining synchronous HTTP calls"
+  ],
+  "not_for": [
+    "High-throughput streaming workloads requiring sub-millisecond delivery or millions of messages per second",
+    "Point-to-point consumer-pull queue patterns (Kafka/SQS model) — QStash pushes to HTTP endpoints, not polled by consumers",
+    "Message persistence beyond the retry window — QStash is not a durable event log like Kafka or Kinesis"
+  ],
+  "best_when": "You need reliable, retryable HTTP delivery of tasks to serverless functions or webhooks without standing up or managing any queue infrastructure.",
+  "avoid_when": "Your consumers cannot expose an HTTP endpoint (e.g., long-running background workers that pull from a queue), or you need ordered, exactly-once delivery guarantees.",
+  "alternatives": ["inngest-api", "temporal-cloud-api", "aws-sqs-api", "trigger-dev-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["node", "typescript", "python"],
+    "openapi_spec_url": null,
+    "webhooks": true
+  },
+  "auth": {
+    "methods": ["api_key"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "QStash token used as Bearer token. Receiving endpoints are verified via HMAC signature on the request body using a signing key — agents must validate this signature to prevent spoofed deliveries."
+  },
+  "pricing": {
+    "model": "usage-based",
+    "free_tier_exists": true,
+    "free_tier_limits": "500 messages/day, unlimited topics, 3 retries per message",
+    "paid_tiers": "Pay-as-you-go at $1 per 100K messages; higher retry counts and message size limits on paid plans",
+    "requires_credit_card": false,
+    "notes": "No idle infrastructure cost. Message size limit is 1 MB on free tier, 10 MB on paid. Scheduling (cron) counts as a message per trigger."
+  },
+  "performance": {
+    "latency_p50_ms": 300,
+    "latency_p99_ms": 2000,
+    "uptime_sla_percent": 99.99,
+    "rate_limits": "Free: 500 messages/day; Pay-as-you-go: 100 messages/second publish rate; delivery latency depends on endpoint response time",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["US", "EU"],
+    "compliance": ["SOC2"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 88,
+    "error_message_quality": 80,
+    "error_message_notes": "Delivery failures are surfaced in the QStash console and via dead-letter callbacks. HTTP error codes from the downstream endpoint are logged per attempt. Programmatic failure introspection requires polling the messages API.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "QStash assigns a unique message ID per publish but does not guarantee exactly-once delivery — at-least-once semantics apply. Agents receiving messages must implement idempotency using the message ID.",
+    "pagination_style": "offset",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Receiving endpoints must respond within 30 seconds or QStash marks the delivery as failed and retries — long agent tasks must acknowledge immediately and process asynchronously",
+      "HMAC signature validation of incoming messages is not optional for security — skipping it allows any actor to POST fake messages to your endpoint",
+      "Retry backoff is exponential but the maximum retry count is plan-limited — ensure retry count matches your fault tolerance needs before relying on auto-retry",
+      "QStash does not support message ordering — parallel deliveries may arrive out of sequence at the destination endpoint",
+      "Cron schedules use UTC timezone only; agents must convert expected local times carefully or risk off-by-one-hour bugs around DST transitions"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 88,
+    "error_handling_score": 80,
+    "auth_complexity_score": 85,
+    "rate_limit_clarity_score": 83
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 82,
+    "scope_granularity": 72,
+    "dependency_hygiene": 83,
+    "secret_handling": 85,
+    "security_notes": "HMAC request signing protects receiving endpoints from spoofed deliveries. TLS enforced. No per-topic ACLs — all topics share the same QStash token. Signing key rotation requires updating all receiving endpoints simultaneously."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 85,
+    "breaking_changes_history": 82,
+    "error_recovery": 80
+  }
+}

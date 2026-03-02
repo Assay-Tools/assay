@@ -1,0 +1,105 @@
+{
+  "id": "aws-cloudwatch-api",
+  "name": "Amazon CloudWatch API",
+  "version_evaluated": "current",
+  "homepage": "https://aws.amazon.com/cloudwatch/",
+  "repo_url": "https://github.com/boto/boto3",
+  "category": "monitoring",
+  "subcategories": ["observability", "metrics", "logging", "alerting"],
+  "tags": ["aws", "boto3", "monitoring", "observability", "metrics", "logs", "alarms", "cloudwatch", "devops"],
+  "what_it_does": "Collect, store, query, and alarm on metrics and logs from AWS services and custom applications, providing unified observability across the AWS environment.",
+  "use_cases": [
+    "Publish custom application metrics via PutMetricData and create alarms that trigger SNS notifications or Auto Scaling actions when thresholds are breached",
+    "Query application logs stored in CloudWatch Logs using CloudWatch Logs Insights to investigate errors or calculate aggregate statistics",
+    "Build operational dashboards by programmatically creating CloudWatch dashboards with widgets for key service metrics",
+    "Retrieve historical metric data via GetMetricStatistics or GetMetricData to generate SLA reports or capacity planning analyses",
+    "Set up composite alarms that trigger only when multiple underlying alarms are in ALARM state, reducing alert fatigue for complex dependency chains"
+  ],
+  "not_for": [
+    "Long-term data warehousing or analytics — CloudWatch metrics retention is limited (15 months max) and costs scale with data volume",
+    "Full-text search over logs at petabyte scale — OpenSearch Service or S3 + Athena is more appropriate",
+    "Application performance monitoring (APM) with distributed tracing — use AWS X-Ray instead"
+  ],
+  "best_when": "You need native, zero-configuration observability for AWS services with tight integration to alarms, Auto Scaling, Lambda, and SNS — especially when you do not want to manage a separate monitoring stack.",
+  "avoid_when": "You need multi-cloud observability, vendor-neutral instrumentation (OpenTelemetry at scale), or rich APM features — Datadog, Grafana, or New Relic provide a better experience.",
+  "alternatives": ["datadog-api", "new-relic-api", "grafana-cloud-api", "aws-opensearch-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "node", "java", "go", "dotnet", "ruby", "php"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["aws_iam"],
+    "oauth": false,
+    "scopes": true,
+    "notes": "AWS SigV4. IAM actions include cloudwatch:PutMetricData, cloudwatch:GetMetricStatistics, cloudwatch:PutMetricAlarm, logs:CreateLogGroup, logs:PutLogEvents, logs:StartQuery. CloudWatch and CloudWatch Logs are separate IAM namespaces."
+  },
+  "pricing": {
+    "model": "pay-as-you-go",
+    "free_tier_exists": true,
+    "free_tier_limits": "10 custom metrics, 10 alarms, 5GB log ingestion, 5GB log storage, 1 million API requests free per month (permanent free tier).",
+    "paid_tiers": "Custom metrics: $0.30/metric/month. Detailed monitoring: additional per-metric charge. Logs ingestion: $0.50/GB. Logs storage: $0.03/GB/month. Logs Insights queries: $0.005 per GB scanned.",
+    "requires_credit_card": true,
+    "notes": "Costs scale significantly at high metric and log volumes. High-resolution metrics (1-second granularity) cost more than standard (1-minute). Contributor Insights and anomaly detection are priced separately."
+  },
+  "performance": {
+    "latency_p50_ms": 150,
+    "latency_p99_ms": 1500,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "PutMetricData: 1,000 metrics per request, 150 TPS default. PutLogEvents: 1,500 events or 1MB per request. GetMetricData: 50 TPS. Limits adjustable via Service Quotas.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": true,
+    "domain_verification": false,
+    "data_residency": ["US", "EU", "APAC", "SA", "AF", "ME"],
+    "compliance": ["SOC1", "SOC2", "ISO27001", "HIPAA", "PCI-DSS", "FedRAMP"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 88,
+    "error_message_quality": 82,
+    "error_message_notes": "Errors are well-typed (InvalidParameterValueException, ResourceNotFoundException, LimitExceededException). Logs Insights query errors surface in query status rather than as exceptions, requiring polling DescribeQueries for the error message.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "PutMetricData is effectively idempotent for the same data point. PutMetricAlarm creates or updates — idempotent if parameters are identical. StartQuery creates a new query each call, not idempotent. CreateLogGroup fails if group already exists.",
+    "pagination_style": "page_token",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Metric data points have a 2-week delay floor for high-resolution and a 2-hour minimum ingestion delay; newly published metrics may not be immediately retrievable via GetMetricData",
+      "CloudWatch Logs and CloudWatch Metrics are separate boto3 clients (logs vs cloudwatch); agents that conflate them will hit 'operation not found' errors when using the wrong client",
+      "Logs Insights queries are asynchronous — StartQuery returns a queryId and agents must poll GetQueryResults until the status is 'Complete', handling 'Running' and 'Failed' states explicitly",
+      "PutLogEvents requires a sequenceToken for existing log streams (or fails with InvalidSequenceTokenException); use the token from the most recent PutLogEvents or DescribeLogStreams response, or use the CloudWatch Logs Agent/SDK which handles this automatically",
+      "Alarm state changes are not pushed to agents — agents monitoring alarm status must poll DescribeAlarms; for event-driven patterns, configure CloudWatch Alarms to publish to SNS and have the agent subscribe"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 88,
+    "error_handling_score": 82,
+    "auth_complexity_score": 72,
+    "rate_limit_clarity_score": 83
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 91,
+    "scope_granularity": 90,
+    "dependency_hygiene": 89,
+    "secret_handling": 89,
+    "security_notes": "IAM action-level policies for both CloudWatch and CloudWatch Logs namespaces. Log groups support KMS encryption at rest. VPC endpoints available for private connectivity. CloudWatch does not store sensitive credentials — metric names and dimensions are metadata."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 92,
+    "version_stability": 92,
+    "breaking_changes_history": 92,
+    "error_recovery": 85
+  }
+}
