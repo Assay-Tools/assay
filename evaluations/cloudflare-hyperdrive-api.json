@@ -1,0 +1,105 @@
+{
+  "id": "cloudflare-hyperdrive-api",
+  "name": "Cloudflare Hyperdrive API",
+  "version_evaluated": "current",
+  "homepage": "https://developers.cloudflare.com/hyperdrive",
+  "repo_url": null,
+  "category": "infrastructure",
+  "subcategories": ["database", "developer-tools", "edge-computing"],
+  "tags": ["cloudflare", "workers", "database", "connection-pooling", "postgres", "edge", "latency", "pgbouncer"],
+  "what_it_does": "Accelerates connections from Cloudflare Workers to remote PostgreSQL databases by maintaining persistent regional connection pools and caching query results at the edge.",
+  "use_cases": [
+    "Connect a Cloudflare Workers-based agent to a remote PostgreSQL database without per-request connection overhead or cold-start latency",
+    "Cache frequent read queries at the edge so agents running in Workers avoid round-trips to a geographically distant database",
+    "Use the Hyperdrive API to provision and manage database connection configurations programmatically during agent deployments",
+    "Replace a naive pg connection in a Worker agent with a Hyperdrive binding to get connection pooling without managing pgBouncer",
+    "Reduce database load from many concurrent Workers invocations by funneling connections through Hyperdrive's regional pool"
+  ],
+  "not_for": [
+    "Non-Cloudflare-Workers environments — Hyperdrive only works as a binding within the Workers runtime",
+    "Non-PostgreSQL databases (MySQL, MongoDB, Redis) — Hyperdrive is Postgres-specific",
+    "Persistent long-lived connections or subscriptions requiring server-push (use a message queue or pub/sub service)"
+  ],
+  "best_when": "Your agent runs on Cloudflare Workers and needs efficient, low-latency access to a PostgreSQL database without managing connection pooling infrastructure.",
+  "avoid_when": "Your agent runs outside of Cloudflare Workers, or you are using a non-PostgreSQL database.",
+  "alternatives": ["neon-api", "supabase-api", "planetscale-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["node", "typescript"],
+    "openapi_spec_url": "https://api.cloudflare.com/client/v4/openapi.json",
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["api_key", "api_token"],
+    "oauth": false,
+    "scopes": true,
+    "notes": "Uses Cloudflare API tokens with Hyperdrive-scoped permissions (create, read, update, delete configs). Within Workers, the database connection string (including credentials) is stored encrypted in Hyperdrive config and never exposed to Worker code."
+  },
+  "pricing": {
+    "model": "usage_based",
+    "free_tier_exists": true,
+    "free_tier_limits": "Included in Cloudflare Workers free tier; no separate charge for Hyperdrive during beta",
+    "paid_tiers": "Included with Workers Paid ($5/mo) and Workers for Platforms; pricing may change post-GA",
+    "requires_credit_card": false,
+    "notes": "Currently no separate Hyperdrive charge beyond the Workers subscription. Pricing model may change when the feature reaches general availability."
+  },
+  "performance": {
+    "latency_p50_ms": 5,
+    "latency_p99_ms": 40,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "Connection pool size is configurable; Workers concurrency limits apply at the Worker level, not the Hyperdrive level specifically",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["US", "EU", "APAC", "global-edge"],
+    "compliance": ["SOC2", "ISO27001"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 80,
+    "error_message_notes": "Cloudflare API returns standard JSON response envelopes with success boolean, errors array, and result object. Worker-runtime database errors surface as postgres driver errors within the Worker code.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Hyperdrive config creation via API is not documented as idempotent; using the same name may return an error. Agents should check for existing configs before creating.",
+    "pagination_style": "offset",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Hyperdrive is only accessible as a Workers binding — agents cannot use Hyperdrive from Node.js, Python, or other runtimes outside of the Workers sandbox",
+      "The database password is stored in Hyperdrive config and cannot be read back after creation — agents must securely store credentials separately if they need to rotate them",
+      "Query caching is enabled by default; agents running transactional workloads that need strict read-after-write consistency must disable caching or use cache bypass headers",
+      "Hyperdrive does not support all PostgreSQL features available in direct connections — agents using advanced pg features (LISTEN/NOTIFY, COPY, certain extensions) may find them unsupported",
+      "Config updates (e.g., rotating database credentials) require a Worker redeploy to pick up the new binding — agents cannot hot-swap credentials without redeployment"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 80,
+    "auth_complexity_score": 82,
+    "rate_limit_clarity_score": 75
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 85,
+    "scope_granularity": 82,
+    "dependency_hygiene": 88,
+    "secret_handling": 90,
+    "security_notes": "Database credentials are stored encrypted and never exposed to Worker code — only a connection proxy is accessible. API tokens use fine-grained Cloudflare permission scopes. TLS enforced on all paths."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 85,
+    "version_stability": 75,
+    "breaking_changes_history": 72,
+    "error_recovery": 80
+  }
+}
