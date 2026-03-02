@@ -3,57 +3,56 @@
   "name": "Notion API",
   "version_evaluated": "current",
   "homepage": "https://developers.notion.com",
-  "repo_url": "https://github.com/makenotion/notion-mcp-server",
-  "category": "productivity",
-  "subcategories": ["docs", "databases", "wiki", "project-management"],
-  "tags": ["notion", "productivity", "docs", "database", "wiki", "mcp-server", "rest-api", "sdk", "pages", "blocks"],
-  "what_it_does": "Notion's workspace API for reading and writing pages, databases, blocks, and users in Notion workspaces, with an official MCP server for AI agent integration.",
+  "repo_url": null,
+  "category": "developer-tools",
+  "subcategories": ["knowledge-management", "project-management"],
+  "tags": ["pages", "databases", "blocks", "wiki", "documents", "rest", "oauth2", "workspace"],
+  "what_it_does": "REST API for Notion's workspace platform, enabling agents to read and write pages, databases, and block-level content including tables, tasks, and rich text documents.",
   "use_cases": [
-    "Reading and querying Notion databases to retrieve structured data for agents",
-    "Creating and updating Notion pages and database records from agent workflows",
-    "Building AI-powered knowledge base search and retrieval",
-    "Automating documentation generation and publishing to Notion",
-    "Syncing project management data between Notion and other tools"
+    "Query Notion databases as structured data stores to retrieve task lists, project trackers, or CRM records for agent processing",
+    "Create and update Notion pages programmatically to publish agent-generated reports, summaries, or research outputs",
+    "Append block-level content to existing pages to log agent actions, decisions, or intermediate results as a human-readable audit trail",
+    "Use a Notion database as a lightweight task queue — agents poll for pending rows, process them, and update status fields",
+    "Sync data between Notion and external systems by reading database entries and writing back enriched or transformed records"
   ],
   "not_for": [
-    "Real-time collaborative editing (API is not real-time)",
-    "High-frequency bulk data operations (rate limits are tight)",
-    "Binary file storage (Notion is not a file storage service)",
-    "Teams not already using Notion"
+    "High-frequency transactional workloads — Notion's API rate limits and eventual consistency make it unsuitable as a primary operational database",
+    "Agents requiring strongly structured schemas with enforced types — Notion property types are flexible but not strictly enforced at the API level",
+    "Real-time event processing — Notion does not support webhooks natively, requiring agents to poll for changes"
   ],
-  "best_when": "An agent needs to read from or write to Notion workspaces as a knowledge base or project management system, especially via the official MCP server.",
-  "avoid_when": "You need high-throughput data operations or real-time collaboration features.",
-  "alternatives": ["coda-api", "airtable-api", "google-docs-api"],
+  "best_when": "An agent needs to read from or write to a Notion workspace that humans actively use for documentation, project tracking, or knowledge management.",
+  "avoid_when": "The workload requires high-throughput writes, real-time event triggers, or strict schema enforcement that Notion's flexible block model cannot provide.",
+  "alternatives": ["linear-api", "clickup-api", "jira-api"],
   "interface": {
     "has_rest_api": true,
     "has_graphql": false,
     "has_grpc": false,
-    "has_mcp_server": true,
-    "mcp_server_url": "https://github.com/makenotion/notion-mcp-server",
+    "has_mcp_server": false,
+    "mcp_server_url": null,
     "has_sdk": true,
-    "sdk_languages": ["javascript", "typescript"],
+    "sdk_languages": ["node", "python"],
     "openapi_spec_url": null,
     "webhooks": false
   },
   "auth": {
-    "methods": ["api_key", "oauth2"],
+    "methods": ["bearer_token"],
     "oauth": true,
     "scopes": true,
-    "notes": "Internal integrations use a simple bearer token (integration secret). Public integrations use OAuth2. Users must explicitly share pages/databases with the integration — nothing is accessible by default."
+    "notes": "Internal integrations use a static integration secret (bearer token) with access limited to explicitly shared pages. Public integrations use OAuth 2.0 with user-authorized access. OAuth scopes control read/update/insert capabilities on content, users, and comments. All tokens must be granted access to specific pages or databases by a workspace member — integrations cannot self-authorize access to all workspace content."
   },
   "pricing": {
     "model": "freemium",
     "free_tier_exists": true,
-    "free_tier_limits": "Free plan allows API access with limited blocks and guests",
-    "paid_tiers": "Plus $10/user/month, Business $18/user/month, Enterprise custom",
+    "free_tier_limits": "API access is available on all Notion plans including Free. Free plan limits workspace to individual use; team collaboration requires a paid plan.",
+    "paid_tiers": "Plus at $10/user/month; Business at $18/user/month; Enterprise on request with advanced security and audit logging.",
     "requires_credit_card": false,
-    "notes": "API access is available on all plans including free. Rate limits apply uniformly. Paid plans unlock larger block limits and advanced permissions."
+    "notes": "The API itself does not have a separate cost; it is included with the workspace plan. Free workspaces can use the API but have limited collaboration features that may constrain multi-agent setups."
   },
   "performance": {
-    "latency_p50_ms": 300,
-    "latency_p99_ms": 1200,
+    "latency_p50_ms": 200,
+    "latency_p99_ms": 800,
     "uptime_sla_percent": 99.9,
-    "rate_limits": "3 requests/second per integration",
+    "rate_limits": "3 requests per second per integration; sustained bursts above this return 429 responses with Retry-After headers.",
     "data_source": "llm_estimated"
   },
   "requirements": {
@@ -61,30 +60,46 @@
     "requires_credit_card": false,
     "domain_verification": false,
     "data_residency": ["US"],
-    "compliance": ["SOC2", "GDPR", "CCPA"],
+    "compliance": ["SOC2", "HIPAA"],
     "min_contract": "none"
   },
   "agent_readiness": {
-    "mcp_server_quality": 80,
-    "mcp_security_score": 78,
-    "documentation_accuracy": 82,
-    "error_message_quality": 72,
-    "error_message_notes": "Errors include a code and message field. Common errors like unauthorized or object_not_found are clear, but validation errors can be verbose and hard to parse.",
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 84,
+    "error_message_quality": 80,
+    "error_message_notes": "Errors return HTTP status codes with a JSON body containing code, message, and object fields. Error codes like object_not_found and unauthorized are consistent and well-documented. Validation errors sometimes require inference to identify the specific offending field.",
     "idempotency_support": "none",
-    "idempotency_notes": "No idempotency keys. Creating a page twice creates two pages. Agents must check for existing records before creating.",
+    "idempotency_notes": "Notion API has no idempotency key support. Page and block creation operations always create new objects on each call. Agents must check for existing content before writing to avoid duplicates.",
     "pagination_style": "cursor",
     "retry_guidance_documented": true,
     "known_agent_gotchas": [
-      "Rate limit of 3 req/s is very low — agents processing large databases will be severely throttled",
-      "Pages and databases must be explicitly shared with the integration — agents will get 404s on unshared content",
-      "Block children require separate API calls — fetching a full page requires N+1 requests",
-      "Notion blocks are highly nested — deep page structures require recursive fetching",
-      "No webhooks — agents cannot react to Notion changes without polling",
-      "Filter syntax for database queries is verbose and non-standard"
-    ],
-    "error_message_score": 72,
-    "auth_complexity_score": 75,
-    "rate_limit_score": 40,
-    "security_score": 78
+      "Integrations must be explicitly shared with each page or database they access; agents will receive object_not_found errors (not permission errors) for unshared content, making access issues difficult to diagnose.",
+      "The 3 req/s rate limit is per integration token, not per workspace; multiple agents sharing the same integration token will collectively hit the limit and need to implement token-level throttling.",
+      "Block content is returned as an array of typed block objects; agents must traverse child blocks recursively to read nested content — there is no flat content export endpoint.",
+      "Notion databases use property types (title, select, multi_select, relation, etc.) that must match exactly when writing; type mismatches return errors that do not always clearly identify the property causing the failure.",
+      "There is no native webhook support; agents must implement polling to detect changes, and the API does not provide a last_modified_since filter, requiring agents to track and compare timestamps locally."
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 84,
+    "error_handling_score": 80,
+    "auth_complexity_score": 80,
+    "rate_limit_clarity_score": 82
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 84,
+    "scope_granularity": 80,
+    "dependency_hygiene": 82,
+    "secret_handling": 82,
+    "security_notes": "Integration tokens are scoped to explicitly shared content, providing a natural least-privilege model. OAuth 2.0 support for user-authorized access. SOC2 and HIPAA compliance available on Business/Enterprise plans. No EU data residency option currently."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 82,
+    "breaking_changes_history": 80,
+    "error_recovery": 78
   }
 }

@@ -4,56 +4,55 @@
   "version_evaluated": "current",
   "homepage": "https://clickup.com/api",
   "repo_url": null,
-  "category": "project-management",
-  "subcategories": ["tasks", "projects", "docs", "goals", "time-tracking"],
-  "tags": ["clickup", "project-management", "tasks", "docs", "goals", "time-tracking", "rest-api", "sdk"],
-  "what_it_does": "ClickUp's REST API for managing tasks, spaces, lists, goals, time tracking, and documents in ClickUp's all-in-one productivity platform.",
+  "category": "developer-tools",
+  "subcategories": ["project-management"],
+  "tags": ["tasks", "projects", "spaces", "lists", "docs", "time-tracking", "rest", "freemium", "all-in-one"],
+  "what_it_does": "All-in-one project management REST API (v2/v3) enabling agents to manage tasks, spaces, lists, docs, goals, and time tracking across teams in a unified platform.",
   "use_cases": [
-    "Creating and updating tasks in ClickUp from agent workflows",
-    "Reading task status and progress for automated reporting",
-    "Managing time tracking entries for billing automation",
-    "Syncing project data between ClickUp and external systems",
-    "Automating task assignment based on agent-determined workload"
+    "Create and update tasks with custom fields, priorities, and due dates as an agent processes work items from an automated pipeline",
+    "Query tasks across spaces, folders, and lists using filtered endpoints to build dynamic work queues for agent orchestration",
+    "Log time entries programmatically to track how long automated agents spend on specific tasks or projects",
+    "Create and update ClickUp Docs to publish agent-generated documentation, reports, or structured knowledge alongside project tasks",
+    "Use ClickUp as a lightweight orchestration layer — agents poll for tasks in a specific list, execute work, and update task status and fields upon completion"
   ],
   "not_for": [
-    "Teams not using ClickUp",
-    "Simple task tracking without ClickUp's complexity",
-    "High-frequency API calls (rate limits are restrictive)",
-    "Real-time collaboration features"
+    "Agents requiring enterprise-grade compliance features (FedRAMP, HIPAA) — ClickUp's compliance certifications are less mature than Jira for regulated industries",
+    "Workloads that need a dedicated issue tracker with deep developer toolchain integrations — ClickUp's breadth can feel shallow compared to specialized tools",
+    "Teams needing a stable, slowly-evolving API — ClickUp's API has historically had breaking changes and inconsistencies across versions"
   ],
-  "best_when": "An agent needs to interact with ClickUp's rich task and project management data, especially for automation workflows already centered on ClickUp.",
-  "avoid_when": "You're not using ClickUp or need high-frequency API access.",
-  "alternatives": ["asana-api", "monday-api", "trello-api"],
+  "best_when": "An agent needs to interact with a team's all-in-one work hub covering tasks, docs, time tracking, and goals without integrating multiple separate tools.",
+  "avoid_when": "The agent workflow requires strict API stability guarantees or deep integrations with developer-specific tools like pull requests and deployment pipelines.",
+  "alternatives": ["linear-api", "notion-api", "jira-api"],
   "interface": {
     "has_rest_api": true,
     "has_graphql": false,
     "has_grpc": false,
     "has_mcp_server": false,
     "mcp_server_url": null,
-    "has_sdk": true,
-    "sdk_languages": ["javascript", "python"],
-    "openapi_spec_url": null,
+    "has_sdk": false,
+    "sdk_languages": [],
+    "openapi_spec_url": "https://clickup.com/api/clickupreference/operation/GetAuthorizedUser/",
     "webhooks": true
   },
   "auth": {
-    "methods": ["api_key", "oauth2"],
+    "methods": ["bearer_token"],
     "oauth": true,
-    "scopes": true,
-    "notes": "Personal API tokens for single-user access. OAuth2 for multi-user applications. Personal tokens are the easiest path for agents. Tokens give full account access."
+    "scopes": false,
+    "notes": "Two auth methods: (1) Personal API tokens (bearer tokens) tied to a user account for direct automation; (2) OAuth 2.0 for third-party integrations where users authorize access. ClickUp's OAuth does not currently support granular scopes — the token grants access to all workspaces the user can access. Tokens are passed in the Authorization header."
   },
   "pricing": {
     "model": "freemium",
     "free_tier_exists": true,
-    "free_tier_limits": "Free: unlimited tasks, 100MB storage, limited views",
-    "paid_tiers": "Unlimited $7/user/month, Business $12/user/month, Enterprise custom",
+    "free_tier_limits": "Free Forever plan includes unlimited tasks, unlimited members, and API access with 100 MB storage. Rate limits apply equally across plans.",
+    "paid_tiers": "Unlimited at $10/user/month; Business at $19/user/month; Enterprise on request with advanced permissions and white labeling.",
     "requires_credit_card": false,
-    "notes": "API access on all plans. Free plan is quite capable. Business plan needed for advanced automations and dashboards."
+    "notes": "API access is included on all plans including Free Forever. No additional charge for API usage. Webhook delivery and storage limits differ by plan."
   },
   "performance": {
-    "latency_p50_ms": 250,
-    "latency_p99_ms": 1000,
-    "uptime_sla_percent": 99.5,
-    "rate_limits": "100 requests/minute per token",
+    "latency_p50_ms": 150,
+    "latency_p99_ms": 600,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "100 requests per minute per token; 10,000 requests per day per token. Rate limit headers (X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset) are returned on every response.",
     "data_source": "llm_estimated"
   },
   "requirements": {
@@ -66,25 +65,41 @@
   },
   "agent_readiness": {
     "mcp_server_quality": null,
-    "mcp_security_score": 68,
-    "documentation_accuracy": 72,
-    "error_message_quality": 68,
-    "error_message_notes": "Error responses include err string and ECODE. Error messages are generally readable but error codes are not well-documented. Debugging requires trial and error.",
+    "mcp_security_score": null,
+    "documentation_accuracy": 76,
+    "error_message_quality": 74,
+    "error_message_notes": "Error responses return HTTP status codes with JSON bodies containing an err string field. Error messages are inconsistently detailed — some are descriptive while others are generic codes. The v2 and v3 APIs have different error formats, creating inconsistency for agents that interact with both.",
     "idempotency_support": "none",
-    "idempotency_notes": "No idempotency keys. Task creation creates duplicates on retry. No built-in deduplication mechanism.",
-    "pagination_style": "page",
+    "idempotency_notes": "ClickUp API has no idempotency key support. Task creation is not idempotent; duplicate tasks can be created on retry. Agents must implement check-before-create logic using the task list query endpoints.",
+    "pagination_style": "offset",
     "retry_guidance_documented": false,
     "known_agent_gotchas": [
-      "100 req/min rate limit is low for agents processing many tasks",
-      "Hierarchical data model (workspace > space > folder > list > task) requires understanding before querying",
-      "Custom fields require knowing their IDs which change per workspace",
-      "API v2 is current but documentation quality lags behind product changes",
-      "Subtask handling differs from parent task — requires flags in list requests",
-      "No idempotency — retrying task creation creates duplicate tasks"
-    ],
-    "error_message_score": 68,
-    "auth_complexity_score": 78,
-    "rate_limit_score": 55,
-    "security_score": 68
+      "The v2 and v3 APIs coexist and have different endpoint structures and response shapes; agents must consistently target one version or implement version-aware response parsing.",
+      "OAuth tokens have no scope granularity — a token grants access to everything the user can see; agents should use dedicated service accounts with minimal workspace access to limit blast radius.",
+      "Custom fields require knowing the field UUID, which must be fetched per list before constructing create or update payloads; field UUIDs are not stable across workspace copies or templates.",
+      "The 100 req/min rate limit resets per minute on a rolling window; agents running batch operations may exhaust the limit mid-batch and must implement backoff without a predictable reset time.",
+      "Webhook payloads for task updates include the event type but not a full snapshot of the changed fields; agents tracking field-level changes must fetch the task after receiving the webhook to determine what changed."
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 76,
+    "error_handling_score": 74,
+    "auth_complexity_score": 76,
+    "rate_limit_clarity_score": 80
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 76,
+    "scope_granularity": 62,
+    "dependency_hygiene": 78,
+    "secret_handling": 78,
+    "security_notes": "OAuth lacks scope granularity which is a notable weakness for least-privilege agent design. Personal API tokens are user-scoped with full workspace access. SOC2 Type II certified. EU data residency available on Business and Enterprise plans."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 84,
+    "version_stability": 72,
+    "breaking_changes_history": 68,
+    "error_recovery": 74
   }
 }

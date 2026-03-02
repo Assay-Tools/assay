@@ -1,0 +1,105 @@
+{
+  "id": "turso-db-api",
+  "name": "Turso DB API",
+  "version_evaluated": "current",
+  "homepage": "https://turso.tech",
+  "repo_url": "https://github.com/tursodatabase/libsql",
+  "category": "database",
+  "subcategories": ["edge-database", "sqlite"],
+  "tags": ["sqlite", "edge", "libsql", "low-latency", "per-tenant", "distributed", "wasm"],
+  "what_it_does": "Edge SQLite database built on libSQL (a SQLite fork) with per-database isolation, ultra-low latency reads at edge locations, and access via REST API, gRPC, and the libSQL client.",
+  "use_cases": [
+    "Provision a dedicated SQLite database per agent or per tenant to achieve zero cross-contamination at the data layer",
+    "Execute SQL queries with sub-10ms latency from edge runtimes (Cloudflare Workers, Deno Deploy) co-located with agent logic",
+    "Embed a local SQLite replica in an agent process and sync periodically with the Turso primary for offline-capable workflows",
+    "Run lightweight relational queries using standard SQL without the overhead of a full client-server RDBMS",
+    "Manage thousands of isolated databases programmatically via the Turso Management API for multi-agent fleet deployments"
+  ],
+  "not_for": [
+    "Agents requiring heavy concurrent writes — SQLite's write serialization limits throughput compared to PostgreSQL",
+    "Workloads needing complex stored procedures, advanced window functions, or PostgreSQL-specific extensions",
+    "Applications requiring strict row-level security via a server-side policy engine rather than application-level access control"
+  ],
+  "best_when": "An agent runs at the edge or needs per-tenant database isolation with standard SQL and minimal infrastructure overhead.",
+  "avoid_when": "The workload involves high-concurrency writes, large-scale analytics, or requires PostgreSQL-specific features unavailable in SQLite.",
+  "alternatives": ["supabase-api", "xata-db-api", "fauna-db-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": true,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["node", "python", "go", "rust", "php", "java"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["bearer_token", "api_key"],
+    "oauth": false,
+    "scopes": true,
+    "notes": "Each database has its own auth token (JWT) generated via the Turso CLI or Management API. Tokens can be scoped to read-only or read-write. A separate organization-level API token is used for management operations (creating/deleting databases). Tokens support expiry."
+  },
+  "pricing": {
+    "model": "freemium",
+    "free_tier_exists": true,
+    "free_tier_limits": "Free Starter plan includes 500 databases, 9 GB total storage, 1 billion row reads/month, and 25 million row writes/month.",
+    "paid_tiers": "Scaler plan at $29/month with 10,000 databases and higher limits; Pro plan with unlimited databases on request.",
+    "requires_credit_card": false,
+    "notes": "Free tier is unusually generous for multi-tenant use cases. Row-based billing is easy to estimate for read-heavy workloads."
+  },
+  "performance": {
+    "latency_p50_ms": 5,
+    "latency_p99_ms": 30,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "No explicit QPS rate limits published; practical limits are determined by SQLite write serialization (single writer per database).",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["US", "EU", "AP", "Global-Edge"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 84,
+    "error_message_quality": 80,
+    "error_message_notes": "libSQL client errors map to SQLite error codes which are well-documented but require familiarity with SQLite internals. HTTP API errors return JSON with code and message fields. Edge case errors (e.g., replica lag) are not always clearly surfaced.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "SQLite's INSERT OR REPLACE and INSERT OR IGNORE provide idempotent write patterns. Agents should use these or check-then-write patterns; the libSQL client has no built-in idempotency key support.",
+    "pagination_style": "offset",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Embedded replicas sync asynchronously; agents reading from a local replica immediately after a write to the primary may read stale data until the next sync cycle.",
+      "SQLite allows only one concurrent writer per database file; agents with high write concurrency must serialize writes or accept SQLITE_BUSY errors and implement backoff.",
+      "The Turso HTTP API uses a custom JSON protocol (hrana) that is not standard REST; agents expecting a typical CRUD REST interface will need to adapt to the batch statement format.",
+      "Database tokens do not auto-rotate; agents must implement token refresh logic using the Management API before expiry to avoid authentication failures mid-workflow.",
+      "Turso databases are region-pinned at creation; agents that later need data in a different region must migrate or create a new database — there is no live region migration."
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 84,
+    "error_handling_score": 80,
+    "auth_complexity_score": 82,
+    "rate_limit_clarity_score": 74
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 84,
+    "scope_granularity": 82,
+    "dependency_hygiene": 86,
+    "secret_handling": 83,
+    "security_notes": "Per-database JWT tokens with expiry support are a strong model. Open-source libSQL core allows inspection of the fork. No SOC2 certification published as of evaluation date."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 82,
+    "version_stability": 80,
+    "breaking_changes_history": 78,
+    "error_recovery": 78
+  }
+}
