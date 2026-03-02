@@ -1,0 +1,105 @@
+{
+  "id": "azure-container-instances-api",
+  "name": "Azure Container Instances",
+  "version_evaluated": "current",
+  "homepage": "https://azure.microsoft.com/en-us/products/container-instances",
+  "repo_url": null,
+  "category": "infrastructure",
+  "subcategories": ["containers", "serverless"],
+  "tags": ["containers", "serverless", "azure", "docker", "compute"],
+  "what_it_does": "Runs Docker containers on-demand in Azure without managing VMs or orchestrators — billed per second of CPU and memory consumption.",
+  "use_cases": [
+    "Running ephemeral agent task workers that spin up on demand and terminate after job completion",
+    "Executing batch ML inference jobs in isolated containers without provisioning a Kubernetes cluster",
+    "Hosting short-lived API backends or webhook processors that scale to zero between bursts",
+    "Running containerized data pipeline steps as discrete, isolated compute units",
+    "Executing test suites or CI jobs in clean container environments via Azure DevOps integration"
+  ],
+  "not_for": [
+    "Long-running stateful services needing persistent orchestration, health monitoring, and rolling deploys — use AKS instead",
+    "Workloads requiring GPU acceleration at scale — ACI GPU SKUs are limited and costly vs dedicated GPU VMs",
+    "Multi-container microservice meshes with service discovery — ACI container groups are limited to co-located containers"
+  ],
+  "best_when": "You need fast, isolated container execution for burst or batch workloads and want zero cluster management overhead.",
+  "avoid_when": "You need sustained high-throughput container workloads where Kubernetes-based autoscaling would be more cost-effective.",
+  "alternatives": ["aws-fargate-api", "google-cloud-run-api", "azure-kubernetes-service-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "node", "dotnet", "java", "go"],
+    "openapi_spec_url": "https://raw.githubusercontent.com/Azure/azure-rest-api-specs/main/specification/containerinstance/resource-manager/Microsoft.ContainerInstance/stable/2023-05-01/containerInstance.json",
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["oauth2", "api_key"],
+    "oauth": true,
+    "scopes": true,
+    "notes": "Azure AD / Entra ID service principals or managed identities are the recommended auth path; access can be scoped to specific resource groups via RBAC roles."
+  },
+  "pricing": {
+    "model": "usage_based",
+    "free_tier_exists": true,
+    "free_tier_limits": "180,000 vCPU-seconds and 180,000 GB-seconds free per month",
+    "paid_tiers": "Linux containers: $0.0000125/vCPU-second, $0.0000013/GB-second; Windows containers approximately 4x higher; spot pricing available at ~60% discount",
+    "requires_credit_card": true,
+    "notes": "Billed from container start to stop in 1-second increments; network egress charged separately; persistent volume mounts (Azure Files) charged at storage rates."
+  },
+  "performance": {
+    "latency_p50_ms": 8000,
+    "latency_p99_ms": 30000,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "Default subscription limit of 100 container groups per region; CPU/memory limits per container group (4 vCPU / 16 GB for Linux); limits raiseable via support request",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": true,
+    "domain_verification": false,
+    "data_residency": ["US", "EU", "Asia-Pacific", "global"],
+    "compliance": ["SOC2", "ISO27001", "HIPAA", "FedRAMP"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 84,
+    "error_message_quality": 78,
+    "error_message_notes": "ARM API returns structured JSON errors with code and message fields; provisioning failures surface in container group state rather than HTTP error, requiring polling.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "PUT operations on container groups are idempotent by resource name within a resource group; DELETE is safe to retry; container restarts are not idempotent.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Cold start latency is 5-30 seconds for container image pull — cache images in Azure Container Registry in the same region to reduce this",
+      "Container groups cannot be updated in place for most properties — you must delete and recreate, causing downtime",
+      "Log streaming via the REST API has a 4MB limit per call; long-running container stdout requires Azure Log Analytics integration",
+      "Spot/evictable containers can be terminated with no warning — agents must checkpoint state externally or use restart policies",
+      "ARM API throttling applies at subscription level across all Azure services — heavy ACI automation can exhaust shared ARM quota"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 84,
+    "error_handling_score": 78,
+    "auth_complexity_score": 70,
+    "rate_limit_clarity_score": 75
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 92,
+    "scope_granularity": 88,
+    "dependency_hygiene": 85,
+    "secret_handling": 85,
+    "security_notes": "Entra ID RBAC provides fine-grained access control; managed identity support eliminates credential management; containers can mount Key Vault secrets; network isolation via VNet injection supported."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 85,
+    "breaking_changes_history": 82,
+    "error_recovery": 78
+  }
+}
