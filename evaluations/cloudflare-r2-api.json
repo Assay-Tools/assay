@@ -1,28 +1,28 @@
 {
   "id": "cloudflare-r2-api",
-  "name": "Cloudflare R2 API",
+  "name": "Cloudflare R2",
   "version_evaluated": "current",
-  "homepage": "https://developers.cloudflare.com/r2/",
-  "repo_url": "https://github.com/cloudflare/cloudflare-go",
+  "homepage": "https://developers.cloudflare.com/r2",
+  "repo_url": null,
   "category": "infrastructure",
-  "subcategories": ["object-storage", "edge", "s3-compatible", "storage"],
-  "tags": ["cloudflare", "r2", "s3", "object-storage", "edge", "egress-free", "storage"],
-  "what_it_does": "Cloudflare R2 — S3-compatible object storage with zero egress fees, accessible via S3 API or Workers runtime, ideal for storing agent-generated files, model outputs, and assets at the edge.",
+  "subcategories": ["object-storage", "edge-computing", "cloud-storage"],
+  "tags": ["cloudflare", "s3-compatible", "object-storage", "zero-egress", "storage"],
+  "what_it_does": "Provides S3-compatible object storage with zero egress fees, integrating natively with Cloudflare Workers and supporting standard AWS S3 SDKs pointed at a custom endpoint.",
   "use_cases": [
-    "Agents storing and retrieving large files (PDFs, images, model outputs) without paying per-GB egress fees",
-    "Agent artifact storage — persisting job outputs, logs, and reports accessible globally via R2 public buckets",
-    "Workers integration — agents running on Cloudflare Workers reading/writing R2 buckets natively without SDK",
-    "Media and asset hosting — agents uploading user-generated content and serving via Cloudflare's edge CDN",
-    "Data lake storage — agents using R2 as cost-effective raw data storage with S3-compatible query tools (DuckDB, Athena)"
+    "Store large agent artifacts (model outputs, reports, generated files) without incurring egress costs when serving them globally via Cloudflare CDN",
+    "Use as a drop-in S3 replacement in agent pipelines to eliminate data transfer costs between compute and storage layers",
+    "Stage intermediate pipeline data (e.g., scraped content, transformed datasets) between agent processing steps",
+    "Serve agent-generated static assets or cached API responses directly from R2 through a Workers-fronted public bucket",
+    "Archive structured logs or audit trails from agent runs for compliance or debugging retrieval"
   ],
   "not_for": [
-    "Transactional storage requiring strong consistency — use PostgreSQL or DynamoDB for ACID guarantees",
-    "Very small files at high frequency — per-operation charges make R2 expensive for tiny frequent writes",
-    "Teams needing advanced S3 features — S3 Intelligent Tiering, S3 Object Lambda not available in R2"
+    "Workloads requiring S3 features like Object Lock, Lifecycle policies with complex rules, or Requester Pays — R2 support is partial",
+    "Real-time streaming or append-heavy workloads where many small sequential writes are made to the same object",
+    "Applications that rely on S3 Event Notifications to trigger downstream processing — R2 uses Workers triggers instead"
   ],
-  "best_when": "Your agent generates files that need to be served globally or stored long-term without egress costs eating into margins — R2's zero egress is its killer feature.",
-  "avoid_when": "You need S3-specific features beyond basic get/put/list, or need AWS-native integrations (Lambda triggers, Athena) that don't work with R2.",
-  "alternatives": ["aws-s3-api", "cloudflare-kv-api", "backblaze-b2-api", "bunny-cdn-api"],
+  "best_when": "You want S3-compatible object storage with no egress fees and your compute already runs on Cloudflare Workers or needs global CDN delivery.",
+  "avoid_when": "Your pipeline depends on advanced S3 lifecycle management, S3 Event Notifications, or specific AWS-only storage classes not replicated in R2.",
+  "alternatives": ["aws-s3", "google-cloud-storage", "backblaze-b2", "storj-api", "filebase-api"],
   "interface": {
     "has_rest_api": true,
     "has_graphql": false,
@@ -30,76 +30,76 @@
     "has_mcp_server": false,
     "mcp_server_url": null,
     "has_sdk": true,
-    "sdk_languages": ["javascript", "python", "go", "rust"],
-    "openapi_spec_url": "https://developers.cloudflare.com/api/",
+    "sdk_languages": ["javascript", "typescript", "python", "go", "rust", "java"],
+    "openapi_spec_url": null,
     "webhooks": false
   },
   "auth": {
-    "methods": ["api_key"],
+    "methods": ["api_key", "worker_binding", "s3_access_key"],
     "oauth": false,
     "scopes": true,
-    "notes": "R2 API tokens with read/write/admin scopes. S3-compatible auth via access key ID + secret. Workers access R2 bindings natively without additional auth. Account ID required for all operations."
+    "notes": "R2 API tokens generate an Access Key ID and Secret Access Key for S3-compatible auth; Workers binding requires no credentials in code; endpoint format: https://<account_id>.r2.cloudflarestorage.com"
   },
   "pricing": {
-    "model": "pay-as-you-go",
+    "model": "freemium",
     "free_tier_exists": true,
-    "free_tier_limits": "10GB storage free/month; 1M Class A operations free/month; 10M Class B operations free/month; ZERO egress fees",
-    "paid_tiers": "Storage: $0.015/GB/month; Class A ops (write): $4.50/million; Class B ops (read): $0.36/million",
+    "free_tier_limits": "10GB storage/month, 1M Class A operations/month, 10M Class B operations/month, zero egress fees always",
+    "paid_tiers": "$0.015/GB-month storage beyond 10GB; $4.50/million Class A ops (PUT/POST/LIST) beyond free; $0.36/million Class B ops (GET) beyond free",
     "requires_credit_card": true,
-    "notes": "Zero egress fees is R2's unique advantage vs S3 ($0.09/GB egress). Generous free tier. Requires Cloudflare account with billing setup."
+    "notes": "Credit card required to enable paid usage; egress is always free regardless of tier — major differentiator from AWS S3"
   },
   "performance": {
     "latency_p50_ms": 50,
     "latency_p99_ms": 200,
-    "uptime_sla_percent": 99.99,
-    "rate_limits": "No published rate limits for standard S3 operations; Workers binding: no soft limits",
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "No documented per-bucket request rate limits; global account rate limits apply; large object uploads support multipart",
     "data_source": "llm_estimated"
   },
   "requirements": {
     "requires_signup": true,
     "requires_credit_card": true,
     "domain_verification": false,
-    "data_residency": ["US", "EU", "APAC"],
+    "data_residency": ["global", "eu"],
     "compliance": ["SOC2", "ISO27001", "GDPR"],
     "min_contract": "none"
   },
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
-    "documentation_accuracy": 90,
-    "error_message_quality": 85,
-    "error_message_notes": "Excellent Cloudflare documentation. S3-compatible API means any S3 SDK works. Error responses follow S3 XML format for S3 API; JSON for Cloudflare management API.",
+    "documentation_accuracy": 88,
+    "error_message_quality": 82,
+    "error_message_notes": "S3-compatible XML error responses are standard and well-understood by existing tooling; Cloudflare-specific errors occasionally lack detail",
     "idempotency_support": "full",
-    "idempotency_notes": "S3 PUT operations are idempotent. Object listing is idempotent. Multipart upload management is idempotent with same upload ID.",
+    "idempotency_notes": "PUT object is idempotent by design; multipart upload IDs enable safe retry of individual parts",
     "pagination_style": "cursor",
     "retry_guidance_documented": true,
     "known_agent_gotchas": [
-      "R2 uses S3 API but account ID must be included in the endpoint URL — not standard S3 endpoint format",
-      "Object versioning is not supported — R2 does not have S3 versioning; manage versions in object keys",
-      "Public bucket access requires explicit public access policy — not enabled by default",
-      "R2 does not support S3 events/notifications — cannot trigger Lambda or SNS on object creation",
-      "Large object uploads require multipart — single PUT has 5GB limit; multipart required for larger objects"
+      "S3 SDK must point to the R2 endpoint (https://<account_id>.r2.cloudflarestorage.com) — forgetting this causes silent routing to AWS S3",
+      "R2 does not support S3 Object Lock or WORM — agents assuming immutability guarantees will need application-level enforcement",
+      "Public bucket access requires explicit configuration; newly created buckets are private by default with no public URL generated automatically",
+      "ListObjectsV2 returns at most 1000 keys per page — agents iterating large buckets must implement pagination correctly",
+      "CORS configuration is required for browser-based agent UIs that access R2 directly; misconfigured CORS silently blocks uploads from frontend"
     ]
   },
   "af_score_components": {
     "mcp_score": 0,
-    "api_doc_score": 90,
-    "error_handling_score": 85,
+    "api_doc_score": 88,
+    "error_handling_score": 82,
     "auth_complexity_score": 82,
-    "rate_limit_clarity_score": 85
+    "rate_limit_clarity_score": 80
   },
   "security_score_components": {
     "tls_enforcement": 100,
     "auth_strength": 88,
-    "scope_granularity": 82,
+    "scope_granularity": 85,
     "dependency_hygiene": 88,
     "secret_handling": 85,
-    "security_notes": "SOC2 Type II, ISO 27001. GDPR compliant. Scoped API tokens with read/write/admin granularity. Jurisdiction-specific data location available. Cloudflare's strong security posture."
+    "security_notes": "Data encrypted at rest with AES-256; S3-compatible HMAC signing for request auth; bucket policies and public access controls available"
   },
   "reliability_score_components": {
-    "uptime_documented": 95,
-    "version_stability": 90,
+    "uptime_documented": 90,
+    "version_stability": 88,
     "breaking_changes_history": 88,
-    "error_recovery": 90
+    "error_recovery": 85
   }
 }

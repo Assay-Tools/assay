@@ -5,24 +5,24 @@
   "homepage": "https://workers.cloudflare.com",
   "repo_url": null,
   "category": "infrastructure",
-  "subcategories": ["edge-functions", "serverless", "cdn", "kv-store"],
-  "tags": ["cloudflare", "workers", "edge", "serverless", "kv", "durable-objects", "ai-gateway"],
-  "what_it_does": "Cloudflare's edge compute platform running JavaScript/WASM on 300+ global PoPs with sub-millisecond cold starts, KV store, Durable Objects, and AI Gateway.",
+  "subcategories": ["edge-computing", "serverless", "compute"],
+  "tags": ["cloudflare", "edge", "serverless", "v8-isolates", "wasm"],
+  "what_it_does": "Runs JavaScript, TypeScript, and WebAssembly at the edge across 300+ Cloudflare PoPs using V8 isolates with sub-millisecond cold starts.",
   "use_cases": [
-    "Globally distributed AI agent functions with zero cold start latency at Cloudflare edge",
-    "Request routing and middleware for AI APIs using Workers as intelligent proxy layer",
-    "Stateful agent coordination using Durable Objects for consistent global state",
-    "Edge-side caching and rate limiting for LLM API calls using Workers KV",
-    "Cloudflare AI Gateway for LLM request logging, caching, and fallback routing"
+    "Deploy agent tool-call handlers globally with near-zero latency for geographically distributed users",
+    "Build lightweight API middleware that transforms or routes requests before they reach origin servers",
+    "Run scheduled Cron Triggers to perform periodic agent tasks like polling external APIs or refreshing cached data",
+    "Serve personalized dynamic content at the edge without round-tripping to a central server",
+    "Implement rate limiting, auth token validation, or request signing as an edge layer in an agent pipeline"
   ],
   "not_for": [
-    "Long-running compute beyond 30 seconds (CPU time limit, not wall time)",
-    "Node.js-specific packages or native addons (V8 isolates, not Node.js)",
-    "Disk I/O or local filesystem access (stateless ephemeral compute)"
+    "Long-running background jobs — the 30-second wall-clock limit and 10ms free-tier CPU cap make sustained compute impractical",
+    "Heavy ML inference workloads requiring GPU or large memory footprints beyond the 128MB RAM ceiling",
+    "Applications requiring persistent local disk I/O or stateful in-process memory across invocations"
   ],
-  "best_when": "Building globally distributed agents or middleware that needs near-zero latency at the edge, or using Cloudflare AI Gateway for LLM proxy capabilities.",
-  "avoid_when": "You need heavy Node.js dependencies, long-running jobs, or are not already managing DNS/CDN through Cloudflare.",
-  "alternatives": ["vercel-api", "netlify-api", "aws-lambda-api", "fastly-compute-api"],
+  "best_when": "You need globally distributed, low-latency compute for short-lived request-response tasks and can express logic in JavaScript, TypeScript, or WASM.",
+  "avoid_when": "Your workload requires more than 128MB RAM, sustained CPU beyond 10ms (free) or 30s (paid), or standard Node.js APIs not available in the Workers runtime.",
+  "alternatives": ["aws-lambda", "vercel-functions", "netlify-functions", "deno-deploy", "fastly-compute"],
   "interface": {
     "has_rest_api": true,
     "has_graphql": false,
@@ -30,76 +30,76 @@
     "has_mcp_server": false,
     "mcp_server_url": null,
     "has_sdk": true,
-    "sdk_languages": ["javascript", "typescript", "rust", "python_experimental"],
+    "sdk_languages": ["javascript", "typescript", "python", "go", "rust"],
     "openapi_spec_url": null,
     "webhooks": false
   },
   "auth": {
-    "methods": ["api_key", "oauth2"],
-    "oauth": true,
+    "methods": ["api_key", "api_token"],
+    "oauth": false,
     "scopes": true,
-    "notes": "API tokens with fine-grained permissions for deployments. Workers themselves use service bindings or secrets for downstream auth."
+    "notes": "Cloudflare API tokens with fine-grained permissions (e.g., Workers Scripts:Edit); legacy Global API Key also supported but discouraged"
   },
   "pricing": {
     "model": "freemium",
     "free_tier_exists": true,
-    "free_tier_limits": "100K requests/day, 10ms CPU time/request free",
-    "paid_tiers": "Workers Paid: $5/month for 10M requests, then $0.30/million; Durable Objects: $0.15/million requests",
+    "free_tier_limits": "100,000 requests/day, 10ms CPU time per request, up to 30 scripts",
+    "paid_tiers": "Workers Paid: $5/month for 10M requests, then $0.30/million; 30s CPU limit; Unbound model billed per CPU-ms",
     "requires_credit_card": false,
-    "notes": "Very generous free tier for most use cases. KV storage priced separately. AI Gateway is free for basic features."
+    "notes": "Free tier is generous for low-traffic agents; Unbound billing model suits unpredictable workloads better than Standard"
   },
   "performance": {
-    "latency_p50_ms": 5,
-    "latency_p99_ms": 30,
+    "latency_p50_ms": 8,
+    "latency_p99_ms": 40,
     "uptime_sla_percent": 99.99,
-    "rate_limits": "Free: 1000 requests/minute; Paid: effectively unlimited with burst protection",
+    "rate_limits": "100K req/day free; 1000 req/min per script default on free; paid tier removes most request-rate limits",
     "data_source": "llm_estimated"
   },
   "requirements": {
     "requires_signup": true,
     "requires_credit_card": false,
     "domain_verification": false,
-    "data_residency": ["global_edge", "smart_placement"],
-    "compliance": ["SOC2", "ISO27001", "GDPR", "HIPAA_eligible"],
+    "data_residency": ["global"],
+    "compliance": ["SOC2", "ISO27001", "PCI-DSS"],
     "min_contract": "none"
   },
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
-    "documentation_accuracy": 87,
-    "error_message_quality": 83,
-    "error_message_notes": "Wrangler CLI provides detailed deployment errors; runtime errors need Workers logging or tail for debugging",
+    "documentation_accuracy": 90,
+    "error_message_quality": 80,
+    "error_message_notes": "HTTP 1101 (Worker threw exception) surfaces limited detail; runtime errors require Wrangler tail or Logpush to diagnose",
     "idempotency_support": "partial",
-    "idempotency_notes": "Durable Objects support transactional storage for idempotent operations",
+    "idempotency_notes": "No built-in idempotency keys; agents must implement their own deduplication via KV or D1",
     "pagination_style": "cursor",
     "retry_guidance_documented": true,
     "known_agent_gotchas": [
-      "CPU time limit (10ms free, 30s paid) is CPU time not wall clock — blocking I/O doesn't count but compute does",
-      "No Node.js built-ins — require('fs'), require('path'), etc. don't exist; use Web APIs (fetch, TextEncoder) instead",
-      "Durable Objects have single-threaded semantics per object ID — design for sequential not concurrent access within one DO",
-      "Workers KV is eventually consistent (up to 60s lag globally) — not suitable for real-time coordination without Durable Objects",
-      "Cold starts are ~0ms for most Workers but first request after long idle (hours) may see 5-50ms initialization"
+      "10ms CPU limit on free tier will silently truncate work — upgrade to Paid or use Unbound for anything non-trivial",
+      "No Node.js built-ins by default; must enable nodejs_compat compatibility flag or use Workers-specific APIs",
+      "Cold starts are ~0ms for isolates but first-request worker activation can spike to 50-100ms on rarely-hit PoPs",
+      "Wrangler CLI environment variables set locally do not automatically propagate to deployed Workers — must use `wrangler secret put`",
+      "Durable Objects require a separate paid plan and a different programming model; confusing when first architecting stateful agents"
     ]
   },
   "af_score_components": {
     "mcp_score": 0,
-    "api_doc_score": 87,
-    "error_handling_score": 83,
+    "api_doc_score": 90,
+    "error_handling_score": 80,
     "auth_complexity_score": 85,
-    "rate_limit_clarity_score": 85
+    "rate_limit_clarity_score": 82
   },
   "security_score_components": {
     "tls_enforcement": 100,
-    "auth_strength": 83,
-    "scope_granularity": 85,
-    "dependency_hygiene": 90,
-    "secret_handling": 88,
-    "security_notes": "V8 isolates provide strong sandboxing between Workers. Secrets bound to Worker at deploy time, never in logs. API tokens scoped to zone/account."
+    "auth_strength": 88,
+    "scope_granularity": 88,
+    "dependency_hygiene": 85,
+    "secret_handling": 90,
+    "security_notes": "Secrets stored encrypted at rest via Wrangler secrets; V8 isolate sandboxing provides strong workload isolation; no shared memory between Workers"
   },
   "reliability_score_components": {
     "uptime_documented": 95,
     "version_stability": 88,
     "breaking_changes_history": 85,
-    "error_recovery": 88
+    "error_recovery": 82
   }
 }
