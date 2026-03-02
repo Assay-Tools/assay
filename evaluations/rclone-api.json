@@ -1,0 +1,105 @@
+{
+  "id": "rclone-api",
+  "name": "Rclone",
+  "version_evaluated": "1.67.x",
+  "homepage": "https://rclone.org",
+  "repo_url": "https://github.com/rclone/rclone",
+  "category": "developer-tools",
+  "subcategories": ["cloud-storage", "data-sync", "backup"],
+  "tags": ["cloud-storage", "sync", "backup", "s3", "gdrive", "b2", "self-hosted", "cli", "transfer"],
+  "what_it_does": "Command-line tool that syncs, copies, mounts, and manages files across 70+ cloud storage providers using a unified interface with client-side encryption support.",
+  "use_cases": [
+    "Agent runs rclone sync to mirror a local backup directory to S3-compatible object storage as part of a scheduled backup pipeline",
+    "Agent uses rclone copy to transfer files between two cloud providers (e.g., Google Drive to Backblaze B2) without staging locally",
+    "Agent mounts a remote cloud bucket as a local filesystem via rclone mount so downstream scripts can read/write it with standard file I/O",
+    "Agent uses rclone with the crypt remote to transparently encrypt files at rest before uploading to an untrusted cloud provider",
+    "Agent calls the rclone RC (remote control) API over HTTP to trigger sync jobs, check job status, and stream transfer stats programmatically"
+  ],
+  "not_for": [
+    "Real-time file synchronization with sub-second latency (use rsync over a LAN or inotify-based tools instead)",
+    "Database backup and restore — rclone handles files, not database dump orchestration",
+    "Object storage lifecycle management or bucket policy configuration — use cloud provider CLIs (aws s3api, gsutil) for that"
+  ],
+  "best_when": "You need a single tool to orchestrate file transfers across multiple heterogeneous cloud storage backends with optional encryption and deduplication.",
+  "avoid_when": "You need GUI-based management, real-time sync, or built-in scheduling — rclone is a CLI tool requiring external orchestration for scheduling.",
+  "alternatives": ["aws-cli", "gsutil", "duplicati", "restic"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": false,
+    "sdk_languages": [],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Self-hosted CLI; authentication is per-remote and stored in rclone.conf (API keys, OAuth tokens, service account files depending on provider). The rclone RC HTTP API has optional basic auth."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Unlimited — MIT licensed",
+    "paid_tiers": "None; costs come from the cloud storage providers being accessed",
+    "requires_credit_card": false,
+    "notes": "Rclone is free and open source. Storage and egress costs are determined entirely by the remote cloud providers."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "None enforced by rclone; bounded by remote provider rate limits and local network/disk I/O",
+    "data_source": "self_hosted_no_sla"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self_hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 90,
+    "error_message_quality": 80,
+    "error_message_notes": "CLI error messages are descriptive; the rclone RC API returns JSON errors. Exit codes are documented and reliable for scripting.",
+    "idempotency_support": "full",
+    "idempotency_notes": "sync and copy are idempotent by design — re-running produces the same result. --immutable flag can prevent overwrites when needed.",
+    "pagination_style": "none",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "rclone sync DELETES files in the destination that are not in the source — agents must use rclone copy if deletion is not intended",
+      "OAuth token refresh for providers like Google Drive requires interactive browser flow on first auth; agents must handle token pre-provisioning via service accounts or pre-authorized rclone.conf",
+      "The rclone RC API is disabled by default and must be started explicitly with rclone rcd; it binds to localhost:5572 with no auth unless configured",
+      "Large file transfers to some backends (e.g., Google Drive) use chunked uploads that can leave orphaned partial uploads if the process is interrupted — these accumulate and consume quota",
+      "Case sensitivity handling differs by remote: S3 is case-sensitive, Google Drive is not — syncing between them can cause unexpected file duplication or overwrites"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 90,
+    "error_handling_score": 80,
+    "auth_complexity_score": 78,
+    "rate_limit_clarity_score": 85
+  },
+  "security_score_components": {
+    "tls_enforcement": 88,
+    "auth_strength": 78,
+    "scope_granularity": 72,
+    "dependency_hygiene": 85,
+    "secret_handling": 75,
+    "security_notes": "rclone.conf stores credentials in plaintext by default; can be encrypted with a config password. The crypt remote provides strong client-side encryption (AES-256-CTR) for data at rest. TLS is used for all remote connections but only as strong as the remote provider."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 80,
+    "version_stability": 90,
+    "breaking_changes_history": 88,
+    "error_recovery": 85
+  }
+}

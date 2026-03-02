@@ -1,0 +1,105 @@
+{
+  "id": "prometheus-pushgateway-api",
+  "name": "Prometheus Pushgateway",
+  "version_evaluated": "1.8.x",
+  "homepage": "https://prometheus.io/docs/instrumenting/pushing/",
+  "repo_url": "https://github.com/prometheus/pushgateway",
+  "category": "observability",
+  "subcategories": ["metrics-collection", "monitoring"],
+  "tags": ["prometheus", "metrics", "push", "batch-jobs", "self-hosted", "exporter"],
+  "what_it_does": "HTTP gateway that accepts pushed metrics from short-lived jobs and exposes them for Prometheus scraping, bridging ephemeral workloads with pull-based monitoring.",
+  "use_cases": [
+    "Agent pushes completion metrics (duration, exit code, records processed) from a cron job to Pushgateway after each run",
+    "Agent instruments a one-shot batch pipeline and pushes job-level counters before the container exits",
+    "Agent uses Pushgateway as a dead-man's switch — alert fires if a metric is not refreshed within a time window",
+    "Agent collects metrics from serverless functions that cannot be scraped directly and routes them through Pushgateway",
+    "Agent validates Pushgateway metric presence via its REST API to confirm a batch job completed successfully"
+  ],
+  "not_for": [
+    "Long-running services — those should expose a /metrics endpoint for direct Prometheus scraping",
+    "High-cardinality or per-instance metrics from horizontally scaled services (metrics collide under shared job labels)",
+    "Log aggregation, tracing, or any non-numeric time-series data"
+  ],
+  "best_when": "You have short-lived batch jobs or cron tasks whose metrics would be lost between Prometheus scrape cycles.",
+  "avoid_when": "Your workloads are long-lived services or you need per-pod/per-instance metric isolation at scale.",
+  "alternatives": ["telegraf-api", "grafana-agent-api", "prometheus-node-exporter"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": false,
+    "sdk_languages": [],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No built-in authentication. TLS and basic auth can be added via a reverse proxy. Expose only on internal networks."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Unlimited — Apache 2.0 licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Fully open source; self-hosted with no commercial component."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "None enforced; bounded by host memory since all metrics are held in-memory",
+    "data_source": "self_hosted_no_sla"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self_hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 78,
+    "error_message_notes": "HTTP status codes are standard and meaningful; body error messages are plain text and generally clear.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Pushing the same metric group replaces the previous value; DELETE removes a metric group cleanly.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Metrics from different job instances share the same label namespace — multiple workers pushing to the same job/instance label will overwrite each other",
+      "Pushgateway does not timestamp metrics on push; Prometheus assigns the scrape time, which can make batch job timing look misleading",
+      "Stale metrics persist indefinitely until explicitly deleted or Pushgateway restarts — agents must DELETE after successful job completion",
+      "The grouping key (job + label pairs) in the URL path must be consistent between push and delete or metrics will accumulate",
+      "No authentication by default means any process on the network can overwrite or delete metrics"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 78,
+    "auth_complexity_score": 90,
+    "rate_limit_clarity_score": 88
+  },
+  "security_score_components": {
+    "tls_enforcement": 70,
+    "auth_strength": 60,
+    "scope_granularity": 55,
+    "dependency_hygiene": 85,
+    "secret_handling": 80,
+    "security_notes": "No built-in auth or TLS — these must be provided by a reverse proxy. The admin API (DELETE, /api/v1/admin/wipe) is especially sensitive and should be firewalled."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 75,
+    "version_stability": 88,
+    "breaking_changes_history": 85,
+    "error_recovery": 72
+  }
+}
