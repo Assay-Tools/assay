@@ -1,0 +1,105 @@
+{
+  "id": "vtex-api",
+  "name": "VTEX API",
+  "version_evaluated": "current",
+  "homepage": "https://developers.vtex.com",
+  "repo_url": null,
+  "category": "e-commerce",
+  "subcategories": ["catalog", "order-management", "checkout", "storefront"],
+  "tags": ["e-commerce", "latin-america", "omnichannel", "headless-commerce"],
+  "what_it_does": "VTEX is a Latin American enterprise e-commerce platform exposing REST APIs for catalog management, order orchestration, checkout, customer data, promotions, and fulfillment across multi-account and multi-workspace setups.",
+  "use_cases": [
+    "Sync product catalog and inventory levels from ERP systems into VTEX Catalog API on a schedule",
+    "Poll VTEX OMS (Order Management System) for new orders and push them downstream to fulfillment or 3PL systems",
+    "Create and update customer records in VTEX Master Data v2 as part of CRM integration flows",
+    "Trigger promotional price changes across SKUs by calling the Pricing API in bulk update loops",
+    "Read checkout simulation results to validate cart pricing and shipping options before surfacing to customers"
+  ],
+  "not_for": [
+    "Businesses outside VTEX's supported markets who need a simpler SaaS cart solution",
+    "Small merchants who need a low-cost storefront without per-request API complexity",
+    "Real-time sub-100ms checkout latency requirements where VTEX's multi-service architecture adds overhead"
+  ],
+  "best_when": "You are operating an enterprise or mid-market retailer in Latin America with complex catalog, multi-warehouse fulfillment, and omnichannel needs that benefit from VTEX's unified commerce model.",
+  "avoid_when": "You need a lightweight single-storefront solution or are outside VTEX's primary Latin American market where support and SLAs may be less reliable.",
+  "alternatives": ["shopify-api", "magento-api", "woocommerce-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["javascript", "node"],
+    "openapi_spec_url": "https://developers.vtex.com/openapi",
+    "webhooks": true
+  },
+  "auth": {
+    "methods": ["api_key", "app_key_token"],
+    "oauth": false,
+    "scopes": true,
+    "notes": "Authentication uses paired appKey and appToken headers (X-VTEX-API-AppKey / X-VTEX-API-AppToken). Keys are generated per account in the VTEX admin and can be scoped with License Manager roles. Legacy APIs also support cookie-based auth but this is not recommended for agent use."
+  },
+  "pricing": {
+    "model": "enterprise_contract",
+    "free_tier_exists": false,
+    "free_tier_limits": null,
+    "paid_tiers": "Enterprise contract — pricing negotiated per merchant; typically revenue share plus monthly platform fee",
+    "requires_credit_card": false,
+    "notes": "VTEX is a closed enterprise platform; access requires a signed contract. Developer sandbox accounts are available but require sales engagement."
+  },
+  "performance": {
+    "latency_p50_ms": 180,
+    "latency_p99_ms": 800,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "Varies by API family; Catalog API allows ~5000 requests/minute per account; Master Data has lower limits (~1000 req/min); OMS limits are undocumented but enforced with 429 responses",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["brazil", "varies"],
+    "compliance": ["SOC2", "PCI-DSS", "LGPD"],
+    "min_contract": "enterprise"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 75,
+    "error_message_quality": 68,
+    "error_message_notes": "Error responses are inconsistent across API families — Catalog returns human-readable messages while OMS and Master Data often return opaque error codes. Agents must handle both formats and map 400-series codes manually.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Order creation and Checkout APIs have some idempotency via order group IDs, but Catalog and Master Data upserts are not idempotent by default — duplicate POST calls may create duplicate records.",
+    "pagination_style": "offset",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Every API URL must include both the accountName and environment (e.g., {accountName}.vtexcommercestable.com.br) — missing either causes 404s that are hard to distinguish from resource-not-found errors",
+      "VTEX has Legacy APIs (v1 Catalog) and current APIs (Catalog API v2, Master Data v2) — they are not compatible and have different auth and pagination styles; always confirm which version is in use",
+      "Workspace concept: changes made in a non-master workspace are not live until promoted; agents writing catalog data must target the correct workspace or edits silently disappear from production",
+      "Master Data v2 document IDs are caller-supplied UUIDs but the API will silently truncate or reject non-conforming IDs without a clear error, causing data loss",
+      "Rate limit 429 responses do not include a Retry-After header in all API families, requiring agents to implement exponential backoff with conservative defaults rather than reading the header"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 72,
+    "error_handling_score": 65,
+    "auth_complexity_score": 70,
+    "rate_limit_clarity_score": 60
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 78,
+    "scope_granularity": 80,
+    "dependency_hygiene": 75,
+    "secret_handling": 76,
+    "security_notes": "appKey/appToken pairs are long-lived credentials with no built-in rotation mechanism; agents should store them in secrets managers and implement manual rotation procedures. Role-based scoping via License Manager is available but often misconfigured in practice."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 80,
+    "version_stability": 72,
+    "breaking_changes_history": 68,
+    "error_recovery": 72
+  }
+}

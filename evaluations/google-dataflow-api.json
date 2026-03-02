@@ -1,0 +1,105 @@
+{
+  "id": "google-dataflow-api",
+  "name": "Google Cloud Dataflow API",
+  "version_evaluated": "current",
+  "homepage": "https://cloud.google.com/dataflow",
+  "repo_url": null,
+  "category": "cloud",
+  "subcategories": ["data-pipeline", "stream-processing", "batch-processing"],
+  "tags": ["gcp", "apache-beam", "streaming", "batch", "data-integration"],
+  "what_it_does": "Google Cloud Dataflow is a fully managed Apache Beam runner exposing a REST API to launch, monitor, and cancel batch and streaming pipeline jobs using reusable templates, with autoscaling and unified stream/batch programming model.",
+  "use_cases": [
+    "Launch a Dataflow Flex Template job via REST API to run a parameterized streaming pipeline that reads from Pub/Sub and writes to BigQuery",
+    "Poll Dataflow job status and metrics via API to track pipeline health and trigger downstream actions on job completion",
+    "Cancel a runaway streaming job via the API when cost monitoring detects abnormal worker scaling",
+    "List all active Dataflow jobs in a project to audit running pipeline inventory and identify jobs missing required labels",
+    "Update streaming job autoscaling parameters via the jobs.update API to adjust max workers in response to observed throughput"
+  ],
+  "not_for": [
+    "Teams not on GCP who need a cloud-agnostic streaming solution without managed Beam infrastructure",
+    "Simple batch ETL jobs where Dataflow's managed infrastructure overhead is unnecessary and BigQuery scheduled queries or Cloud Run would suffice",
+    "Low-latency event processing under 100ms where Dataflow's streaming engine latency characteristics are not appropriate"
+  ],
+  "best_when": "You are in the GCP ecosystem running Apache Beam pipelines at scale and need fully managed autoscaling infrastructure for either batch or streaming workloads without cluster management.",
+  "avoid_when": "You need sub-second streaming latency, are outside GCP, or are running small-scale pipelines where Dataflow's per-job startup time and cost model is disproportionate.",
+  "alternatives": ["aws-emr-api", "azure-data-factory-api", "meltano-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "java", "go"],
+    "openapi_spec_url": "https://dataflow.googleapis.com/$discovery/rest?version=v1b3",
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["oauth2", "service_account"],
+    "oauth": true,
+    "scopes": true,
+    "notes": "Authentication uses Google OAuth2 with service account key files or Workload Identity Federation. Required scope is https://www.googleapis.com/auth/cloud-platform. Workload Identity is preferred for agents running on GCP to avoid managing long-lived service account keys."
+  },
+  "pricing": {
+    "model": "usage_based",
+    "free_tier_exists": false,
+    "free_tier_limits": null,
+    "paid_tiers": "Per vCPU-hour, per GB-hour of persistent disk, and per GB of data processed for Dataflow Prime; streaming adds Streaming Units billing",
+    "requires_credit_card": true,
+    "notes": "Dataflow costs can be significant for large-scale streaming — autoscaling can lead to unexpected worker counts and high bills. Agents launching jobs should set maxWorkers to prevent runaway scaling. Flex Templates have an additional startup cost compared to Classic Templates."
+  },
+  "performance": {
+    "latency_p50_ms": 3000,
+    "latency_p99_ms": 15000,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "Dataflow API quota: 1000 requests per 100 seconds per project; job creation is limited to ~25 concurrent jobs per region by default with quota increase available",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": true,
+    "domain_verification": false,
+    "data_residency": ["gcp-regions", "varies"],
+    "compliance": ["SOC2", "ISO27001", "HIPAA", "PCI-DSS", "FedRAMP"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 83,
+    "error_message_quality": 78,
+    "error_message_notes": "Dataflow job failure messages are available in job state and job messages endpoints but can be sparse for pipeline-level errors. Worker-level errors require parsing Stackdriver logs rather than the API response, which adds complexity for agents doing automated failure triage.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Job creation is not idempotent — submitting the same template with same parameters creates a new job with a unique jobId each time. Agents must track launched jobIds to avoid duplicate runs. Job update (for streaming) and cancel operations are idempotent.",
+    "pagination_style": "token",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Flex Templates and Classic Templates have completely different launch API endpoints and parameter schemas — agents must know which template type is in use before constructing launch requests; mixing them up produces cryptic 400 errors",
+      "Streaming jobs do not terminate automatically — agents launching streaming pipelines must implement explicit lifecycle management (monitoring, draining, or cancelling) to prevent indefinite cost accrual",
+      "Job state transitions include intermediate states (JOB_STATE_PENDING, JOB_STATE_QUEUED) before JOB_STATE_RUNNING; agents polling for completion must handle all intermediate states or they will incorrectly report job status",
+      "The Dataflow jobs.update API for streaming jobs only supports updating maxWorkers and labels — agents attempting to update pipeline logic must drain and relaunch the job, not update it in place",
+      "Dataflow Streaming Engine (next-gen) and legacy streaming have different performance characteristics and billing models; the API does not clearly indicate which mode a job is using, requiring agents to check job metadata explicitly"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 83,
+    "error_handling_score": 76,
+    "auth_complexity_score": 78,
+    "rate_limit_clarity_score": 80
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 90,
+    "scope_granularity": 85,
+    "dependency_hygiene": 88,
+    "secret_handling": 88,
+    "security_notes": "Workload Identity Federation eliminates long-lived service account keys for agents running on GCP. For agents running outside GCP, service account key files should be stored in Secret Manager and referenced at runtime. VPC Service Controls can restrict Dataflow API access to authorized networks."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 85,
+    "breaking_changes_history": 82,
+    "error_recovery": 80
+  }
+}

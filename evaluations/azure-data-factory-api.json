@@ -1,28 +1,28 @@
 {
   "id": "azure-data-factory-api",
-  "name": "Azure Data Factory",
+  "name": "Azure Data Factory REST API",
   "version_evaluated": "current",
-  "homepage": "https://azure.microsoft.com/en-us/products/data-factory",
+  "homepage": "https://learn.microsoft.com/en-us/azure/data-factory/",
   "repo_url": null,
   "category": "cloud",
-  "subcategories": ["etl-orchestration", "data-integration", "pipeline-automation"],
-  "tags": ["azure", "etl", "elt", "orchestration", "pipelines", "cloud", "integration"],
-  "what_it_does": "Azure cloud ETL/ELT orchestration service that moves and transforms data across 90+ sources and sinks using pipelines, activities, datasets, and linked services — all manageable via REST API or SDK.",
+  "subcategories": ["data-pipeline", "etl", "orchestration"],
+  "tags": ["azure", "etl", "orchestration", "data-integration", "microsoft"],
+  "what_it_does": "Azure Data Factory is a managed cloud ETL and data orchestration service with a REST API for creating and running pipelines, managing datasets and linked services, configuring triggers, and monitoring pipeline runs across Azure and hybrid environments.",
   "use_cases": [
-    "Orchestrate nightly data ingestion from on-premises SQL Server via Self-Hosted Integration Runtime into Azure Data Lake Storage Gen2, triggered on a schedule",
-    "Build parameterized pipelines that copy data from hundreds of source tables by iterating with ForEach activities over a metadata-driven table list",
-    "Trigger pipelines on new file arrival in a blob container using Storage Event triggers, enabling event-driven ELT without polling logic",
-    "Coordinate complex multi-stage workflows: Copy Activity loads raw data, then a Databricks Notebook Activity transforms it, then a Stored Procedure Activity updates a control table",
-    "Monitor pipeline run health via the ADF REST API (pipelineRuns/query, activityRuns/query) to build custom alerting dashboards outside the Azure portal"
+    "Trigger an ADF pipeline run via REST API after an upstream data landing event and poll for completion status",
+    "Programmatically create or update linked services and datasets when onboarding new data sources to an ADF workspace",
+    "Query pipeline run history and activity run details to build custom monitoring dashboards or alerting logic",
+    "Cancel stuck or runaway pipeline runs via API when automated monitoring detects anomalous duration",
+    "List and activate or deactivate schedule triggers programmatically as part of maintenance window automation"
   ],
   "not_for": [
-    "Sub-minute latency streaming — ADF pipelines have scheduling granularity of 1 minute minimum; use Azure Stream Analytics or Event Hubs for real-time ingestion",
-    "Complex in-pipeline data transformations without external compute — native Data Flow activities are expensive ($0.228/hour for Mapping Data Flows) and less flexible than Spark/SQL",
-    "Teams outside the Azure ecosystem — ADF's value proposition is deep Azure service integration; multi-cloud or AWS-native teams should evaluate alternatives"
+    "Sub-second streaming ingestion where ADF's batch-oriented pipeline model adds too much orchestration overhead",
+    "Teams without Azure subscriptions who need a cloud-agnostic or on-prem ETL solution",
+    "Simple one-off data moves where ADF's pipeline/dataset/linked-service overhead outweighs the benefit"
   ],
-  "best_when": "Your organization is Azure-native, data moves between Azure services and on-premises systems regularly, and you need a managed orchestration layer with built-in monitoring, lineage, and 90+ connectors.",
-  "avoid_when": "You need code-first pipeline definitions, complex branching logic, or heavy in-pipeline transformations — ADF's visual/JSON authoring becomes brittle at scale and lacks the expressiveness of Airflow or dbt.",
-  "alternatives": ["meltano-api", "aws-emr-api", "airflow"],
+  "best_when": "You are operating in the Azure ecosystem and need managed ETL orchestration with GUI authoring, hybrid connectivity via self-hosted integration runtime, and tight integration with Azure storage and compute services.",
+  "avoid_when": "You need real-time stream processing or are already committed to a non-Azure cloud where ADF's proprietary constructs create vendor lock-in without corresponding benefit.",
+  "alternatives": ["google-dataflow-api", "aws-emr-api", "meltano-api"],
   "interface": {
     "has_rest_api": true,
     "has_graphql": false,
@@ -30,71 +30,71 @@
     "has_mcp_server": false,
     "mcp_server_url": null,
     "has_sdk": true,
-    "sdk_languages": ["python", "dotnet", "java", "javascript", "go"],
-    "openapi_spec_url": "https://raw.githubusercontent.com/Azure/azure-rest-api-specs/main/specification/datafactory/resource-manager/readme.md",
-    "webhooks": true
+    "sdk_languages": ["python", "dotnet", "java", "javascript"],
+    "openapi_spec_url": "https://github.com/Azure/azure-rest-api-specs/tree/main/specification/datafactory",
+    "webhooks": false
   },
   "auth": {
-    "methods": ["azure_active_directory", "managed_identity", "service_principal"],
+    "methods": ["oauth2", "service_principal", "managed_identity"],
     "oauth": true,
     "scopes": true,
-    "notes": "Service Principal with client credentials (client_id + client_secret) is standard for automation. Managed Identity is preferred for workloads running in Azure. OAuth2 token endpoint: https://login.microsoftonline.com/{tenant}/oauth2/token with resource=https://management.azure.com/."
+    "notes": "Authentication uses Azure AD OAuth2 bearer tokens. Recommended pattern for agents is Service Principal with client credentials flow or Managed Identity when running inside Azure. Scope is https://management.azure.com/.default. Tokens expire in 1 hour and must be refreshed."
   },
   "pricing": {
     "model": "usage_based",
     "free_tier_exists": true,
-    "free_tier_limits": "5 pipeline activity runs/month free; 1 cloud IR hour/month free per region",
-    "paid_tiers": "Orchestration: $0.001 per activity run. Data movement: $0.25/DIU-hour. Mapping Data Flows: $0.228/vCore-hour. Self-Hosted IR: free software, pay for your VMs.",
+    "free_tier_limits": "5 activities run per month free; beyond that, pay per activity run and DIU-hour",
+    "paid_tiers": "Pay-per-use: ~$0.25 per 1000 activity runs plus data integration unit hours; orchestration and monitoring are separate meters",
     "requires_credit_card": true,
-    "notes": "Costs scale with pipeline complexity and data volumes. ForEach loops that iterate over hundreds of items each trigger individual activity run charges. Debug runs are billed at the same rate as production runs."
+    "notes": "ADF billing is multi-dimensional — pipeline runs, activity runs, DIU-hours for copy activity, and self-hosted IR uptime each have separate meters. Cost can be surprising for high-frequency small pipelines."
   },
   "performance": {
-    "latency_p50_ms": 5000,
-    "latency_p99_ms": 30000,
+    "latency_p50_ms": 2000,
+    "latency_p99_ms": 8000,
     "uptime_sla_percent": 99.9,
-    "rate_limits": "REST API: 10,000 requests per 10 minutes per subscription. Concurrent pipeline runs: 10,000 per factory. Activity runs per pipeline: 40.",
+    "rate_limits": "Azure Resource Manager API limit: 12000 reads and 1200 writes per hour per subscription. ADF-specific: pipeline run triggers have soft limits around 1000 concurrent runs per factory.",
     "data_source": "llm_estimated"
   },
   "requirements": {
     "requires_signup": true,
     "requires_credit_card": true,
     "domain_verification": false,
-    "data_residency": ["azure_region_selectable"],
-    "compliance": ["soc2", "hipaa", "pci", "iso27001", "fedramp"],
+    "data_residency": ["azure-regions", "varies"],
+    "compliance": ["SOC2", "ISO27001", "HIPAA", "PCI-DSS", "FedRAMP"],
     "min_contract": "none"
   },
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
-    "documentation_accuracy": 84,
+    "documentation_accuracy": 85,
     "error_message_quality": 80,
-    "error_message_notes": "ADF activity errors include errorCode, message, and failureType fields; most are human-readable, though Mapping Data Flow errors sometimes surface internal Spark exceptions requiring additional parsing.",
+    "error_message_notes": "ADF REST API errors generally conform to Azure ARM error format with a code and message field. However, pipeline execution errors surface differently depending on whether the failure is at the ARM layer or inside the pipeline activity — agents must check both run status and activity-level error details.",
     "idempotency_support": "partial",
-    "idempotency_notes": "Pipeline runs triggered via CreateRun are not idempotent — each call creates a new run. Agents should check for existing runs in InProgress state before triggering to avoid duplicate executions.",
-    "pagination_style": "token",
+    "idempotency_notes": "CreateOrUpdate operations for pipelines, datasets, and linked services are idempotent by name within a factory. Pipeline run triggers are not idempotent — calling create run multiple times creates multiple runs with distinct runIds.",
+    "pagination_style": "cursor",
     "retry_guidance_documented": true,
     "known_agent_gotchas": [
-      "Pipelines and activities use a hierarchical resource model (factory > pipeline > activity) — agents must pass all three levels of identifiers correctly; missing any level returns a generic 404",
-      "Trigger types have different invocation semantics: Schedule and Tumbling Window triggers cannot be manually run; agents must use CreateRun on the pipeline directly for on-demand execution",
-      "Debug runs and production runs use different Integration Runtimes by default — a pipeline that succeeds in debug may fail in production if the IR selection is misconfigured in linked services",
-      "Pipeline parameters must be declared at the pipeline level before they can be referenced in activities; passing undeclared parameters silently ignores them rather than raising an error",
-      "The REST API uses ARM (Azure Resource Manager) resource paths — agents must include the full path (/subscriptions/{sub}/resourceGroups/{rg}/providers/Microsoft.DataFactory/factories/{adf}/...) for every call, not just the factory name"
+      "Pipeline runs triggered via API enter a Queued state before Running — agents that poll only for Running/Succeeded will miss the Queued phase and may assume failure prematurely",
+      "Debug runs and published pipeline runs are separate concepts: debug runs use the draft pipeline definition and do not consume trigger quotas, but their runIds are not retrievable via the standard pipeline runs list endpoint",
+      "Integration Runtime selection matters for connectivity: Azure IR cannot reach on-prem sources; agents creating linked services must specify the correct IR or the linked service test will pass but actual runs will fail",
+      "Azure AD token expiry at 1 hour will silently fail long-running agent sessions that cache the initial token — agents must implement proactive token refresh before expiry rather than reacting to 401s mid-operation",
+      "Tumbling window triggers have a dependency model that can create cascading backfill runs when reactivated after a pause; agents enabling triggers must account for this and optionally set a start time to avoid unintended historical runs"
     ]
   },
   "af_score_components": {
     "mcp_score": 0,
-    "api_doc_score": 84,
+    "api_doc_score": 85,
     "error_handling_score": 80,
-    "auth_complexity_score": 65,
-    "rate_limit_clarity_score": 82
+    "auth_complexity_score": 72,
+    "rate_limit_clarity_score": 78
   },
   "security_score_components": {
     "tls_enforcement": 100,
     "auth_strength": 90,
     "scope_granularity": 85,
     "dependency_hygiene": 85,
-    "secret_handling": 90,
-    "security_notes": "All ADF API calls are over TLS. Secrets should be stored in Azure Key Vault and referenced via Linked Services — ADF never stores secret values directly. Managed Identity eliminates credential management for Azure-to-Azure connections. VNET integration available for Self-Hosted IR."
+    "secret_handling": 88,
+    "security_notes": "Managed Identity is the preferred auth pattern for agents running inside Azure — eliminates credential management entirely. Service principal secrets should be stored in Azure Key Vault and referenced via AKV linked service. ADF supports customer-managed keys for pipeline/dataset metadata encryption."
   },
   "reliability_score_components": {
     "uptime_documented": 90,
