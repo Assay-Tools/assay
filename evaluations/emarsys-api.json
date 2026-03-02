@@ -1,0 +1,105 @@
+{
+  "id": "emarsys-api",
+  "name": "SAP Emarsys API",
+  "version_evaluated": "current",
+  "homepage": "https://dev.emarsys.com/",
+  "repo_url": null,
+  "category": "communications",
+  "subcategories": ["email-marketing", "marketing-automation", "cdp"],
+  "tags": ["emarsys", "sap", "email", "marketing-automation", "omnichannel", "crm", "enterprise", "personalization"],
+  "what_it_does": "REST API for SAP Emarsys marketing automation platform providing programmatic access to contact management, email campaign triggers, segmentation, automation programs, and engagement data for omnichannel enterprise marketing.",
+  "use_cases": [
+    "Upsert contact records and custom field values into Emarsys from an external CRM or e-commerce platform on a real-time or batch basis",
+    "Trigger transactional email sends (order confirmation, password reset) via the Emarsys transactional send API when external system events occur",
+    "Launch or activate automation programs (customer journeys) for specific contact segments based on CRM lifecycle stage changes",
+    "Pull contact-level engagement data (email opens, clicks, conversions) from Emarsys for integration into a customer data warehouse",
+    "Manage contact list subscriptions and opt-in fields to keep Emarsys subscription status in sync with a master consent management platform"
+  ],
+  "not_for": [
+    "Small business or self-serve marketing — Emarsys is an enterprise platform with minimum contract sizes unsuitable for small teams or startups",
+    "SMS or push notification campaigns without additional Emarsys channel add-ons — base licensing focuses on email and may require module purchases for other channels",
+    "Real-time event streaming or webhook-based ingestion — Emarsys is batch-oriented for contact data and not designed for sub-second event processing"
+  ],
+  "best_when": "Your enterprise already uses SAP Emarsys and you need to programmatically sync contact data, trigger sends, or manage automation programs from ERP, CRM, or e-commerce systems in the SAP ecosystem.",
+  "avoid_when": "Your team is not already on Emarsys or the SAP ecosystem — the HMAC-SHA1 authentication pattern and complex contact field schema make onboarding slow compared to simpler ESP alternatives.",
+  "alternatives": ["salesforce-marketing-cloud-api", "klaviyo-api", "mailchimp-api", "braze-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": false,
+    "sdk_languages": [],
+    "openapi_spec_url": null,
+    "webhooks": true
+  },
+  "auth": {
+    "methods": ["hmac"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Uses a unique HMAC-SHA1 authentication scheme requiring construction of a per-request X-WSSE header. Each request must include a UsernameToken containing the username, a PasswordDigest (Base64-encoded SHA1 hash of nonce + created timestamp + API secret), a Nonce (randomly generated), and the Created timestamp. This pattern is non-standard and requires careful implementation — it is not compatible with most standard HTTP client auth helpers. The API username and secret are provided by Emarsys support."
+  },
+  "pricing": {
+    "model": "enterprise",
+    "free_tier_exists": false,
+    "free_tier_limits": null,
+    "paid_tiers": "Enterprise contracts only; pricing is not publicly listed and is negotiated based on contact volume, channels, and modules. Typically $5,000–$30,000+/month.",
+    "requires_credit_card": false,
+    "notes": "SAP Emarsys is an enterprise platform acquired by SAP. Pricing is determined through SAP's enterprise sales process. API access is included with platform subscriptions. No self-serve, freemium, or trial tier available for production use."
+  },
+  "performance": {
+    "latency_p50_ms": 400,
+    "latency_p99_ms": 2000,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "Rate limits vary by endpoint and account configuration. Batch contact upsert supports up to 1,000 contacts per request. External event triggering is limited to several hundred calls per minute by default. Specific limits are not publicly documented and may be adjusted by Emarsys support for enterprise accounts.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": false,
+    "domain_verification": true,
+    "data_residency": ["US", "EU", "AU"],
+    "compliance": ["SOC2", "GDPR", "ISO27001", "ISO27018"],
+    "min_contract": "annual"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 70,
+    "error_message_quality": 68,
+    "error_message_notes": "Error responses include a replyCode and replyText field. ReplyCode values are documented in the Emarsys developer portal but the list is incomplete and some codes appear only in community forums. WSSE authentication errors return a 401 with a generic message that does not indicate whether the failure is in the nonce, timestamp, or hash — debugging auth failures requires systematic elimination.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Contact upsert operations are idempotent by key field (typically email or external ID) — re-submitting an existing contact updates rather than duplicates the record. External event sends and transactional triggers are not idempotent. No idempotency key mechanism is provided.",
+    "pagination_style": "offset",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "The HMAC-SHA1 WSSE authentication scheme is non-standard and requires custom implementation — standard OAuth or API key libraries will not work, and the Created timestamp must be within 5 minutes of server time or the request is rejected",
+      "Contact fields in Emarsys use numeric IDs (e.g., field 1 = email, field 3 = first name) rather than human-readable names — agents must maintain a mapping of field IDs that is account-specific and not portable between Emarsys instances",
+      "External events for triggering automation programs must be pre-configured in the Emarsys UI with a specific event ID before they can be called via the API — agents cannot create event definitions programmatically",
+      "The API base URL is region-specific (e.g., suite5.emarsys.net vs api.emarsys.net) and account-specific — the correct endpoint must be determined from account provisioning documentation, not from a standard discovery mechanism",
+      "Batch contact imports return a job ID that must be polled for completion status — the import is asynchronous and results (including errors for individual records) are only available after the job completes"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 70,
+    "error_handling_score": 68,
+    "auth_complexity_score": 42,
+    "rate_limit_clarity_score": 52
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 72,
+    "scope_granularity": 55,
+    "dependency_hygiene": 72,
+    "secret_handling": 75,
+    "security_notes": "All traffic over TLS. HMAC-SHA1 authentication provides per-request signing, which prevents replay attacks within the 5-minute timestamp window. However, SHA1 is considered weak by modern standards and the scheme is non-standard. No OAuth or token-based auth is available. API credentials (username + secret) grant full account access with no scope granularity."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 85,
+    "version_stability": 75,
+    "breaking_changes_history": 72,
+    "error_recovery": 70
+  }
+}

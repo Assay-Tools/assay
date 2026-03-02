@@ -1,0 +1,105 @@
+{
+  "id": "npmjs-api",
+  "name": "npm Registry API",
+  "version_evaluated": "current",
+  "homepage": "https://www.npmjs.com",
+  "repo_url": "https://github.com/npm/registry",
+  "category": "developer-tools",
+  "subcategories": ["package-registry", "javascript", "publishing"],
+  "tags": ["npm", "nodejs", "javascript", "typescript", "packages", "registry", "publish", "search"],
+  "what_it_does": "The npm Registry HTTP API provides agents with programmatic access to package metadata, version information, download statistics, and package publishing for the JavaScript/Node.js ecosystem hosted at registry.npmjs.org.",
+  "use_cases": [
+    "Publish a new package version to the npm registry after a CI build passes all tests and linting checks",
+    "Fetch package metadata and version history to audit which teams are consuming a deprecated internal package",
+    "Search the public registry for packages matching a keyword to evaluate available dependencies before adopting one",
+    "Query download statistics for a package over a time window to track adoption and prioritize maintenance effort",
+    "Deprecate or unpublish a specific package version when a security vulnerability is discovered"
+  ],
+  "not_for": [
+    "Private package management in an enterprise environment without additional access control (use Nexus, JFrog, or GitHub Packages instead)",
+    "Non-JavaScript package ecosystems (PyPI for Python, Maven Central for Java, etc.)",
+    "Binary or large artifact storage that exceeds npm's package size guidelines"
+  ],
+  "best_when": "Best when agents need to automate JavaScript package publishing, version management, or registry metadata lookups as part of a JavaScript/Node.js-centric CI/CD workflow.",
+  "avoid_when": "Avoid when you need private package hosting with access control — the public registry has no private package support, and scoped private packages require a paid npm account.",
+  "alternatives": ["github-packages-api", "jfrog-api", "nexus-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["javascript", "typescript"],
+    "openapi_spec_url": "https://github.com/npm/registry/blob/master/docs/REGISTRY-API.md",
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["bearer_token"],
+    "oauth": false,
+    "scopes": true,
+    "notes": "Read access to public package metadata is unauthenticated. Publishing and write operations require a Bearer token (npm access token) passed via the Authorization header. Tokens can be scoped as read-only, publish, or automation type. Granular access tokens allow restricting publish access to specific packages."
+  },
+  "pricing": {
+    "model": "freemium",
+    "free_tier_exists": true,
+    "free_tier_limits": "Publishing public packages is free and unlimited. Up to 1 private package scope on free plan (legacy); private packages now require a paid plan.",
+    "paid_tiers": "npm Pro at $7/user/month for private packages; npm Teams at $3/user/month (minimum $7/month) for org-level access control.",
+    "requires_credit_card": false,
+    "notes": "Public package publishing is and has always been free. The npm registry is operated by GitHub (Microsoft). Private scoped packages require a paid plan."
+  },
+  "performance": {
+    "latency_p50_ms": 150,
+    "latency_p99_ms": 800,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "Unauthenticated read requests are rate-limited per IP (approximately 5 million requests per day in aggregate across all clients). Publish operations have much lower per-token limits. Exact rate limit numbers are not publicly documented.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["US"],
+    "compliance": ["SOC2"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 72,
+    "error_message_quality": 70,
+    "error_message_notes": "Error responses return JSON with an error field for most operations. HTTP 409 on publish conflicts includes a helpful reason string. Rate limit responses (429) include Retry-After headers in most cases.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Publishing the same version number twice returns a 409 conflict error — package versions are immutable once published. Metadata updates (deprecation, tag assignment) are idempotent.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "The npm registry uses a CouchDB-style document API where full package metadata is returned in one large document — agents should not fetch /{package} for performance-sensitive lookups; use /{package}/{version} instead",
+      "Package publish requires sending a specially structured JSON document (not a simple multipart upload) that includes the tarball as a base64-encoded attachment — the npm CLI handles this, but raw API callers must construct it manually",
+      "The registry enforces a 24-hour unpublish window — after 24 hours, packages can only be deprecated, not deleted, which agents must account for in any removal workflow",
+      "Scoped package names (@scope/name) must be URL-encoded as %40scope%2Fname in registry API paths, which differs from how the npm CLI handles them",
+      "Download count statistics are served from a separate API (api.npmjs.org/downloads) with its own rate limits and response format, not from the main registry endpoint"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 72,
+    "error_handling_score": 70,
+    "auth_complexity_score": 82,
+    "rate_limit_clarity_score": 60
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 82,
+    "scope_granularity": 80,
+    "dependency_hygiene": 75,
+    "secret_handling": 80,
+    "security_notes": "Granular access tokens introduced in 2021 allow publish-scoped tokens restricted to specific packages, significantly reducing blast radius of token compromise. 2FA enforcement for publishing is available and recommended."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 85,
+    "version_stability": 80,
+    "breaking_changes_history": 82,
+    "error_recovery": 78
+  }
+}
