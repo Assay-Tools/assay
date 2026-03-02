@@ -1,0 +1,105 @@
+{
+  "id": "stripe-identity-api",
+  "name": "Stripe Identity API",
+  "version_evaluated": "current",
+  "homepage": "https://stripe.com/docs/identity",
+  "repo_url": null,
+  "category": "identity-verification",
+  "subcategories": ["identity", "kyc", "document-verification"],
+  "tags": ["identity-verification", "kyc", "document-scan", "selfie", "stripe", "compliance", "fraud-prevention"],
+  "what_it_does": "Stripe's document identity verification service that confirms real user identities by collecting government IDs and selfies, returning structured verification results via the Stripe API.",
+  "use_cases": [
+    "Triggering KYC identity verification flows for regulated financial or marketplace products",
+    "Programmatically checking the status of a user's identity verification from an agent workflow",
+    "Retrieving verified name, date of birth, and address from a completed verification session",
+    "Automating onboarding gates that require identity verification before account activation",
+    "Integrating identity verification into fraud prevention pipelines using Stripe's risk signals"
+  ],
+  "not_for": [
+    "Verifying business entities (use Stripe Connect for business KYB instead)",
+    "Continuous ongoing identity monitoring or re-verification at high frequency",
+    "Jurisdictions where Stripe Identity is not yet supported or licensed"
+  ],
+  "best_when": "You are already using Stripe for payments and want to add identity verification without integrating a separate vendor, keeping user data within one compliance boundary.",
+  "avoid_when": "You need deep global document support beyond Stripe's covered countries, or require specialized liveness detection beyond photo selfie comparison.",
+  "alternatives": ["passbase-api", "persona-api", "onfido-api", "jumio-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": true,
+    "mcp_server_url": "https://github.com/stripe/agent-toolkit",
+    "has_sdk": true,
+    "sdk_languages": ["python", "node", "ruby", "java", "csharp", "go", "php"],
+    "openapi_spec_url": "https://raw.githubusercontent.com/stripe/openapi/master/openapi/spec3.json",
+    "webhooks": true
+  },
+  "auth": {
+    "methods": ["api_key"],
+    "oauth": false,
+    "scopes": true,
+    "notes": "Uses standard Stripe API keys. Restricted keys can scope access to Identity resources only. Test mode supports simulated verification outcomes without requiring real documents. Secret key required for server-side session creation."
+  },
+  "pricing": {
+    "model": "pay-as-you-go",
+    "free_tier_exists": false,
+    "free_tier_limits": "Test mode is free; production charges per verification",
+    "paid_tiers": "$1.50 per identity verification in the US; international pricing varies by country",
+    "requires_credit_card": false,
+    "notes": "Per-verification pricing with no monthly minimum. Stripe will not charge for verifications that fail due to document quality issues in some cases. Always confirm current pricing in Stripe dashboard."
+  },
+  "performance": {
+    "latency_p50_ms": 300,
+    "latency_p99_ms": 1500,
+    "uptime_sla_percent": 99.99,
+    "rate_limits": "Standard Stripe rate limits apply: 100 reads/second, 100 writes/second per account",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": false,
+    "domain_verification": true,
+    "data_residency": ["US", "EU"],
+    "compliance": ["PCI-DSS", "SOC2", "GDPR", "CCPA"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": 82,
+    "mcp_security_score": 90,
+    "documentation_accuracy": 93,
+    "error_message_quality": 92,
+    "error_message_notes": "Stripe's industry-leading error structure applies here: type, code, message, and doc_url fields. Identity-specific error codes (document_expired, id_number_mismatch) are well documented.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "VerificationSession creation supports idempotency keys via Idempotency-Key header. Retrieval operations are naturally idempotent.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "VerificationSession status is asynchronous — agents must listen to identity.verification_session.verified webhooks rather than polling, as status may lag",
+      "The VerificationReport object containing PII (name, DOB, ID number) requires an explicit retrieve call; it is not embedded in the session object by default",
+      "Test mode document simulation requires specific test document numbers; using random values returns unexpected errors",
+      "Redaction of sensitive verification data is automatic after a configurable period — agents accessing reports too late will receive redacted nulls",
+      "Consent must be collected from the end user before creating a session; Stripe provides a hosted flow but agent-built flows must handle consent logging themselves"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 82,
+    "api_doc_score": 93,
+    "error_handling_score": 92,
+    "auth_complexity_score": 88,
+    "rate_limit_clarity_score": 82
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 95,
+    "scope_granularity": 90,
+    "dependency_hygiene": 88,
+    "secret_handling": 95,
+    "security_notes": "Inherits Stripe's full security posture: TLS enforced, restricted key scoping, PCI-DSS Level 1, SOC2 Type II. PII in verification reports is automatically redacted after configurable retention period. Webhook signatures must be verified. Identity data never logged by Stripe agents toolkit."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 95,
+    "version_stability": 90,
+    "breaking_changes_history": 88,
+    "error_recovery": 92
+  }
+}
