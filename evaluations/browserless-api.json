@@ -1,29 +1,28 @@
 {
   "id": "browserless-api",
-  "name": "Browserless (Headless Chrome API)",
+  "name": "Browserless API",
   "version_evaluated": "current",
-  "homepage": "https://browserless.io",
-  "repo_url": "https://github.com/browserless/browserless",
-  "category": "document-generation",
-  "subcategories": ["pdf-generation", "web-scraping", "headless-browser", "automation"],
-  "tags": ["browserless", "puppeteer", "playwright", "headless-chrome", "pdf", "screenshot", "web-scraping", "rest-api"],
-  "what_it_does": "Hosted headless Chrome service with REST API and WebSocket connections for Puppeteer/Playwright, enabling PDF generation, screenshots, web scraping, and browser automation without managing Chrome infrastructure.",
+  "homepage": "https://www.browserless.io",
+  "repo_url": null,
+  "category": "developer-tools",
+  "subcategories": ["browser-automation"],
+  "tags": ["browser", "headless-chrome", "playwright", "puppeteer", "pdf", "screenshot", "scraping", "chrome-as-a-service"],
+  "what_it_does": "Offers headless Chrome-as-a-service with Playwright/Puppeteer-compatible WebSocket endpoints plus dedicated REST endpoints for PDF generation, screenshots, and structured scraping.",
   "use_cases": [
-    "HTML-to-PDF generation for invoices, reports, and documents requiring pixel-perfect CSS rendering",
-    "Full-page screenshots for visual testing or content previews in automated pipelines",
-    "Web scraping JavaScript-heavy sites that require browser rendering",
-    "Browser automation for testing workflows via Puppeteer or Playwright over WebSocket",
-    "Content extraction from dynamic SPAs that API-only scrapers cannot handle"
+    "Generate PDF reports from HTML templates by POSTing content to the /pdf endpoint without managing a browser binary",
+    "Take full-page screenshots of URLs for agent-driven visual regression checks or content archiving",
+    "Run existing Playwright or Puppeteer automation scripts against a cloud browser by swapping the connect URL",
+    "Scrape structured data from JavaScript-rendered pages using the /scrape endpoint with CSS selectors",
+    "Execute arbitrary browser automation code via the /function endpoint for flexible one-off agent tasks"
   ],
   "not_for": [
-    "Simple HTML-to-PDF without JavaScript (use DocRaptor or WeasyPrint for simpler use cases)",
-    "Very high-concurrency PDF generation at low cost (browser rendering is resource-intensive)",
-    "Static site scraping where simpler HTTP clients suffice",
-    "Applications requiring browser state persistence across many sessions"
+    "Workflows requiring persistent authenticated browser sessions maintained across many sequential agent turns",
+    "Teams that need built-in session recording, live view, or proxy rotation without custom configuration",
+    "Applications requiring a managed SaaS experience with support SLAs beyond the self-hosted tier"
   ],
-  "best_when": "You need Puppeteer/Playwright-compatible headless Chrome as a managed service, especially for PDF generation that must faithfully render complex CSS and JavaScript.",
-  "avoid_when": "Your PDF needs are template-based and don't require full browser rendering, or you're budget-sensitive about per-session costs.",
-  "alternatives": ["docraptor-api", "carbone-api"],
+  "best_when": "You need straightforward headless Chrome automation or PDF/screenshot generation and prefer a drop-in cloud replacement for a local Puppeteer setup with minimal vendor lock-in.",
+  "avoid_when": "Your agent needs advanced session management, built-in CAPTCHA solving, or enterprise anti-detection features out of the box.",
+  "alternatives": ["browserbase-api", "apify-api"],
   "interface": {
     "has_rest_api": true,
     "has_graphql": false,
@@ -32,28 +31,28 @@
     "mcp_server_url": null,
     "has_sdk": false,
     "sdk_languages": [],
-    "openapi_spec_url": "https://docs.browserless.io",
+    "openapi_spec_url": "https://www.browserless.io/openapi.yaml",
     "webhooks": false
   },
   "auth": {
     "methods": ["api_key"],
     "oauth": false,
     "scopes": false,
-    "notes": "API token as query parameter for REST endpoints or as part of WebSocket URL. Single token per account. Token grants full access to the account's browser sessions."
+    "notes": "Token passed as query parameter (?token=) or Authorization header. Self-hosted deployments can configure custom token values. No scope granularity."
   },
   "pricing": {
-    "model": "subscription",
+    "model": "usage_based",
     "free_tier_exists": true,
-    "free_tier_limits": "Free tier: limited concurrent sessions per month",
-    "paid_tiers": "Starter from $40/month (6 concurrent sessions); Scale from $150/month; Enterprise custom",
+    "free_tier_limits": "Free tier: limited units/month on cloud hosted plan; self-hosted open-source version is free",
+    "paid_tiers": "Cloud plans start around $50/mo; usage measured in compute units per session; Enterprise and self-hosted Pro licenses available",
     "requires_credit_card": false,
-    "notes": "Pricing based on concurrent browser sessions, not per-PDF or per-request. Good for predictable workloads; expensive for bursty use. Self-hosting Browserless OSS is free."
+    "notes": "Open-source self-hosted option (v1) is free but older. The cloud v2 service has a freemium model. Browserless v2 has breaking changes from v1."
   },
   "performance": {
-    "latency_p50_ms": 3000,
-    "latency_p99_ms": 10000,
-    "uptime_sla_percent": 99.9,
-    "rate_limits": "Limited by concurrent session count per plan",
+    "latency_p50_ms": 600,
+    "latency_p99_ms": 4000,
+    "uptime_sla_percent": 99.0,
+    "rate_limits": "Concurrent browser limits vary by plan; queue-based overflow handling with configurable timeouts",
     "data_source": "llm_estimated"
   },
   "requirements": {
@@ -61,32 +60,46 @@
     "requires_credit_card": false,
     "domain_verification": false,
     "data_residency": ["US", "EU"],
-    "compliance": ["SOC2"],
-    "min_contract": "monthly"
+    "compliance": [],
+    "min_contract": "none"
   },
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
-    "documentation_accuracy": 88,
+    "documentation_accuracy": 82,
     "error_message_quality": 78,
-    "error_message_notes": "WebSocket errors surface as Puppeteer/Playwright exceptions in the calling code. REST API errors are standard HTTP codes. Timeout errors are clear but require tuning per use case.",
+    "error_message_notes": "REST endpoint errors return JSON with reason fields. WebSocket-based Playwright errors surface as native Playwright exceptions without Browserless-specific enrichment.",
     "idempotency_support": "none",
-    "idempotency_notes": "Each browser session is a unique execution. PDF generation must be retried from scratch on failure.",
+    "idempotency_notes": "Each request spawns a new browser context; no idempotency keys. The /pdf and /screenshot endpoints are naturally idempotent given identical inputs but the API does not enforce this.",
     "pagination_style": "none",
     "retry_guidance_documented": false,
     "known_agent_gotchas": [
-      "Concurrent session limit is the key constraint — exceeding it queues or rejects requests",
-      "WebSocket connections for Puppeteer/Playwright have connection timeouts — implement reconnection logic",
-      "Navigation timeout for pages with slow resources must be configured; default may be too short",
-      "Memory leaks in browser sessions can exhaust session pool — ensure pages and browsers are properly closed",
-      "Site-specific anti-bot measures may block browserless IPs — IP rotation or residential proxies may be needed",
-      "PDF rendering of complex pages may differ from local Chrome — test edge cases carefully",
-      "API token in WebSocket URL — use secure connection and rotate tokens periodically"
-    ],
-    "error_message_score": 78,
-    "auth_complexity_score": 85,
-    "rate_limit_score": 70,
-    "security_score": 72
+      "Browserless v1 and v2 have incompatible APIs and different feature sets; always verify which version your cloud endpoint is running before referencing documentation",
+      "The /function endpoint executes arbitrary JavaScript in the browser context — agents passing user-derived content must sanitize inputs to prevent injection into the execution context",
+      "Queue timeouts (when max concurrency is reached) return a 429 but the body format differs from rate limit 429s; agents must parse the error body to distinguish queue-full from rate-limited",
+      "WebSocket connections for Playwright sessions are not multiplexed — each concurrent automation requires its own connection and counts against the concurrency cap",
+      "Self-hosted deployments require matching the Browserless Docker image version to your Playwright version; version mismatches cause silent automation failures that are hard to debug"
+    ]
   },
-  "last_evaluated": "2026-02-28"
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 80,
+    "error_handling_score": 75,
+    "auth_complexity_score": 85,
+    "rate_limit_clarity_score": 72
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 70,
+    "scope_granularity": 55,
+    "dependency_hygiene": 78,
+    "secret_handling": 75,
+    "security_notes": "Token passed as URL query parameter is a security concern — tokens can appear in server logs. Prefer Authorization header. Self-hosted mode shifts security responsibility to the operator."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 72,
+    "version_stability": 72,
+    "breaking_changes_history": 68,
+    "error_recovery": 72
+  }
 }

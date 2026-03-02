@@ -1,36 +1,36 @@
 {
   "id": "serper-api",
-  "name": "Serper Google Search API",
+  "name": "Serper API",
   "version_evaluated": "current",
   "homepage": "https://serper.dev",
   "repo_url": null,
   "category": "developer-tools",
-  "subcategories": ["search", "data-extraction", "web-scraping"],
-  "tags": ["google-search", "serp", "real-time-search", "news", "images", "shopping"],
-  "what_it_does": "Provides real-time Google Search results via a low-latency REST API, returning structured SERP data including organic results, knowledge graph, news, images, shopping, and maps.",
+  "subcategories": ["web-search"],
+  "tags": ["search", "google-search", "serp", "web-search", "fast", "json", "news", "images", "shopping"],
+  "what_it_does": "Provides fast, low-cost access to Google Search results as structured JSON via a simple REST API, covering web, news, images, and shopping searches.",
   "use_cases": [
-    "Giving agents real-time Google web search capability for up-to-date information retrieval",
-    "Fetching structured Google News results for current events monitoring and summarization",
-    "Retrieving Google Shopping results for product comparison and price discovery agents",
-    "Augmenting RAG pipelines with fresh web data not present in a static vector store",
-    "Running multi-query research workflows that require Google's index coverage and freshness"
+    "Give LLM agents access to real-time Google search results for grounding responses with current information",
+    "Build competitive intelligence agents that monitor search results for brand or product terms",
+    "Retrieve Google News results programmatically for agent-driven news summarization pipelines",
+    "Implement a web research agent tool that returns structured SERP data including answer boxes and knowledge panels",
+    "Validate entity information by cross-referencing agent outputs against current Google search results"
   ],
   "not_for": [
-    "Privacy-sensitive search contexts where Google tracking is unacceptable — use Brave Search instead",
-    "Full-page content extraction — Serper returns SERP metadata and snippets, not full scraped page content",
-    "Semantic or neural search over a custom corpus — this is a Google proxy, not a vector search engine"
+    "Applications needing full page content extraction beyond SERP snippets — Serper returns metadata, not page text",
+    "Use cases requiring a complete web index beyond Google (e.g., DuckDuckGo, Bing, academic sources)",
+    "Workflows that need to process hundreds of thousands of queries per day at minimal cost"
   ],
-  "best_when": "An agent needs the breadth and freshness of Google's search index with structured JSON output and near-instant latency (~200ms).",
-  "avoid_when": "You need full page content extraction, privacy guarantees, or an independent non-Google index.",
-  "alternatives": ["brave-search-api", "tavily-api", "exa-api"],
+  "best_when": "You need fast, reliable access to Google SERP data in JSON format with minimal setup and sub-500ms response times.",
+  "avoid_when": "Your agent needs extracted page body text rather than search result snippets, or requires multi-engine search coverage.",
+  "alternatives": ["tavily-search-api", "brave-search-api", "valueserp-api"],
   "interface": {
     "has_rest_api": true,
     "has_graphql": false,
     "has_grpc": false,
     "has_mcp_server": false,
     "mcp_server_url": null,
-    "has_sdk": true,
-    "sdk_languages": ["python", "javascript"],
+    "has_sdk": false,
+    "sdk_languages": [],
     "openapi_spec_url": null,
     "webhooks": false
   },
@@ -38,21 +38,21 @@
     "methods": ["api_key"],
     "oauth": false,
     "scopes": false,
-    "notes": "Single API key passed as X-API-KEY header. No scopes or per-endpoint key restrictions. Key management is done via the Serper dashboard."
+    "notes": "API key passed as X-API-KEY header. Simple single-key authentication with no scopes. Keys can be created and revoked via the dashboard."
   },
   "pricing": {
-    "model": "credits",
+    "model": "usage_based",
     "free_tier_exists": true,
-    "free_tier_limits": "2,500 free queries on signup (one-time, not monthly)",
-    "paid_tiers": "Credit packs starting at $50 for 50,000 queries (~$0.001/query); volume discounts available for higher tiers",
+    "free_tier_limits": "2,500 free queries on signup (one-time, not monthly recurring)",
+    "paid_tiers": "Pay-as-you-go starting at $0.30-$1.00 per 1,000 queries depending on volume; subscription bundles available from ~$50/mo",
     "requires_credit_card": false,
-    "notes": "One of the lowest per-query prices in the category. Free credits are a one-time allocation, not a recurring monthly grant — agents in production will need a paid plan quickly."
+    "notes": "The 2,500 free queries are a one-time trial credit, not a monthly free tier. After exhaustion, queries are billed on a pay-as-you-go basis. Very competitive per-query pricing."
   },
   "performance": {
-    "latency_p50_ms": 200,
+    "latency_p50_ms": 350,
     "latency_p99_ms": 1200,
     "uptime_sla_percent": 99.5,
-    "rate_limits": "Varies by plan; no hard published per-second limit for standard plans; burst-friendly for typical agent workloads",
+    "rate_limits": "Varies by plan; free trial tier is throttled; paid plans support higher concurrent request rates",
     "data_source": "llm_estimated"
   },
   "requirements": {
@@ -66,40 +66,40 @@
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
-    "documentation_accuracy": 88,
+    "documentation_accuracy": 87,
     "error_message_quality": 82,
-    "error_message_notes": "Returns standard HTTP status codes with JSON error bodies; 429 rate limit responses include Retry-After hints in some cases. Error messages are generally actionable.",
+    "error_message_notes": "Error responses use standard HTTP codes with JSON bodies. Credit exhaustion and invalid key errors return distinct codes. Error messages are concise and actionable for agents.",
     "idempotency_support": "full",
-    "idempotency_notes": "Search is a read-only POST endpoint — identical queries return identical results (subject to Google freshness). Safe to retry on 5xx errors.",
+    "idempotency_notes": "Search queries are read-only and safe to retry. Identical queries return the same SERP snapshot for the same underlying Google index state. No side effects from retries.",
     "pagination_style": "offset",
-    "retry_guidance_documented": false,
+    "retry_guidance_documented": true,
     "known_agent_gotchas": [
-      "Free tier is a one-time credit grant, not monthly — agents in production will exhaust free credits quickly and must be provisioned with a paid plan before hitting the quota wall",
-      "Results reflect Google's index and ranking, which can vary by apparent geography and time; agents must not assume deterministic result ordering across identical queries",
-      "Snippets are truncated Google-provided excerpts, not full page content — agents needing full text must follow up with a scraping API like Firecrawl or Jina",
-      "The API proxies Google's results and is subject to Google's search quality changes; result structure (presence of knowledge graph, featured snippet, etc.) is not guaranteed for every query",
-      "No semantic or intent-based query understanding — keyword construction matters and agents should use explicit search operators (site:, filetype:, etc.) for precise retrieval"
+      "The 2,500 free credits are a one-time signup bonus, not a monthly allowance; agents built on the assumption of perpetual free credits will fail after the trial is exhausted",
+      "Results reflect Google's current index and are not archived; the same query run minutes apart may return different organic results due to Google's personalization and freshness signals",
+      "The 'answerBox' and 'knowledgeGraph' fields in the response are only present when Google shows these features for the query; agents must handle their absence gracefully with null checks",
+      "Image and shopping search endpoints have different response schemas than the web search endpoint; agents using multiple search types must handle schema variations per endpoint",
+      "No content extraction is performed — snippets are limited to Google's meta description / snippet text (typically 150-300 characters); do not use Serper as a substitute for full page content"
     ]
   },
   "af_score_components": {
     "mcp_score": 0,
-    "api_doc_score": 87,
+    "api_doc_score": 86,
     "error_handling_score": 82,
     "auth_complexity_score": 92,
-    "rate_limit_clarity_score": 75
+    "rate_limit_clarity_score": 80
   },
   "security_score_components": {
     "tls_enforcement": 100,
-    "auth_strength": 72,
-    "scope_granularity": 50,
-    "dependency_hygiene": 68,
-    "secret_handling": 75,
-    "security_notes": "Single API key with no scope restrictions; any key compromise grants full API access. No IP allowlisting or key expiry documented. Underlying Google results mean query data passes through Google infrastructure."
+    "auth_strength": 75,
+    "scope_granularity": 58,
+    "dependency_hygiene": 83,
+    "secret_handling": 82,
+    "security_notes": "Simple API key in header. No scope system. Keys are not rotatable on a schedule from the API — manual rotation via dashboard only. Low data sensitivity (search queries only)."
   },
   "reliability_score_components": {
-    "uptime_documented": 75,
-    "version_stability": 82,
-    "breaking_changes_history": 78,
-    "error_recovery": 78
+    "uptime_documented": 82,
+    "version_stability": 87,
+    "breaking_changes_history": 85,
+    "error_recovery": 85
   }
 }

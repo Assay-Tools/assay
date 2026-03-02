@@ -1,59 +1,58 @@
 {
   "id": "heygen-api",
-  "name": "HeyGen",
+  "name": "HeyGen API",
   "version_evaluated": "current",
   "homepage": "https://www.heygen.com",
   "repo_url": null,
-  "category": "ai-video",
-  "subcategories": ["video-generation", "avatar", "text-to-video", "ai"],
-  "tags": ["heygen", "ai-avatar", "video-generation", "text-to-video", "talking-head", "multilingual"],
-  "what_it_does": "AI video generation API for creating talking-head avatar videos from text scripts or audio, supporting custom avatars, voice cloning, and multilingual video generation for marketing and training content.",
+  "category": "ai-ml",
+  "subcategories": ["video-generation", "ai-avatar"],
+  "tags": ["video", "avatar", "text-to-video", "talking-head", "lip-sync", "personalization"],
+  "what_it_does": "Generates AI avatar videos from text scripts, enabling programmatic creation of talking-head videos with customizable digital humans.",
   "use_cases": [
-    "Automated personalized video generation (e.g., AI sales rep explaining products to each prospect)",
-    "Training and onboarding video production from written content without human recording",
-    "Multilingual video localization — generate the same video in 40+ languages from one script",
-    "News or summary video generation where an AI avatar reads generated text",
-    "Content marketing automation — agents generating explainer videos from product data"
+    "Generate personalized onboarding video messages for each new user at scale",
+    "Create multilingual product demo videos by translating scripts and re-rendering avatars",
+    "Produce automated status update videos from structured report data",
+    "Build video email campaigns where each recipient receives a personalized avatar video",
+    "Generate training and documentation videos automatically from text content changes"
   ],
   "not_for": [
-    "Creative/artistic video generation without a talking head (use RunwayML)",
-    "Real-time video generation — rendering takes minutes",
-    "Applications where authenticity must be disclosed (deepfake disclosure laws vary by jurisdiction)",
-    "High-resolution cinematic video output"
+    "Real-time interactive video conversations requiring sub-second latency",
+    "Applications needing live video streaming or synchronous avatar responses",
+    "Use cases where video generation must complete within a single synchronous HTTP request"
   ],
-  "best_when": "You need automated talking-head avatar videos with realistic lip-sync and voice at scale, particularly for multilingual content or personalized video outreach at volume.",
-  "avoid_when": "You need artistic or action video generation, or your use case requires real-time rendering.",
-  "alternatives": ["runway-api", "fal-api"],
+  "best_when": "You need to generate many personalized talking-avatar videos asynchronously and can accept a 1-5 minute generation wait via webhook callback.",
+  "avoid_when": "Your agent workflow requires synchronous video responses or real-time avatar interaction during a live session.",
+  "alternatives": ["tavus-api", "d-id-api", "synthesia-api"],
   "interface": {
     "has_rest_api": true,
     "has_graphql": false,
     "has_grpc": false,
     "has_mcp_server": false,
     "mcp_server_url": null,
-    "has_sdk": false,
-    "sdk_languages": [],
-    "openapi_spec_url": "https://docs.heygen.com/reference",
+    "has_sdk": true,
+    "sdk_languages": ["python", "node"],
+    "openapi_spec_url": null,
     "webhooks": true
   },
   "auth": {
     "methods": ["api_key"],
     "oauth": false,
     "scopes": false,
-    "notes": "API key in X-Api-Key header. Keys scoped to account. Enterprise plans may have additional permission controls."
+    "notes": "Single API key passed as x-api-key header. Key is workspace-scoped with no granular permission levels."
   },
   "pricing": {
-    "model": "subscription",
+    "model": "usage_based",
     "free_tier_exists": true,
-    "free_tier_limits": "Free: 3 video credits/month (~3 short videos)",
-    "paid_tiers": "Creator from $29/month (15 credits); Team from $89/month; Enterprise with custom pricing",
+    "free_tier_limits": "1 credit free on signup; credits consumed per video minute generated",
+    "paid_tiers": "Creator $29/mo (15 credits), Business $89/mo (30 credits), Enterprise custom; 1 credit ≈ 1 minute of video",
     "requires_credit_card": false,
-    "notes": "Credit-based system where each video generation costs credits depending on length and quality. API access available on all paid plans but rate limits vary."
+    "notes": "Video generation consumes credits based on output duration. API access requires at least Creator plan for production use."
   },
   "performance": {
-    "latency_p50_ms": 120000,
+    "latency_p50_ms": 90000,
     "latency_p99_ms": 300000,
-    "uptime_sla_percent": 99.0,
-    "rate_limits": "Concurrent video limit depends on plan; queue-based rendering",
+    "uptime_sla_percent": 99.5,
+    "rate_limits": "Varies by plan; Creator tier limited to ~10 concurrent video jobs; Enterprise has higher concurrency",
     "data_source": "llm_estimated"
   },
   "requirements": {
@@ -61,32 +60,46 @@
     "requires_credit_card": false,
     "domain_verification": false,
     "data_residency": ["US"],
-    "compliance": [],
-    "min_contract": "monthly"
+    "compliance": ["SOC2"],
+    "min_contract": "none"
   },
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
-    "documentation_accuracy": 78,
-    "error_message_quality": 72,
-    "error_message_notes": "API documentation is functional but not comprehensive. Error messages are basic HTTP codes with short descriptions. Rendering failures are not always clearly explained.",
+    "documentation_accuracy": 80,
+    "error_message_quality": 75,
+    "error_message_notes": "Error codes are documented but messages can be vague for quota and avatar-not-found failures; agents should check video status endpoint rather than relying solely on error codes.",
     "idempotency_support": "none",
-    "idempotency_notes": "Video generation creates new videos each call. Video IDs can be used to retrieve previously generated videos.",
-    "pagination_style": "none",
-    "retry_guidance_documented": false,
+    "idempotency_notes": "Each API call creates a new video job; no idempotency keys supported. Agents must track video_id externally to avoid duplicate generation on retry.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": true,
     "known_agent_gotchas": [
-      "Rendering takes 2-5 minutes per video — agents must use webhook or polling pattern",
-      "Avatar selection requires knowing avatar_id — must first call list avatars endpoint",
-      "Voice ID also requires separate lookup — no default voice per language",
-      "Generated video URLs expire — agents must download videos promptly after generation",
-      "Free tier videos include HeyGen watermark — requires paid plan for clean output",
-      "API rate limits are not clearly documented — enterprise accounts have priority queue access",
-      "Ethical/legal considerations around AI avatar usage vary by jurisdiction — plan for disclosure requirements"
-    ],
-    "error_message_score": 68,
-    "auth_complexity_score": 85,
-    "rate_limit_score": 62,
-    "security_score": 68
+      "Video generation is always async — poll the /v2/video/{video_id}/status endpoint or use webhooks; never assume completion from the initial POST response",
+      "Avatar IDs and voice IDs must be fetched and validated before video generation; using a deleted or unavailable avatar silently produces an error job rather than a 400",
+      "Webhook delivery is not guaranteed — always implement polling fallback with exponential backoff for production agent workflows",
+      "Credit consumption is not atomic with job creation; a failed render still deducts credits, so agents must handle partial-credit refund workflows manually",
+      "The free tier has strict concurrency limits that cause queuing delays; parallel agent tasks that spawn multiple video jobs simultaneously will experience unpredictable latency"
+    ]
   },
-  "last_evaluated": "2026-02-28"
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 78,
+    "error_handling_score": 72,
+    "auth_complexity_score": 88,
+    "rate_limit_clarity_score": 70
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 75,
+    "scope_granularity": 60,
+    "dependency_hygiene": 78,
+    "secret_handling": 78,
+    "security_notes": "Single flat API key with no scopes or rotation policy documented. Recommend treating key as a high-value secret and rotating on any suspected exposure."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 75,
+    "version_stability": 78,
+    "breaking_changes_history": 72,
+    "error_recovery": 70
+  }
 }
