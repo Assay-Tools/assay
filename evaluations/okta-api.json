@@ -1,28 +1,28 @@
 {
   "id": "okta-api",
-  "name": "Okta API",
+  "name": "Okta",
   "version_evaluated": "current",
   "homepage": "https://developer.okta.com",
-  "repo_url": "https://github.com/okta/okta-sdk-python",
-  "category": "authentication",
-  "subcategories": ["identity", "enterprise-sso", "mfa", "directory"],
-  "tags": ["okta", "identity", "enterprise", "sso", "mfa", "scim", "authentication", "rest-api", "sdk"],
-  "what_it_does": "Enterprise-grade identity platform providing SSO, MFA, lifecycle management, and API access management for workforce and customer identity use cases.",
+  "repo_url": null,
+  "category": "security",
+  "subcategories": ["identity", "sso"],
+  "tags": ["identity", "sso", "mfa", "oauth2", "oidc", "saml", "enterprise", "lifecycle-management"],
+  "what_it_does": "Enterprise identity platform providing SSO, MFA, and lifecycle management for users and applications via REST API and OAuth2/OIDC.",
   "use_cases": [
-    "Enterprise workforce identity - managing employee login and access",
-    "Customer identity (CIAM) for large-scale consumer apps",
-    "Automated user provisioning/deprovisioning via SCIM or API",
-    "API access management and token validation",
-    "Audit log querying for compliance and security investigations"
+    "Authenticate users via OAuth2/OIDC authorization code flow and retrieve ID/access tokens for downstream API calls",
+    "Provision and deprovision user accounts across connected applications when employees join or leave an organization",
+    "Enforce MFA policies programmatically — enroll factors, verify OTPs, and challenge suspicious sessions",
+    "Query and manage group memberships to implement RBAC in custom applications",
+    "Integrate SSO into an agent-accessible application so end-users authenticate once and access multiple services"
   ],
   "not_for": [
-    "Small teams or startups (expensive and complex for simple use cases)",
-    "Consumer apps without enterprise budget",
-    "Teams wanting quick dev-friendly setup (steep learning curve)"
+    "Consumer-scale authentication at millions of MAU without enterprise budget — pricing becomes prohibitive",
+    "Simple API key management or service-to-service auth where a secrets manager suffices",
+    "Self-hosted or air-gapped environments that cannot reach Okta's cloud endpoints"
   ],
-  "best_when": "Your organization already uses Okta for workforce identity or you're building for large enterprises that require Okta integration.",
-  "avoid_when": "You need fast setup, are a startup, or don't have enterprise identity requirements.",
-  "alternatives": ["auth0-api", "workos-api", "clerk-api"],
+  "best_when": "Your organization needs centralized identity governance across many SaaS apps with enterprise compliance requirements (FedRAMP, HIPAA).",
+  "avoid_when": "You need a fully self-hosted identity solution or your user count is under 100 and you want zero operational overhead.",
+  "alternatives": ["cognito-api", "keycloak-api", "auth0-api"],
   "interface": {
     "has_rest_api": true,
     "has_graphql": false,
@@ -30,59 +30,76 @@
     "has_mcp_server": false,
     "mcp_server_url": null,
     "has_sdk": true,
-    "sdk_languages": ["node", "python", "java", "go", "csharp", "php"],
-    "openapi_spec_url": "https://github.com/okta/okta-management.openapi",
+    "sdk_languages": ["python", "node", "java", "dotnet", "php", "golang"],
+    "openapi_spec_url": "https://github.com/okta/okta-management-openapi-spec",
     "webhooks": true
   },
   "auth": {
-    "methods": ["api_key", "oauth2"],
+    "methods": ["oauth2", "api_key", "oidc"],
     "oauth": true,
     "scopes": true,
-    "notes": "SSWS API key for quick access; OAuth2 with fine-grained scopes for production. SSWS tokens don't expire which is agent-friendly but a security risk. OAuth2 recommended for production agents."
+    "notes": "Supports OAuth2 client credentials for service-to-service, SSWS API tokens for admin tasks, and OIDC for user-facing flows. OAuth2 with fine-grained scopes is strongly recommended over SSWS tokens."
   },
   "pricing": {
-    "model": "subscription",
+    "model": "freemium",
     "free_tier_exists": true,
-    "free_tier_limits": "Free developer org available; production requires paid plan",
-    "paid_tiers": "Workforce Identity from $2/user/month, Customer Identity custom pricing",
+    "free_tier_limits": "Free up to 100 MAU with core SSO features; Okta Developer Edition free for dev/test",
+    "paid_tiers": "Workforce Identity plans from ~$2/user/month; Enterprise pricing varies by features and volume",
     "requires_credit_card": false,
-    "notes": "Enterprise pricing. Developer orgs available for free but production use requires contract. Pricing varies significantly by features and volume."
+    "notes": "Developer Edition is free indefinitely for non-production use. Production pricing scales steeply with MAU and feature tier."
   },
   "performance": {
-    "latency_p50_ms": 200,
-    "latency_p99_ms": 800,
-    "uptime_sla_percent": 99.99,
-    "rate_limits": "Varies by endpoint: 600-1200 requests/minute for most user APIs",
+    "latency_p50_ms": 120,
+    "latency_p99_ms": 500,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "Token introspection and core auth APIs: 10,000 requests/minute per org; User API: varies by endpoint (600–6000 req/min); rate limit headers returned on all responses",
     "data_source": "llm_estimated"
   },
   "requirements": {
     "requires_signup": true,
     "requires_credit_card": false,
-    "domain_verification": false,
-    "data_residency": ["US", "EU", "AU", "JP"],
-    "compliance": ["SOC2", "FedRAMP", "GDPR", "HIPAA", "ISO27001", "PCI-DSS"],
-    "min_contract": "annual"
+    "domain_verification": true,
+    "data_residency": ["US", "EU", "APAC"],
+    "compliance": ["SOC2", "FedRAMP", "ISO27001", "HIPAA"],
+    "min_contract": "none"
   },
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
-    "documentation_accuracy": 85,
-    "error_message_quality": 80,
-    "error_message_notes": "Structured error responses with errorCode, errorSummary, and errorCauses arrays. Well-documented but verbose.",
+    "documentation_accuracy": 88,
+    "error_message_quality": 82,
+    "error_message_notes": "Errors include errorCode, errorSummary, and errorCauses arrays — generally actionable, though some OAuth errors are intentionally vague for security reasons.",
     "idempotency_support": "partial",
-    "idempotency_notes": "User/group operations are idempotent on unique identifiers. No explicit idempotency keys for API calls.",
+    "idempotency_notes": "User creation is idempotent by login/email. Some lifecycle operations (activate, deactivate) are idempotent; others (factor enrollment) are not.",
     "pagination_style": "cursor",
     "retry_guidance_documented": true,
     "known_agent_gotchas": [
-      "Rate limits are per-org not per-API-key - multiple agents sharing an org hit combined limits",
-      "SSWS tokens never expire by default - must be manually rotated (security risk for agents)",
-      "Event Hooks (webhooks) require manual verification challenge flow before activation",
-      "System Log API has a delay of up to 1-2 minutes - not suitable for real-time event processing",
-      "User states are a complex lifecycle (staged, provisioned, active, locked, deprovisioned) - agents must handle all states"
-    ],
-    "error_message_score": 80,
-    "auth_complexity_score": 72,
-    "rate_limit_score": 68,
-    "security_score": 88
+      "Rate limit headers (X-Rate-Limit-Remaining) must be monitored; hitting limits returns 429 with a Retry-After header that agents must respect",
+      "SSWS API tokens are org-wide admin tokens — OAuth2 scoped tokens are safer for agents but require more setup (custom auth server)",
+      "Okta's event hooks fire asynchronously; agents polling for state changes should use the System Log API with cursor pagination, not webhooks alone",
+      "User status machine has many states (STAGED, PROVISIONED, ACTIVE, LOCKED_OUT, etc.) — agents must handle all transitions, not just ACTIVE/INACTIVE",
+      "OAuth2 access tokens expire in 1 hour by default; agents must implement token refresh and handle 401s mid-workflow without losing state"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 88,
+    "error_handling_score": 82,
+    "auth_complexity_score": 65,
+    "rate_limit_clarity_score": 85
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 95,
+    "scope_granularity": 92,
+    "dependency_hygiene": 88,
+    "secret_handling": 90,
+    "security_notes": "TLS 1.2+ enforced everywhere. Fine-grained OAuth2 scopes available. FedRAMP Moderate authorized. SSWS tokens should be rotated regularly; OAuth2 preferred for agents."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 92,
+    "version_stability": 88,
+    "breaking_changes_history": 82,
+    "error_recovery": 85
   }
 }

@@ -1,28 +1,28 @@
 {
   "id": "opsgenie-api",
-  "name": "Opsgenie API",
+  "name": "Opsgenie",
   "version_evaluated": "current",
   "homepage": "https://www.atlassian.com/software/opsgenie",
-  "repo_url": "https://github.com/opsgenie/opsgenie-go-sdk-v2",
-  "category": "monitoring",
-  "subcategories": ["incident-management", "alerting", "on-call", "operations"],
-  "tags": ["opsgenie", "atlassian", "alerting", "on-call", "incident-management", "pagerduty-alternative", "ops"],
-  "what_it_does": "Atlassian Opsgenie's REST API for managing alerts, on-call schedules, escalation policies, and incident notifications for DevOps and SRE teams.",
+  "repo_url": null,
+  "category": "observability",
+  "subcategories": ["alerting", "incident-management"],
+  "tags": ["alerting", "on-call", "incident-management", "atlassian", "escalation", "jira-integration"],
+  "what_it_does": "Atlassian alert management and on-call scheduling platform that aggregates alerts from monitoring tools, routes to on-call responders, and manages escalation policies.",
   "use_cases": [
-    "Creating alerts programmatically from monitoring or CI/CD agents",
-    "Querying on-call schedules to determine who is currently on duty",
-    "Acknowledging and closing alerts automatically when issues self-resolve",
-    "Managing team escalation policies and rotation schedules via automation",
-    "Integrating with Jira Service Management for unified incident tracking"
+    "Create alerts programmatically from agent-detected anomalies with rich details, tags, and responder assignments via the Alert API",
+    "Query on-call schedules and rotations to determine who is currently on call before escalating an automated remediation action",
+    "Close or acknowledge alerts automatically when an agent confirms an issue is resolved, preventing alert fatigue",
+    "Integrate with Jira to automatically create or link Jira issues from Opsgenie alerts for seamless incident-to-ticket tracking",
+    "Retrieve alert history and metrics for SLO reporting, mean time to acknowledge analysis, and on-call load balancing"
   ],
   "not_for": [
-    "Teams already using PagerDuty who don't need to migrate",
-    "Simple notification-only workflows without escalation logic",
-    "Non-technical teams without DevOps or SRE context"
+    "Teams not using Atlassian toolchain who want best-in-class incident management — PagerDuty offers deeper features outside Atlassian ecosystem",
+    "Uptime monitoring with public status pages — use BetterStack or a dedicated monitoring tool",
+    "Organizations needing advanced AIOps or ML-based alert correlation beyond basic grouping"
   ],
-  "best_when": "An agent needs to trigger or manage alerts within an Atlassian-centric stack (Jira, Confluence, Bitbucket) where unified incident response is needed.",
-  "avoid_when": "Your team has no existing Atlassian tooling investment, or you need advanced AIOps features beyond alert routing and on-call management.",
-  "alternatives": ["pagerduty-api", "victorops-api", "datadog-api", "grafana-api"],
+  "best_when": "Your team already uses Jira and Confluence and wants tight incident management integration within the Atlassian ecosystem.",
+  "avoid_when": "You need advanced incident response workflows, rich automation, or stakeholder communication features that go beyond alert routing.",
+  "alternatives": ["pagerduty-api", "betterstack-api"],
   "interface": {
     "has_rest_api": true,
     "has_graphql": false,
@@ -30,29 +30,29 @@
     "has_mcp_server": false,
     "mcp_server_url": null,
     "has_sdk": true,
-    "sdk_languages": ["go", "java", "python", "node"],
-    "openapi_spec_url": "https://raw.githubusercontent.com/opsgenie/opsgenie-oas/master/spec.json",
+    "sdk_languages": ["python", "node", "java", "golang"],
+    "openapi_spec_url": "https://github.com/opsgenie/opsgenie-oas",
     "webhooks": true
   },
   "auth": {
     "methods": ["api_key"],
     "oauth": false,
     "scopes": false,
-    "notes": "API keys generated per integration or at the team/account level. Different keys for Alert API vs other endpoints. Keys grant broad access — no fine-grained OAuth scopes available."
+    "notes": "API key passed as Authorization: GenieKey <key> header. Team-specific integration keys available for scoped ingestion. No OAuth2 support — key rotation is manual."
   },
   "pricing": {
-    "model": "subscription",
+    "model": "freemium",
     "free_tier_exists": true,
-    "free_tier_limits": "Free plan: up to 5 users, basic alerting and on-call",
-    "paid_tiers": "Essentials $9/user/month, Standard $19/user/month, Enterprise custom pricing",
+    "free_tier_limits": "Free for up to 5 users with basic alerting and on-call scheduling",
+    "paid_tiers": "Essentials ~$9/user/month; Standard ~$19/user/month; Enterprise custom pricing",
     "requires_credit_card": false,
-    "notes": "Bundled with Jira Service Management at higher tiers. Standalone pricing is competitive with PagerDuty. Enterprise tier includes advanced analytics and SSO."
+    "notes": "Free tier is functional for small teams. Atlassian account required. Enterprise tier includes advanced reporting and SSO."
   },
   "performance": {
     "latency_p50_ms": 150,
     "latency_p99_ms": 600,
     "uptime_sla_percent": 99.9,
-    "rate_limits": "Alert API: 100 requests/minute per API key; other endpoints vary",
+    "rate_limits": "250 requests per minute per API key; alert creation may have lower limits during high load; retry on 429 with exponential backoff",
     "data_source": "llm_estimated"
   },
   "requirements": {
@@ -60,47 +60,46 @@
     "requires_credit_card": false,
     "domain_verification": false,
     "data_residency": ["US", "EU"],
-    "compliance": ["SOC2", "GDPR", "ISO27001"],
+    "compliance": ["SOC2", "ISO27001"],
     "min_contract": "none"
   },
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
-    "documentation_accuracy": 78,
-    "error_message_quality": 75,
-    "error_message_notes": "JSON error responses include message and took fields but error codes are less granular than PagerDuty. HTTP status codes are standard. Some edge-case errors are underdocumented.",
+    "documentation_accuracy": 82,
+    "error_message_quality": 78,
+    "error_message_notes": "Errors return JSON with message and errors fields. Some endpoint errors are vague (e.g., 400 with 'Request failed') without clear indication of which field is invalid.",
     "idempotency_support": "partial",
-    "idempotency_notes": "Alert creation supports alias field as a deduplication key — if an alert with the same alias exists, a new one is not created. Other operations are not idempotent.",
+    "idempotency_notes": "Alert creation supports alias field as a deduplication key — agents must set alias to a deterministic fingerprint to prevent duplicate alerts on retry.",
     "pagination_style": "cursor",
     "retry_guidance_documented": true,
     "known_agent_gotchas": [
-      "Alert API key is separate from other API keys — using the wrong key returns 401 with no clear explanation",
-      "Alert alias for deduplication must be set at creation time; cannot be added retroactively",
-      "Opsgenie uses EU and US API endpoints (api.eu.opsgenie.com vs api.opsgenie.com) — using the wrong region returns 401",
-      "On-call schedule API returns participants but does not directly indicate who is currently on-call without date math",
-      "Rate limits are per integration key, not per account — easy to hit limits when multiple agents share a key",
-      "Alert actions (acknowledge, close, snooze) are POST requests to /actions subdirectory, not PATCH on the alert resource"
+      "Alert creation is asynchronous — the API returns a requestId, not the alert ID; agents must poll /v2/alerts/requests/{requestId} to confirm creation and get the alertId",
+      "Alias deduplication only works when the existing alert is still open — if a previous alert was closed, a new one with the same alias will be created without error",
+      "Team routing rules are evaluated server-side based on alert tags and priority; agents cannot predict routing without querying team routing rules first",
+      "The EU API endpoint (api.eu.opsgenie.com) is separate from the US endpoint (api.opsgenie.com) — using the wrong endpoint returns 401 even with a valid key",
+      "Webhook payloads do not include full alert details — agents must make a follow-up GET /v2/alerts/{id} to retrieve all fields after receiving a webhook notification"
     ]
   },
   "af_score_components": {
     "mcp_score": 0,
-    "api_doc_score": 78,
-    "error_handling_score": 75,
+    "api_doc_score": 82,
+    "error_handling_score": 78,
     "auth_complexity_score": 80,
-    "rate_limit_clarity_score": 72
+    "rate_limit_clarity_score": 78
   },
   "security_score_components": {
     "tls_enforcement": 100,
-    "auth_strength": 75,
-    "scope_granularity": 55,
-    "dependency_hygiene": 80,
-    "secret_handling": 75,
-    "security_notes": "API keys are not scoped — a single key grants broad access. No OAuth2 or fine-grained permissions. Keys should be rotated regularly and stored in secrets managers."
+    "auth_strength": 80,
+    "scope_granularity": 72,
+    "dependency_hygiene": 82,
+    "secret_handling": 78,
+    "security_notes": "TLS enforced. Single API key model lacks granular scopes — use team-specific integration keys where possible to limit blast radius. Keys are long-lived and require manual rotation."
   },
   "reliability_score_components": {
-    "uptime_documented": 80,
-    "version_stability": 82,
+    "uptime_documented": 88,
+    "version_stability": 83,
     "breaking_changes_history": 80,
-    "error_recovery": 75
+    "error_recovery": 80
   }
 }

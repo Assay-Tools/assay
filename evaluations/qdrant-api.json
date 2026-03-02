@@ -5,94 +5,101 @@
   "homepage": "https://qdrant.tech",
   "repo_url": "https://github.com/qdrant/qdrant",
   "category": "database",
-  "subcategories": ["vector-database", "ai-infrastructure", "semantic-search", "rag"],
-  "tags": ["qdrant", "vector-database", "embeddings", "semantic-search", "rag", "rust", "open-source", "mcp-server", "hybrid-search", "sparse-vectors", "grpc", "fastembed"],
-  "what_it_does": "Qdrant is a high-performance open-source vector database and search engine written in Rust, designed specifically for AI and machine learning workloads. It stores high-dimensional embedding vectors alongside arbitrary JSON payloads and enables fast approximate nearest neighbor (ANN) search with rich metadata filtering. Qdrant supports dense vectors, sparse vectors (BM42), and multi-vector configurations — enabling hybrid search that combines semantic similarity with keyword relevance in a single query. Available as self-hosted (Docker/Kubernetes) or fully managed via Qdrant Cloud, with an official MCP server for direct AI agent memory integration.",
+  "subcategories": ["vector-database"],
+  "tags": ["vector-database", "rust", "grpc", "payload-filtering", "hnsw", "open-source", "rag"],
+  "what_it_does": "Rust-based high-performance vector search engine with REST and gRPC interfaces, rich payload filtering, and quantization, available as self-hosted or managed Qdrant Cloud.",
   "use_cases": [
-    "RAG pipelines with semantic document retrieval and rich metadata filtering (date ranges, categories, user IDs)",
-    "Hybrid search combining dense embedding vectors with sparse BM42 keyword vectors in a single query",
-    "AI agent persistent semantic memory via the official MCP server (qdrant-store / qdrant-find tools)",
-    "Recommendation systems using vector similarity plus business logic payload filters",
-    "Real-time vector search at scale with on-disk HNSW indexing for datasets exceeding RAM",
-    "Multi-tenant vector databases using collection-level isolation or payload-based filtering with named vectors"
+    "Agent retrieval systems requiring sub-millisecond vector search with complex metadata pre-filters on payload fields",
+    "High-throughput embedding indexing pipelines where Rust performance and quantization reduce memory footprint by 4x",
+    "Multi-agent systems using named collections per agent with isolated vector spaces and independent HNSW indexes",
+    "Sparse+dense hybrid search combining BM25-style sparse vectors with dense embeddings in a single query",
+    "Recommendation systems within agents where payload filtering narrows the candidate set before ANN search"
   ],
   "not_for": [
-    "Teams that want relational data with complex multi-table joins (use PostgreSQL instead)",
-    "Pure keyword search without semantic understanding (use Elasticsearch or Typesense)",
-    "Workloads requiring ACID transactions across multiple documents",
-    "Teams without any DevOps capability who need a fully managed zero-touch database"
+    "Teams wanting built-in embedding generation — Qdrant stores and searches vectors but requires an external embedding service",
+    "Workloads needing full-text search without vector components (use Elasticsearch instead)",
+    "Applications requiring multi-document ACID transactions across multiple collections"
   ],
-  "best_when": "You need a high-performance, resource-efficient vector database with first-class MCP server support, the ability to self-host for free, or a competitively priced managed cloud option — especially for RAG, semantic search, or agent memory.",
-  "avoid_when": "Your workload is purely keyword-based full-text search, or you need relational database guarantees like foreign keys and complex joins.",
-  "alternatives": [
-    {"id": "pinecone-api", "reason": "Fully managed with no self-hosting option; simpler but pricier at scale"},
-    {"id": "weaviate-api", "reason": "Built-in vectorizer modules and GraphQL API; more opinionated pipeline"},
-    {"id": "mcp-server-qdrant", "reason": "The MCP-only interface for Qdrant without direct REST/gRPC access"}
-  ],
+  "best_when": "Building agent memory or search backends where query-time payload filtering accuracy and raw search speed are the critical constraints.",
+  "avoid_when": "You need a managed cloud service that includes built-in embedding models and want to avoid running a separate vectorization service.",
+  "alternatives": ["weaviate-api", "pinecone-api", "chroma-api", "pgvector-api"],
   "interface": {
     "has_rest_api": true,
     "has_graphql": false,
     "has_grpc": true,
-    "has_mcp_server": true,
-    "mcp_server_url": "https://github.com/qdrant/mcp-server-qdrant",
+    "has_mcp_server": false,
+    "mcp_server_url": null,
     "has_sdk": true,
-    "sdk_languages": ["python", "typescript", "rust", "go", "java", "dotnet"],
-    "openapi_spec_url": "https://qdrant.github.io/qdrant/redoc/index.html",
+    "sdk_languages": ["python", "node", "rust", "go"],
+    "openapi_spec_url": "https://api.qdrant.tech/api-reference",
     "webhooks": false
   },
   "auth": {
-    "methods": ["api_key", "none"],
+    "methods": ["api_key"],
     "oauth": false,
     "scopes": false,
-    "notes": "API key auth via X-API-Key header or Bearer token in Authorization header. Qdrant Cloud provides project-scoped API keys; read-only and full-access key types supported. Self-hosted instances have no auth by default — must be explicitly configured. No RBAC or fine-grained scopes beyond read vs write."
+    "notes": "API key passed as api-key header or query param; read-only vs full-access keys supported; self-hosted can run without auth (not recommended for production)."
   },
   "pricing": {
-    "model": "open_source",
+    "model": "usage_based",
     "free_tier_exists": true,
-    "free_tier_limits": "Free cluster on Qdrant Cloud: 1GB RAM, 0.5 vCPU, 4GB disk — self-hosted is completely unlimited",
-    "paid_tiers": "Qdrant Cloud from ~$0.014/hour per vCPU-GB RAM; Enterprise plan with custom SLAs available",
+    "free_tier_limits": "Qdrant Cloud free tier: 1GB storage, 1M vectors, no credit card required; suitable for development",
+    "paid_tiers": "Managed cloud from ~$25/month for 4GB RAM starter; scales to dedicated clusters; self-hosted is fully free open-source",
     "requires_credit_card": false,
-    "notes": "Apache-2.0 licensed open source. Self-hosting costs only infrastructure. Qdrant Cloud free tier is permanent (not a trial). Among the most cost-efficient managed vector databases at scale."
+    "notes": "Self-hosted via Docker or Kubernetes is completely free; cloud free tier is generous for prototyping; quantization (scalar, product, binary) significantly reduces memory costs."
   },
   "performance": {
     "latency_p50_ms": 5,
     "latency_p99_ms": 30,
     "uptime_sla_percent": 99.9,
-    "rate_limits": "No hard rate limits on self-hosted; Qdrant Cloud scales limits with plan size",
+    "rate_limits": "No API rate limits on self-hosted; Qdrant Cloud limits vary by plan; gRPC interface provides lower overhead for bulk operations",
     "data_source": "llm_estimated"
   },
   "requirements": {
     "requires_signup": false,
     "requires_credit_card": false,
     "domain_verification": false,
-    "data_residency": ["US", "EU", "APAC"],
-    "compliance": ["SOC2", "GDPR", "ISO27001"],
+    "data_residency": ["US", "EU"],
+    "compliance": ["SOC2", "GDPR"],
     "min_contract": "none"
   },
   "agent_readiness": {
-    "mcp_server_quality": 82,
-    "mcp_security_score": 75,
-    "documentation_accuracy": 90,
-    "error_message_quality": 82,
-    "error_message_notes": "REST API returns structured JSON errors with status code, error type, and detailed description. gRPC uses standard gRPC status codes. Collection not found, vector size mismatch, and payload validation errors all produce clear, actionable messages. MCP server errors bubble up from the underlying REST client.",
-    "idempotency_support": "full",
-    "idempotency_notes": "Points (vectors) identified by UUID or unsigned int. Upsert operations are fully idempotent — inserting the same point ID replaces the existing point rather than duplicating. Batch upserts are safe to retry. Collection creation with same name/config is idempotent.",
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 88,
+    "error_message_quality": 86,
+    "error_message_notes": "REST errors return structured JSON with status and result.error fields; gRPC errors use standard status codes; payload validation errors include the offending field path.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Upsert operations with explicit point IDs are idempotent; batch upsert with the same IDs and vectors safely replays without duplication.",
     "pagination_style": "cursor",
     "retry_guidance_documented": true,
     "known_agent_gotchas": [
-      "Collection must be created with the correct vector dimensionality before insertion — vector size mismatches produce hard errors, not coercions",
-      "gRPC is significantly faster than REST for bulk upserts — use gRPC or SDK batch methods for ingestion pipelines, not repeated single-point REST calls",
-      "Payload indexes must be explicitly created (create_payload_index) for filtered search performance — without indexes, filtered search degrades to O(n) full collection scan",
-      "Sparse vector search (BM42) requires explicit sparse_vectors config at collection creation — cannot be added to existing dense-only collections",
-      "MCP server only exposes two tools (qdrant-store, qdrant-find) — not a full database API; direct REST/gRPC needed for collection management, deletion, or upserts with custom IDs",
-      "MCP server uses FastEmbed for embedding — first startup downloads the default model (~40MB); EMBEDDING_MODEL env var controls which model is used",
-      "QDRANT_URL and QDRANT_LOCAL_PATH are mutually exclusive in the MCP server — setting both causes startup failure",
-      "Quantization (scalar, product, binary) must be configured at collection creation — cannot apply to existing data without recreating the collection"
-    ],
-    "error_message_score": 82,
-    "auth_complexity_score": 88,
-    "rate_limit_score": 85,
-    "security_score": 80
+      "Payload filtering uses a must/should/must_not structure — agents generating filter conditions dynamically must validate they produce valid MatchValue or Range types, as type mismatches silently return empty results",
+      "HNSW index is built asynchronously after bulk upload; querying immediately after upload may return incomplete results until indexing status shows green",
+      "Named vectors (multiple vector spaces per point) require specifying the vector name on every search request; omitting the name queries the default vector and silently ignores others",
+      "The scroll API (for iterating all points) does not guarantee order and may return duplicates near page boundaries if points are being inserted concurrently",
+      "Quantization (scalar/binary) reduces memory and speeds search but degrades recall — agents that calibrate recall thresholds on unquantized indexes may see unexpected misses after enabling quantization"
+    ]
   },
-  "last_evaluated": "2026-03-01"
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 88,
+    "error_handling_score": 86,
+    "auth_complexity_score": 88,
+    "rate_limit_clarity_score": 82
+  },
+  "security_score_components": {
+    "tls_enforcement": 95,
+    "auth_strength": 80,
+    "scope_granularity": 72,
+    "dependency_hygiene": 90,
+    "secret_handling": 83,
+    "security_notes": "Rust implementation eliminates entire classes of memory safety vulnerabilities; self-hosted defaults to no TLS and no auth; read-only key separation limits blast radius of leaked credentials."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 86,
+    "version_stability": 85,
+    "breaking_changes_history": 82,
+    "error_recovery": 86
+  }
 }

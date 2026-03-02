@@ -4,25 +4,25 @@
   "version_evaluated": "current",
   "homepage": "https://weaviate.io",
   "repo_url": "https://github.com/weaviate/weaviate",
-  "category": "vector-database",
-  "subcategories": ["vector-search", "ai-infrastructure", "semantic-search", "rag", "open-source"],
-  "tags": ["weaviate", "vector-database", "embeddings", "semantic-search", "rag", "graphql", "open-source", "ai", "grpc", "hybrid-search"],
-  "what_it_does": "Open-source vector database with built-in vectorization modules, hybrid search (BM25 + vector), and a GraphQL/REST/gRPC API for building semantic search and RAG applications.",
+  "category": "database",
+  "subcategories": ["vector-database"],
+  "tags": ["vector-database", "semantic-search", "graphql", "grpc", "multimodal", "rag", "open-source"],
+  "what_it_does": "Open-source vector database with built-in ML vectorization modules (text2vec, multimodal) accessible via REST, GraphQL, and gRPC, available as self-hosted or managed Weaviate Cloud.",
   "use_cases": [
-    "RAG pipelines with built-in embedding generation via module integrations (OpenAI, Cohere, etc.)",
-    "Hybrid search combining keyword BM25 and semantic vector search",
-    "Multi-modal search over text, images, and audio in a single index",
-    "Knowledge graph construction with object cross-references",
-    "Semantic document retrieval with fine-grained filtering"
+    "Agent long-term memory store with semantic retrieval over episodic or procedural memory chunks",
+    "Hybrid search combining BM25 keyword and vector similarity in a single query for RAG pipelines",
+    "Multimodal agent memory that stores and retrieves both text and image embeddings in the same collection",
+    "Multi-tenant agent platforms where each user's data is isolated in a named tenant within a shared schema",
+    "Knowledge graph-style agent backends using Weaviate's cross-reference linking between object classes"
   ],
   "not_for": [
-    "Simple key-value lookups or relational queries",
-    "Teams who want fully managed infrastructure without any DevOps overhead (self-hosted Weaviate requires operational effort)",
-    "Workloads requiring exact keyword matching only"
+    "Transactional workloads requiring ACID guarantees or row-level locking",
+    "Teams with no Kubernetes or Docker experience who need a zero-ops managed SQL alternative",
+    "Purely relational data with no vector search requirement"
   ],
-  "best_when": "You want an open-source vector database with powerful hybrid search, built-in vectorization, and the option to self-host or use managed cloud.",
-  "avoid_when": "You need a zero-ops managed vector store with minimal configuration or are already invested in a Pinecone/Qdrant ecosystem.",
-  "alternatives": ["pinecone-api", "qdrant-api", "chroma-api", "elasticsearch-api"],
+  "best_when": "Building RAG or agent memory systems that need hybrid keyword+vector search and want built-in vectorization without managing a separate embedding service.",
+  "avoid_when": "Your team is more comfortable with SQL interfaces or you need strict transactional consistency across vector and metadata updates.",
+  "alternatives": ["qdrant-api", "pinecone-api", "chroma-api", "pgvector-api"],
   "interface": {
     "has_rest_api": true,
     "has_graphql": true,
@@ -30,29 +30,29 @@
     "has_mcp_server": false,
     "mcp_server_url": null,
     "has_sdk": true,
-    "sdk_languages": ["python", "typescript", "go", "java"],
-    "openapi_spec_url": "https://app.swaggerhub.com/apis/semi-technologies/weaviate",
+    "sdk_languages": ["python", "node", "go", "java"],
+    "openapi_spec_url": "https://app.weaviate.io/openapi.json",
     "webhooks": false
   },
   "auth": {
     "methods": ["api_key", "oidc"],
     "oauth": true,
     "scopes": true,
-    "notes": "API key auth supported on Weaviate Cloud Services (WCS). OIDC/OAuth2 for enterprise. Self-hosted can run with no auth (dev mode) or with full RBAC. WCS provides admin and read-only keys."
+    "notes": "Weaviate Cloud uses API key auth; self-hosted supports OIDC/OAuth2 with configurable providers; anonymous access can be enabled for local dev; read-only vs read-write key separation supported."
   },
   "pricing": {
-    "model": "open_source",
+    "model": "usage_based",
     "free_tier_exists": true,
-    "free_tier_limits": "Weaviate Cloud free sandbox (14-day expiry); self-hosted is free indefinitely",
-    "paid_tiers": "WCS Standard from ~$25/month; Enterprise custom pricing",
+    "free_tier_limits": "Weaviate Cloud Sandbox: free cluster with 14-day TTL, 1M vectors, suitable for development and prototyping",
+    "paid_tiers": "Serverless: ~$0.095/1M vector dimensions stored/month; dedicated clusters from ~$65/month; enterprise pricing available",
     "requires_credit_card": false,
-    "notes": "Open source (BSD-3). Self-hosting is free. Weaviate Cloud Services (WCS) is the managed offering with paid tiers. Sandboxes expire after 14 days."
+    "notes": "Self-hosted is fully free and open-source under BSD-3; Weaviate Cloud managed service has sandbox tier without credit card."
   },
   "performance": {
-    "latency_p50_ms": 15,
-    "latency_p99_ms": 100,
+    "latency_p50_ms": 10,
+    "latency_p99_ms": 80,
     "uptime_sla_percent": 99.9,
-    "rate_limits": "No hard rate limits on self-hosted; WCS limits vary by plan",
+    "rate_limits": "No hard API rate limits on self-hosted; Weaviate Cloud enforces per-cluster throughput limits based on plan",
     "data_source": "llm_estimated"
   },
   "requirements": {
@@ -60,31 +60,46 @@
     "requires_credit_card": false,
     "domain_verification": false,
     "data_residency": ["US", "EU"],
-    "compliance": ["SOC2", "GDPR", "ISO27001"],
+    "compliance": ["SOC2", "GDPR"],
     "min_contract": "none"
   },
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
     "documentation_accuracy": 85,
-    "error_message_quality": 78,
-    "error_message_notes": "GraphQL errors return structured error arrays. REST errors include status and message. gRPC errors follow standard codes. Error messages are useful but occasionally require schema knowledge to interpret.",
-    "idempotency_support": "full",
-    "idempotency_notes": "Objects identified by deterministic UUID (can be specified or auto-generated). Upserting with a known UUID is idempotent — updates in place rather than duplicating.",
+    "error_message_quality": 82,
+    "error_message_notes": "GraphQL errors are returned in the errors array alongside partial data; REST errors use standard HTTP codes with a JSON error field; error messages are descriptive but stack traces leak in verbose mode.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Object creation with explicit IDs is idempotent if the schema and vector match; upsert-style PUT requests support safe replay.",
     "pagination_style": "cursor",
     "retry_guidance_documented": true,
     "known_agent_gotchas": [
-      "GraphQL API for queries, REST for CRUD — agents need to handle two different interfaces",
-      "Schema must be defined before data insertion — dynamic schema is available but types must be correct",
-      "Built-in vectorizer modules require API keys to be set at startup (e.g., OPENAI_APIKEY env var)",
-      "WCS sandboxes expire after 14 days — all data is lost; use persistent clusters for production",
-      "Cross-references (object relationships) require separate API calls to resolve — adds latency for linked data",
-      "gRPC is now the recommended high-performance API but requires the newer v4 Python client"
-    ],
-    "error_message_score": 78,
-    "auth_complexity_score": 72,
-    "rate_limit_score": 80,
-    "security_score": 80
+      "GraphQL Get queries are the primary read path but agents often try REST first — the REST object endpoint does not support vector search and returns metadata only",
+      "Built-in vectorization modules (text2vec-openai, etc.) require API key configuration at collection creation time; adding them later requires recreating the collection",
+      "Multi-tenancy must be enabled at collection creation — it cannot be added to an existing collection and requires per-query tenant specification or queries silently return no results",
+      "The v4 Python client uses a different import structure and connection pattern than v3; mixing client versions against the same cluster produces confusing authentication errors",
+      "Hybrid search alpha parameter (0=keyword, 1=vector) defaults to 0.75 but is not documented prominently; agents using default hybrid may get unexpectedly keyword-dominated results"
+    ]
   },
-  "last_evaluated": "2026-02-28"
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 82,
+    "auth_complexity_score": 80,
+    "rate_limit_clarity_score": 75
+  },
+  "security_score_components": {
+    "tls_enforcement": 95,
+    "auth_strength": 85,
+    "scope_granularity": 80,
+    "dependency_hygiene": 85,
+    "secret_handling": 82,
+    "security_notes": "Self-hosted deployments default to no authentication and require explicit hardening; Weaviate Cloud enforces TLS and API key auth; OIDC support enables enterprise SSO integration."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 85,
+    "version_stability": 80,
+    "breaking_changes_history": 75,
+    "error_recovery": 83
+  }
 }

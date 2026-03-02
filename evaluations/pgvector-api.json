@@ -1,105 +1,105 @@
 {
   "id": "pgvector-api",
   "name": "pgvector",
-  "version_evaluated": "0.8.x",
+  "version_evaluated": "current",
   "homepage": "https://github.com/pgvector/pgvector",
   "repo_url": "https://github.com/pgvector/pgvector",
   "category": "database",
-  "subcategories": ["vector-search", "embeddings", "postgresql-extension"],
-  "tags": ["postgresql", "vector", "embeddings", "similarity-search", "rag", "ann"],
-  "what_it_does": "Open-source vector similarity search extension for PostgreSQL — lets you store, index, and query high-dimensional vector embeddings alongside relational data using standard SQL.",
+  "subcategories": ["vector-database", "postgresql"],
+  "tags": ["vector-database", "postgresql", "sql", "open-source", "ivfflat", "hnsw", "embeddings", "self-hosted"],
+  "what_it_does": "PostgreSQL extension that adds a vector data type and approximate nearest neighbor index methods (ivfflat and hnsw) for vector similarity search directly inside PostgreSQL.",
   "use_cases": [
-    "Storing and querying LLM embeddings for RAG pipelines directly in Postgres",
-    "Semantic search over documents, products, or any embedded content",
-    "Recommendation systems using cosine similarity on user/item embeddings",
-    "Combining vector search with SQL filters (hybrid search) in a single query",
-    "Anomaly detection and duplicate detection on embedded data"
+    "Agent memory systems for teams already running PostgreSQL who want vector search without adding a separate database service",
+    "RAG pipelines where vector search results need to be joined with relational metadata in a single SQL query",
+    "Transactional agent workflows that require ACID guarantees across vector upserts and relational updates in one transaction",
+    "Multi-tenant SaaS agent backends using PostgreSQL row-level security to isolate tenant vector data",
+    "Hybrid text+vector search using PostgreSQL full-text search (tsvector) and pgvector in a single query plan"
   ],
   "not_for": [
-    "Billion-scale ANN search (use Pinecone, Weaviate, or Milvus for massive scale)",
-    "Standalone vector database use (requires existing PostgreSQL installation)",
-    "Multi-modal search without a separate embedding model"
+    "Very large vector datasets (100M+) where a purpose-built ANN engine like Qdrant or Weaviate will outperform PostgreSQL",
+    "Teams without PostgreSQL operational experience who want a zero-admin managed vector search API",
+    "Workloads requiring advanced vector operations like sparse+dense hybrid search or built-in embedding generation"
   ],
-  "best_when": "Your agent already uses PostgreSQL and needs vector search — pgvector avoids a separate vector DB service, keeping your data in one place.",
-  "avoid_when": "You need to search billions of vectors at millisecond latency — dedicated vector DBs with HNSW indexes outperform pgvector at very large scale.",
-  "alternatives": ["pinecone-api", "weaviate-api", "qdrant-api", "chroma-api", "neon-postgres"],
+  "best_when": "Your stack already includes PostgreSQL and you need vector search colocated with relational data without adding infrastructure.",
+  "avoid_when": "Vector search is your primary workload at scale exceeding tens of millions of vectors, or you need a managed API with no database administration.",
+  "alternatives": ["qdrant-api", "weaviate-api", "chroma-api", "pinecone-api"],
   "interface": {
     "has_rest_api": false,
     "has_graphql": false,
     "has_grpc": false,
     "has_mcp_server": false,
     "mcp_server_url": null,
-    "has_sdk": true,
-    "sdk_languages": ["python", "node", "java", "go", "ruby", "csharp", "php", "rust"],
+    "has_sdk": false,
+    "sdk_languages": [],
     "openapi_spec_url": null,
     "webhooks": false
   },
   "auth": {
-    "methods": ["username_password"],
+    "methods": ["none"],
     "oauth": false,
     "scopes": false,
-    "notes": "Uses standard PostgreSQL authentication (md5, scram-sha-256, SSL cert). No separate auth layer — inherits Postgres roles and permissions."
+    "notes": "Uses standard PostgreSQL authentication (md5, scram-sha-256, certificate, LDAP, etc.); no pgvector-specific auth layer; access controlled via PostgreSQL GRANT/REVOKE and row-level security."
   },
   "pricing": {
     "model": "open_source",
     "free_tier_exists": true,
-    "free_tier_limits": "Completely free — open source PostgreSQL extension (MIT license)",
-    "paid_tiers": "Infrastructure costs only (your Postgres hosting)",
+    "free_tier_limits": "Completely free and open-source; cost is infrastructure only (self-hosted PostgreSQL server)",
+    "paid_tiers": "Available through managed PostgreSQL providers: AWS RDS (~$0.025+/hr), Supabase (free tier available), Neon (free tier available), Google CloudSQL, Azure Database for PostgreSQL",
     "requires_credit_card": false,
-    "notes": "pgvector itself is free. Managed Postgres services with pgvector included: Supabase (free tier), Neon (free tier), AWS RDS (standard pricing), Railway, Render."
+    "notes": "PostgreSQL extension licensed under PostgreSQL License (permissive); all managed PostgreSQL providers that support extensions can run pgvector."
   },
   "performance": {
-    "latency_p50_ms": 5,
-    "latency_p99_ms": 50,
-    "uptime_sla_percent": 99.9,
-    "rate_limits": "None inherent — limited by your PostgreSQL server resources",
+    "latency_p50_ms": 20,
+    "latency_p99_ms": 120,
+    "uptime_sla_percent": null,
+    "rate_limits": "No built-in rate limits; bounded by PostgreSQL connection pool size, server RAM, and index type (HNSW significantly faster than IVFFlat for query latency)",
     "data_source": "llm_estimated"
   },
   "requirements": {
     "requires_signup": false,
     "requires_credit_card": false,
     "domain_verification": false,
-    "data_residency": ["self-hosted"],
-    "compliance": [],
+    "data_residency": ["local", "US", "EU"],
+    "compliance": ["SOC2"],
     "min_contract": "none"
   },
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
-    "documentation_accuracy": 90,
-    "error_message_quality": 82,
-    "error_message_notes": "Standard PostgreSQL error messages with SQLSTATE codes. Extension errors are clear and consistent.",
+    "documentation_accuracy": 82,
+    "error_message_quality": 80,
+    "error_message_notes": "Errors surface as standard PostgreSQL error codes and messages via psycopg/asyncpg; vector dimension mismatch returns a clear ERROR with expected vs actual dimensions.",
     "idempotency_support": "full",
-    "idempotency_notes": "Standard SQL INSERT/UPDATE/DELETE semantics. ON CONFLICT DO UPDATE (upsert) for idempotent vector inserts.",
+    "idempotency_notes": "Standard PostgreSQL INSERT ON CONFLICT DO UPDATE (upsert) provides full idempotency for vector rows using primary key or unique constraint.",
     "pagination_style": "offset",
     "retry_guidance_documented": false,
     "known_agent_gotchas": [
-      "Must normalize vectors before cosine similarity if using inner product index",
-      "HNSW index is built once — inserting millions of vectors after index creation is slower",
-      "No automatic dimension validation — inserting wrong-dimension vector raises a SQL error",
-      "IVFFlat index requires approximate probes parameter tuning (lists/probes trade-off)",
-      "vector type casting required when inserting from Python numpy arrays (use .tolist())"
+      "HNSW index must be created after data is loaded for best build performance; creating the index on an empty table and then inserting data builds the index incrementally, which is slower and produces lower quality graphs",
+      "The <-> (L2), <#> (inner product), and <=> (cosine) distance operators are not interchangeable — using the wrong operator for your embedding model's similarity function silently returns incorrect rankings",
+      "IVFFlat requires setting the number of lists at creation time based on dataset size (sqrt(n) heuristic); too few lists reduces recall, too many increases index build time with no query benefit",
+      "pgvector does not support indexing vectors with more than 2000 dimensions in the current HNSW implementation; OpenAI text-embedding-3-large at 3072 dimensions requires dimensionality reduction first",
+      "Approximate nearest neighbor searches skip the index and perform exact sequential scans if the query planner estimates a small result set — agents relying on ANN speed may get exact-scan latency unexpectedly on filtered queries"
     ]
   },
   "af_score_components": {
     "mcp_score": 0,
-    "api_doc_score": 90,
-    "error_handling_score": 82,
-    "auth_complexity_score": 88,
-    "rate_limit_clarity_score": 85
+    "api_doc_score": 82,
+    "error_handling_score": 80,
+    "auth_complexity_score": 82,
+    "rate_limit_clarity_score": 70
   },
   "security_score_components": {
     "tls_enforcement": 90,
     "auth_strength": 88,
-    "scope_granularity": 82,
-    "dependency_hygiene": 92,
+    "scope_granularity": 90,
+    "dependency_hygiene": 88,
     "secret_handling": 85,
-    "security_notes": "Inherits all PostgreSQL security features. TLS in-transit configurable (required with managed providers). Row-level security works with vector tables. MIT licensed with clean dependency tree."
+    "security_notes": "Inherits PostgreSQL's mature security model including row-level security, SSL/TLS enforcement, SCRAM-SHA-256 auth, and audit logging; no additional attack surface beyond PostgreSQL itself."
   },
   "reliability_score_components": {
-    "uptime_documented": 80,
+    "uptime_documented": 75,
     "version_stability": 85,
-    "breaking_changes_history": 78,
-    "error_recovery": 88
+    "breaking_changes_history": 83,
+    "error_recovery": 85
   }
 }

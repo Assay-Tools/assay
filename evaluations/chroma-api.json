@@ -4,25 +4,25 @@
   "version_evaluated": "current",
   "homepage": "https://www.trychroma.com",
   "repo_url": "https://github.com/chroma-core/chroma",
-  "category": "vector-database",
-  "subcategories": ["vector-search", "ai-infrastructure", "semantic-search", "rag", "open-source", "embedded"],
-  "tags": ["chroma", "vector-database", "embeddings", "semantic-search", "rag", "open-source", "embedded", "python", "local-first"],
-  "what_it_does": "Open-source AI-native embedding database that runs in-process (embedded) or as a server, designed for local-first RAG development and simple production deployments.",
+  "category": "database",
+  "subcategories": ["vector-database"],
+  "tags": ["vector-database", "embeddings", "open-source", "python-first", "local", "rag", "langchain"],
+  "what_it_does": "Open-source embedding database with a simple Python-first API for storing, querying, and managing vector embeddings locally or in the cloud.",
   "use_cases": [
-    "Local RAG prototyping and development without external infrastructure",
-    "Lightweight agent memory for single-user or small-scale applications",
-    "Embedding-based document retrieval with metadata filtering",
-    "In-process semantic search in Python scripts and notebooks",
-    "Persisted local vector store for offline or edge AI applications"
+    "Rapid prototyping of RAG pipelines with in-process persistent storage requiring zero infrastructure setup",
+    "Agent memory during development and testing where simplicity and fast iteration matter more than scale",
+    "LangChain and LlamaIndex agent integrations where Chroma is the default supported vector store",
+    "Small-to-medium document collections (under 1M vectors) needing semantic search with metadata filtering",
+    "Local-first agent workflows where data must not leave the developer's machine during experimentation"
   ],
   "not_for": [
-    "Large-scale production deployments with millions of vectors (use Pinecone or Qdrant)",
-    "Teams needing enterprise SLA and managed cloud reliability",
-    "Distributed multi-node deployments at high throughput"
+    "Production workloads requiring horizontal scaling beyond a single node or multi-replica deployments",
+    "High-concurrency write workloads where SQLite-backed storage becomes a bottleneck",
+    "Agents needing advanced filtering like sparse+dense hybrid search or quantization for memory efficiency"
   ],
-  "best_when": "You're prototyping RAG locally or need a zero-infrastructure embedded vector store that just works in Python without setup.",
-  "avoid_when": "You need production scale, high availability, or enterprise compliance features.",
-  "alternatives": ["qdrant-api", "pinecone-api", "weaviate-api"],
+  "best_when": "Prototyping or running small-scale agent memory locally where developer experience and zero-config startup are the priority.",
+  "avoid_when": "You need production-grade durability, horizontal scaling, or sub-10ms latency at millions of vectors.",
+  "alternatives": ["qdrant-api", "weaviate-api", "pgvector-api", "pinecone-api"],
   "interface": {
     "has_rest_api": true,
     "has_graphql": false,
@@ -30,61 +30,76 @@
     "has_mcp_server": false,
     "mcp_server_url": null,
     "has_sdk": true,
-    "sdk_languages": ["python", "javascript"],
+    "sdk_languages": ["python", "node"],
     "openapi_spec_url": null,
     "webhooks": false
   },
   "auth": {
-    "methods": ["token"],
+    "methods": ["none"],
     "oauth": false,
     "scopes": false,
-    "notes": "In-process mode has no auth. Server mode supports a static auth token via CHROMA_SERVER_AUTHN_CREDENTIALS. Chroma Cloud uses API key auth. Auth is minimal by design for developer simplicity."
+    "notes": "Local in-process and local HTTP server modes have no authentication by default; Chroma Cloud uses token-based auth; static auth provider available for self-hosted HTTP server deployments."
   },
   "pricing": {
     "model": "open_source",
     "free_tier_exists": true,
-    "free_tier_limits": "Fully free for self-hosted; Chroma Cloud free tier available",
-    "paid_tiers": "Chroma Cloud pricing not yet publicly detailed",
+    "free_tier_limits": "Fully free for local use; Chroma Cloud offers a free tier with limited storage and operations per month",
+    "paid_tiers": "Chroma Cloud paid plans available; pricing not publicly listed at time of evaluation",
     "requires_credit_card": false,
-    "notes": "Apache-2.0 open source. Self-hosting is completely free. Chroma Cloud is the managed offering. Most users run it locally or self-hosted."
+    "notes": "Core library is Apache 2.0 open-source; self-hosting is completely free with no restrictions; cloud offering is the commercial product."
   },
   "performance": {
-    "latency_p50_ms": 5,
-    "latency_p99_ms": 50,
+    "latency_p50_ms": 15,
+    "latency_p99_ms": 100,
     "uptime_sla_percent": null,
-    "rate_limits": "No rate limits when self-hosted",
+    "rate_limits": "No rate limits for self-hosted; local performance bounded by SQLite write throughput and available RAM for in-memory indexes",
     "data_source": "llm_estimated"
   },
   "requirements": {
     "requires_signup": false,
     "requires_credit_card": false,
     "domain_verification": false,
-    "data_residency": [],
+    "data_residency": ["local"],
     "compliance": [],
     "min_contract": "none"
   },
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
-    "documentation_accuracy": 82,
-    "error_message_quality": 70,
-    "error_message_notes": "Python exceptions with descriptive messages. REST errors are simple JSON with error field. Error quality is adequate but not exceptional.",
+    "documentation_accuracy": 83,
+    "error_message_quality": 78,
+    "error_message_notes": "Python exceptions are descriptive for common errors; HTTP server mode returns plain text error strings rather than structured JSON in some error paths.",
     "idempotency_support": "partial",
-    "idempotency_notes": "Documents added with explicit IDs are idempotent (upsert behavior). Add without IDs always creates new entries — agents should always specify IDs.",
+    "idempotency_notes": "Adding a document with an existing ID raises an error by default; upsert method available for idempotent document writes.",
     "pagination_style": "offset",
     "retry_guidance_documented": false,
     "known_agent_gotchas": [
-      "In-process mode is not thread-safe for concurrent writes — use server mode for multi-threaded agents",
-      "Collection names are case-sensitive and have naming restrictions (letters, numbers, hyphens, underscores only)",
-      "Metadata values must be strings, integers, floats, or booleans — nested objects are not supported",
-      "No built-in embedding model — must provide embeddings or configure an embedding function",
-      "Query results include distance (not similarity) by default — lower is better, opposite of some other DBs",
-      "Persistence requires specifying a path — default in-memory mode loses all data on restart"
-    ],
-    "error_message_score": 70,
-    "auth_complexity_score": 85,
-    "rate_limit_score": 90,
-    "security_score": 62
+      "The default in-process PersistentClient uses SQLite which does not support concurrent writes — agents running multiple threads or processes against the same database will encounter database locked errors",
+      "Collection names must be 3-63 characters, start and end with alphanumeric characters, and contain only alphanumeric characters, underscores, or hyphens; agents generating collection names dynamically often violate this silently",
+      "Embedding functions are specified at collection query time, not at storage time — agents that store with one embedding model and query with another will get meaningless similarity scores without any error",
+      "The HTTP client and in-process client have slightly different method signatures across versions; code written for one may fail against the other when switching deployment modes",
+      "Chroma does not support compound metadata filters using AND/OR across multiple fields in all versions — complex filter logic must be post-processed in application code"
+    ]
   },
-  "last_evaluated": "2026-02-28"
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 83,
+    "error_handling_score": 78,
+    "auth_complexity_score": 85,
+    "rate_limit_clarity_score": 70
+  },
+  "security_score_components": {
+    "tls_enforcement": 70,
+    "auth_strength": 55,
+    "scope_granularity": 40,
+    "dependency_hygiene": 80,
+    "secret_handling": 72,
+    "security_notes": "Local mode has no auth by default — not suitable for network-exposed deployments without adding the static auth provider; cloud offering enforces TLS; not recommended for sensitive data without explicit hardening."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 60,
+    "version_stability": 72,
+    "breaking_changes_history": 68,
+    "error_recovery": 72
+  }
 }

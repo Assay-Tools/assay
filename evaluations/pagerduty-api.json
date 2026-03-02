@@ -1,29 +1,28 @@
 {
   "id": "pagerduty-api",
-  "name": "PagerDuty API",
+  "name": "PagerDuty",
   "version_evaluated": "current",
   "homepage": "https://developer.pagerduty.com",
-  "repo_url": "https://github.com/PagerDuty/pdpyras",
-  "category": "monitoring",
-  "subcategories": ["incident-management", "alerting", "on-call", "operations"],
-  "tags": ["pagerduty", "incident-management", "alerting", "on-call", "operations", "rest-api", "sdk", "ops"],
-  "what_it_does": "PagerDuty's REST API for managing incidents, alerts, on-call schedules, escalation policies, and services for incident response automation.",
+  "repo_url": null,
+  "category": "observability",
+  "subcategories": ["incident-management", "alerting"],
+  "tags": ["incident-management", "alerting", "on-call", "escalation", "runbooks", "aiops"],
+  "what_it_does": "Incident management and on-call alerting platform that routes alerts to the right responders, manages escalations, and tracks incident lifecycle via REST API.",
   "use_cases": [
-    "Triggering incidents programmatically from monitoring agents",
-    "Automating incident resolution and status updates from agents",
-    "Querying on-call schedules to route notifications correctly",
-    "Managing service health and maintenance windows via automation",
-    "Building AIOps workflows that create and resolve incidents"
+    "Programmatically trigger incidents from monitoring or agent-detected anomalies using the Events API v2",
+    "Query on-call schedules to determine the current responder and send context-enriched pages without navigating the UI",
+    "Acknowledge and resolve incidents automatically when an agent detects that an underlying issue has self-healed",
+    "Attach runbook steps or diagnostic context to open incidents via the incident notes or custom fields API",
+    "Extract incident history and MTTD/MTTR metrics for postmortem reporting and SLO tracking pipelines"
   ],
   "not_for": [
-    "Teams not needing on-call management or incident response",
-    "Simple uptime monitoring without escalation workflows",
-    "Small teams where PagerDuty's cost is prohibitive",
-    "Internal tooling without customer-facing SLA requirements"
+    "Simple uptime monitoring without incident routing — a lightweight tool like BetterStack suffices",
+    "Alerting for solo developers or very small teams where the pricing and complexity overhead is not justified",
+    "Real-time log streaming or APM — PagerDuty receives alerts but does not replace observability tools"
   ],
-  "best_when": "An agent needs to trigger, manage, or resolve incidents as part of an automated operations or AIOps workflow.",
-  "avoid_when": "You don't need on-call scheduling or structured incident management, or you're early-stage without SLA obligations.",
-  "alternatives": ["datadog-api", "newrelic-api", "grafana-api"],
+  "best_when": "You have multi-team on-call rotations with complex escalation policies and need reliable, auditable incident lifecycle management.",
+  "avoid_when": "Your team is fewer than 5 people and you need basic alerting without escalation policies or incident tracking workflows.",
+  "alternatives": ["opsgenie-api", "betterstack-api"],
   "interface": {
     "has_rest_api": true,
     "has_graphql": false,
@@ -31,29 +30,29 @@
     "has_mcp_server": false,
     "mcp_server_url": null,
     "has_sdk": true,
-    "sdk_languages": ["python", "javascript", "go", "ruby"],
-    "openapi_spec_url": "https://developer.pagerduty.com/api-reference/",
+    "sdk_languages": ["python", "node", "ruby", "golang"],
+    "openapi_spec_url": "https://github.com/PagerDuty/api-schema",
     "webhooks": true
   },
   "auth": {
-    "methods": ["api_key"],
+    "methods": ["oauth2", "api_key"],
     "oauth": true,
     "scopes": true,
-    "notes": "REST API keys (full account access) or user API tokens. OAuth 2.0 for third-party integrations with scoped access. Events API uses separate integration keys per service. Three different auth models for different use cases."
+    "notes": "API tokens (user or service account) for server-side agent use. OAuth2 available for user-delegated access. Events API v2 uses a separate integration key (routing key) for event ingestion."
   },
   "pricing": {
-    "model": "paid",
+    "model": "freemium",
     "free_tier_exists": true,
-    "free_tier_limits": "Free: up to 5 users, basic incident management",
-    "paid_tiers": "Professional $21/user/month, Business $41/user/month, Digital Operations custom",
+    "free_tier_limits": "Free for up to 5 users with basic incident management; limited integrations",
+    "paid_tiers": "Professional ~$21/user/month; Business ~$41/user/month; Enterprise custom pricing",
     "requires_credit_card": false,
-    "notes": "Free tier for small teams. Professional covers most use cases. Business adds advanced analytics and response automation. Pricing adds up for larger on-call teams."
+    "notes": "Free tier is suitable for small teams. AIOps and advanced analytics features are Enterprise-only. Annual billing discounts available."
   },
   "performance": {
-    "latency_p50_ms": 100,
-    "latency_p99_ms": 400,
-    "uptime_sla_percent": 99.99,
-    "rate_limits": "900 requests/minute for REST API",
+    "latency_p50_ms": 150,
+    "latency_p99_ms": 600,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "REST API: 900 requests/minute per API token; Events API: no documented hard limit but expects bursts; rate limit headers included in responses",
     "data_source": "llm_estimated"
   },
   "requirements": {
@@ -61,30 +60,46 @@
     "requires_credit_card": false,
     "domain_verification": false,
     "data_residency": ["US", "EU"],
-    "compliance": ["SOC2", "GDPR", "ISO27001", "HIPAA"],
+    "compliance": ["SOC2", "ISO27001", "HIPAA"],
     "min_contract": "none"
   },
   "agent_readiness": {
     "mcp_server_quality": null,
-    "mcp_security_score": 80,
-    "documentation_accuracy": 85,
-    "error_message_quality": 80,
-    "error_message_notes": "Well-structured error responses with error object containing code, message, and errors array. HTTP status codes are semantically correct. Very agent-friendly error format.",
+    "mcp_security_score": null,
+    "documentation_accuracy": 87,
+    "error_message_quality": 83,
+    "error_message_notes": "REST API returns structured JSON errors with message and errors array. Events API returns status and message fields. Error messages are generally clear and actionable.",
     "idempotency_support": "partial",
-    "idempotency_notes": "Incident creation via Events API uses dedup_key for idempotency. REST API incident creation is not idempotent.",
+    "idempotency_notes": "Events API v2 supports dedup_key for idempotent event submission — critical for agents to prevent duplicate incidents. REST API incident creation is not idempotent without dedup logic.",
     "pagination_style": "offset",
     "retry_guidance_documented": true,
     "known_agent_gotchas": [
-      "Three auth mechanisms: REST API keys, user tokens, and Events API integration keys — easy to use wrong one",
-      "Events API (for triggering alerts) is separate from REST API (for management) — different auth and endpoints",
-      "Dedup key via Events API is critical for preventing duplicate incidents from agents",
-      "On-call schedule queries require understanding PagerDuty's layer/schedule model",
-      "Incident state machine: triggered → acknowledged → resolved — agents must respect transitions",
-      "Rate limits apply per API key, not per operation type"
-    ],
-    "error_message_score": 80,
-    "auth_complexity_score": 68,
-    "rate_limit_score": 82,
-    "security_score": 80
+      "Events API v2 and REST API use different authentication — Events API uses a routing_key (integration key), REST API uses Authorization: Token token=...; mixing them causes silent 400 errors",
+      "dedup_key in Events API is essential for agents — omitting it causes duplicate incidents on retries; key should be deterministic based on the source alert fingerprint",
+      "Incident acknowledgement auto-expires after a configurable timeout (default 30 min) and re-notifies; agents that ack without resolving must account for re-escalation",
+      "On-call schedule queries return the user on-call at query time — agents must pass a since/until window to get schedules for future or past periods",
+      "Webhook v3 payloads are structured differently from v2 — verify webhook version when building event processors; v2 is deprecated but still active on older integrations"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 87,
+    "error_handling_score": 83,
+    "auth_complexity_score": 78,
+    "rate_limit_clarity_score": 82
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 88,
+    "scope_granularity": 82,
+    "dependency_hygiene": 85,
+    "secret_handling": 85,
+    "security_notes": "TLS enforced. API tokens should be scoped to service accounts. OAuth2 scopes limit access surface. Webhook signatures use HMAC-SHA256 — verify before processing."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 90,
+    "version_stability": 85,
+    "breaking_changes_history": 82,
+    "error_recovery": 85
   }
 }
