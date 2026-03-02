@@ -1,0 +1,105 @@
+{
+  "id": "firebase-analytics-api",
+  "name": "Firebase Analytics (Measurement Protocol v2)",
+  "version_evaluated": "current",
+  "homepage": "https://developers.google.com/analytics/devguides/collection/protocol/ga4",
+  "repo_url": null,
+  "category": "analytics",
+  "subcategories": ["event-tracking", "product-analytics"],
+  "tags": ["firebase", "google-analytics", "ga4", "measurement-protocol", "server-side", "event-tracking"],
+  "what_it_does": "Enables server-side event tracking to Google Analytics 4 / Firebase Analytics via HTTP POST, allowing agents and backend systems to record user events and conversions without a client-side SDK.",
+  "use_cases": [
+    "Track server-side conversion events (purchases, sign-ups) to GA4 when client-side tracking is blocked or unavailable",
+    "Record background job completions and batch processing outcomes as custom events in Firebase Analytics",
+    "Attribute server-rendered page views or API interactions to GA4 sessions for unified analytics",
+    "Send enriched event data with server-side user properties that are unavailable in the browser",
+    "Log agent-driven workflow events (document processed, recommendation served) for product analytics"
+  ],
+  "not_for": [
+    "Real-time event querying — there is no query API; data access requires BigQuery export with 24-48 hour delay",
+    "Raw data retrieval or building custom dashboards without exporting to BigQuery first",
+    "High-frequency machine telemetry logging where per-event cost and latency matter — use a purpose-built metrics store instead"
+  ],
+  "best_when": "You already use GA4 for analytics and need to enrich it with server-side events that can't be captured client-side, and you accept a 24-48 hour data lag.",
+  "avoid_when": "You need real-time data access, SQL-queryable event logs, or low-latency analytics pipelines.",
+  "alternatives": ["segment-api", "mixpanel-api", "posthog-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "node", "java", "swift", "kotlin"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["api_key"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Measurement Protocol requires a Measurement ID (G-XXXXXXXX) and an API Secret generated in the GA4 admin. Both are passed as query parameters. No user-level auth — the API secret is a server-side secret."
+  },
+  "pricing": {
+    "model": "free",
+    "free_tier_exists": true,
+    "free_tier_limits": "Firebase Analytics and GA4 are free; BigQuery export for data access requires a GCP project (BigQuery has its own free tier: 10GB storage, 1TB queries/month)",
+    "paid_tiers": "GA4 360 (enterprise) for SLA, higher limits, and advanced features; BigQuery costs scale with data volume",
+    "requires_credit_card": false,
+    "notes": "The Measurement Protocol itself is free. Costs arise from BigQuery if exporting large event volumes for analysis."
+  },
+  "performance": {
+    "latency_p50_ms": 200,
+    "latency_p99_ms": 1000,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "No officially documented rate limit for Measurement Protocol; practical limit estimated ~100,000 events/day per property before sampling kicks in",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["us", "eu-available"],
+    "compliance": ["GDPR", "CCPA"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 80,
+    "error_message_quality": 55,
+    "error_message_notes": "Measurement Protocol always returns HTTP 204 No Content regardless of whether the event was accepted or silently dropped. There is no error feedback for malformed payloads in production mode — use the validation endpoint during development.",
+    "idempotency_support": "none",
+    "idempotency_notes": "No idempotency keys. Duplicate event submissions are counted as separate events. Agents must prevent duplicate sends externally.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "The API always returns 204 even for invalid or malformed events — use the debug endpoint (https://www.google-analytics.com/debug/mp/collect) during development to catch schema errors",
+      "Events appear in GA4 console with a 24-48 hour delay; agents should not use GA4 as a source of truth for real-time decision-making",
+      "Maximum 25 events per request and 25 parameters per event; exceeding these limits causes silent data loss",
+      "client_id and session_id must be stable and consistent across events to attribute them to sessions correctly — generating new random IDs per call fragments data",
+      "GA4 data sampling applies at high volumes on free tier; reports may not reflect exact event counts for high-traffic properties"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 80,
+    "error_handling_score": 45,
+    "auth_complexity_score": 88,
+    "rate_limit_clarity_score": 55
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 70,
+    "scope_granularity": 55,
+    "dependency_hygiene": 85,
+    "secret_handling": 72,
+    "security_notes": "API secret is a static server-side credential with no expiry or rotation mechanism. It provides write-only access to a single GA4 property. Data sent to GA4 is subject to Google's data processing terms."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 82,
+    "breaking_changes_history": 70,
+    "error_recovery": 55
+  }
+}
