@@ -1,0 +1,105 @@
+{
+  "id": "spark-api",
+  "name": "Apache Spark (PySpark)",
+  "version_evaluated": "3.5",
+  "homepage": "https://spark.apache.org/",
+  "repo_url": "https://github.com/apache/spark",
+  "category": "data-engineering",
+  "subcategories": ["distributed-computing", "dataframe-processing", "batch-processing"],
+  "tags": ["python", "java", "scala", "distributed", "sql", "batch", "streaming"],
+  "what_it_does": "Unified distributed analytics engine with a DataFrame/SQL API and Catalyst optimizer for large-scale batch, streaming, and ML workloads across clusters.",
+  "use_cases": [
+    "Run petabyte-scale SQL analytics with spark.sql() against data lakes on S3/GCS/ADLS, leveraging the Catalyst optimizer for predicate pushdown and join reordering",
+    "Build batch ETL pipelines that read partitioned Parquet, apply complex multi-table joins, and write results back — all within a single SparkSession",
+    "Process streaming data with Structured Streaming using the same DataFrame API as batch, with watermarking and exactly-once semantics via checkpointing",
+    "Train distributed ML models with MLlib or use Spark as a feature engineering stage before passing data to a training framework like XGBoost on Spark",
+    "Replace slow pandas pipelines on large CSVs by migrating to PySpark DataFrames with minimal API changes, then running on a managed cluster (Databricks, EMR, Dataproc)"
+  ],
+  "not_for": [
+    "Interactive low-latency queries on small datasets where query startup overhead (seconds to minutes for SparkContext init) is unacceptable",
+    "Simple Python scripting tasks that fit in memory — Spark's JVM overhead and cluster requirements are overkill for sub-GB data",
+    "Real-time event processing with sub-second latency requirements — Structured Streaming has seconds-level micro-batch latency by default"
+  ],
+  "best_when": "You have multi-TB datasets requiring complex SQL joins, aggregations, or ML pipelines, and you can tolerate cluster startup overhead in exchange for the Catalyst optimizer's query planning.",
+  "avoid_when": "Your data fits in RAM or you need sub-second latency, as SparkContext initialization and JVM overhead will dominate execution time for small or interactive workloads.",
+  "alternatives": ["dask-api", "aws-athena-api", "aws-emr-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "java", "scala", "r"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["kerberos", "none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Standalone clusters have no auth by default. YARN/Kubernetes deployments use Kerberos or service account tokens. Managed platforms (Databricks, EMR) add their own auth layers."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Open source, fully self-hosted",
+    "paid_tiers": "Managed via Databricks, AWS EMR, GCP Dataproc, or Azure HDInsight — all charge per cluster-hour",
+    "requires_credit_card": false,
+    "notes": "Apache Spark itself is free. All major cloud managed services charge for compute. Databricks adds a DBU surcharge on top of cloud VM costs."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "None (framework)",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self_hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 70,
+    "error_message_notes": "Spark exceptions are verbose Java stack traces that wrap the actual Python error; the root cause is often buried 20+ lines into the trace, requiring agents to parse for 'Caused by:' markers.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Transformations are idempotent (lazy DAG); actions like .write can produce duplicates if retried without overwrite mode — agents must specify SaveMode.Overwrite explicitly.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      ".collect() on a large DataFrame pulls all data to the driver and will OOM — agents must always use .limit() or write to storage rather than collecting large results",
+      "SparkSession creation is expensive (5-30 seconds JVM startup); agents should reuse an existing session rather than creating one per task",
+      "Wide transformations (joins, groupBy, distinct) trigger a shuffle which is the dominant cost driver — agents must check for missing partition filters before executing expensive operations",
+      "The RDD API and DataFrame API have different execution semantics; agents using .rdd.map() bypass the Catalyst optimizer entirely, often causing 10-100x slowdowns vs equivalent DataFrame code",
+      "SparkContext can only run one instance per JVM process; if a previous session crashed without cleanup, ray.init() or a fresh SparkSession will fail with 'Cannot run multiple SparkContexts' until the process is restarted"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 70,
+    "auth_complexity_score": 90,
+    "rate_limit_clarity_score": 100
+  },
+  "security_score_components": {
+    "tls_enforcement": 40,
+    "auth_strength": 50,
+    "scope_granularity": 35,
+    "dependency_hygiene": 75,
+    "secret_handling": 65,
+    "security_notes": "Spark has optional encryption for data in transit and at rest, but neither is enabled by default. Kerberos auth is available for YARN clusters. Secrets must be managed externally (Vault, AWS Secrets Manager)."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 0,
+    "version_stability": 85,
+    "breaking_changes_history": 78,
+    "error_recovery": 80
+  }
+}

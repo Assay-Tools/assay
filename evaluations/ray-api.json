@@ -1,0 +1,105 @@
+{
+  "id": "ray-api",
+  "name": "Ray",
+  "version_evaluated": "2.10",
+  "homepage": "https://www.ray.io/",
+  "repo_url": "https://github.com/ray-project/ray",
+  "category": "data-engineering",
+  "subcategories": ["distributed-computing", "ml-infrastructure"],
+  "tags": ["python", "distributed", "parallel", "actors", "ml", "scalability"],
+  "what_it_does": "Distributed Python compute framework that scales workloads across clusters using remote functions, actor model for stateful workers, and a shared object store.",
+  "use_cases": [
+    "Parallelize CPU-bound Python tasks (data preprocessing, feature engineering) across a cluster using @ray.remote",
+    "Run distributed hyperparameter tuning jobs with Ray Tune, automatically distributing trials across nodes",
+    "Deploy low-latency ML model serving endpoints with Ray Serve that auto-scale based on request load",
+    "Build stateful distributed pipelines using Ray Actors to maintain shared state across parallel workers",
+    "Orchestrate multi-step ML training pipelines where each stage fans out across hundreds of workers"
+  ],
+  "not_for": [
+    "Simple single-machine parallelism where Python's multiprocessing or concurrent.futures is sufficient",
+    "Streaming event pipelines requiring sub-millisecond latency and guaranteed message delivery (use Kafka/Flink)",
+    "Teams without infrastructure experience — cluster setup, autoscaling, and networking add significant ops burden"
+  ],
+  "best_when": "You have embarrassingly parallel Python workloads or ML training jobs that exceed single-machine resources and your team is comfortable managing cluster infrastructure.",
+  "avoid_when": "Your workload fits comfortably on one machine or you need strict latency guarantees, as Ray's task scheduling and object store overhead can dominate small jobs.",
+  "alternatives": ["dask-api", "spark-api", "celery"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "java"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth for local clusters. Managed Ray clusters (Anyscale) use API keys. Ray Dashboard has optional token auth."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Open source, fully self-hosted with no restrictions",
+    "paid_tiers": "Anyscale managed platform offers pay-per-compute pricing on top of cloud provider costs",
+    "requires_credit_card": false,
+    "notes": "OSS Ray is free. Anyscale (managed) adds orchestration and autoscaling on AWS/GCP/Azure."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "None (framework)",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self_hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 82,
+    "error_message_quality": 72,
+    "error_message_notes": "Worker errors are often surfaced as opaque RayTaskError wrapping the original exception; stack traces can be truncated or contain Ray-internal frames that obscure the root cause.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Remote functions are idempotent if user code is, but Ray does not retry tasks by default on failure; actors maintain state so re-invoking methods is not inherently idempotent.",
+    "pagination_style": "none",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Objects passed to remote functions must be serializable with cloudpickle — lambdas, generators, and some class instances silently fail at dispatch time rather than at definition time",
+      "ray.get() on a list of futures is blocking and will OOM if the aggregate result size exceeds driver memory — agents must fetch results in batches",
+      "Cluster autoscaling has a cold-start delay of 60-300 seconds for new nodes; agents submitting time-sensitive jobs should pre-warm the cluster",
+      "ray.init() called multiple times in the same process silently reconnects or raises RuntimeError depending on version — agents managing lifecycle must call ray.shutdown() explicitly",
+      "The shared object store has a fixed memory limit (default 30% of RAM); storing large objects without ray.put() eviction awareness causes spilling to disk or OOM kills"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 82,
+    "error_handling_score": 72,
+    "auth_complexity_score": 100,
+    "rate_limit_clarity_score": 100
+  },
+  "security_score_components": {
+    "tls_enforcement": 40,
+    "auth_strength": 30,
+    "scope_granularity": 20,
+    "dependency_hygiene": 75,
+    "secret_handling": 65,
+    "security_notes": "Ray cluster communication is unencrypted by default; TLS must be manually configured. No built-in RBAC. Secrets passed as env vars or object store are accessible to all workers on the cluster."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 0,
+    "version_stability": 78,
+    "breaking_changes_history": 70,
+    "error_recovery": 75
+  }
+}

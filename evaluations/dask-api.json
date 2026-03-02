@@ -1,0 +1,105 @@
+{
+  "id": "dask-api",
+  "name": "Dask",
+  "version_evaluated": "2024.2",
+  "homepage": "https://www.dask.org/",
+  "repo_url": "https://github.com/dask/dask",
+  "category": "data-engineering",
+  "subcategories": ["distributed-computing", "dataframe-processing"],
+  "tags": ["python", "parallel", "dataframe", "numpy", "pandas", "distributed"],
+  "what_it_does": "Parallel Python library that scales NumPy, pandas, and custom workloads from a laptop to a cluster using lazy computation graphs triggered by .compute().",
+  "use_cases": [
+    "Process datasets larger than RAM as dask.dataframe by reading partitioned Parquet/CSV files lazily and computing aggregations without loading all data at once",
+    "Parallelize NumPy array operations across a cluster with dask.array, enabling large-scale image processing or numerical simulations",
+    "Build lazy ETL pipelines where transformations are expressed declaratively and executed only when .compute() is called, enabling optimizer passes",
+    "Run distributed machine learning preprocessing (scaling, encoding, train/test split) on multi-TB datasets before feeding to scikit-learn or XGBoost",
+    "Profile and optimize pandas-compatible workflows by swapping pd.read_csv for dd.read_csv to identify bottlenecks before scaling to a cluster"
+  ],
+  "not_for": [
+    "Real-time streaming or event-driven pipelines where data arrives continuously (use Kafka Streams or Flink instead)",
+    "Workloads that are already fast enough with pandas on a single machine — Dask adds overhead for small datasets",
+    "Teams expecting full pandas API compatibility — many pandas operations (e.g., .iloc on distributed frames, some groupby patterns) are unsupported or behave differently"
+  ],
+  "best_when": "Your data is too large for pandas but you want to keep Python-native code with minimal refactoring, and your transformations are expressible as partitioned operations.",
+  "avoid_when": "Your operations require global sorts, complex joins with skewed keys, or iterative algorithms, as Dask shuffle and cross-partition operations are significantly slower than Spark's Catalyst optimizer.",
+  "alternatives": ["spark-api", "ray-api", "polars"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth for local or threaded schedulers. Dask Distributed dashboard has optional token auth. Coiled (managed) uses API keys."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Open source, fully self-hosted",
+    "paid_tiers": "Coiled managed service charges per CPU-hour on top of cloud provider costs",
+    "requires_credit_card": false,
+    "notes": "Core Dask library is BSD-licensed open source. Coiled offers managed clusters with a free tier."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "None (library)",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self_hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 80,
+    "error_message_quality": 74,
+    "error_message_notes": "Dask raises errors at .compute() time rather than at graph construction time, so agents must propagate errors from the final call rather than the line that defined the bad operation.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Lazy graph construction is side-effect free; .compute() re-executes the full graph deterministically given the same inputs, making retries safe for pure transformations.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      ".compute() triggers the entire lazy graph — agents must call it only when results are actually needed, not during graph construction, or risk redundant recomputation",
+      "Not all pandas methods are implemented: .apply() with complex functions runs row-by-row in Python (slow), and .loc[] with boolean indexing across partitions can produce unexpected results",
+      "The default threaded scheduler does not achieve true parallelism for CPU-bound Python code due to the GIL — agents must explicitly use the distributed or multiprocessing scheduler for CPU work",
+      "Partition sizes are fixed at read time; imbalanced partitions (one huge, rest tiny) cause worker memory pressure — agents should repartition before heavy operations",
+      "dask.dataframe does not support in-place modification (.drop(inplace=True)) — all operations must be reassigned, which can cause silent no-ops if an agent reuses variable names"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 80,
+    "error_handling_score": 74,
+    "auth_complexity_score": 100,
+    "rate_limit_clarity_score": 100
+  },
+  "security_score_components": {
+    "tls_enforcement": 35,
+    "auth_strength": 25,
+    "scope_granularity": 20,
+    "dependency_hygiene": 78,
+    "secret_handling": 70,
+    "security_notes": "Dask Distributed cluster communication is unencrypted by default; TLS configuration is available but requires manual setup. No RBAC. Worker nodes can access all data in the cluster."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 0,
+    "version_stability": 80,
+    "breaking_changes_history": 75,
+    "error_recovery": 72
+  }
+}

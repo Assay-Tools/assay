@@ -1,0 +1,105 @@
+{
+  "id": "aws-athena-api",
+  "name": "AWS Athena",
+  "version_evaluated": "current",
+  "homepage": "https://aws.amazon.com/athena/",
+  "repo_url": null,
+  "category": "cloud",
+  "subcategories": ["serverless-sql", "data-lake-query"],
+  "tags": ["aws", "sql", "serverless", "s3", "parquet", "glue", "presto"],
+  "what_it_does": "Serverless interactive SQL query service that executes queries directly against data in S3 using Presto/Trino, charging per TB of data scanned.",
+  "use_cases": [
+    "Query partitioned Parquet or ORC tables in S3 data lakes with standard SQL without managing any infrastructure",
+    "Run ad-hoc cost investigations by querying AWS Cost and Usage Reports stored in S3 using Athena's native CUR integration",
+    "Automate async query pipelines: submit via StartQueryExecution, poll GetQueryExecution for SUCCEEDED status, fetch results from S3 output location",
+    "Create federated queries across RDS, DynamoDB, and S3 in a single SQL statement using Athena Federated Query connectors",
+    "Generate audit reports from CloudTrail logs stored in S3 by querying the Athena-managed CloudTrail table in the default Glue catalog"
+  ],
+  "not_for": [
+    "Low-latency OLTP queries requiring sub-second response — Athena query startup alone takes 1-3 seconds minimum",
+    "Transactional workloads with INSERT/UPDATE/DELETE patterns (use Aurora or DynamoDB instead)",
+    "Frequent repeated queries on the same data without caching — each scan costs $5/TB and identical queries are billed repeatedly unless results reuse is enabled"
+  ],
+  "best_when": "Your data already lives in S3 in columnar format (Parquet/ORC) with well-defined partitions, and you need occasional SQL analytics without managing a persistent cluster.",
+  "avoid_when": "Queries touch unpartitioned text files or scan full tables frequently, as costs compound quickly and query times degrade compared to a properly partitioned columnar layout.",
+  "alternatives": ["spark-api", "aws-emr-api", "snowflake"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "java", "go", "javascript", "ruby", "dotnet"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["aws_iam", "aws_sts_assume_role"],
+    "oauth": false,
+    "scopes": true,
+    "notes": "Standard AWS IAM authentication. Requires athena:StartQueryExecution, athena:GetQueryResults, s3:GetObject on output bucket, and Glue catalog read permissions. Fine-grained column-level security via Lake Formation."
+  },
+  "pricing": {
+    "model": "usage_based",
+    "free_tier_exists": true,
+    "free_tier_limits": "No free tier; $5 per TB scanned with a 10MB minimum per query",
+    "paid_tiers": "Standard: $5/TB scanned. Athena for Apache Spark: $0.36/DPU-hour",
+    "requires_credit_card": true,
+    "notes": "Costs add up quickly on unoptimized queries. Partition pruning and columnar formats (Parquet) can reduce scan costs by 10-100x. Results reuse caches identical queries for 7 days at no charge."
+  },
+  "performance": {
+    "latency_p50_ms": 2000,
+    "latency_p99_ms": 10000,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "20 concurrent DML queries per account by default (increasable via quota request)",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": true,
+    "domain_verification": false,
+    "data_residency": ["aws_region_selectable"],
+    "compliance": ["soc2", "hipaa", "pci", "fedramp"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 88,
+    "error_message_quality": 82,
+    "error_message_notes": "Athena error messages are generally descriptive (SYNTAX_ERROR, PERMISSION_DENIED, TABLE_NOT_FOUND) and include query position information, making them agent-parseable.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "StartQueryExecution is not idempotent — each call creates a new query execution; agents must track QueryExecutionId and poll rather than resubmit on timeout.",
+    "pagination_style": "token",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Query execution is asynchronous — StartQueryExecution returns immediately; agents must poll GetQueryExecution until State is SUCCEEDED or FAILED (not block on the initial call)",
+      "Results are stored in S3 at a configurable output location; GetQueryResults only returns the first 1000 rows — agents must paginate with NextToken or read directly from S3 for large result sets",
+      "Partition pruning only applies when WHERE clauses match the exact partition column names and types in the Glue catalog — typos or type mismatches cause full table scans and unexpected costs",
+      "DDL statements (CREATE TABLE, MSCK REPAIR TABLE) are separate query executions and cannot be combined with DML in the same StartQueryExecution call",
+      "The query timeout default is 30 minutes; long-running queries that exceed this are terminated silently — agents must check for CANCELLED state in addition to FAILED"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 88,
+    "error_handling_score": 82,
+    "auth_complexity_score": 70,
+    "rate_limit_clarity_score": 85
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 90,
+    "scope_granularity": 85,
+    "dependency_hygiene": 85,
+    "secret_handling": 90,
+    "security_notes": "All Athena API calls are over TLS. IAM policies can restrict query access to specific databases/tables. AWS Lake Formation enables column-level and row-level security. Query results in S3 should be encrypted at rest using SSE-S3 or SSE-KMS."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 90,
+    "version_stability": 88,
+    "breaking_changes_history": 85,
+    "error_recovery": 80
+  }
+}
