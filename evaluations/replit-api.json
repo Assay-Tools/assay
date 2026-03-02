@@ -2,27 +2,27 @@
   "id": "replit-api",
   "name": "Replit API",
   "version_evaluated": "current",
-  "homepage": "https://replit.com",
-  "repo_url": null,
+  "homepage": "https://docs.replit.com/replit-workspace/replit-api",
+  "repo_url": "https://github.com/replit",
   "category": "developer-tools",
-  "subcategories": ["cloud-ide", "deployment", "repl-hosting"],
-  "tags": ["cloud-ide", "repl", "deployment", "hosting", "agent-builder"],
-  "what_it_does": "Provides programmatic management of Replit Repls (cloud coding environments) including creation, deployment, execution, and hosting of applications.",
+  "subcategories": ["cloud-ide", "deployment", "code-execution"],
+  "tags": ["replit", "cloud-ide", "repl", "deployment", "hosting", "code-execution", "rest-api", "graphql"],
+  "what_it_does": "Replit's API for managing Repls (cloud-hosted code environments), enabling programmatic creation, forking, deployment, and lifecycle management of online coding projects.",
   "use_cases": [
-    "Programmatically create and execute code snippets in isolated sandboxes for safe agent code evaluation",
-    "Deploy a generated web application to a public URL without managing server infrastructure",
-    "List and inspect an organization's Repls to audit active projects and resource consumption",
-    "Trigger a Repl run to verify that generated code executes without errors",
-    "Manage Replit Teams deployments for an organization's shared projects via API"
+    "Creating and forking Repls from templates to provision sandboxed code environments for users",
+    "Deploying a Repl as a live web application or API endpoint programmatically",
+    "Reading and writing files within a Repl's filesystem via the API for code generation workflows",
+    "Managing user accounts and permissions within a Replit Teams organization",
+    "Spinning up isolated code execution environments for AI-generated code validation"
   ],
   "not_for": [
-    "Production-grade workloads requiring guaranteed SLA uptime — Replit is optimized for prototyping",
-    "Running computationally intensive ML training jobs — resource limits are strict on free and base paid tiers",
-    "Accessing file system state of a Repl programmatically in real time — the API does not expose a file tree endpoint"
+    "Production-grade infrastructure with strict uptime SLAs — Replit is primarily an educational and prototyping platform",
+    "High-performance compute workloads requiring GPU access or large RAM allocations on free tiers",
+    "Applications requiring strict data residency or compliance certifications (SOC2, HIPAA)"
   ],
-  "best_when": "An agent needs a zero-setup sandboxed execution environment for untrusted or generated code with an instantly shareable URL.",
-  "avoid_when": "You require persistent state, low latency, or production SLAs, as Replit Repls sleep after inactivity and wake times can be significant.",
-  "alternatives": ["gitpod-api", "e2b-api", "modal-api"],
+  "best_when": "An agent needs a quick, shareable, browser-accessible code environment without infrastructure setup, especially for demos or educational contexts.",
+  "avoid_when": "You need production-grade hosting with guaranteed uptime, custom domains with enterprise SLAs, or heavy compute without significant cost.",
+  "alternatives": ["gitpod-api", "github-codespaces-api", "e2b-api"],
   "interface": {
     "has_rest_api": true,
     "has_graphql": true,
@@ -38,21 +38,21 @@
     "methods": ["api_key"],
     "oauth": false,
     "scopes": false,
-    "notes": "Replit uses API tokens tied to a user account. Scoping is all-or-nothing at the account level; there are no fine-grained permission scopes. Store tokens with care."
+    "notes": "API key obtained from Replit account settings. Passed as Bearer token in Authorization header. Team-level tokens available for Replit Teams. The public API is limited; most rich operations require the internal GraphQL API which is unofficial and subject to change without notice."
   },
   "pricing": {
     "model": "freemium",
     "free_tier_exists": true,
-    "free_tier_limits": "Free Repls available but with limited compute and storage; Replit Core starts at ~$20/month",
-    "paid_tiers": "Replit Core (~$20/month) adds more compute, private Repls, and deployments; Teams plans for organizations",
+    "free_tier_limits": "Free Repls with limited compute and storage; public Repls only; sleep after inactivity",
+    "paid_tiers": "Replit Core from $20/month with always-on, more compute, private Repls, and deployments",
     "requires_credit_card": false,
-    "notes": "Free tier is functional for light agent use; deployments and always-on Repls require a paid plan."
+    "notes": "Free tier is heavily limited for agent use — Repls sleep after inactivity making them unsuitable for persistent services. Deployments (Autoscale, Reserved VM, Static) require paid plan."
   },
   "performance": {
     "latency_p50_ms": 400,
     "latency_p99_ms": 2000,
     "uptime_sla_percent": 99.0,
-    "rate_limits": "Not publicly documented; GraphQL API subject to undocumented rate limits that surface as generic errors",
+    "rate_limits": "Not publicly documented; effectively limited by shared compute quotas",
     "data_source": "llm_estimated"
   },
   "requirements": {
@@ -66,40 +66,40 @@
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
-    "documentation_accuracy": 65,
+    "documentation_accuracy": 62,
     "error_message_quality": 60,
-    "error_message_notes": "GraphQL error responses are inconsistent — some return user-friendly messages, others return internal identifiers. REST endpoint errors are sparse.",
+    "error_message_notes": "The official REST API is minimal and sparsely documented. The more powerful GraphQL API is unofficial and undocumented — using it risks breakage. Error responses are basic HTTP status codes with minimal explanation.",
     "idempotency_support": "none",
-    "idempotency_notes": "Creating a Repl with the same name creates a duplicate with an auto-suffixed name rather than returning the existing resource. Agents must check for existence before creating.",
-    "pagination_style": "cursor",
+    "idempotency_notes": "No idempotency key mechanism. Repl creation will create duplicates on retry. Agents must check for existing Repls before creating.",
+    "pagination_style": "offset",
     "retry_guidance_documented": false,
     "known_agent_gotchas": [
-      "The public API surface is minimal and largely undocumented — most automation relies on reverse-engineered GraphQL calls that can break without notice",
-      "Repl names are not globally unique per user — duplicate names are silently suffixed, which can cause agent state confusion",
-      "Repls sleep after inactivity and wake on first request; wake latency (5-30s) must be accounted for in agent workflows",
-      "There is no webhook for Repl execution completion — agents must poll or use long-polling patterns",
-      "API token scopes are account-wide with no least-privilege option, making token compromise high-impact"
+      "Free-tier Repls sleep after ~5 minutes of inactivity — agents cannot rely on persistent URLs without paid deployments",
+      "The official API surface is very small; most functionality requires the undocumented GraphQL API which can break",
+      "Repl forking from a private template requires the template to be in the same organization or made public",
+      "There is no official OpenAPI spec — agents must hardcode endpoint paths which drift with API changes",
+      "Rate limits are not documented, making it difficult to implement safe retry logic for agents"
     ]
   },
   "af_score_components": {
     "mcp_score": 0,
-    "api_doc_score": 55,
+    "api_doc_score": 62,
     "error_handling_score": 60,
-    "auth_complexity_score": 70,
-    "rate_limit_clarity_score": 45
+    "auth_complexity_score": 72,
+    "rate_limit_clarity_score": 40
   },
   "security_score_components": {
     "tls_enforcement": 100,
-    "auth_strength": 65,
-    "scope_granularity": 40,
-    "dependency_hygiene": 70,
-    "secret_handling": 65,
-    "security_notes": "No scope granularity on API tokens is a significant risk for agent use. All tokens are full-account access. TLS enforced throughout."
+    "auth_strength": 68,
+    "scope_granularity": 55,
+    "dependency_hygiene": 65,
+    "secret_handling": 68,
+    "security_notes": "TLS enforced. API keys have no scope granularity — a single key grants full account access. Secrets can be stored as Repl environment variables (Secrets tab), but they're accessible to any code running in that Repl. No formal compliance certifications published."
   },
   "reliability_score_components": {
-    "uptime_documented": 65,
+    "uptime_documented": 60,
     "version_stability": 55,
     "breaking_changes_history": 50,
-    "error_recovery": 60
+    "error_recovery": 58
   }
 }

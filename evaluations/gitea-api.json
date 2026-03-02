@@ -1,28 +1,28 @@
 {
   "id": "gitea-api",
-  "name": "Gitea API",
-  "version_evaluated": "1.22",
+  "name": "Gitea REST API",
+  "version_evaluated": "current",
   "homepage": "https://gitea.io",
   "repo_url": "https://github.com/go-gitea/gitea",
   "category": "developer-tools",
-  "subcategories": ["source-control", "self-hosted-git", "devops"],
-  "tags": ["git", "self-hosted", "forge", "open-source", "ci-cd", "code-review"],
-  "what_it_does": "Provides a full REST API for a self-hosted Git service, enabling agents to manage repositories, issues, pull requests, users, organizations, releases, and webhooks on a Gitea instance.",
+  "subcategories": ["version-control", "self-hosted", "devops", "code-review"],
+  "tags": ["gitea", "git", "self-hosted", "open-source", "rest-api", "repositories", "issue-tracking", "ci-cd"],
+  "what_it_does": "Gitea is a self-hosted Git service with a comprehensive REST API covering repositories, issues, pull requests, releases, CI/CD (Gitea Actions), users, and organizations — a GitHub-like API for on-premises or private cloud deployments.",
   "use_cases": [
-    "Automatically create and configure repositories with branch protection rules and webhooks for new projects",
-    "Open, comment on, and merge pull requests as part of an automated code review or release pipeline",
-    "Query open issues and assign them to team members based on label or milestone criteria",
-    "Create releases and upload build artifacts to a Gitea instance from a CI/CD automation agent",
-    "Mirror repositories from external sources into a self-hosted Gitea org for compliance archiving"
+    "Automating repository creation, forking, and configuration on a private or on-premises Git server",
+    "Managing issues and pull requests programmatically in a self-hosted environment where GitHub is not permitted",
+    "Triggering and monitoring Gitea Actions CI/CD workflows from an agent",
+    "Reading repository contents and commit history for code analysis without sending data to third-party services",
+    "Managing users, teams, and organizations in an internal developer platform"
   ],
   "not_for": [
-    "Instances you do not self-host — Gitea has no managed cloud offering, so you must operate the server",
-    "Real-time streaming of git push events — webhooks are outbound only with no inbound streaming API",
-    "Large-scale hosted SaaS with guaranteed uptime — reliability depends entirely on your own infrastructure"
+    "Teams using GitHub or GitLab — Gitea has a similar API but integrations and ecosystem are separate",
+    "Massive scale installations without dedicated admin resources — Gitea needs self-managed infrastructure",
+    "Rich project management features like roadmaps, Epics, or advanced boards (use GitLab or Linear instead)"
   ],
-  "best_when": "You control a self-hosted Gitea instance and need full programmatic access to all forge features without vendor lock-in or usage-based pricing.",
-  "avoid_when": "You need a managed hosted Git service with SLA guarantees, as Gitea requires you to operate and maintain the server yourself.",
-  "alternatives": ["github-api", "gitlab-api", "forgejo-api"],
+  "best_when": "An agent needs GitHub-like Git operations in an air-gapped, self-hosted, or privacy-first environment where data must stay on-premises.",
+  "avoid_when": "You are already using GitHub or GitLab and don't need a self-hosted alternative — migrating ecosystems adds friction without benefit.",
+  "alternatives": ["github-mcp-server", "gitlab-api", "forgejo-api"],
   "interface": {
     "has_rest_api": true,
     "has_graphql": false,
@@ -30,29 +30,29 @@
     "has_mcp_server": false,
     "mcp_server_url": null,
     "has_sdk": true,
-    "sdk_languages": ["go", "python", "node", "java"],
+    "sdk_languages": ["go", "python", "node"],
     "openapi_spec_url": "https://gitea.io/api/swagger",
     "webhooks": true
   },
   "auth": {
-    "methods": ["api_key", "basic_auth", "oauth2"],
+    "methods": ["api_key", "basic_auth", "oauth"],
     "oauth": true,
     "scopes": true,
-    "notes": "Access tokens support fine-grained scopes (repo, issue, admin, package, etc.). OAuth2 app flow available. Basic auth deprecated in newer versions. For agents, scoped access tokens are recommended."
+    "notes": "Supports API tokens (recommended), HTTP Basic Auth, and OAuth2. Tokens created per-user in Settings > Applications. OAuth2 applications configurable for third-party access. Token scopes include read/write per resource type (repository, issue, user, etc.). The base URL is instance-specific (e.g., https://your-gitea.example.com/api/v1)."
   },
   "pricing": {
     "model": "open_source",
     "free_tier_exists": true,
-    "free_tier_limits": "Fully free and open-source; no usage limits imposed by Gitea itself",
-    "paid_tiers": "No paid tiers from Gitea; hosting costs are your own infrastructure",
+    "free_tier_limits": "Completely free and open source (MIT license). Self-hosting costs only your infrastructure.",
+    "paid_tiers": "Gitea Cloud (hosted) has paid tiers starting ~$10/month per organization",
     "requires_credit_card": false,
-    "notes": "Free and self-hosted. Gitea Cloud (managed) has been announced but is not widely available as of this evaluation."
+    "notes": "Self-hosted Gitea is free forever. Gitea Cloud is a managed option if self-hosting is not desired. Forgejo is an active community fork with the same API."
   },
   "performance": {
     "latency_p50_ms": 50,
-    "latency_p99_ms": 200,
+    "latency_p99_ms": 300,
     "uptime_sla_percent": null,
-    "rate_limits": "Rate limiting is configurable by the instance operator; default is generous (often unlimited) for self-hosted deployments",
+    "rate_limits": "Configurable by instance admin; default is generous (no hard limit on self-hosted). API rate limiting is optional and configurable.",
     "data_source": "llm_estimated"
   },
   "requirements": {
@@ -60,46 +60,46 @@
     "requires_credit_card": false,
     "domain_verification": false,
     "data_residency": ["self-hosted"],
-    "compliance": [],
+    "compliance": ["depends-on-deployment"],
     "min_contract": "none"
   },
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
-    "documentation_accuracy": 85,
-    "error_message_quality": 80,
-    "error_message_notes": "REST API returns standard HTTP status codes with JSON error bodies. Error messages are generally descriptive. Swagger UI is available at /api/swagger on any Gitea instance.",
+    "documentation_accuracy": 82,
+    "error_message_quality": 76,
+    "error_message_notes": "Swagger/OpenAPI spec is published and kept up to date with releases. Error responses include HTTP status codes and JSON bodies with message fields. Standard REST patterns are followed. Documentation quality is good but some advanced features (Actions, packages) have thinner coverage.",
     "idempotency_support": "partial",
-    "idempotency_notes": "Repository and user creation are not idempotent — creating an existing resource returns a 409 Conflict. Agents should check existence first. Label and milestone creation have similar behavior.",
+    "idempotency_notes": "GET operations are idempotent. PUT operations for updating resources behave idempotently. POST for creation (issues, PRs, repos) are not idempotent — duplicate submissions create duplicate entities.",
     "pagination_style": "page_limit",
     "retry_guidance_documented": false,
     "known_agent_gotchas": [
-      "Pagination uses page/limit query params, not cursors — agents iterating large repos/issues must handle off-by-one on total count",
-      "Admin-level API endpoints require the token owner to have site admin privileges; permission errors are returned as 403 with minimal detail",
-      "Webhook delivery is best-effort with no built-in retry tracking via API — agents relying on webhooks should implement their own idempotency",
-      "The API version (v1) has been stable but some endpoints were added in newer Gitea releases — behavior varies by instance version",
-      "Token creation via API requires an existing session or admin token; bootstrapping access for a new instance requires manual first-token creation"
+      "Base API URL is instance-specific — agents must be configured with the correct Gitea instance URL",
+      "Default admin configuration may disable user self-registration, requiring admin token for user management",
+      "Repository visibility (public/private) defaults differ from GitHub — check instance-level defaults",
+      "Gitea Actions (CI/CD) API is newer and may differ between Gitea versions — pin to a known version",
+      "Pagination uses page + limit query params (not cursor-based) — agents must handle multi-page traversal"
     ]
   },
   "af_score_components": {
     "mcp_score": 0,
-    "api_doc_score": 85,
-    "error_handling_score": 80,
-    "auth_complexity_score": 85,
-    "rate_limit_clarity_score": 80
+    "api_doc_score": 82,
+    "error_handling_score": 76,
+    "auth_complexity_score": 80,
+    "rate_limit_clarity_score": 70
   },
   "security_score_components": {
     "tls_enforcement": 90,
-    "auth_strength": 85,
-    "scope_granularity": 88,
-    "dependency_hygiene": 80,
-    "secret_handling": 82,
-    "security_notes": "TLS is optional and operator-configured (not enforced by default). Scoped tokens with fine-grained permissions are well-implemented. Self-hosted nature means security posture depends heavily on operator configuration."
+    "auth_strength": 80,
+    "scope_granularity": 82,
+    "dependency_hygiene": 78,
+    "secret_handling": 78,
+    "security_notes": "TLS is standard for deployed instances but not enforced by the software itself — administrators must configure HTTPS. Token scopes are granular (read/write per resource category). OAuth2 support follows RFC standards. Security is highly dependent on self-hosted deployment configuration and patching discipline."
   },
   "reliability_score_components": {
-    "uptime_documented": 0,
-    "version_stability": 85,
+    "uptime_documented": 60,
+    "version_stability": 82,
     "breaking_changes_history": 80,
-    "error_recovery": 80
+    "error_recovery": 76
   }
 }

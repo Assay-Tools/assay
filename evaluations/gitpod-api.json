@@ -2,26 +2,26 @@
   "id": "gitpod-api",
   "name": "Gitpod API",
   "version_evaluated": "current",
-  "homepage": "https://www.gitpod.io",
+  "homepage": "https://www.gitpod.io/docs/references/gitpod-public-api",
   "repo_url": "https://github.com/gitpod-io/gitpod",
   "category": "developer-tools",
-  "subcategories": ["cloud-development-environments", "workspace-automation"],
-  "tags": ["cde", "cloud-ide", "workspace", "devcontainer", "ephemeral-environments"],
-  "what_it_does": "Provides programmatic control over Gitpod cloud development environments, enabling agents to create, start, stop, and manage ephemeral workspaces tied to git repositories.",
+  "subcategories": ["cloud-development-environments", "workspace-management", "devops"],
+  "tags": ["gitpod", "cde", "cloud-ide", "workspace", "devcontainer", "ephemeral-environments", "rest-api"],
+  "what_it_does": "Gitpod's public REST API for programmatically managing cloud development environments (CDEs), including workspace lifecycle, organization administration, SSH access, and environment variable configuration.",
   "use_cases": [
-    "Spin up a pre-configured dev environment for a pull request review without local setup",
-    "Automate workspace creation for onboarding pipelines that provision environments per-developer",
-    "Monitor and shut down idle workspaces to control cloud spend",
-    "List and audit all running workspaces across an organization for compliance reporting",
-    "Trigger workspace builds to validate that a repository's devcontainer configuration is functional"
+    "Spinning up pre-configured development workspaces for a repository automatically in CI pipelines",
+    "Managing and listing active workspaces for a team or organization",
+    "Injecting environment variables into workspaces programmatically for secrets management",
+    "Starting and stopping workspaces on demand to control cloud compute costs",
+    "Retrieving workspace SSH credentials so agents can connect and execute code remotely"
   ],
   "not_for": [
-    "Running arbitrary long-lived server processes — workspaces time out when idle",
-    "Persistent database hosting — ephemeral nature means data is lost unless explicitly persisted",
-    "Replacing CI/CD runners for heavy build pipelines — cost and latency are higher than dedicated CI"
+    "Running arbitrary code directly — Gitpod provisions environments, it does not execute code for you",
+    "Self-hosted Gitpod installations on older Community Edition (CE) versions with limited API support",
+    "Real-time streaming of workspace logs or terminal output via this REST API"
   ],
-  "best_when": "An agent needs to provision a fully pre-configured, browser-accessible coding environment from a git URL without managing local infrastructure.",
-  "avoid_when": "You need long-running stateful compute or sub-second workspace start times, as cold starts can take 30-90 seconds.",
+  "best_when": "An agent needs to provision, configure, or tear down ephemeral cloud development environments tied to specific git branches or PRs.",
+  "avoid_when": "You need a simpler hosted compute environment without the full CDE model; consider GitHub Codespaces or Replit instead.",
   "alternatives": ["replit-api", "github-codespaces-api", "coder-api"],
   "interface": {
     "has_rest_api": true,
@@ -31,75 +31,75 @@
     "mcp_server_url": null,
     "has_sdk": true,
     "sdk_languages": ["node", "go"],
-    "openapi_spec_url": "https://gitpod.io/static/media/gitpod-openapi-public.yaml",
+    "openapi_spec_url": "https://gitpod.io/static/api/gitpod.yaml",
     "webhooks": false
   },
   "auth": {
-    "methods": ["api_key", "oauth2"],
+    "methods": ["api_key", "oauth"],
     "oauth": true,
     "scopes": true,
-    "notes": "Personal Access Tokens (PATs) are the primary method for agent use. OAuth2 is available for user-delegated flows. PATs are scoped to workspace read/write and org-level access."
+    "notes": "Access tokens obtained via OAuth2 PKCE flow or created from user settings. Tokens are workspace-scoped. Bearer token passed in Authorization header. Organization-level PATs available for admin workflows."
   },
   "pricing": {
     "model": "freemium",
     "free_tier_exists": true,
-    "free_tier_limits": "50 hours/month of workspace usage on the free plan",
-    "paid_tiers": "Individual paid plans start around $9/month for more hours; Team plans scale by seat",
+    "free_tier_limits": "50 hours/month of workspace usage on Free plan",
+    "paid_tiers": "Teams plan from $9/user/month with more hours and private repos; Pro plan for heavier usage",
     "requires_credit_card": false,
-    "notes": "Free tier is sufficient for light agent experimentation. Heavy automation scenarios require a paid plan."
+    "notes": "Free plan is generous for occasional use. API access is available across all plans. Pricing changed significantly in 2024 with the move to Gitpod Flex."
   },
   "performance": {
     "latency_p50_ms": 300,
     "latency_p99_ms": 1500,
     "uptime_sla_percent": 99.5,
-    "rate_limits": "Not publicly documented; generous for typical API usage, workspace creation is the bottleneck (30-90s per workspace)",
+    "rate_limits": "Not publicly documented; inferred to be moderate (100-500 req/min for management APIs)",
     "data_source": "llm_estimated"
   },
   "requirements": {
     "requires_signup": true,
     "requires_credit_card": false,
     "domain_verification": false,
-    "data_residency": ["EU"],
+    "data_residency": ["EU", "US"],
     "compliance": ["SOC2"],
     "min_contract": "none"
   },
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
-    "documentation_accuracy": 78,
-    "error_message_quality": 75,
-    "error_message_notes": "gRPC errors include status codes but REST error bodies are sometimes generic; workspace state transitions can fail silently if the underlying VM is unhealthy.",
+    "documentation_accuracy": 72,
+    "error_message_quality": 68,
+    "error_message_notes": "API documentation covers core workspace operations but is inconsistently maintained alongside product changes. Error responses follow gRPC-style status codes with descriptions, but agent-facing REST errors lack detailed remediation guidance.",
     "idempotency_support": "partial",
-    "idempotency_notes": "Workspace creation by context URL is idempotent in practice (reuses running workspace), but the API does not guarantee this; stopping an already-stopped workspace returns an error rather than a no-op.",
+    "idempotency_notes": "GET and DELETE operations are idempotent. Workspace creation is not — re-submitting the same context URL creates a new workspace each time. No idempotency key mechanism documented.",
     "pagination_style": "cursor",
     "retry_guidance_documented": false,
     "known_agent_gotchas": [
-      "Workspace start is asynchronous — polling workspace status is required; there is no webhook to signal readiness",
-      "Free-tier workspaces are rate-limited on concurrent count (typically 4), causing 429s during burst creation",
-      "Context URLs must be exact git refs; malformed URLs produce unhelpful 400 errors without field-level detail",
-      "The REST API and gRPC API have feature parity gaps — some workspace controls only exist in gRPC",
-      "Personal Access Tokens expire; agents must handle 401s and surface token rotation to operators"
+      "Workspace startup time is 30-120 seconds; agents must poll status rather than assume immediate availability",
+      "Context URLs must be fully valid Git URLs — partial refs or SSH URLs may silently fail",
+      "Workspaces auto-timeout after inactivity (configurable, default 30 min) and will be stopped mid-task",
+      "API endpoints changed between Gitpod Classic and Gitpod Flex — ensure you target the correct base URL",
+      "Environment variables set via API are not immediately reflected in running workspaces; restart required"
     ]
   },
   "af_score_components": {
     "mcp_score": 0,
-    "api_doc_score": 78,
-    "error_handling_score": 75,
-    "auth_complexity_score": 80,
-    "rate_limit_clarity_score": 60
+    "api_doc_score": 72,
+    "error_handling_score": 68,
+    "auth_complexity_score": 74,
+    "rate_limit_clarity_score": 55
   },
   "security_score_components": {
     "tls_enforcement": 100,
-    "auth_strength": 82,
-    "scope_granularity": 75,
-    "dependency_hygiene": 78,
-    "secret_handling": 80,
-    "security_notes": "All traffic over TLS. PATs can be scoped but granularity is coarse (workspace vs org). No IP allowlisting on free tier."
+    "auth_strength": 78,
+    "scope_granularity": 72,
+    "dependency_hygiene": 75,
+    "secret_handling": 76,
+    "security_notes": "TLS enforced on all API endpoints. OAuth2 PKCE flow is the recommended path. Scopes are documented but coarse-grained (workspace read vs write vs admin). Secrets stored as environment variables in workspaces — encrypted at rest but visible to workspace processes. SOC2 Type II certified."
   },
   "reliability_score_components": {
-    "uptime_documented": 78,
-    "version_stability": 75,
-    "breaking_changes_history": 70,
-    "error_recovery": 74
+    "uptime_documented": 72,
+    "version_stability": 65,
+    "breaking_changes_history": 60,
+    "error_recovery": 70
   }
 }

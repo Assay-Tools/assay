@@ -1,0 +1,105 @@
+{
+  "id": "cloudflare-durable-objects-api",
+  "name": "Cloudflare Durable Objects API",
+  "version_evaluated": "current",
+  "homepage": "https://developers.cloudflare.com/durable-objects/",
+  "repo_url": "https://github.com/cloudflare/workerd",
+  "category": "infrastructure",
+  "subcategories": ["edge-computing", "stateful-serverless", "coordination", "real-time"],
+  "tags": ["cloudflare", "durable-objects", "edge", "stateful", "workers", "websockets", "coordination", "serverless"],
+  "what_it_does": "Cloudflare Durable Objects provides strongly-consistent stateful compute at the edge by co-locating a single-threaded JavaScript/WASM instance with persistent storage, enabling coordination, session management, and real-time collaboration without a central database.",
+  "use_cases": [
+    "Implementing a globally consistent rate limiter or token bucket for agent API call throttling without a central DB",
+    "Managing WebSocket connections for real-time agent orchestration with guaranteed ordering of messages",
+    "Storing per-user or per-session state for multi-step agent workflows with strong consistency",
+    "Coordinating concurrent agent tasks that must not run in parallel (mutex/leader election at the edge)",
+    "Building a distributed task queue or job scheduler with exactly-once delivery guarantees"
+  ],
+  "not_for": [
+    "Relational data with complex queries — Durable Objects have a key-value store, not a relational database; use D1 or Postgres instead",
+    "High-throughput batch processing — single-threaded execution model limits to one request at a time per Object",
+    "Long-running CPU-intensive work — Workers (and Durable Objects) have CPU time limits (30s wall clock, strict CPU limits)"
+  ],
+  "best_when": "An agent system needs strongly-consistent coordination, rate limiting, or stateful sessions at global edge scale without managing a central coordination database.",
+  "avoid_when": "Your use case fits a stateless serverless function or a simple database-backed API — Durable Objects add architectural complexity that is only justified for coordination and real-time patterns.",
+  "alternatives": ["cloudflare-kv-api", "redis-api", "upstash-api", "aws-dynamodb-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["node", "typescript"],
+    "openapi_spec_url": "https://developers.cloudflare.com/api/",
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["api_key"],
+    "oauth": false,
+    "scopes": true,
+    "notes": "Durable Objects are managed via Cloudflare API tokens with Workers and Durable Objects permissions. Deployment via Wrangler CLI or Cloudflare REST API. At runtime, Durable Object stubs are accessed from Workers code — they don't have a separate HTTP auth layer; authentication must be implemented in the Worker that routes to them. API tokens use Bearer auth for the management plane."
+  },
+  "pricing": {
+    "model": "pay-as-you-go",
+    "free_tier_exists": true,
+    "free_tier_limits": "400,000 GB-seconds of compute/month, 1M requests/month, 50 GB storage/month on Workers Paid plan",
+    "paid_tiers": "$0.40/million requests above free, $0.20/GB-second compute, $0.20/GB storage/month",
+    "requires_credit_card": true,
+    "notes": "Durable Objects require the Workers Paid plan ($5/month minimum). Credit card required. Storage pricing is consumption-based. For most agent coordination use cases, costs are very low — heavy read/write storage workloads will dominate costs."
+  },
+  "performance": {
+    "latency_p50_ms": 10,
+    "latency_p99_ms": 80,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "1000 storage operations/second per Durable Object; single-threaded (one concurrent request per Object)",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": true,
+    "domain_verification": false,
+    "data_residency": ["US", "EU", "APAC"],
+    "compliance": ["SOC2", "GDPR", "ISO27001"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 78,
+    "error_message_notes": "Cloudflare's Workers/Durable Objects documentation is well-maintained and accurate. Runtime errors surface as Worker exceptions with descriptive messages. Storage operation errors are documented. The mental model (single-threaded, co-located storage) requires careful reading — subtle errors in concurrency assumptions produce hard-to-debug bugs.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Durable Object storage operations (put, get, delete) are transactional and can be made idempotent. The single-threaded model eliminates race conditions within an Object — a key architectural idempotency guarantee. Agents should use storage.put with conditional logic for safe retries.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Single-threaded execution means concurrent requests to the same Durable Object are serialized — high concurrency creates a queue, not parallelism",
+      "Location of a Durable Object is determined by the first request — it migrates to the region of the first call, which may not be optimal",
+      "Durable Objects have a 128MB memory limit — storing large objects in-memory between requests can cause evictions",
+      "Alarms (scheduled callbacks) are the correct pattern for async work; do not rely on WebSocket inactivity or awaiting long-running fetches",
+      "Debugging Durable Objects requires Wrangler local dev or Cloudflare's observability tools — standard console.log only appears in Workers logs, not independently"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 78,
+    "auth_complexity_score": 76,
+    "rate_limit_clarity_score": 80
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 80,
+    "scope_granularity": 78,
+    "dependency_hygiene": 82,
+    "secret_handling": 80,
+    "security_notes": "TLS enforced at the edge. Durable Objects are isolated per namespace and ID — cross-Object access requires explicit routing. Authentication must be implemented in the Worker layer; Objects themselves have no built-in auth. Secrets passed to Workers via encrypted environment bindings. SOC2 Type II certified. Code runs in V8 isolates providing strong sandboxing."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 82,
+    "breaking_changes_history": 80,
+    "error_recovery": 82
+  }
+}
