@@ -1,0 +1,113 @@
+{
+  "id": "microsoft-teams-api",
+  "name": "Microsoft Teams API (Graph API)",
+  "version_evaluated": "current",
+  "homepage": "https://learn.microsoft.com/en-us/graph/teams-concept-overview",
+  "repo_url": "https://github.com/microsoftgraph/msgraph-sdk-python",
+  "category": "communication",
+  "subcategories": ["messaging", "collaboration", "video-conferencing", "enterprise"],
+  "tags": ["microsoft-teams", "graph-api", "enterprise", "messaging", "channels", "meetings", "microsoft-365", "azure-ad"],
+  "what_it_does": "Microsoft Graph API exposes Teams capabilities including sending messages to channels and chats, managing teams and channels, scheduling meetings, reading presence, and accessing files — all via a unified REST API backed by Microsoft 365 and Azure AD.",
+  "use_cases": [
+    "Posting alerts, reports, or notifications to Teams channels from agents",
+    "Creating and managing Teams channels and workspaces programmatically",
+    "Scheduling meetings and retrieving calendar/meeting data",
+    "Reading and replying to chat messages in automated workflows",
+    "Querying user presence and availability"
+  ],
+  "not_for": [
+    "Non-enterprise or consumer messaging (personal Microsoft accounts have limited Graph support)",
+    "High-frequency real-time messaging (rate limits are restrictive)",
+    "Teams calling/telephony automation (requires additional licensing and Calling Plans)"
+  ],
+  "best_when": "An agent operates inside a Microsoft 365 enterprise environment and needs to integrate with Teams channels, chats, or meetings.",
+  "avoid_when": "You need real-time bidirectional messaging with low latency, or you are outside the Microsoft 365 ecosystem.",
+  "alternatives": ["slack-api", "discord-api", "google-chat-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "node", "dotnet", "go", "php", "java"],
+    "openapi_spec_url": "https://raw.githubusercontent.com/microsoftgraph/msgraph-metadata/master/openapi/v1.0/openapi.yaml",
+    "webhooks": true
+  },
+  "auth": {
+    "methods": ["oauth2", "client_credentials", "service_principal"],
+    "oauth": true,
+    "scopes": true,
+    "notes": "Requires Azure AD app registration. Two auth flows matter for agents: client credentials (app-only, no user) for background automation, and delegated (on-behalf-of-user) for user-context operations. Scopes are granular per resource (e.g., ChannelMessage.Send, Chat.ReadWrite). Tenant admin consent required for many app-only scopes, which adds significant setup friction."
+  },
+  "pricing": {
+    "model": "included",
+    "free_tier_exists": false,
+    "free_tier_limits": "No standalone free tier; included with Microsoft 365 subscriptions",
+    "paid_tiers": "Microsoft 365 Business Basic from $6/user/mo; Enterprise E3 from $36/user/mo",
+    "requires_credit_card": true,
+    "notes": "API access itself has no separate charge, but requires a Microsoft 365 subscription. Azure AD is required for app registration; a free Azure AD tenant can be created for development. Metered API endpoints (Teams Export, etc.) have usage-based pricing."
+  },
+  "performance": {
+    "latency_p50_ms": 300,
+    "latency_p99_ms": 1500,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "10,000 requests per 10 minutes per app per tenant; individual endpoints have tighter limits (e.g., 30 req/sec for channel messages)",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": true,
+    "domain_verification": false,
+    "data_residency": ["US", "EU", "UK", "APAC", "GCC"],
+    "compliance": ["SOC1", "SOC2", "ISO27001", "GDPR", "FedRAMP", "HIPAA"],
+    "min_contract": "monthly"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 72,
+    "error_message_quality": 60,
+    "error_message_notes": "Error responses follow OData format with error codes and messages, but codes are often generic (e.g., 'generalException'). Throttling responses include Retry-After headers, which is helpful. Docs lag behind API behavior and beta vs v1.0 differences are not always clearly documented.",
+    "idempotency_support": "none",
+    "idempotency_notes": "No idempotency key support on message send or resource creation endpoints. Agents must implement their own deduplication logic, typically by querying for existing resources before creating.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Admin consent for app-only permissions can take days to provision in enterprise tenants — block setup time into workflows",
+      "Beta API endpoints are frequently used in docs examples but are subject to breaking changes without notice",
+      "Throttling (429) is aggressive and Retry-After values can be 30+ seconds, making burst workflows impractical",
+      "Channel messages cannot be deleted via API (app-only); only the creating user can delete",
+      "Teams/channel IDs are GUIDs that are not stable across tenant migrations",
+      "Graph SDK clients cache tokens — agents must handle token expiry (default 1 hour) and re-auth gracefully",
+      "Sending adaptive cards requires specific payload formatting and card schema versioning"
+    ]
+  },
+  "af_score_components": {
+    "api_doc_score": 72,
+    "error_handling_score": 60,
+    "auth_complexity_score": 45,
+    "rate_limit_clarity_score": 65
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 90,
+    "scope_granularity": 85,
+    "dependency_hygiene": 80,
+    "secret_handling": 85,
+    "security_notes": "Azure AD OAuth2 with fine-grained permission scopes is enterprise-grade. App-only flows use client secrets or certificates (certificates preferred). Scopes are well-defined per operation. Primary risk is over-permissioning during setup due to complex scope discovery."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 90,
+    "version_stability": 70,
+    "breaking_changes_history": 60,
+    "error_recovery": 65
+  },
+  "af_score": 52,
+  "fq_score": 71,
+  "score_rationale": "Teams/Graph API scores poorly on agent readiness due to the complex Azure AD setup (admin consent barriers), aggressive throttling, lack of idempotency, and inconsistent documentation across v1.0/beta. The enterprise compliance posture and SDK coverage are strong, but the operational friction for autonomous agents is high. Best suited for agents running inside an existing Microsoft 365 enterprise environment where setup is a one-time cost.",
+  "score_version": "1.0",
+  "evaluated_at": "2026-03-02",
+  "evaluator": "claude-sonnet-4-6",
+  "confidence": "medium"
+}

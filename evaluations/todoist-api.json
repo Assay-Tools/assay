@@ -1,36 +1,36 @@
 {
   "id": "todoist-api",
-  "name": "Todoist API",
+  "name": "Todoist REST API",
   "version_evaluated": "current",
   "homepage": "https://developer.todoist.com",
-  "repo_url": null,
+  "repo_url": "https://github.com/Doist/todoist-api-python",
   "category": "productivity",
-  "subcategories": ["task-management", "personal-productivity", "todo"],
-  "tags": ["todoist", "task-management", "productivity", "todo", "mcp-server", "rest-api", "sync-api"],
-  "what_it_does": "Task management platform API for creating, reading, updating, and completing tasks, projects, labels, and comments in Todoist, with an official MCP server for AI agent task management.",
+  "subcategories": ["task-management", "todo", "project-management"],
+  "tags": ["todoist", "tasks", "todo", "rest-api", "sync-api", "productivity", "gtd", "webhooks"],
+  "what_it_does": "Todoist is a task management platform with a REST API v2 and a lower-level Sync API. Agents can create, read, update, and close tasks, manage projects and sections, assign labels, set due dates, and receive webhook events on task state changes.",
   "use_cases": [
-    "Creating and managing tasks from AI agent workflows via the official MCP server",
-    "Capturing action items from conversations and routing to Todoist projects",
-    "Querying task backlogs for daily standup or planning summaries",
-    "Automating task creation from email, calendar, or webhook triggers",
-    "Bulk task management and project reorganization workflows"
+    "Capturing agent-generated tasks into a human's task inbox",
+    "Marking tasks complete after automated workflow execution",
+    "Creating project structures and populating them with tasks programmatically",
+    "Monitoring task completion to trigger downstream agent actions",
+    "Syncing tasks from external systems (email, Slack, calendar) into Todoist"
   ],
   "not_for": [
-    "Enterprise project management with Gantt charts or resource allocation",
-    "Team collaboration with real-time co-editing (use Asana or Linear)",
-    "Complex workflow automation with conditional logic"
+    "Complex project management with dependencies and Gantt charts",
+    "Team collaboration at scale (better tools exist for that)",
+    "Storing large structured data — tasks have limited metadata"
   ],
-  "best_when": "An agent needs to manage personal or team tasks in Todoist, especially for capturing action items, querying task status, or automating task workflows via the MCP server.",
-  "avoid_when": "You need enterprise-grade project management with complex dependencies, time tracking, or multi-team resource planning.",
-  "alternatives": ["asana-api", "clickup-api", "notion-api"],
+  "best_when": "An agent needs to create or manage actionable tasks for a human, particularly in a GTD-style personal productivity workflow.",
+  "avoid_when": "You need rich project planning features like task dependencies, resource management, or timeline views.",
+  "alternatives": ["linear-api", "asana-api", "things-api", "microsoft-todo-api"],
   "interface": {
     "has_rest_api": true,
     "has_graphql": false,
     "has_grpc": false,
-    "has_mcp_server": true,
-    "mcp_server_url": "https://github.com/Doist/todoist-mcp",
-    "has_sdk": false,
-    "sdk_languages": [],
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "node"],
     "openapi_spec_url": null,
     "webhooks": true
   },
@@ -38,21 +38,21 @@
     "methods": ["oauth2", "api_key"],
     "oauth": true,
     "scopes": true,
-    "notes": "OAuth2 for user-facing integrations. Personal API token for single-user automation. OAuth scopes include task:add, data:read, data:delete, project:delete. Tokens are per-user."
+    "notes": "OAuth 2.0 recommended for multi-user apps; personal API token for single-user agent use. OAuth scopes exist but are coarse (data:read, data:read_write, data:delete). API tokens available from settings for direct agent use."
   },
   "pricing": {
     "model": "freemium",
     "free_tier_exists": true,
-    "free_tier_limits": "Free plan: 5 personal projects, 5MB uploads, basic features",
-    "paid_tiers": "Pro $4/month, Business $6/user/month",
+    "free_tier_limits": "5 active projects, 5 collaborators per project, no reminders, no labels",
+    "paid_tiers": "Pro $4/user/mo; Business $6/user/mo",
     "requires_credit_card": false,
-    "notes": "API access is available on all plans. Free tier supports basic task operations. Pro/Business plans unlock additional integrations, reminders, and labels."
+    "notes": "Free tier is functional for basic agent task creation. Pro unlocks reminders, filters, and labels which are useful for agent-created tasks. API access is available on all tiers."
   },
   "performance": {
-    "latency_p50_ms": 200,
-    "latency_p99_ms": 800,
+    "latency_p50_ms": 120,
+    "latency_p99_ms": 450,
     "uptime_sla_percent": 99.9,
-    "rate_limits": "REST v2: ~450 requests/15 minutes per token",
+    "rate_limits": "450 requests per 15 minutes per user token",
     "data_source": "llm_estimated"
   },
   "requirements": {
@@ -64,27 +64,30 @@
     "min_contract": "none"
   },
   "agent_readiness": {
-    "mcp_server_quality": 82,
-    "mcp_security_score": 78,
-    "documentation_accuracy": 88,
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
     "error_message_quality": 78,
-    "error_message_notes": "JSON error responses with HTTP status and message. Common errors (invalid token, resource not found) are clear. Error format is consistent across endpoints.",
+    "error_message_notes": "REST API errors return structured JSON with error type and message. HTTP status codes are used correctly. Some edge cases (like invalid recurrence strings) return 400 with limited detail on what specifically is invalid.",
     "idempotency_support": "none",
-    "idempotency_notes": "No idempotency keys. Creating a task twice creates two tasks. Agents should check for existing tasks before creating to avoid duplicates.",
+    "idempotency_notes": "REST API v2 has no idempotency key support. The Sync API uses a client_id pattern for deduplication. Agents using the REST API should check for duplicate tasks before creating.",
     "pagination_style": "cursor",
-    "retry_guidance_documented": false,
+    "retry_guidance_documented": true,
     "known_agent_gotchas": [
-      "REST API v2 and Sync API v9 are both available with different endpoints and data models — pick one and stick with it",
-      "Tasks created via API default to inbox if no project_id specified — always specify project for organization",
-      "Rate limit is per user token — shared tokens across multiple agents will exhaust limits quickly",
-      "MCP server requires TODOIST_API_TOKEN environment variable",
-      "Completed tasks are not returned by default — must explicitly query completed tasks with different endpoint",
-      "Due dates use RFC3339 format with optional timezone — missing timezone defaults to user's timezone setting"
-    ],
-    "error_message_score": 78,
-    "auth_complexity_score": 82,
-    "rate_limit_score": 72,
-    "security_score": 78
+      "REST API v2 and Sync API have overlapping but different capabilities — choose one and be consistent",
+      "No idempotency keys on REST API; duplicate task creation is possible on network retry",
+      "Due dates use a natural language parser that can misinterpret dates in edge cases",
+      "Webhooks require HTTPS endpoint with valid certificate — local dev requires tunneling",
+      "Task IDs are string-encoded integers; do not treat as numeric",
+      "Completed tasks are not returned by default in task list endpoints — require explicit filter",
+      "Rate limit is per user token, not per app — shared tokens across agents will exhaust limits quickly"
+    ]
   },
-  "last_evaluated": "2026-02-28"
+  "af_score": 70,
+  "fq_score": 75,
+  "score_rationale": "Todoist has a clean, well-documented REST API with OAuth, webhooks, official SDKs, and reasonable rate limits. The main gaps for agents are no idempotency keys on the REST API and coarse OAuth scopes. The Sync API offers more power but more complexity. Overall one of the better task management APIs for agent integration, especially for personal productivity automation.",
+  "score_version": "1.0",
+  "evaluated_at": "2026-03-02",
+  "evaluator": "claude-sonnet-4-6",
+  "confidence": "medium"
 }

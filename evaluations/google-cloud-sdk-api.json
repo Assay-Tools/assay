@@ -1,0 +1,111 @@
+{
+  "id": "google-cloud-sdk-api",
+  "name": "Google Cloud SDK / gcloud",
+  "version_evaluated": "current",
+  "homepage": "https://cloud.google.com/sdk",
+  "repo_url": "https://github.com/googleapis/google-cloud-python",
+  "category": "cloud",
+  "subcategories": ["cloud-platform", "developer-tools", "gcp"],
+  "tags": ["gcp", "google-cloud", "gcloud", "sdk", "client-libraries", "python", "node", "go", "java", "cloud"],
+  "what_it_does": "Google Cloud SDK provides the gcloud CLI and official client libraries (Python, Node.js, Go, Java, Ruby, PHP, .NET) for interacting with all Google Cloud Platform services. Each GCP service has its own REST API; the SDK abstracts authentication, retries, and pagination. Agents primarily use the Python or Go client libraries.",
+  "use_cases": [
+    "Provisioning GCP resources (Compute Engine, GKE, Cloud SQL, Cloud Run) from agents",
+    "Reading and writing to GCS buckets, BigQuery, and Pub/Sub",
+    "Triggering Cloud Build jobs and Cloud Functions deployments",
+    "Managing IAM policies and service accounts programmatically",
+    "Automating GKE cluster operations and Workload Identity configurations"
+  ],
+  "not_for": [
+    "Non-GCP workloads — the SDK is GCP-specific",
+    "Teams needing multi-cloud abstraction (use Pulumi or Terraform)",
+    "Simple one-off operations where the GCP console suffices"
+  ],
+  "best_when": "Your agent is deeply integrated with GCP and needs programmatic access to GCP services using the official typed client libraries with Application Default Credentials and Workload Identity.",
+  "avoid_when": "You are multi-cloud and need a unified abstraction; or you need REST API access without installing language-specific libraries (use the raw GCP REST APIs directly instead).",
+  "alternatives": ["aws-sdk", "pulumi-api", "terraform-cloud-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": true,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "node", "go", "java", "ruby", "php", "csharp"],
+    "openapi_spec_url": "https://developers.google.com/discovery/v1/reference",
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["service_account_key", "application_default_credentials", "workload_identity", "oauth2"],
+    "oauth": true,
+    "scopes": true,
+    "notes": "Application Default Credentials (ADC) is the recommended pattern — agents running on GCP use Workload Identity or instance metadata for keyless auth. Service account JSON keys work for non-GCP agents but are discouraged. Workload Identity Federation (WIF) allows non-GCP environments (GitHub Actions, AWS) to authenticate without static keys. OAuth2 scopes are coarse; IAM conditions and VPC Service Controls provide finer granularity."
+  },
+  "pricing": {
+    "model": "pay-as-you-go",
+    "free_tier_exists": true,
+    "free_tier_limits": "SDK itself is free. GCP free tier includes: 1 f1-micro instance, 5GB Cloud Storage, 10GB BigQuery queries/month, and more.",
+    "paid_tiers": "Pay per GCP service used. No SDK fees. Compute from $0.0100/vCPU-hour (n1-standard-1). GCS from $0.020/GB-month.",
+    "requires_credit_card": true,
+    "notes": "SDK and client libraries are free and open source. Cost is purely from GCP service usage. GCP requires a billing account (credit card) even for free tier usage after initial $300 trial credit."
+  },
+  "performance": {
+    "latency_p50_ms": 80,
+    "latency_p99_ms": 400,
+    "uptime_sla_percent": 99.95,
+    "rate_limits": "Varies per service: Compute Engine 1,500 req/100s; GCS 1,000 write req/s per bucket; BigQuery 300 concurrent requests. Quotas configurable.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": true,
+    "domain_verification": false,
+    "data_residency": ["US", "EU", "APAC", "global"],
+    "compliance": ["SOC1", "SOC2", "SOC3", "ISO27001", "FedRAMP", "HIPAA", "GDPR", "PCI-DSS"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 80,
+    "error_message_notes": "GCP client libraries return structured google.api_core.exceptions with HTTP status, error code, and message. Error messages are generally clear but can be verbose with nested details. Permission denied errors often lack specificity about which IAM role is needed. Retry logic with exponential backoff is built into client libraries.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "GCP REST APIs support conditional requests via ETags and If-Match headers for some resources. Resource creation is generally not idempotent by default — same-name resources return ALREADY_EXISTS. Pub/Sub message publishing is idempotent with message deduplication. BigQuery insert jobs support jobId for idempotent job submission.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "IAM permissions propagation can take up to 60 seconds — agents granting permissions must wait before dependent operations",
+      "Service account key files are a security risk if leaked — prefer Workload Identity for GCP-hosted agents",
+      "GCP quota limits vary by project, region, and service — agents must handle RESOURCE_EXHAUSTED errors with backoff",
+      "Long-running operations (LROs) return Operation objects that must be polled for completion — not all SDKs handle this automatically",
+      "gcloud CLI output format changes between versions — agents parsing gcloud output should use --format=json",
+      "Default service account has broad project permissions — always create purpose-specific service accounts for agents",
+      "API enablement is per-project and async — agents must enable APIs and wait before first use"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": null,
+    "api_doc_score": 85,
+    "error_handling_score": 80,
+    "auth_complexity_score": 78,
+    "rate_limit_clarity_score": 82
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 92,
+    "scope_granularity": 88,
+    "dependency_hygiene": 85,
+    "secret_handling": 88,
+    "security_notes": "Workload Identity Federation and ADC eliminate static service account keys. IAM conditions support attribute-based access control. VPC Service Controls create security perimeters around GCP services. Secret Manager integrates natively with client libraries. Audit logs in Cloud Logging capture all API calls. Binary Authorization enforces signed container images."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 90,
+    "version_stability": 85,
+    "breaking_changes_history": 82,
+    "error_recovery": 85
+  },
+  "score_version": "1.0",
+  "evaluated_at": "2026-03-02",
+  "evaluator": "claude-sonnet-4-6",
+  "confidence": "medium"
+}

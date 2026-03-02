@@ -1,0 +1,114 @@
+{
+  "id": "jfrog-artifactory-api",
+  "name": "JFrog Artifactory / Xray API",
+  "version_evaluated": "current",
+  "homepage": "https://jfrog.com/artifactory/",
+  "repo_url": null,
+  "category": "developer-tools",
+  "subcategories": ["artifact-management", "devops", "security-scanning", "package-registry", "ci-cd"],
+  "tags": ["jfrog", "artifactory", "xray", "artifacts", "maven", "npm", "docker", "pypi", "rest-api", "devops", "security", "sbom"],
+  "what_it_does": "JFrog Artifactory is a universal artifact repository manager that supports 30+ package formats (Maven, npm, Docker, PyPI, Helm, Gradle, Go, etc.) with a unified REST API. Paired with JFrog Xray for security scanning and license compliance, it provides enterprises with a central hub for all build artifacts, with proxying to public registries, promotion workflows, and access control. JFrog Platform API covers both Artifactory and Xray.",
+  "use_cases": [
+    "Proxying and caching public package registries (npm, Maven, PyPI) to avoid rate limits and ensure reproducibility",
+    "Artifact promotion workflows — moving builds from dev to staging to production repositories",
+    "Security scanning of artifacts and dependencies via Xray for CVEs and license violations",
+    "Generating SBOMs (Software Bill of Materials) for compliance and audit workflows",
+    "Managing Docker images, Helm charts, and OCI artifacts in a unified private registry"
+  ],
+  "not_for": [
+    "Small teams or individual developers who don't need enterprise artifact management (use a public registry directly)",
+    "Simple use cases that don't require proxying, promotion, or security scanning",
+    "Teams without budget for paid tiers beyond the JFrog Free plan"
+  ],
+  "best_when": "An agent needs to interact with a corporate artifact repository for secure, audited, and controlled package management across multiple ecosystems in an enterprise setting.",
+  "avoid_when": "You're working with public open-source packages in a non-enterprise context — the overhead of Artifactory is not justified.",
+  "alternatives": ["nexus-repository-api", "github-packages-api", "azure-artifacts-api", "cloudsmith-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "java", "go"],
+    "openapi_spec_url": "https://jfrog.com/help/r/jfrog-rest-apis",
+    "webhooks": true
+  },
+  "auth": {
+    "methods": ["api_key", "bearer_token", "http_basic"],
+    "oauth": true,
+    "scopes": true,
+    "notes": "Artifactory supports multiple auth methods: username+password, API keys (deprecated in favor of Access Tokens), and Access Tokens (JWT-based, recommended). Access Tokens can be user-scoped or service-account-scoped, with permission target assignments that provide fine-grained access control. OAuth2 via OIDC is supported for SSO integration. Identity Tokens for CI/CD federation (GitHub Actions OIDC, etc.) are supported in newer versions. Access Tokens support expiry and refresh."
+  },
+  "pricing": {
+    "model": "freemium",
+    "free_tier_exists": true,
+    "free_tier_limits": "JFrog Free (cloud): 2GB storage, 10GB transfer/month, single site. Limited Xray scanning.",
+    "paid_tiers": "JFrog Pro ($150/month): more storage and features. JFrog Enterprise ($700+/month): multi-site, advanced Xray, Edge nodes. Prices vary significantly by configuration.",
+    "requires_credit_card": false,
+    "notes": "Self-hosted Artifactory OSS is free and open-source but lacks many Pro features. JFrog Cloud plans start free. Enterprise pricing is negotiated. Xray security scanning is an add-on in older versions but bundled in newer JFrog Platform plans."
+  },
+  "performance": {
+    "latency_p50_ms": 80,
+    "latency_p99_ms": 400,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "No hard platform-wide rate limits for authenticated use. Performance depends on deployment size (SaaS vs self-hosted). SaaS deployments are typically fast; self-hosted performance is customer-controlled.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["US", "EU", "APAC"],
+    "compliance": ["SOC2", "ISO27001", "GDPR", "FedRAMP"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 80,
+    "error_message_quality": 75,
+    "error_message_notes": "Artifactory REST API returns JSON errors with status, message, and errors array. Messages are generally clear and actionable. Xray API has similarly structured errors. Documentation is extensive but spread across multiple guides. The API surface is very large — discovering the right endpoint for a task requires effort.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Artifact uploads (PUT) are idempotent for the same content. Repository and permission target creation is generally idempotent (create-or-update). Build info publication is versioned and can be re-published. Deletion operations are idempotent.",
+    "pagination_style": "offset",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "API key authentication is deprecated in Artifactory 7.x+ — agents should use Access Tokens, but many older integrations still use API keys",
+      "The Artifactory and Xray APIs have different base paths (/artifactory/api vs /xray/api) and different authentication flows in some configurations",
+      "Virtual repositories proxy multiple local and remote repos — resolving which underlying repository an artifact came from requires metadata queries",
+      "Access Tokens have configurable expiry; agents must handle token refresh or use service-account long-lived tokens carefully",
+      "Artifact checksums are returned in headers (X-Checksum-Sha1, X-Checksum-Sha256) not in the response body for upload responses",
+      "Self-hosted vs SaaS Artifactory instances may run different API versions — agents must not hardcode version assumptions",
+      "Xray scanning is asynchronous — scan initiation returns immediately but results require polling or webhook notification"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": null,
+    "api_doc_score": 80,
+    "error_handling_score": 75,
+    "auth_complexity_score": 72,
+    "rate_limit_clarity_score": 70
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 88,
+    "scope_granularity": 85,
+    "dependency_hygiene": 82,
+    "secret_handling": 82,
+    "security_notes": "HTTPS enforced on SaaS. Access Tokens are JWT-based with configurable expiry and scope. Permission targets provide fine-grained repository and operation-level access control. OIDC federation with CI/CD systems (GitHub Actions, GitLab CI) enables keyless auth. Xray provides integrated security scanning. SOC2 and ISO27001 certified for SaaS. Self-hosted security is customer's responsibility."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 85,
+    "version_stability": 82,
+    "breaking_changes_history": 78,
+    "error_recovery": 78
+  },
+  "af_score": 72,
+  "fq_score": 80,
+  "score_rationale": "JFrog Artifactory has the most capable API of any artifact repository manager, with excellent auth options, fine-grained permissions, Xray security integration, and broad format support. It loses points for lacking an MCP server, the complexity of its large API surface, and the significant cost of paid tiers. For enterprise agent workflows that need artifact promotion, security scanning, and multi-format support, it is the top choice. The documentation is extensive but navigating it requires effort.",
+  "score_version": "1.0",
+  "evaluated_at": "2026-03-02",
+  "evaluator": "claude-sonnet-4-6",
+  "confidence": "medium"
+}

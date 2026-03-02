@@ -1,0 +1,114 @@
+{
+  "id": "docker-hub-api",
+  "name": "Docker Hub API",
+  "version_evaluated": "v2",
+  "homepage": "https://hub.docker.com",
+  "repo_url": null,
+  "category": "developer-tools",
+  "subcategories": ["containers", "package-registry", "devops", "ci-cd"],
+  "tags": ["docker", "containers", "images", "registry", "oci", "devops", "rest-api", "kubernetes", "hub"],
+  "what_it_does": "The Docker Hub API provides programmatic access to the world's largest container image registry. Agents can search for images, retrieve image metadata and tag listings, inspect manifests, manage repositories and organizations, automate builds, and access vulnerability scan results. It implements the OCI Distribution Specification for image pull/push.",
+  "use_cases": [
+    "Searching Docker Hub for official or community base images for Dockerfile generation",
+    "Listing available tags for an image to select the appropriate version for deployment",
+    "Retrieving image manifest digests for content-addressable image pinning in Kubernetes manifests",
+    "Checking Docker Scout vulnerability scan results for a container image",
+    "Managing repository descriptions, settings, and team access permissions"
+  ],
+  "not_for": [
+    "Actually pulling or running container images (use Docker CLI, containerd, or a container runtime)",
+    "Private image hosting at scale without a paid plan (pull rate limits apply to free accounts)",
+    "High-volume image distribution in production (use a regional mirror or a dedicated registry like ECR, GCR, or GHCR)"
+  ],
+  "best_when": "An agent needs to discover container images, resolve tags to digests, or manage Docker Hub repository metadata as part of a CI/CD or deployment workflow.",
+  "avoid_when": "You need high-volume image pulls in production (use a registry mirror), or you need private images at scale without a paid Docker plan.",
+  "alternatives": ["github-container-registry", "google-artifact-registry", "amazon-ecr-api", "harbor-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": false,
+    "sdk_languages": [],
+    "openapi_spec_url": null,
+    "webhooks": true
+  },
+  "auth": {
+    "methods": ["bearer_token", "http_basic"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "The Docker Hub API uses JWT tokens obtained via POST to /v2/users/login with username and password (or personal access token). The resulting JWT is short-lived (hours). Personal Access Tokens (PATs) replace passwords for programmatic access and can be scoped to Read-Only, Read-Write, or Read-Write-Delete. The OCI/Docker registry protocol (registry-1.docker.io) uses a separate token flow via the Docker auth challenge mechanism."
+  },
+  "pricing": {
+    "model": "freemium",
+    "free_tier_exists": true,
+    "free_tier_limits": "1 private repository; 100 container image pulls per 6 hours for unauthenticated, 200 for free accounts",
+    "paid_tiers": "Docker Personal ($0 but verified), Docker Pro ($7/month) for unlimited private repos and higher pull rates, Docker Team ($7/user/month), Docker Business ($21/user/month)",
+    "requires_credit_card": false,
+    "notes": "Pull rate limits significantly affect agents. Unauthenticated pulls are limited to 100 per 6 hours per IP. Free authenticated accounts get 200 pulls per 6 hours. Paid plans get higher limits. Rate limits apply to the image pull endpoint, not to the Hub API metadata endpoints."
+  },
+  "performance": {
+    "latency_p50_ms": 120,
+    "latency_p99_ms": 600,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "100 pulls/6h unauthenticated, 200 pulls/6h free accounts, higher for paid. Hub API metadata endpoints have separate (higher) limits. JWT tokens expire and must be refreshed.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["US"],
+    "compliance": ["SOC2", "ISO27001"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 70,
+    "error_message_quality": 68,
+    "error_message_notes": "Error responses follow OCI Distribution Spec format with a JSON body containing an `errors` array with code and message fields. Rate limit errors return clear headers (RateLimit-Limit, RateLimit-Remaining, RateLimit-Reset) and a 429 status. Auth errors are clear but the two-step token flow adds complexity.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Image pull and metadata GET operations are fully idempotent. Image push operations are idempotent when pushing the same content (content-addressed by digest). Tag overwrites on mutable tags are allowed (not idempotent in the version sense). Webhook creation is not idempotent.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "JWT tokens from /v2/users/login expire (typically in hours) — agents must implement token refresh logic, not just cache the initial token",
+      "Rate limits apply to image layers pulled, not just manifest fetches — pulling large multi-layer images can exhaust limits quickly",
+      "The Hub API (hub.docker.com/v2) and the registry API (registry-1.docker.io/v2) are two separate APIs with different authentication flows",
+      "Official images (e.g., `ubuntu`, `nginx`) are under the `library` namespace on the registry — agents must prepend `library/` when using the registry API directly",
+      "Tag immutability is opt-in per repository — agents cannot assume a tag points to the same digest across calls",
+      "Docker Scout vulnerability scan results require a separate API and may not be available for all images",
+      "Personal Access Tokens (PATs) require Docker Desktop or docker.com account — no programmatic token creation via API"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": null,
+    "api_doc_score": 70,
+    "error_handling_score": 68,
+    "auth_complexity_score": 60,
+    "rate_limit_clarity_score": 72
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 72,
+    "scope_granularity": 65,
+    "dependency_hygiene": 75,
+    "secret_handling": 68,
+    "security_notes": "HTTPS enforced. PATs support Read-Only/Read-Write/Delete scope levels. JWT tokens are short-lived which is good practice. Two-factor authentication supported on accounts. Docker Hub has had notable security incidents historically (credential exposure in 2019). Content trust (Notary v1) is deprecated; newer image signing via Cosign/sigstore is not enforced by Hub itself."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 82,
+    "version_stability": 80,
+    "breaking_changes_history": 75,
+    "error_recovery": 70
+  },
+  "af_score": 62,
+  "fq_score": 72,
+  "score_rationale": "Docker Hub's API is reasonably well-designed with clear rate limit headers and OCI-compliant error formats, but the dual-API complexity (Hub API vs registry API), JWT refresh requirement, and pull rate limits make agent integration more complex than it should be. The rate limits are a genuine operational concern for automated workflows. Good for image discovery and tag resolution; agents doing heavy image operations should configure a registry mirror to avoid rate limit issues.",
+  "score_version": "1.0",
+  "evaluated_at": "2026-03-02",
+  "evaluator": "claude-sonnet-4-6",
+  "confidence": "medium"
+}

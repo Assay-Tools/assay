@@ -1,28 +1,29 @@
 {
   "id": "aws-cognito-api",
-  "name": "AWS Cognito API",
+  "name": "AWS Cognito",
   "version_evaluated": "current",
-  "homepage": "https://docs.aws.amazon.com/cognito/",
+  "homepage": "https://aws.amazon.com/cognito/",
   "repo_url": "https://github.com/boto/boto3",
-  "category": "auth",
-  "subcategories": ["identity", "authentication", "user-management", "cloud"],
-  "tags": ["aws", "cognito", "auth", "identity", "user-pools", "oauth", "jwt", "federation"],
-  "what_it_does": "AWS Cognito provides managed user pools (auth) and identity pools (federated identities) — handles user registration, login, MFA, OAuth/OIDC federation, and issues JWT tokens for securing APIs.",
+  "category": "authentication",
+  "subcategories": ["identity-management", "oauth2", "oidc", "user-pools", "identity-pools"],
+  "tags": ["aws", "cognito", "authentication", "oauth2", "oidc", "user-pools", "identity-pools", "managed", "aws-sdk", "jwt"],
+  "what_it_does": "AWS managed user authentication and authorization service. Provides User Pools (authentication, user directories, MFA) and Identity Pools (federated identity, temporary AWS credentials). Integrates natively with API Gateway, Lambda, and other AWS services. Accessed via AWS SDK or REST API. Supports OAuth2/OIDC flows, social identity providers, and SAML federation.",
   "use_cases": [
-    "Managing user registration, login, and MFA for agent-powered applications",
-    "Issuing JWT access tokens for agents to authenticate with downstream AWS services",
-    "Federating with Google, Facebook, Apple, and SAML identity providers via Cognito",
-    "Granting agent users temporary AWS credentials via Identity Pools for direct AWS access",
-    "Securing API Gateway endpoints with Cognito Authorizer — zero-config JWT validation"
+    "Authenticating users for AWS-hosted agent applications",
+    "Machine-to-machine auth via client credentials flow with resource server scopes",
+    "Federating with social identity providers (Google, Facebook, Apple) and SAML/OIDC IdPs",
+    "Granting agents temporary AWS credentials via Identity Pools for accessing S3, DynamoDB, etc.",
+    "API Gateway authorization via Cognito User Pool authorizer — zero-config JWT validation"
   ],
   "not_for": [
-    "Teams not on AWS (Auth0, Stytch, or WorkOS for cloud-agnostic auth)",
-    "B2B/enterprise SSO scenarios (WorkOS or Okta are more polished for SAML/SCIM)",
-    "High-customization auth flows — Cognito's Lambda triggers help but are complex to maintain"
+    "Applications not hosted on AWS or not using AWS services (vendor lock-in is significant)",
+    "Highly customized authentication flows (customization via Lambda triggers is complex)",
+    "Large MAU workloads with tight cost budgets (pricing scales per MAU)",
+    "Teams needing a simple, portable auth solution across clouds"
   ],
-  "best_when": "You're building on AWS and need managed user auth with JWT, MFA, and federation — especially if API Gateway is your API layer.",
-  "avoid_when": "You need slick B2B SSO, rich developer experience, or are not on AWS — the Cognito console and API have rough UX compared to purpose-built auth providers.",
-  "alternatives": ["auth0-api", "stytch-api", "clerk-api", "firebase-auth-api"],
+  "best_when": "An agent is deployed on AWS and needs managed authentication that integrates natively with API Gateway, Lambda, and IAM without managing auth infrastructure.",
+  "avoid_when": "You are multi-cloud, self-hosted, or need a portable authentication solution. Also avoid when advanced auth customization is needed without heavy Lambda trigger complexity.",
+  "alternatives": ["keycloak-api", "auth0-api", "clerk-api", "okta-api"],
   "interface": {
     "has_rest_api": true,
     "has_graphql": false,
@@ -30,29 +31,29 @@
     "has_mcp_server": false,
     "mcp_server_url": null,
     "has_sdk": true,
-    "sdk_languages": ["python", "node", "java", "go", "dotnet", "ios", "android"],
+    "sdk_languages": ["python", "javascript", "java", "go", "csharp", "ruby", "php", "rust"],
     "openapi_spec_url": null,
     "webhooks": false
   },
   "auth": {
-    "methods": ["aws_iam", "oauth2"],
+    "methods": ["aws_signature_v4", "oauth2_client_credentials", "bearer_token", "access_key_id"],
     "oauth": true,
     "scopes": true,
-    "notes": "Administrative API uses SigV4/IAM. User-facing operations use USER_SRP_AUTH, USER_PASSWORD_AUTH, or CUSTOM_AUTH flows. JWT tokens issued for client apps. Lambda triggers for custom auth flows."
+    "notes": "Admin operations use AWS Signature V4 via SDK (access key + secret key, or IAM role). End-user flows use standard OAuth2/OIDC token endpoints. M2M uses client_credentials grant with resource server scopes. JWT tokens (ID token, access token, refresh token) returned from auth flows. Agents on EC2/Lambda/ECS can use instance roles to call Cognito admin APIs without static credentials."
   },
   "pricing": {
-    "model": "pay-as-you-go",
+    "model": "pay-per-mau",
     "free_tier_exists": true,
-    "free_tier_limits": "50,000 MAUs free for User Pools; 10,000 MAUs free for SAML/OIDC federation",
-    "paid_tiers": "$0.0055 per MAU above free tier; SAML/OIDC: $0.015 per MAU",
+    "free_tier_limits": "50,000 MAU free for User Pools. Identity Pools: 50,000 active users free per month.",
+    "paid_tiers": "User Pools: $0.0055/MAU for 50K-100K MAU, decreasing at volume. Advanced security features: additional $0.05/MAU. SAML/OIDC federation: $0.015/MAU.",
     "requires_credit_card": true,
-    "notes": "Very cheap for small apps. Costs at scale can be significant for high-MAU apps. MFA via SMS has separate SNS charges."
+    "notes": "Free tier covers most development and small production workloads. Costs grow predictably with user count. SAML/OIDC federation costs more per MAU. MFA via SMS has separate SNS charges. No egress-based pricing — only MAU-based."
   },
   "performance": {
-    "latency_p50_ms": 200,
-    "latency_p99_ms": 1000,
+    "latency_p50_ms": 150,
+    "latency_p99_ms": 800,
     "uptime_sla_percent": 99.9,
-    "rate_limits": "Varies by API: InitiateAuth 120 TPS; AdminCreateUser 10 TPS; per User Pool limits configurable",
+    "rate_limits": "Token endpoint: 120 TPS default (soft limit, can be raised). AdminInitiateAuth: 25 TPS. AdminCreateUser: 10 TPS. Most admin APIs have low default limits — request increases via AWS Support.",
     "data_source": "llm_estimated"
   },
   "requirements": {
@@ -60,46 +61,35 @@
     "requires_credit_card": true,
     "domain_verification": false,
     "data_residency": ["US", "EU", "APAC"],
-    "compliance": ["SOC2", "HIPAA", "ISO27001", "FedRAMP"],
+    "compliance": ["SOC1", "SOC2", "SOC3", "HIPAA", "PCI-DSS", "GDPR", "FedRAMP", "ISO27001"],
     "min_contract": "none"
   },
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
-    "documentation_accuracy": 80,
-    "error_message_quality": 72,
-    "error_message_notes": "AWS standard errors but Cognito error messages are notoriously unhelpful — NotAuthorizedException covers many different failure scenarios. Lambda trigger failures return generic errors unless you explicitly format them. Token validation errors are clear.",
+    "documentation_accuracy": 78,
+    "error_message_quality": 65,
+    "error_message_notes": "Cognito error messages follow the AWS pattern of exception class names (NotAuthorizedException, UserNotFoundException, TooManyRequestsException) which are typed but not always descriptive. NotAuthorizedException is notoriously overloaded — covers wrong password, unconfirmed user, disabled user, and token expiry in one exception type. Rate limit errors (TooManyRequestsException) include no retry-after header. Lambda trigger failures return generic errors unless explicitly formatted by the trigger.",
     "idempotency_support": "partial",
-    "idempotency_notes": "AdminCreateUser is idempotent if user exists (returns existing user or error). SignUp is not idempotent — duplicate username returns UsernameExistsException which agents must handle.",
-    "pagination_style": "page_token",
+    "idempotency_notes": "User creation via AdminCreateUser is not idempotent — returns UsernameExistsException on duplicate. Agents must check before creating or handle the exception as success. Token refresh is inherently idempotent. No idempotency key mechanism. ClientMetadata can pass context but does not affect idempotency.",
+    "pagination_style": "cursor",
     "retry_guidance_documented": true,
     "known_agent_gotchas": [
       "NotAuthorizedException is overloaded — covers wrong password, unconfirmed user, disabled user, and token expiry; agents cannot distinguish without extra context",
-      "Server-side auth (AdminInitiateAuth) requires USER_PASSWORD_AUTH flow to be explicitly enabled in User Pool app client settings",
-      "JWT access tokens expire in 1 hour (configurable 5min-24hr) — agents must implement refresh token rotation",
-      "Custom attributes require 'custom:' prefix in API calls (e.g., custom:role) — easy to miss and causes silent failures",
-      "MFA SMS requires SNS topic trust — additional IAM configuration often missed in initial setup causing MFA delivery failures"
+      "Cognito has low default API rate limits — agents doing bulk user operations will hit TooManyRequestsException without quota increases",
+      "USER_SRP_AUTH flow is complex (SRP protocol) — for server-side agents, explicitly enable ALLOW_USER_PASSWORD_AUTH on the app client",
+      "Refresh tokens expire after configurable period (default 30 days) — agents with long-running sessions must handle re-auth",
+      "User Pool triggers (Lambda) add latency to auth flows — keep trigger functions fast (<1s) to avoid auth timeouts",
+      "Cognito does not support username changes natively — a significant limitation for agent user management workflows",
+      "JWT verification requires fetching JWKS from Cognito's endpoint — cache this aggressively, do not fetch per-request",
+      "Custom attributes require 'custom:' prefix in API calls (e.g., custom:role) — easy to miss and causes silent failures"
     ]
   },
-  "af_score_components": {
-    "mcp_score": 0,
-    "api_doc_score": 80,
-    "error_handling_score": 72,
-    "auth_complexity_score": 65,
-    "rate_limit_clarity_score": 78
-  },
-  "security_score_components": {
-    "tls_enforcement": 100,
-    "auth_strength": 88,
-    "scope_granularity": 82,
-    "dependency_hygiene": 90,
-    "secret_handling": 88,
-    "security_notes": "JWT tokens with short expiry. MFA support (TOTP, SMS). Lambda triggers for custom auth. KMS encryption for User Pool data. Advanced Security features (risk detection, compromised credentials). HIPAA, FedRAMP."
-  },
-  "reliability_score_components": {
-    "uptime_documented": 90,
-    "version_stability": 85,
-    "breaking_changes_history": 82,
-    "error_recovery": 80
-  }
+  "af_score": 58,
+  "fq_score": 73,
+  "score_rationale": "AWS Cognito is a capable managed auth service that integrates well within the AWS ecosystem, but has significant agent-friendliness challenges. Low default rate limits, no MCP server, overloaded error messages, complex SRP auth flows, and steep AWS lock-in lower the af_score. fq_score reflects genuine strengths — managed infrastructure, solid OAuth2/OIDC compliance, deep AWS integration, and strong compliance certifications. Best suited for agents already deployed on AWS that need managed auth with API Gateway integration.",
+  "score_version": "1.0",
+  "evaluated_at": "2026-03-02",
+  "evaluator": "claude-sonnet-4-6",
+  "confidence": "medium"
 }

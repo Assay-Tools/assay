@@ -3,26 +3,27 @@
   "name": "Shopify Admin API",
   "version_evaluated": "current",
   "homepage": "https://shopify.dev/docs/api/admin",
-  "repo_url": "https://github.com/Shopify/shopify-api-ruby",
+  "repo_url": "https://github.com/Shopify/shopify-api-node",
   "category": "ecommerce",
-  "subcategories": ["store-management", "orders", "products", "inventory"],
-  "tags": ["shopify", "ecommerce", "orders", "products", "inventory", "graphql", "rest-api", "sdk", "webhooks"],
-  "what_it_does": "Shopify's Admin API (REST and GraphQL) for managing every aspect of a Shopify store: products, orders, customers, inventory, fulfillment, and more — the foundation for most Shopify app development.",
+  "subcategories": ["ecommerce", "headless-commerce", "store-management", "inventory"],
+  "tags": ["shopify", "ecommerce", "rest-api", "graphql", "webhooks", "headless", "storefront", "orders", "inventory"],
+  "what_it_does": "Shopify's Admin API provides full programmatic access to a Shopify store — managing products, orders, customers, inventory, discounts, and fulfillment. Available as both REST and GraphQL, it powers headless commerce builds and automated store management.",
   "use_cases": [
-    "Creating and updating products, variants, and inventory from agent workflows",
-    "Processing and fulfilling orders programmatically",
-    "Syncing customer data between Shopify and external CRMs",
-    "Automating discount creation and redemption",
-    "Building AI-powered order management agents"
+    "Automating product catalog management (create, update, publish listings)",
+    "Order processing and fulfillment automation",
+    "Inventory sync across warehouses and channels",
+    "Customer data management and segmentation",
+    "Discount and promotion creation and lifecycle management",
+    "Headless storefront builds with Storefront API"
   ],
   "not_for": [
-    "Non-Shopify stores (use WooCommerce or BigCommerce APIs instead)",
-    "Customer-facing storefront (use Storefront API instead)",
-    "Real-time inventory updates at very high frequency"
+    "Non-Shopify storefronts (API is tightly coupled to Shopify platform)",
+    "High-frequency trading of inventory data (rate limits constrain real-time sync)",
+    "Free storefront hosting (requires paid Shopify plan)"
   ],
-  "best_when": "An agent needs to manage a Shopify store's operations: orders, products, customers, or fulfillment.",
-  "avoid_when": "Your store runs on a different platform or you need customer-facing cart/checkout functionality.",
-  "alternatives": ["woocommerce-api", "bigcommerce-api"],
+  "best_when": "An agent needs to manage a Shopify-based store — processing orders, syncing inventory, or automating product launches.",
+  "avoid_when": "The merchant is on WooCommerce, Magento, or another non-Shopify platform, or when sub-second inventory updates are required.",
+  "alternatives": ["woocommerce-api", "bigcommerce-api", "magento-api"],
   "interface": {
     "has_rest_api": true,
     "has_graphql": true,
@@ -30,29 +31,29 @@
     "has_mcp_server": false,
     "mcp_server_url": null,
     "has_sdk": true,
-    "sdk_languages": ["ruby", "python", "node", "php"],
-    "openapi_spec_url": "https://shopify.dev/docs/api/admin-rest",
+    "sdk_languages": ["python", "node", "ruby", "php"],
+    "openapi_spec_url": null,
     "webhooks": true
   },
   "auth": {
-    "methods": ["api_key", "oauth2"],
+    "methods": ["oauth2", "api_key", "access_token"],
     "oauth": true,
     "scopes": true,
-    "notes": "Custom apps use access token (API key equivalent). Public apps use OAuth2 with granular scopes. Access token in X-Shopify-Access-Token header. Very agent-friendly for custom apps."
+    "notes": "Public apps use OAuth2 with merchant-granted scopes. Custom apps use Admin API access tokens generated in the Partner Dashboard. Scopes are granular per resource (read_products, write_orders, etc.). OAuth flow required for multi-merchant apps."
   },
   "pricing": {
     "model": "subscription",
     "free_tier_exists": false,
-    "free_tier_limits": null,
-    "paid_tiers": "Shopify merchant plan required: Basic $39/month, Shopify $105/month, Advanced $399/month",
+    "free_tier_limits": "Development stores are free but cannot process real payments",
+    "paid_tiers": "Basic $29/mo; Shopify $79/mo; Advanced $299/mo; Plus $2,300/mo. API access included on all paid plans.",
     "requires_credit_card": true,
-    "notes": "The API is included with any Shopify merchant plan. Development stores are free for testing. Partner program allows free dev stores."
+    "notes": "Merchants pay the Shopify subscription; apps built on the API may charge merchants separately via Shopify's billing API. API rate limits scale with plan tier on Plus."
   },
   "performance": {
     "latency_p50_ms": 200,
-    "latency_p99_ms": 1000,
+    "latency_p99_ms": 800,
     "uptime_sla_percent": 99.99,
-    "rate_limits": "REST: 40 requests/app/store/second (2 buckets of 40); GraphQL: 1000 cost points/second",
+    "rate_limits": "REST: 2 requests/second (leaky bucket, burst 40); GraphQL: cost-based (1000 points/second, queries cost 1-1000 points). Plus plans get 4x higher limits.",
     "data_source": "llm_estimated"
   },
   "requirements": {
@@ -60,29 +61,34 @@
     "requires_credit_card": true,
     "domain_verification": false,
     "data_residency": ["US", "EU"],
-    "compliance": ["SOC2", "PCI-DSS", "GDPR"],
+    "compliance": ["PCI-DSS", "SOC2", "GDPR"],
     "min_contract": "monthly"
   },
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
-    "documentation_accuracy": 90,
-    "error_message_quality": 85,
-    "error_message_notes": "Detailed error arrays with message and field context. Both REST and GraphQL have good error detail. Docs are excellent.",
+    "documentation_accuracy": 85,
+    "error_message_quality": 78,
+    "error_message_notes": "REST errors include HTTP status, message string, and errors array. GraphQL errors surface in the errors field alongside partial data. GraphQL userErrors distinguish user-fixable issues from system errors. Rate limit errors are clear with retry-after headers.",
     "idempotency_support": "partial",
-    "idempotency_notes": "REST API supports idempotency keys via Idempotency-Key header for POST requests. GraphQL mutations do not.",
+    "idempotency_notes": "No explicit idempotency key header on REST. Agents must deduplicate via external state or check for existing resources before creating. GraphQL mutations have no idempotency mechanism.",
     "pagination_style": "cursor",
     "retry_guidance_documented": true,
     "known_agent_gotchas": [
-      "REST API is being deprecated in favor of GraphQL - new functionality only in GraphQL",
-      "Rate limits are per-app-per-store - multi-tenant agents share limits across all stores",
-      "GraphQL cost calculation is complex - agents must budget cost points carefully",
-      "Webhooks require HMAC-SHA256 verification using the shared secret",
-      "Order fulfillment workflow has many status transitions - agents must understand the state machine"
-    ],
-    "error_message_score": 85,
-    "auth_complexity_score": 82,
-    "rate_limit_score": 72,
-    "security_score": 85
-  }
+      "GraphQL and REST have different rate limit models — agents mixing both must track separately",
+      "API version must be pinned (e.g., 2024-01) and actively migrated; versions sunset after ~1 year",
+      "Webhook payloads must be HMAC-verified; missing this is a common security gap",
+      "GraphQL mutations return userErrors in the response body — agents must check body, not just HTTP status",
+      "Product variants vs products is a common confusion — product creation requires at least one variant",
+      "Fulfillment workflows changed significantly in 2023 API versions; old FulfillmentService pattern deprecated",
+      "Metafields require knowing namespace/key schema ahead of time"
+    ]
+  },
+  "af_score": 72,
+  "fq_score": 80,
+  "score_rationale": "Shopify Admin API is mature and well-documented with strong GraphQL support, but agents face friction from the lack of idempotency keys, short-lived API version windows requiring active migration, and the non-obvious distinction between REST and GraphQL rate limits. The scoped OAuth model is good for security. GraphQL userErrors pattern requires agents to inspect response bodies rather than relying on HTTP status codes alone.",
+  "score_version": "1.0",
+  "evaluated_at": "2026-03-02",
+  "evaluator": "claude-sonnet-4-6",
+  "confidence": "medium"
 }

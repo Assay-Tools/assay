@@ -1,0 +1,106 @@
+{
+  "id": "neptune-ai-api",
+  "name": "Neptune.ai API",
+  "version_evaluated": "current",
+  "homepage": "https://docs.neptune.ai",
+  "repo_url": "https://github.com/neptune-ai/neptune-client",
+  "category": "ai-ml",
+  "subcategories": ["ml", "experiment-tracking", "model-registry", "mlops", "metadata-store"],
+  "tags": ["mlops", "experiment-tracking", "model-registry", "metadata-store", "ml-observability", "run-comparison"],
+  "what_it_does": "Neptune.ai is an ML metadata store and experiment tracking platform with a Python SDK and REST API that allows agents to log, query, and compare experiment metrics, parameters, and artifacts across runs, and manage a model registry with version promotion workflows.",
+  "use_cases": [
+    "Querying experiment runs by project with custom filters on metrics and parameters to identify best-performing model configurations",
+    "Fetching model registry versions and their metadata (training dataset, metrics, artifacts) for model selection and deployment decisions",
+    "Logging structured evaluation results from agent-orchestrated ML pipelines using Neptune's flexible namespace-based metadata model",
+    "Comparing multiple runs side-by-side by fetching their metric histories and parameter sets for automated regression detection",
+    "Retrieving experiment artifacts (model files, dataset samples, evaluation plots) programmatically for audit and reproducibility pipelines"
+  ],
+  "not_for": [
+    "Model inference serving — Neptune stores and tracks models but does not provide inference endpoints",
+    "Data pipeline orchestration — Neptune is a metadata layer, not a workflow scheduler or orchestrator",
+    "Teams not running iterative ML workflows — the metadata store model provides no benefit without repeated tracked experiments"
+  ],
+  "best_when": "An agent needs flexible, structured metadata storage for ML runs with powerful cross-run querying and comparison, particularly in research environments with heterogeneous experiment structures.",
+  "avoid_when": "You need real-time streaming metrics, model serving, or your team has no existing Neptune workspace with logged runs.",
+  "alternatives": ["wandb-api", "comet-ml-api", "mlflow-api", "clearml-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["api_key"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Authentication uses a personal API token passed via NEPTUNE_API_TOKEN environment variable or explicitly in the Neptune.init() call. The SDK handles auth transparently when the environment variable is set. Tokens are account-scoped with no fine-grained permissions. Service accounts available on paid plans for CI/CD and agent use."
+  },
+  "pricing": {
+    "model": "freemium",
+    "free_tier_exists": true,
+    "free_tier_limits": "Free tier: 1 member, 200 hours of compute metadata, 100GB storage. Suitable for individual research and agent development.",
+    "paid_tiers": "Team plan ~$99/month for 5 members with expanded storage and collaboration. Scale and Enterprise plans with SSO, on-prem options, and dedicated support.",
+    "requires_credit_card": false,
+    "notes": "The free tier is sufficient for individual agent integration development. Paid tiers unlock team collaboration features and higher storage quotas. On-premises deployment available for data residency requirements."
+  },
+  "performance": {
+    "latency_p50_ms": 300,
+    "latency_p99_ms": 2000,
+    "uptime_sla_percent": 99.5,
+    "rate_limits": "Rate limits not publicly documented. The SDK uses asynchronous logging with a background queue, so logging calls in training loops are non-blocking. Query API calls are synchronous.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["US", "EU"],
+    "compliance": ["SOC2", "GDPR"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 82,
+    "error_message_quality": 78,
+    "error_message_notes": "The Python SDK provides descriptive error messages for common failures (wrong project name, missing permissions, network issues). REST API errors are less well documented. NeptuneException subclasses allow type-based error handling in agent code.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Run creation with explicit custom_run_id is idempotent — reinitializing with the same ID resumes the existing run. Field assignments are upsert-style (overwrite), making repeated writes safe. Log operations (time-series metrics) are append-only.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Neptune's namespace model is extremely flexible (any string path becomes a field) — this is powerful but requires agents to agree on and enforce a consistent logging schema, otherwise querying across runs becomes unreliable due to field naming variations.",
+      "The SDK logs asynchronously in a background thread by default — run.stop() or using the context manager is required to flush all pending metadata before the agent process exits, or logged data will be lost.",
+      "Fetching run data requires using the read_only=True mode of neptune.init_run() or the neptune.init_project() + project.fetch_runs_table() pattern — there is no simple GET endpoint for run metadata without the SDK.",
+      "Large artifact downloads go through Neptune's artifact storage and can be slow for multi-GB model checkpoints — agents should implement timeout handling and progress tracking for artifact fetch operations.",
+      "Project and workspace names are case-sensitive in the API — a common gotcha is mismatching case between the Neptune UI display name and the API identifier, causing 404 errors that look like authentication failures."
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 82,
+    "error_handling_score": 78,
+    "auth_complexity_score": 80,
+    "rate_limit_clarity_score": 62
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 78,
+    "scope_granularity": 62,
+    "dependency_hygiene": 80,
+    "secret_handling": 80,
+    "security_notes": "API tokens are account-scoped with no endpoint-level granularity. A leaked token exposes all projects the account can access. Neptune enforces TLS on all cloud endpoints. On-premises deployment allows tighter network isolation. Service accounts on paid plans reduce individual user credential exposure."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 78,
+    "version_stability": 80,
+    "breaking_changes_history": 78,
+    "error_recovery": 78
+  },
+  "last_evaluated": "2026-03-02"
+}

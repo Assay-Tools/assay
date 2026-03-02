@@ -1,0 +1,95 @@
+{
+  "id": "celery-api",
+  "name": "Celery",
+  "version_evaluated": "current",
+  "homepage": "https://docs.celeryq.dev",
+  "repo_url": "https://github.com/celery/celery",
+  "category": "developer-tools",
+  "subcategories": ["task-queues", "distributed-computing", "background-jobs"],
+  "tags": ["celery", "task-queue", "distributed", "python", "redis", "rabbitmq", "async", "background-jobs", "workers", "open-source"],
+  "what_it_does": "Distributed task queue for Python that enables asynchronous, scheduled, and periodic task execution via message brokers (Redis, RabbitMQ). Flower provides a web UI and limited REST API for monitoring.",
+  "use_cases": [
+    "Offloading slow or compute-intensive work from agents to background workers",
+    "Scheduling periodic tasks (cron-style) in Python applications",
+    "Distributing AI inference or data processing workloads across multiple workers",
+    "Retry logic for unreliable external API calls with configurable backoff",
+    "Fan-out workflows where an agent triggers parallel task execution"
+  ],
+  "not_for": [
+    "Non-Python environments (Celery is Python-only)",
+    "Long-running durable workflows requiring persistent state across failures (use Temporal instead)",
+    "Teams without Redis or RabbitMQ infrastructure to manage",
+    "Real-time sub-second task execution with strict latency requirements"
+  ],
+  "best_when": "A Python application needs to offload background work to distributed workers with retry logic and scheduling, and your team is comfortable managing a message broker.",
+  "avoid_when": "You need durable workflow orchestration with human-in-the-loop steps, non-Python workers, or a managed service without infrastructure overhead.",
+  "alternatives": ["temporal-api", "bull-mq-api", "rq-api", "prefect-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["broker_credentials"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No built-in auth API. Authentication is delegated to the message broker (Redis AUTH, RabbitMQ credentials) and the transport layer. Flower monitoring UI has basic HTTP auth. No API key or token system."
+  },
+  "pricing": {
+    "model": "open-source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Fully free and open source (BSD license). Infrastructure costs (Redis, RabbitMQ, workers) are separate.",
+    "paid_tiers": "No paid tiers. Commercial support available from third parties.",
+    "requires_credit_card": false,
+    "notes": "Celery itself is free. The cost is the infrastructure: Redis or RabbitMQ broker, and compute for worker processes. Managed Redis/RabbitMQ from cloud providers is the typical operational cost."
+  },
+  "performance": {
+    "latency_p50_ms": 10,
+    "latency_p99_ms": 100,
+    "uptime_sla_percent": null,
+    "rate_limits": "No inherent rate limits; throughput depends on broker and worker capacity",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": [],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 75,
+    "error_message_quality": 65,
+    "error_message_notes": "Task exceptions are captured and stored in the result backend with full Python tracebacks. Worker-level errors (broker disconnect, serialization) surface as logs rather than structured errors. Flower REST API returns basic task status without rich error context.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Tasks can be made idempotent by setting task_acks_late=True and using custom task IDs. No built-in idempotency key mechanism — developers must implement deduplication. Chord/group workflows can produce duplicate results on retry if not carefully designed.",
+    "pagination_style": "none",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "No built-in REST API — agents cannot dispatch or query tasks without embedding Celery as a Python dependency or using Flower's limited API",
+      "Result backend must be configured separately (Redis, database) — without it task results are lost",
+      "Serialization format defaults to JSON but complex Python objects require pickle — pickle introduces security risks",
+      "Task visibility timeout must be tuned or long-running tasks get re-queued (ghost tasks)",
+      "Celery 5.x broke backward compatibility — pin version carefully in production",
+      "Worker concurrency model (prefork vs gevent vs eventlet) must match workload — wrong choice causes subtle bugs",
+      "Periodic tasks (beat scheduler) require a separate beat process — forgetting to run it silently breaks cron jobs",
+      "No native support for task dependencies with complex DAG structures beyond basic chains and chords"
+    ]
+  },
+  "af_score": 45,
+  "fq_score": 60,
+  "score_rationale": "Celery is the battle-tested Python task queue with a large ecosystem and proven reliability for background job processing. However, its agent-friendliness is severely limited by the absence of a REST API (agents must be Python), no built-in idempotency, opaque worker-level error handling, and significant operational complexity (broker management, beat scheduler, result backend). Suitable for agents embedded in Python applications but poor for cross-language or externally-orchestrated agent systems.",
+  "score_version": "1.0",
+  "evaluated_at": "2026-03-02",
+  "evaluator": "claude-sonnet-4-6",
+  "confidence": "medium"
+}

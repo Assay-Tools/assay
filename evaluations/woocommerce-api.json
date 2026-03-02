@@ -2,27 +2,28 @@
   "id": "woocommerce-api",
   "name": "WooCommerce REST API",
   "version_evaluated": "current",
-  "homepage": "https://woocommerce.com/document/woocommerce-rest-api/",
+  "homepage": "https://woocommerce.github.io/woocommerce-rest-api-docs/",
   "repo_url": "https://github.com/woocommerce/woocommerce",
   "category": "ecommerce",
-  "subcategories": ["store-management", "orders", "products", "wordpress"],
-  "tags": ["woocommerce", "wordpress", "ecommerce", "orders", "products", "rest-api", "sdk", "open-source"],
-  "what_it_does": "WordPress-based ecommerce plugin with a REST API for managing products, orders, customers, coupons, and store settings on self-hosted WooCommerce stores.",
+  "subcategories": ["ecommerce", "wordpress", "store-management", "self-hosted"],
+  "tags": ["woocommerce", "wordpress", "ecommerce", "rest-api", "self-hosted", "php", "orders", "products"],
+  "what_it_does": "WooCommerce's REST API exposes store management capabilities for a WordPress-based e-commerce site, including products, orders, customers, coupons, reports, and settings. The API is embedded in the WordPress site itself (wp-json/wc/v3).",
   "use_cases": [
-    "Managing product catalog and inventory via REST API in agent workflows",
-    "Processing and updating order status programmatically",
-    "Syncing customer data between WooCommerce and external systems",
-    "Automating coupon creation and discount management",
-    "Generating sales reports via the reporting API"
+    "Automating product catalog updates on a WordPress store",
+    "Order ingestion and fulfillment status updates",
+    "Customer record management and loyalty integrations",
+    "Inventory synchronization with external warehouse systems",
+    "Coupon and discount campaign automation",
+    "Sales reporting and analytics data extraction"
   ],
   "not_for": [
-    "Stores not running WordPress (use Shopify or BigCommerce)",
-    "High-performance storefronts needing sub-100ms API responses",
-    "Teams without WordPress hosting infrastructure"
+    "Hosted or SaaS commerce (WooCommerce requires WordPress hosting)",
+    "High-availability needs without dedicated infrastructure investment",
+    "Non-technical merchants who cannot manage WordPress hosting"
   ],
-  "best_when": "Your store runs on WooCommerce/WordPress and you need API-driven automation without switching platforms.",
-  "avoid_when": "You need a managed hosted ecommerce platform or aren't running WordPress.",
-  "alternatives": ["shopify-api", "bigcommerce-api"],
+  "best_when": "The merchant already runs WordPress and wants to automate their WooCommerce store management via API without switching platforms.",
+  "avoid_when": "Starting a new store from scratch for agentic use — Shopify or BigCommerce offer more reliable hosted APIs with better uptime guarantees.",
+  "alternatives": ["shopify-api", "bigcommerce-api", "magento-api"],
   "interface": {
     "has_rest_api": true,
     "has_graphql": false,
@@ -30,59 +31,65 @@
     "has_mcp_server": false,
     "mcp_server_url": null,
     "has_sdk": true,
-    "sdk_languages": ["python", "node", "php"],
-    "openapi_spec_url": "https://woocommerce.github.io/woocommerce-rest-api-docs/",
+    "sdk_languages": ["python", "node", "php", "ruby"],
+    "openapi_spec_url": null,
     "webhooks": true
   },
   "auth": {
     "methods": ["api_key", "oauth1"],
-    "oauth": true,
+    "oauth": false,
     "scopes": false,
-    "notes": "Consumer key + consumer secret via Basic auth over HTTPS, or OAuth 1.0a for HTTP. HTTPS required for Basic auth. Simple key pair generated in WP admin."
+    "notes": "Consumer Key and Consumer Secret pairs generated in WordPress admin. HTTPS connections use basic auth (key:secret). HTTP connections require OAuth 1.0a signature. No fine-grained scopes — keys are read-only or read-write. OAuth2 not supported natively."
   },
   "pricing": {
     "model": "free",
     "free_tier_exists": true,
-    "free_tier_limits": "WooCommerce plugin is free and open source",
-    "paid_tiers": "Extensions and plugins are paid separately; hosting is separate cost",
+    "free_tier_limits": "Plugin is free and open source; no API call limits imposed by WooCommerce itself",
+    "paid_tiers": "Hosting costs separate ($5-$50+/mo depending on provider). Many extensions (subscriptions, memberships, etc.) are paid.",
     "requires_credit_card": false,
-    "notes": "WooCommerce itself is free. Hosting costs vary. Many premium extensions needed for advanced features. Payment gateway fees apply separately."
+    "notes": "WooCommerce itself is free but the real costs are hosting, premium extensions, and maintenance. WooCommerce.com extensions can be expensive ($79-$299/yr each)."
   },
   "performance": {
     "latency_p50_ms": 300,
-    "latency_p99_ms": 1500,
-    "uptime_sla_percent": null,
-    "rate_limits": "No built-in rate limits; depends on hosting server capacity",
+    "latency_p99_ms": 2000,
+    "uptime_sla_percent": 99.0,
+    "rate_limits": "No built-in API rate limits; server capacity and WordPress/PHP configuration are the limiting factor. Shared hosting may throttle at very low request rates.",
     "data_source": "llm_estimated"
   },
   "requirements": {
-    "requires_signup": false,
+    "requires_signup": true,
     "requires_credit_card": false,
     "domain_verification": false,
     "data_residency": ["self-hosted"],
-    "compliance": ["GDPR"],
+    "compliance": ["PCI-DSS-varies", "GDPR-varies"],
     "min_contract": "none"
   },
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
-    "documentation_accuracy": 78,
-    "error_message_quality": 72,
-    "error_message_notes": "Standard WP REST API errors with code and message. Quality varies as it depends on WP and server config.",
+    "documentation_accuracy": 72,
+    "error_message_quality": 65,
+    "error_message_notes": "Errors are WP_Error objects serialized to JSON with code, message, and data fields. Messages are often generic. HTTP status codes are used but not always accurately. Plugin conflicts can produce non-standard error responses that are hard for agents to parse.",
     "idempotency_support": "none",
-    "idempotency_notes": "No built-in idempotency. Product and order creation may create duplicates on retry.",
-    "pagination_style": "offset",
+    "idempotency_notes": "No idempotency key support. POST requests always create new resources. Agents must query for existing resources before creating to avoid duplicates.",
+    "pagination_style": "page",
     "retry_guidance_documented": false,
     "known_agent_gotchas": [
-      "API performance depends entirely on hosting quality - cheap shared hosting causes timeouts",
-      "No built-in rate limiting - agent can overload a poorly resourced server",
-      "OAuth 1.0a (for non-HTTPS) is complex to implement correctly",
-      "WordPress plugins can break the REST API - agents must handle unexpected errors",
-      "No idempotency support - duplicate API calls create duplicate orders/products"
-    ],
-    "error_message_score": 72,
-    "auth_complexity_score": 72,
-    "rate_limit_score": 60,
-    "security_score": 68
-  }
+      "API performance is entirely dependent on hosting quality — shared hosts can be extremely slow",
+      "No rate limit headers — agents have no feedback until timeouts or 503 errors occur",
+      "PHP execution timeouts (default 30s) can silently truncate long-running requests",
+      "Plugin conflicts can break API endpoints unpredictably — hard to detect from API responses",
+      "OAuth 1.0a signature requirement on HTTP is complex; use HTTPS with basic auth instead",
+      "No idempotency — retrying a failed order creation can create duplicate orders",
+      "WordPress caching plugins may serve stale API responses",
+      "Batch endpoint exists (/wc/v3/batch) but has a 100-item limit and is not transactional"
+    ]
+  },
+  "af_score": 52,
+  "fq_score": 60,
+  "score_rationale": "WooCommerce REST API is functional but carries significant agent-unfriendly characteristics: no idempotency keys, no rate limit headers, performance variance entirely dependent on hosting, and error messages that are often vague or polluted by plugin conflicts. Page-based pagination is less efficient than cursor-based. The lack of a managed hosting SLA means uptime guarantees vary wildly. Best suited to agents that accept these constraints in exchange for the flexibility of a self-hosted open-source platform.",
+  "score_version": "1.0",
+  "evaluated_at": "2026-03-02",
+  "evaluator": "claude-sonnet-4-6",
+  "confidence": "medium"
 }

@@ -1,58 +1,58 @@
 {
   "id": "wandb-api",
-  "name": "Weights & Biases",
+  "name": "Weights & Biases API",
   "version_evaluated": "current",
-  "homepage": "https://wandb.ai",
+  "homepage": "https://docs.wandb.ai",
   "repo_url": "https://github.com/wandb/wandb",
   "category": "ai-ml",
-  "subcategories": ["ml-experiment-tracking", "model-management", "ai-observability"],
-  "tags": ["wandb", "weights-and-biases", "ml-tracking", "experiment-tracking", "model-registry", "llm-monitoring"],
-  "what_it_does": "ML experiment tracking and model management platform that logs training metrics, visualizes model performance, manages model artifacts, and monitors LLM applications in production via a REST API and Python SDK.",
+  "subcategories": ["ml", "experiment-tracking", "model-registry", "mlops"],
+  "tags": ["mlops", "experiment-tracking", "model-registry", "hyperparameter-tuning", "llm-observability", "weave", "sweeps"],
+  "what_it_does": "Weights & Biases (wandb) is an MLOps platform with REST and GraphQL APIs plus a Python SDK for tracking ML experiments, logging metrics and artifacts, managing model registries, and running hyperparameter sweeps — enabling agents to retrieve training history, compare runs, and manage model lifecycle.",
   "use_cases": [
-    "Logging training runs, hyperparameters, and metrics for ML model development",
-    "Comparing experiment results across runs to identify optimal model configurations",
-    "Managing model artifacts and versioning via the model registry",
-    "Monitoring LLM application quality and costs in production via Weave (W&B's LLM product)",
-    "Automating hyperparameter sweeps and surfacing results via API"
+    "Querying experiment run history to compare model performance across training configurations and retrieve the best-performing run's artifact URI",
+    "Logging evaluation metrics and artifacts from an agent-orchestrated fine-tuning or evaluation pipeline to a central wandb project",
+    "Fetching model artifact versions from the wandb Model Registry to retrieve the latest production-promoted model checkpoint",
+    "Triggering and monitoring hyperparameter sweep agents via the API to automate model optimization workflows",
+    "Using wandb Weave to trace and evaluate LLM application calls, storing prompt/response pairs with scoring metadata for offline analysis"
   ],
   "not_for": [
-    "Production infrastructure monitoring (use Datadog or Prometheus for ops metrics)",
-    "Teams not doing ML model training or LLM application development",
-    "Simple data science notebooks without experiment comparison needs",
-    "Non-ML software observability (too ML-specific)"
+    "Serving model predictions — wandb tracks and stores models but does not host inference endpoints; use a separate serving platform",
+    "Data pipeline orchestration — wandb is an observability and registry layer, not a workflow orchestrator like Airflow or Prefect",
+    "Teams not doing iterative ML training — wandb's value is maximized with repeated experiments; one-off inference pipelines gain little benefit"
   ],
-  "best_when": "You're training ML models or building LLM applications and need experiment tracking, artifact management, and collaborative result sharing across a data science team.",
-  "avoid_when": "You're building non-ML applications, or your ML workflow is simple enough that local logging and manual comparison is sufficient.",
-  "alternatives": ["comet-api", "langsmith-api", "mlflow"],
+  "best_when": "An agent needs to retrieve ML experiment results, compare run metrics, or access model artifacts from an active ML team's wandb workspace to inform decisions about model selection or retraining.",
+  "avoid_when": "You need model serving infrastructure, data pipeline orchestration, or your team does not have an existing wandb project with logged runs.",
+  "alternatives": ["comet-ml-api", "neptune-ai-api", "mlflow-api", "clearml-api"],
   "interface": {
     "has_rest_api": true,
     "has_graphql": true,
     "has_grpc": false,
     "has_mcp_server": false,
+    "mcp_server_url": null,
     "has_sdk": true,
-    "sdk_languages": ["python", "node"],
-    "openapi_spec_url": "https://docs.wandb.ai/ref/python/",
+    "sdk_languages": ["python", "javascript"],
+    "openapi_spec_url": null,
     "webhooks": true
   },
   "auth": {
     "methods": ["api_key"],
     "oauth": false,
     "scopes": false,
-    "notes": "API keys are user-scoped and set via WANDB_API_KEY environment variable. Service accounts are available for CI/CD and automation. No fine-grained permission scoping per key."
+    "notes": "Authentication uses a personal or service account API key passed as a Bearer token or via WANDB_API_KEY environment variable. The Python SDK handles auth automatically when WANDB_API_KEY is set. API keys are account-scoped with no fine-grained permission scoping — a key has the same access as the user or service account. Service accounts available on Team/Enterprise plans."
   },
   "pricing": {
     "model": "freemium",
     "free_tier_exists": true,
-    "free_tier_limits": "Free: unlimited runs for individuals, 100GB storage",
-    "paid_tiers": "Teams: $50/user/month; Enterprise: custom pricing",
+    "free_tier_limits": "Free tier: unlimited tracked experiments, 100GB storage, 1 user. Suitable for individual researchers and agent development.",
+    "paid_tiers": "Team plan ~$50/user/month with shared projects, more storage, and access controls. Enterprise: custom pricing with SSO, on-prem deployment, SLAs, and advanced governance.",
     "requires_credit_card": false,
-    "notes": "Free tier is very generous for individual ML practitioners. Teams plan required for shared workspaces and advanced features."
+    "notes": "The free tier is generous for agent use cases involving experiment tracking and artifact storage. Artifact storage costs scale with model checkpoint sizes — large models can accumulate significant storage costs on paid tiers."
   },
   "performance": {
-    "latency_p50_ms": 100,
-    "latency_p99_ms": 400,
+    "latency_p50_ms": 200,
+    "latency_p99_ms": 1500,
     "uptime_sla_percent": 99.9,
-    "rate_limits": "No prominently documented rate limits; SDK handles batching and retries automatically",
+    "rate_limits": "Public API rate limits not documented. In practice, the Python SDK handles rate limiting transparently with exponential backoff. GraphQL API is the primary programmatic interface for querying run data and supports complex filtering.",
     "data_source": "llm_estimated"
   },
   "requirements": {
@@ -60,30 +60,47 @@
     "requires_credit_card": false,
     "domain_verification": false,
     "data_residency": ["US"],
-    "compliance": ["SOC2", "GDPR"],
+    "compliance": ["SOC2", "HIPAA"],
     "min_contract": "none"
   },
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
     "documentation_accuracy": 85,
-    "error_message_quality": 78,
-    "error_message_notes": "SDK surfaces clear error messages. GraphQL API errors require parsing the errors array. REST API errors include detail field.",
+    "error_message_quality": 80,
+    "error_message_notes": "The Python SDK provides clear error messages with context about what went wrong. GraphQL API errors return structured error arrays with message fields. REST API errors are less consistent. The SDK's logging is verbose and helpful for debugging agent integrations.",
     "idempotency_support": "partial",
-    "idempotency_notes": "Run initialization is not idempotent — calling wandb.init() with the same run ID resumes or creates. Artifact logging is idempotent with same version hash.",
+    "idempotency_notes": "Run creation is idempotent when using explicit run IDs (id parameter) — resuming a run with the same ID appends to it rather than creating a duplicate. Artifact logging is idempotent by artifact name and version. However, new metric log calls always append — they do not overwrite previous steps.",
     "pagination_style": "cursor",
     "retry_guidance_documented": true,
     "known_agent_gotchas": [
-      "W&B uses both a REST API and a GraphQL API — most programmatic access goes through GraphQL, not REST",
-      "Run IDs are auto-generated unless specified — agents creating runs should set id explicitly for reproducibility",
-      "Artifact dependencies create a versioned DAG — deleting artifacts may break downstream lineage",
-      "Sweep agents consume compute as long as they're running — always set a termination condition",
-      "Weave (LLM monitoring) is a separate product layer — tracing requires different SDK calls than standard wandb logging"
-    ],
-    "error_message_score": 78,
-    "auth_complexity_score": 80,
-    "rate_limit_score": 70,
-    "security_score": 78
+      "The primary programmatic interface for reading run data is the GraphQL API, not the REST API — agents querying run history should use wandb.Api() Python client which wraps GraphQL, not the raw REST endpoints which have limited query capability.",
+      "Run objects have lazy loading — accessing run.history() or run.files() triggers additional API calls; agents doing bulk analysis should use run.scan_history() to avoid N+1 query patterns.",
+      "Artifact dependencies are tracked via artifact lineage — agents must use artifact.use_artifact() pattern during logging to correctly establish lineage graph, or model provenance queries will return incomplete results.",
+      "The WANDB_MODE=offline environment variable disables all API calls and buffers locally — agents running in isolated environments may silently log to disk rather than the cloud if this variable is accidentally set.",
+      "Sweep agents require a separate sweep controller process — agents cannot trigger a full sweep purely via API without running a sweep controller; the API creates the sweep config but a separate process must run the agent loop."
+    ]
   },
-  "last_evaluated": "2026-02-28"
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 80,
+    "auth_complexity_score": 82,
+    "rate_limit_clarity_score": 65
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 80,
+    "scope_granularity": 65,
+    "dependency_hygiene": 82,
+    "secret_handling": 82,
+    "security_notes": "API keys are account-scoped with no endpoint-level permission granularity — a compromised key exposes all projects the account has access to. Service accounts (Team/Enterprise) improve this by limiting blast radius. wandb.ai enforces TLS on all endpoints. The SDK's keyring integration can store API keys more securely than environment variables."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 85,
+    "version_stability": 82,
+    "breaking_changes_history": 80,
+    "error_recovery": 82
+  },
+  "last_evaluated": "2026-03-02"
 }

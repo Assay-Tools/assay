@@ -4,26 +4,26 @@
   "version_evaluated": "current",
   "homepage": "https://docs.digitalocean.com/reference/api/",
   "repo_url": "https://github.com/digitalocean/pydo",
-  "category": "cloud-infrastructure",
-  "subcategories": ["vps", "kubernetes", "managed-databases", "app-platform", "droplets"],
-  "tags": ["digitalocean", "vps", "cloud", "kubernetes", "droplets", "rest-api", "sdk", "managed-databases", "app-platform"],
-  "what_it_does": "DigitalOcean's REST API for managing Droplets (VMs), Kubernetes clusters, managed databases, App Platform deployments, spaces (object storage), and networking.",
+  "category": "cloud",
+  "subcategories": ["vps", "kubernetes", "managed-databases", "app-platform"],
+  "tags": ["digitalocean", "vps", "cloud", "kubernetes", "droplets", "rest-api", "sdk", "managed-databases", "app-platform", "spaces"],
+  "what_it_does": "DigitalOcean's REST API for managing Droplets (VMs), Kubernetes clusters (DOKS), managed databases, App Platform deployments, Spaces (object storage), load balancers, firewalls, and DNS. Developer-focused with clear documentation and predictable pricing.",
   "use_cases": [
-    "Provisioning and managing Droplets (VMs) programmatically",
-    "Scaling Kubernetes clusters and node pools via agents",
+    "Provisioning and managing Droplets (VMs) programmatically from agents",
+    "Scaling DOKS Kubernetes clusters and node pools via API",
     "Managing App Platform deployments and environment variables",
-    "Automating database provisioning and configuration",
-    "Managing DNS records, load balancers, and firewalls via automation"
+    "Automating database cluster provisioning and connection pool configuration",
+    "Managing DNS records, load balancers, and firewall rules via automation"
   ],
   "not_for": [
-    "Teams requiring AWS/GCP/Azure ecosystem integrations",
-    "Very large-scale enterprise deployments needing premium SLAs",
-    "Specialized AI/ML workloads requiring GPU (limited availability)",
-    "Teams needing on-premise or hybrid cloud deployments"
+    "Teams requiring deep AWS/GCP/Azure ecosystem service integrations",
+    "Very large-scale enterprise deployments requiring premium SLAs and global presence",
+    "Specialized AI/ML workloads requiring high-end GPU instances (limited availability)",
+    "On-premise or hybrid cloud deployments"
   ],
-  "best_when": "An agent needs to manage DigitalOcean infrastructure including VMs, Kubernetes, and managed databases with a clean, developer-friendly API.",
-  "avoid_when": "You need deep AWS/GCP/Azure service integrations, or require specialized enterprise cloud features.",
-  "alternatives": ["aws-lambda-api", "gcp-functions-api", "cloudflare-workers-api"],
+  "best_when": "An agent needs to manage straightforward cloud infrastructure (VMs, Kubernetes, databases) with a clean, well-documented REST API and predictable pricing — especially for startups or cost-conscious projects.",
+  "avoid_when": "You need the breadth of managed services (ML, data pipelines, advanced networking) that AWS/GCP/Azure offer, or require enterprise compliance certifications like FedRAMP.",
+  "alternatives": ["hetzner-api", "linode-akamai-api", "vultr-api"],
   "interface": {
     "has_rest_api": true,
     "has_graphql": false,
@@ -31,29 +31,29 @@
     "has_mcp_server": false,
     "mcp_server_url": null,
     "has_sdk": true,
-    "sdk_languages": ["python", "javascript", "go", "ruby"],
+    "sdk_languages": ["python", "go", "javascript", "ruby"],
     "openapi_spec_url": "https://api-engineering.nyc3.cdn.digitaloceanspaces.com/spec-ci/DigitalOcean-public.v2.yaml",
     "webhooks": false
   },
   "auth": {
-    "methods": ["api_key"],
+    "methods": ["api_key", "oauth2"],
     "oauth": true,
     "scopes": true,
-    "notes": "Personal access tokens (full account access or read-only). OAuth2 for third-party integrations. Token-based auth is very simple for agents. Read-only tokens useful for monitoring agents."
+    "notes": "Personal access tokens (full or read-only) are simple and suitable for agents. OAuth2 for third-party integrations. Read-only tokens useful for monitoring agents. No fine-grained resource-level scopes — tokens are either full-access or read-only."
   },
   "pricing": {
     "model": "pay-as-you-go",
     "free_tier_exists": true,
     "free_tier_limits": "$200 in free credits for new accounts (60-day expiry)",
-    "paid_tiers": "Droplets from $4/month, Kubernetes from $12/month/node, Managed DB from $15/month",
+    "paid_tiers": "Droplets from $4/month (512MB RAM); DOKS from $12/month/node; Managed DB from $15/month; App Platform from $5/month",
     "requires_credit_card": true,
-    "notes": "Very transparent and competitive pricing. No hidden fees. Pricing is simpler than AWS/GCP. Credit card required. $200 credit covers extensive testing."
+    "notes": "Very transparent and competitive pricing with no hidden fees. Simpler pricing than AWS/GCP. API access itself has no cost. Credit card required even for free credit usage."
   },
   "performance": {
     "latency_p50_ms": 100,
     "latency_p99_ms": 500,
     "uptime_sla_percent": 99.99,
-    "rate_limits": "250 requests/5 minutes by default",
+    "rate_limits": "250 requests per 5-minute window by default. Can be increased by contacting support.",
     "data_source": "llm_estimated"
   },
   "requirements": {
@@ -66,25 +66,46 @@
   },
   "agent_readiness": {
     "mcp_server_quality": null,
-    "mcp_security_score": 80,
+    "mcp_security_score": null,
     "documentation_accuracy": 88,
     "error_message_quality": 82,
-    "error_message_notes": "Well-structured error responses with id and message fields. Error IDs are unique codes that map to documentation. Very agent-friendly error format. OpenAPI spec is well-maintained.",
+    "error_message_notes": "Well-structured error responses with unique id and descriptive message fields. Error IDs map to documentation. OpenAPI spec is well-maintained and machine-readable. Very agent-friendly error format overall.",
     "idempotency_support": "partial",
-    "idempotency_notes": "Droplet creation is not idempotent by default. Some resources use names as unique keys. Kubernetes node pool operations use IDs for idempotent updates.",
+    "idempotency_notes": "Droplet creation is not idempotent by default — same-name Droplets do not conflict. Some resources use names as unique keys (domains, SSH keys). Kubernetes node pool operations use IDs for idempotent updates. Agents should check for existing resources before creating.",
     "pagination_style": "page",
     "retry_guidance_documented": true,
     "known_agent_gotchas": [
-      "Rate limit of 250/5 min can be hit by agents provisioning many resources quickly",
-      "Droplet creation is asynchronous — agents must poll action status for completion",
-      "No native idempotency keys — agents should check for existing resources before creating",
-      "Floating IP and reserved IP concepts coexist — different API resources",
-      "SSH key must be pre-added to account before specifying in Droplet creation",
-      "Snapshot operations can take many minutes — agents need long polling timeouts"
-    ],
-    "error_message_score": 82,
+      "Rate limit of 250 requests/5 minutes can be hit quickly by agents provisioning many resources — implement exponential backoff",
+      "Droplet and database creation are asynchronous — agents must poll action status for completion before depending on the resource",
+      "No native idempotency keys — agents should check for existing resources before creating to avoid duplicates",
+      "SSH keys must be pre-added to the account before specifying in Droplet creation requests",
+      "Snapshot operations can take many minutes — agents need long polling timeouts (10+ minutes for large Droplets)",
+      "Webhooks are not supported — agents must use polling for event-driven workflows"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": null,
+    "api_doc_score": 88,
+    "error_handling_score": 82,
     "auth_complexity_score": 85,
-    "rate_limit_score": 72,
-    "security_score": 80
-  }
+    "rate_limit_clarity_score": 75
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 80,
+    "scope_granularity": 72,
+    "dependency_hygiene": 82,
+    "secret_handling": 82,
+    "security_notes": "HTTPS enforced on all API endpoints. Personal access tokens support read-only mode for monitoring agents. No resource-level scopes — coarse access control only. DigitalOcean Spaces uses S3-compatible auth with separate HMAC keys. API tokens should be rotated regularly and stored in secrets management."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 85,
+    "breaking_changes_history": 85,
+    "error_recovery": 80
+  },
+  "score_version": "1.0",
+  "evaluated_at": "2026-03-02",
+  "evaluator": "claude-sonnet-4-6",
+  "confidence": "medium"
 }

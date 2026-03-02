@@ -1,30 +1,30 @@
 {
   "id": "modal-api",
-  "name": "Modal",
+  "name": "Modal API",
   "version_evaluated": "current",
-  "homepage": "https://modal.com",
+  "homepage": "https://modal.com/docs",
   "repo_url": "https://github.com/modal-labs/modal-client",
-  "category": "cloud",
-  "subcategories": ["serverless-gpu", "serverless-compute", "ml-infrastructure"],
-  "tags": ["modal", "serverless-gpu", "gpu-compute", "ml-infrastructure", "python", "containers", "batch-processing", "ai", "serverless"],
-  "what_it_does": "Serverless cloud compute platform for running Python functions at scale with GPU support. Enables ML inference, training, data pipelines, and arbitrary Python workloads on-demand without managing infrastructure.",
+  "category": "developer-tools",
+  "subcategories": ["serverless", "compute", "ml", "ai-infrastructure"],
+  "tags": ["serverless", "gpu-compute", "python", "ml-infrastructure", "inference", "training", "batch-compute", "sandboxing"],
+  "what_it_does": "Modal is a serverless Python cloud compute platform that lets agents deploy and invoke Python functions (including GPU-accelerated ML workloads) as scalable serverless endpoints, batch jobs, and scheduled tasks — without managing infrastructure.",
   "use_cases": [
-    "Serverless GPU inference for custom ML models without managing GPU servers",
-    "Burst processing for AI workloads that need compute on demand",
-    "Running data pipelines and batch jobs with auto-scaling GPU workers",
-    "Hosting custom ML model inference APIs with automatic scaling",
-    "Fine-tuning and training ML models on ephemeral GPU clusters"
+    "Deploying Python ML inference functions as serverless endpoints that scale to zero and auto-provision GPU instances on demand for agent tool calls",
+    "Running batch ML data processing or evaluation jobs by invoking Modal functions in parallel across hundreds of workers from an agent workflow",
+    "Executing sandboxed, untrusted code in isolated Modal Sandboxes for agent code interpreter use cases without infrastructure management",
+    "Triggering scheduled or event-driven ML pipeline steps (fine-tuning, embedding generation, reranking) as Modal functions from agent orchestration",
+    "Using Modal Volumes and network file systems to share large model weights or datasets between agent-invoked compute jobs without re-downloading"
   ],
   "not_for": [
-    "Always-on latency-sensitive services (Modal has cold start overhead)",
-    "Non-Python workloads (Modal is Python-first with no REST API)",
-    "Simple CPU-bound tasks where cheaper compute suffices"
+    "Long-running persistent services requiring always-on compute with sub-100ms cold starts — Modal containers have cold start latency",
+    "Teams requiring on-premises or VPC-isolated compute — Modal is a fully managed cloud service with limited network isolation options",
+    "Non-Python workloads — Modal is Python-first; other runtimes require containerization workarounds"
   ],
-  "best_when": "You need serverless GPU compute for Python ML workloads without the DevOps overhead of managing CUDA environments, Docker, or Kubernetes.",
-  "avoid_when": "You need always-on low-latency inference, non-Python runtimes, or predictable fixed costs.",
-  "alternatives": ["replicate-api", "huggingface-api", "runpod-api", "lambda-labs-api"],
+  "best_when": "An agent needs to offload GPU-accelerated or CPU-intensive Python compute tasks (inference, training, processing) to a managed serverless platform without provisioning or managing infrastructure.",
+  "avoid_when": "You need sub-100ms cold starts for latency-sensitive inference, always-on persistent services, or non-Python compute workloads.",
+  "alternatives": ["runpod-api", "replicate-api", "lambda-labs-api", "aws-lambda-api"],
   "interface": {
-    "has_rest_api": false,
+    "has_rest_api": true,
     "has_graphql": false,
     "has_grpc": false,
     "has_mcp_server": false,
@@ -35,29 +35,29 @@
     "webhooks": false
   },
   "auth": {
-    "methods": ["api_key"],
+    "methods": ["api_key", "token"],
     "oauth": false,
     "scopes": false,
-    "notes": "Modal token (ID + secret) for CLI and SDK authentication. Tokens set via `modal token set` or MODAL_TOKEN_ID/MODAL_TOKEN_SECRET environment variables. No REST API — interaction is exclusively via the Python SDK."
+    "notes": "Authentication uses Modal tokens (token_id + token_secret pair) managed via the modal CLI. Tokens are stored in ~/.modal.toml and loaded automatically by the SDK. For agent use in CI/CD environments, set MODAL_TOKEN_ID and MODAL_TOKEN_SECRET environment variables. Workspace-level tokens with no fine-grained endpoint scoping."
   },
   "pricing": {
     "model": "usage-based",
     "free_tier_exists": true,
-    "free_tier_limits": "$30/month free compute credits on free tier.",
-    "paid_tiers": "GPU compute: A100 ~$0.59/hr; H100 ~$0.97/hr; CPU $0.0000016/second. Per-second billing.",
-    "requires_credit_card": false,
-    "notes": "Per-second billing for actual compute time. Free tier includes $30 monthly credits — sufficient for development and moderate workloads. No minimum commitment."
+    "free_tier_limits": "$30/month free credits for new accounts. CPU compute at ~$0.000146/vCPU-second, GPU compute varies by GPU type (A10G ~$0.000583/GPU-second).",
+    "paid_tiers": "Pure usage-based: pay per vCPU-second and GB-second for CPU, per GPU-second for GPU compute. No seat fees. Enterprise plans with committed spend discounts.",
+    "requires_credit_card": true,
+    "notes": "Credit card required to access GPU compute beyond the free tier. Costs can be unpredictable for agents that trigger large parallel workloads — implement spend limits via workspace settings. GPU cold starts are billed from container allocation, not just execution time."
   },
   "performance": {
-    "latency_p50_ms": 2000,
-    "latency_p99_ms": 15000,
+    "latency_p50_ms": 500,
+    "latency_p99_ms": 8000,
     "uptime_sla_percent": 99.9,
-    "rate_limits": "No explicit rate limits; queued execution based on available GPU capacity",
+    "rate_limits": "No hard API rate limits published. Container scaling is limited by account-level GPU quota (default ~10 GPUs; increase via support request). CPU function concurrency is essentially unlimited.",
     "data_source": "llm_estimated"
   },
   "requirements": {
     "requires_signup": true,
-    "requires_credit_card": false,
+    "requires_credit_card": true,
     "domain_verification": false,
     "data_residency": ["US"],
     "compliance": ["SOC2"],
@@ -66,28 +66,41 @@
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
-    "documentation_accuracy": 90,
-    "error_message_quality": 82,
-    "error_message_notes": "Python exceptions with clear messages. Container build failures show detailed logs. Runtime errors include full stack traces. Modal logs are accessible via CLI and dashboard for debugging.",
-    "idempotency_support": "none",
-    "idempotency_notes": "Function calls are stateless and not inherently idempotent. Applications must manage idempotency at the application level. No built-in deduplication mechanism.",
+    "documentation_accuracy": 88,
+    "error_message_quality": 85,
+    "error_message_notes": "Modal exceptions are well-typed Python exceptions (modal.exception.NotFoundError, modal.exception.AuthError, etc.) that allow specific error handling in agent code. Error messages include context about what failed and often suggest remediation steps. The CLI provides verbose error output for debugging.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Function calls are not inherently idempotent — each .remote() call triggers a new execution. Idempotency must be implemented within the function itself (e.g., checking if output already exists in a Volume). Deployments (modal deploy) are idempotent — redeploying the same function updates it in place.",
     "pagination_style": "none",
     "retry_guidance_documented": true,
     "known_agent_gotchas": [
-      "Cold start latency: first invocation after idle period requires container spin-up (seconds to minutes depending on image size)",
-      "Modal functions must be decorated with @app.function — standard Python functions cannot be called remotely without decoration",
-      "GPU container images take time to build on first deployment — pre-build and cache container images for faster startup",
-      "Python-only SDK — no REST API for access from non-Python agents or polyglot systems",
-      "Persistent volumes required for model weights that should not be re-downloaded per invocation",
-      "Secrets must be created in Modal workspace — local environment variables are not automatically available in remote execution",
-      "Modal apps must be deployed before .remote() calls work — deployment step required in agent setup"
+      "Cold start latency for GPU containers ranges from 5-30 seconds depending on image size and GPU availability — agents calling GPU functions must implement appropriate timeout handling and not assume sub-second response times.",
+      "Modal functions must be defined in Python source files and deployed before they can be called — agents cannot dynamically create and call new Modal functions at runtime without a prior deployment step.",
+      "The Modal sandbox (modal.Sandbox) for arbitrary code execution has different APIs from modal.Function — agents implementing code interpreter features must use the Sandbox API, which is more complex and has different lifecycle management.",
+      "Volumes and NetworkFileSystems are region-specific — if a function and its associated volume are in different regions, cross-region data transfer costs apply and latency increases significantly.",
+      "Function timeouts default to 5 minutes for modal.Function — long-running ML training jobs require explicit timeout=timedelta(hours=N) configuration, or the container will be forcibly terminated mid-training."
     ]
   },
-  "af_score": 58,
-  "fq_score": 74,
-  "score_rationale": "Modal is an excellent platform for Python-native ML workflows with outstanding documentation and generous free tier. fq_score reflects the clean Python SDK, good error messages, and reasonable pricing. af_score is penalized significantly by the Python-only SDK with no REST API (severely limiting cross-language agent access), cold start variability, and no idempotency. Agents that are themselves Python-based and need custom GPU inference get much more value here than the score suggests for non-Python contexts.",
-  "score_version": "1.0",
-  "evaluated_at": "2026-03-02",
-  "evaluator": "claude-sonnet-4-6",
-  "confidence": "medium"
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 88,
+    "error_handling_score": 85,
+    "auth_complexity_score": 82,
+    "rate_limit_clarity_score": 70
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 80,
+    "scope_granularity": 65,
+    "dependency_hygiene": 85,
+    "secret_handling": 88,
+    "security_notes": "Modal Secrets provide a managed secret store for injecting credentials into functions as environment variables — significantly better than hardcoding secrets in function code. Sandboxes provide OS-level isolation for untrusted code. Token pairs (ID + secret) require both components for auth, reducing single-value leak risk."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 85,
+    "version_stability": 82,
+    "breaking_changes_history": 80,
+    "error_recovery": 83
+  },
+  "last_evaluated": "2026-03-02"
 }

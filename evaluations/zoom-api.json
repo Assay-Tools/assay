@@ -2,56 +2,57 @@
   "id": "zoom-api",
   "name": "Zoom API",
   "version_evaluated": "current",
-  "homepage": "https://developers.zoom.us",
-  "repo_url": null,
-  "category": "productivity",
-  "subcategories": ["video-meetings", "webinars", "team-collaboration"],
-  "tags": ["zoom", "video-meetings", "webinars", "calendar", "oauth", "rest-api", "sdk", "webhooks"],
-  "what_it_does": "Zoom's REST API for creating and managing meetings, webinars, recordings, and participants programmatically to automate video communication workflows.",
+  "homepage": "https://developers.zoom.us/docs/api/",
+  "repo_url": "https://github.com/zoom/zoom-sdk-web",
+  "category": "communication",
+  "subcategories": ["video-conferencing", "webinars", "team-chat", "scheduling"],
+  "tags": ["zoom", "video", "meetings", "webinars", "rest-api", "oauth", "scheduling", "server-to-server-oauth"],
+  "what_it_does": "Zoom's REST API enables programmatic management of meetings, webinars, participants, recordings, and team chat. Supports creating and scheduling meetings, retrieving recordings and transcripts, managing users and accounts, and posting messages to Zoom Team Chat channels.",
   "use_cases": [
-    "Scheduling and creating Zoom meetings from agents",
-    "Managing webinar registrations and attendees at scale",
-    "Retrieving meeting recordings and transcripts automatically",
-    "Building calendar integration agents that schedule video calls",
-    "Monitoring meeting usage and generating attendance reports"
+    "Automatically creating and scheduling Zoom meetings from agent workflows",
+    "Retrieving meeting recordings and transcripts for summarization pipelines",
+    "Managing webinar registrants and sending invitations programmatically",
+    "Posting messages to Zoom Team Chat channels as an agent",
+    "Monitoring meeting attendance and generating participation reports"
   ],
   "not_for": [
-    "Real-time video processing during calls",
-    "Custom video streaming outside Zoom infrastructure",
-    "Very small teams without Zoom subscriptions"
+    "Real-time in-meeting automation (joining and controlling meetings requires Zoom Apps or SDK, not REST API)",
+    "Large-scale event streaming where purpose-built streaming platforms are more appropriate",
+    "High-frequency polling workflows (rate limits make continuous status checks impractical)"
   ],
-  "best_when": "You need to automate scheduling, management, and reporting for video meetings within an organization already using Zoom.",
-  "avoid_when": "Your team uses Google Meet or Teams primarily, or you need in-call real-time processing.",
-  "alternatives": ["google-calendar-api", "calcom-api"],
+  "best_when": "An agent needs to schedule meetings, retrieve recordings or transcripts, or manage Zoom users and webinars as part of a workflow.",
+  "avoid_when": "You need to control or participate in live meetings programmatically — the REST API does not support in-meeting actions at the level of a real-time SDK.",
+  "alternatives": ["microsoft-teams-api", "google-meet-api", "webex-api"],
   "interface": {
     "has_rest_api": true,
     "has_graphql": false,
     "has_grpc": false,
     "has_mcp_server": false,
-    "has_sdk": false,
-    "sdk_languages": [],
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["node", "python", "java"],
     "openapi_spec_url": "https://marketplace.zoom.us/docs/api-reference/openapi-spec",
     "webhooks": true
   },
   "auth": {
-    "methods": ["oauth2", "jwt"],
+    "methods": ["oauth2", "server_to_server_oauth"],
     "oauth": true,
     "scopes": true,
-    "notes": "OAuth 2.0 for user-context apps. Server-to-Server OAuth for automated agents (JWT deprecated in 2023). Scopes per resource type."
+    "notes": "JWT authentication was deprecated in 2023; all new integrations must use Server-to-Server OAuth (for agent/backend use) or standard OAuth 2.0. Server-to-Server OAuth uses client credentials flow with no user interaction required — well-suited for agents. Scopes are granular (meeting:write, recording:read, etc.). Account-level apps require admin approval within the Zoom account."
   },
   "pricing": {
-    "model": "subscription",
+    "model": "freemium",
     "free_tier_exists": true,
-    "free_tier_limits": "Free Zoom account: 40-min group meetings, basic API access",
-    "paid_tiers": "Pro $13.33/user/mo, Business $18.32/user/mo, Enterprise custom",
+    "free_tier_limits": "Free plan: 40-minute limit on group meetings; API access included but limited to Basic plan capabilities",
+    "paid_tiers": "Pro $149/year/user; Business $199/year/user; Enterprise custom pricing",
     "requires_credit_card": false,
-    "notes": "API access requires marketplace app creation. Server-to-Server OAuth apps available on any plan. Webinar API requires Webinar add-on."
+    "notes": "API access is free at the account level, but capabilities exposed by the API depend on the account's subscription plan. Recording APIs require cloud recording, which requires a paid plan. The free 40-minute meeting limit also applies to meetings created via API."
   },
   "performance": {
     "latency_p50_ms": 200,
     "latency_p99_ms": 900,
     "uptime_sla_percent": 99.9,
-    "rate_limits": "10 requests/second; daily limits by API type",
+    "rate_limits": "10 requests/second for most endpoints; daily limits by API category vary; account-level limits shared across all apps",
     "data_source": "llm_estimated"
   },
   "requirements": {
@@ -65,23 +66,47 @@
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
-    "documentation_accuracy": 82,
-    "error_message_quality": 76,
-    "error_message_notes": "JSON errors with code and message. Some error codes require cross-referencing documentation to understand.",
+    "documentation_accuracy": 76,
+    "error_message_quality": 68,
+    "error_message_notes": "Error responses include a numeric error code and message string. Codes are documented in a reference table but messages are sometimes generic. Rate limit responses include Retry-After headers. Webhook payloads are well-documented.",
     "idempotency_support": "none",
-    "idempotency_notes": "No idempotency keys. Meeting creation is not idempotent.",
-    "pagination_style": "cursor",
-    "retry_guidance_documented": false,
+    "idempotency_notes": "No idempotency key support. Meeting creation is not idempotent — retried requests create duplicate meetings. Agents must check for existing meetings before creating.",
+    "pagination_style": "page",
+    "retry_guidance_documented": true,
     "known_agent_gotchas": [
-      "JWT app type was deprecated June 2023 - migrate to Server-to-Server OAuth for agent use",
-      "Meeting join URLs expire and are single-use for registration-required meetings",
-      "Recording download URLs expire after 24 hours - agents must download promptly",
-      "Webhook event verification required via webhook secret token validation",
-      "Account-level rate limits shared across all apps - multiple agents can exhaust quota"
-    ],
-    "error_message_score": 76,
-    "auth_complexity_score": 68,
-    "rate_limit_score": 72,
-    "security_score": 82
-  }
+      "JWT auth was deprecated June 2023 — agents using legacy JWT must migrate to Server-to-Server OAuth",
+      "Daily API rate limits (not per-minute) can catch agents off guard; burst operations can exhaust daily quota",
+      "Meeting join URLs expire and cannot be reused — agents storing URLs must regenerate before use",
+      "Recording download requires a separate authenticated download step; direct URLs expire after a short window",
+      "Webhook events require URL verification handshake on registration — agent endpoint must respond correctly",
+      "Account-level OAuth apps require an admin within the Zoom account to approve the app before it can be used"
+    ]
+  },
+  "af_score_components": {
+    "api_doc_score": 76,
+    "error_handling_score": 68,
+    "auth_complexity_score": 70,
+    "rate_limit_clarity_score": 62
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 82,
+    "scope_granularity": 78,
+    "dependency_hygiene": 75,
+    "secret_handling": 80,
+    "security_notes": "Server-to-Server OAuth is solid for agent use. Webhook payloads include HMAC-SHA256 signature verification. Scopes are reasonably granular. Historical security concerns (pre-2021) have largely been addressed by Zoom's security overhaul."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 75,
+    "breaking_changes_history": 70,
+    "error_recovery": 68
+  },
+  "af_score": 58,
+  "fq_score": 72,
+  "score_rationale": "Zoom API is adequate for scheduling and management tasks but has notable agent friction: no idempotency support, daily rate limits that burst operations can exhaust, and the deprecated JWT auth path creates migration risk for existing integrations. Server-to-Server OAuth is well-suited for agents once provisioned. Best used as a scheduling and recording-retrieval API; real-time meeting control is not supported via REST.",
+  "score_version": "1.0",
+  "evaluated_at": "2026-03-02",
+  "evaluator": "claude-sonnet-4-6",
+  "confidence": "medium"
 }
