@@ -1,0 +1,113 @@
+{
+  "id": "rubygems-api",
+  "name": "RubyGems.org API",
+  "version_evaluated": "current",
+  "homepage": "https://guides.rubygems.org/rubygems-org-api/",
+  "repo_url": "https://github.com/rubygems/rubygems.org",
+  "category": "developer-tools",
+  "subcategories": ["package-registry", "dependency-management", "ruby"],
+  "tags": ["ruby", "rubygems", "gems", "package-registry", "rest-api", "dependencies", "bundler"],
+  "what_it_does": "The RubyGems.org API provides access to the official Ruby gem registry, allowing agents to look up gem metadata, list available versions, retrieve dependency information, check ownership, fetch download statistics, and search for gems. It is the authoritative source for Ruby library metadata.",
+  "use_cases": [
+    "Resolving gem versions and metadata for Gemfile generation or dependency auditing",
+    "Checking the latest version of a gem for automated update workflows",
+    "Searching gems by name or keyword to discover libraries for a use case",
+    "Fetching gem dependency lists for vulnerability or license scanning",
+    "Retrieving gem download counts to assess ecosystem health"
+  ],
+  "not_for": [
+    "Actually installing gems into a Ruby environment (use Bundler/gem CLI)",
+    "Private gem hosting (use Gemfury, JFrog, or Nexus)",
+    "Non-Ruby package ecosystems"
+  ],
+  "best_when": "An agent needs gem metadata for dependency resolution, version checking, or Ruby ecosystem analysis.",
+  "avoid_when": "You need private gem hosting, need to install gems directly, or require bulk data (use the BigQuery dataset instead of scraping the API).",
+  "alternatives": ["jfrog-artifactory-api", "gemfury-api", "github-packages-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": false,
+    "sdk_languages": [],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["api_key", "http_basic"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Read operations (gem metadata, search) are unauthenticated. Write operations (push gem, yank gem, add owner) require an API key passed via X-Rubygems-Api-Key header. API keys are generated from rubygems.org profile settings. No OAuth, no scope granularity — a key grants full access to all gems owned by the account. MFA can be required for sensitive operations."
+  },
+  "pricing": {
+    "model": "free",
+    "free_tier_exists": true,
+    "free_tier_limits": "Fully free for all public gem reads and publishes",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "RubyGems.org is a community service operated by Ruby Together. Entirely free. Rate limits apply to protect the service from abuse."
+  },
+  "performance": {
+    "latency_p50_ms": 120,
+    "latency_p99_ms": 600,
+    "uptime_sla_percent": 99.5,
+    "rate_limits": "No officially published hard rate limits, but aggressive crawling is throttled. Gem downloads are served via Fastly CDN for performance.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["US"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 65,
+    "error_message_quality": 58,
+    "error_message_notes": "Error responses are minimal — typically a plain string or a simple JSON error field. No structured error codes. HTTP status codes are used correctly (404, 422, 401) but body content is sparse and not machine-friendly.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "GET operations are fully idempotent. Gem publishing is not idempotent (pushing the same version twice returns an error). Yank operations are idempotent.",
+    "pagination_style": "page",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Gem versions once pushed cannot be deleted, only yanked — agents must not push test or broken gems to rubygems.org",
+      "Yanked gems still appear in the versions list with `yanked: true`; agents resolving dependencies must filter them",
+      "The search endpoint uses a different base URL (/api/v1/search.json) and returns paginated results but with no cursor",
+      "Gem name lookup is exact-match only at /api/v1/gems/{name}.json — no fuzzy matching",
+      "Dependencies endpoint (/api/v1/dependencies) accepts a comma-separated list of gem names but has a hard limit on list length",
+      "API key is passed as a custom header (X-Rubygems-Api-Key), not Authorization — some HTTP clients need manual header setup"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": null,
+    "api_doc_score": 65,
+    "error_handling_score": 58,
+    "auth_complexity_score": 72,
+    "rate_limit_clarity_score": 45
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 62,
+    "scope_granularity": 35,
+    "dependency_hygiene": 75,
+    "secret_handling": 60,
+    "security_notes": "HTTPS enforced. API keys lack any scope or resource granularity — a stolen key can yank all gems owned by the account. MFA enforcement for gem pushes is supported but opt-in per gem. No OAuth flow. The custom header format (X-Rubygems-Api-Key) is non-standard."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 70,
+    "version_stability": 80,
+    "breaking_changes_history": 82,
+    "error_recovery": 55
+  },
+  "af_score": 55,
+  "fq_score": 66,
+  "score_rationale": "The RubyGems.org API is simple and free but minimal in agent-friendliness. Documentation is sparse, error messages are terse, there is no MCP server, and API keys lack any scope granularity. Read-only gem lookups work reliably; write operations (push/yank) carry permanent consequences that agents must handle carefully. Suitable for metadata lookups and dependency analysis; not recommended for automated publish workflows without significant safeguards.",
+  "score_version": "1.0",
+  "evaluated_at": "2026-03-02",
+  "evaluator": "claude-sonnet-4-6",
+  "confidence": "medium"
+}

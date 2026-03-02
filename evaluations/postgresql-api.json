@@ -1,0 +1,94 @@
+{
+  "id": "postgresql-api",
+  "name": "PostgreSQL",
+  "version_evaluated": "current",
+  "homepage": "https://www.postgresql.org",
+  "repo_url": "https://github.com/postgres/postgres",
+  "category": "database",
+  "subcategories": ["relational-database", "sql", "oltp", "analytics"],
+  "tags": ["postgresql", "postgres", "sql", "relational", "acid", "open-source", "psycopg2", "libpq", "asyncpg", "pg"],
+  "what_it_does": "The world's most advanced open source relational database, providing ACID-compliant transactional storage with rich SQL support, JSONB, full-text search, geospatial (PostGIS), and extensive extension ecosystem. Accessed via SQL drivers (libpq, psycopg2, asyncpg, node-postgres).",
+  "use_cases": [
+    "Primary application database for agents that need persistent, structured data storage",
+    "Complex query execution with joins, aggregations, CTEs, and window functions",
+    "Transactional operations where ACID guarantees are required",
+    "JSONB storage for semi-structured data alongside relational data",
+    "Full-text search, geospatial queries via PostGIS, and vector search via pgvector"
+  ],
+  "not_for": [
+    "Agents requiring a hosted REST API without infrastructure setup",
+    "Pure key-value or cache workloads (prefer Redis)",
+    "Extremely high write throughput across distributed nodes (prefer Cassandra)",
+    "Embedded/serverless environments with no persistent process (prefer SQLite)"
+  ],
+  "best_when": "An agent needs a reliable, full-featured relational database with complex query support, ACID transactions, and is running in an environment where a database server can be provisioned.",
+  "avoid_when": "You need a zero-infrastructure, file-based database, or your workload is purely key-value or document-oriented at massive scale.",
+  "alternatives": ["mysql-api", "sqlite-api", "cockroachdb-api", "supabase-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": true,
+    "mcp_server_url": "https://github.com/modelcontextprotocol/servers/tree/main/src/postgres",
+    "has_sdk": true,
+    "sdk_languages": ["python", "node", "go", "java", "ruby", "rust", "csharp", "php"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["password", "pg_hba.conf", "ssl_cert", "scram-sha-256", "iam_rds"],
+    "oauth": false,
+    "scopes": true,
+    "notes": "Authentication is handled at the driver level via connection strings (host, port, dbname, user, password). Fine-grained permissions via SQL GRANT statements. SSL/TLS enforced in cloud-managed variants (RDS, Cloud SQL, Supabase). SCRAM-SHA-256 is the modern default auth method. Role-based access control (RBAC) is native to PostgreSQL. No OAuth natively — IAM auth available via cloud wrappers (RDS IAM, AlloyDB)."
+  },
+  "pricing": {
+    "model": "open-source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free to self-host. Managed: Supabase free tier (500MB), Railway free tier, Neon free tier (512MB), ElephantSQL free (20MB).",
+    "paid_tiers": "Managed PostgreSQL: Supabase Pro from $25/mo, Neon from $19/mo, AWS RDS from ~$15/mo, Google Cloud SQL from ~$10/mo",
+    "requires_credit_card": false,
+    "notes": "PostgreSQL itself is free and open source under the PostgreSQL License. Costs come from hosting (compute, storage, bandwidth). Many managed providers offer generous free tiers suitable for agent development."
+  },
+  "performance": {
+    "latency_p50_ms": 2,
+    "latency_p99_ms": 20,
+    "uptime_sla_percent": 99.99,
+    "rate_limits": "No protocol-level rate limits; constrained by server hardware, connection pool size, and query complexity. Connection pools (PgBouncer) typically configured for 100-500 concurrent connections.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted-anywhere", "US", "EU", "APAC"],
+    "compliance": ["SOC2-via-managed", "HIPAA-via-managed", "GDPR-capable", "PCI-DSS-capable"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": 72,
+    "mcp_security_score": 68,
+    "documentation_accuracy": 90,
+    "error_message_quality": 78,
+    "error_message_notes": "PostgreSQL error messages include SQLSTATE codes, severity, and human-readable descriptions. Errors like 'duplicate key value violates unique constraint' are clear. However, error surfaces vary by driver — psycopg2 wraps them in Python exceptions with good context; raw libpq errors are more terse. Connection errors can be cryptic (e.g., FATAL: password authentication failed for user).",
+    "idempotency_support": "partial",
+    "idempotency_notes": "No built-in idempotency keys. Agents must implement idempotency at the SQL level using INSERT ... ON CONFLICT DO NOTHING/UPDATE, or application-level deduplication. Transactions provide atomicity. RETURNING clause helps confirm what was actually written.",
+    "pagination_style": "offset",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Connection pool exhaustion is a common agent failure mode — always use a connection pool (PgBouncer, pgpool) and set max_connections appropriately",
+      "Long-running transactions block autovacuum and cause table bloat — agents should keep transactions short",
+      "The MCP server grants full query access by default — scope permissions carefully with read-only roles for read-only agents",
+      "OFFSET-based pagination is slow on large tables — use keyset (cursor) pagination for large result sets",
+      "Prepared statement caching can cause 'cached plan must not change result type' errors on schema changes",
+      "SSL verification should be enforced in production — sslmode=require is not the same as sslmode=verify-full",
+      "asyncpg and psycopg3 have different connection string formats — don't mix them in multi-driver setups"
+    ]
+  },
+  "af_score": 74,
+  "fq_score": 88,
+  "score_rationale": "PostgreSQL is the gold standard relational database with excellent reliability, rich features, and strong driver ecosystem. Agent-friendliness is limited by the absence of a REST API (requires driver/SQL knowledge), no native idempotency keys, and infrastructure requirements. The official MCP server helps significantly for agentic use. High fq_score reflects its maturity, ACID compliance, and feature depth. Lower af_score reflects the operational complexity of self-hosting, SQL-only interface, and absence of native retry/idempotency primitives that REST APIs provide.",
+  "score_version": "1.0",
+  "evaluated_at": "2026-03-02",
+  "evaluator": "claude-sonnet-4-6",
+  "confidence": "high"
+}

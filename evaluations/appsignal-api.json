@@ -1,27 +1,27 @@
 {
   "id": "appsignal-api",
-  "name": "AppSignal",
+  "name": "AppSignal APM",
   "version_evaluated": "current",
   "homepage": "https://appsignal.com",
   "repo_url": "https://github.com/appsignal",
   "category": "developer-tools",
-  "subcategories": ["apm", "error-monitoring", "observability"],
-  "tags": ["ruby", "elixir", "node", "apm", "error-tracking", "performance", "logging", "monitoring"],
-  "what_it_does": "AppSignal is an all-in-one APM platform providing error monitoring, performance tracing, logging, and alerting for Ruby, Elixir, and Node.js applications via a unified REST API.",
+  "subcategories": ["apm", "error-monitoring", "observability", "logging"],
+  "tags": ["apm", "error-tracking", "performance-monitoring", "ruby", "elixir", "nodejs", "logging", "alerting", "dashboards"],
+  "what_it_does": "AppSignal is an APM and error monitoring platform purpose-built for Ruby, Elixir, and Node.js that collects errors, performance traces, custom metrics, and logs through a REST API and language-native agents.",
   "use_cases": [
-    "Query recent errors and exception backtraces in a Ruby app to diagnose production incidents",
-    "Retrieve performance metrics and slow transaction traces to identify bottlenecks in API endpoints",
-    "Fetch log lines from a specific time window to correlate errors with deployment events",
-    "Create and update anomaly detection triggers and alert thresholds programmatically for automated ops",
-    "Pull host and process metrics (CPU, memory, throughput) to feed into a custom observability dashboard"
+    "Querying recent error incidents for a specific app to triage production issues",
+    "Fetching performance metrics (throughput, response time, Apdex) for a time range to detect regressions",
+    "Pulling log streams for a deployment window to correlate errors with a release",
+    "Creating or updating alert triggers programmatically when deploying new services",
+    "Retrieving host-level metrics (CPU, memory, disk) to correlate infrastructure issues with application errors"
   ],
   "not_for": [
-    "Monitoring Python, Go, or Java applications — AppSignal has no official agents for those languages",
-    "Full distributed tracing across polyglot microservices — coverage is limited to supported runtimes",
-    "Log aggregation at petabyte scale — AppSignal logging is supplemental, not a Splunk/Loki replacement"
+    "Polyglot stacks — deep instrumentation is limited to Ruby, Elixir, and Node.js (other languages lack native agents)",
+    "Full-stack distributed tracing across many microservices (Datadog or Jaeger is more capable at that scale)",
+    "Real user monitoring (RUM) or front-end JavaScript performance tracking"
   ],
-  "best_when": "Your stack is primarily Ruby on Rails, Phoenix/Elixir, or Node.js and you want error monitoring, APM, and basic logging from a single low-overhead vendor.",
-  "avoid_when": "Your services are primarily Go, Python, Java, or .NET, or you need deep distributed tracing with OpenTelemetry-native tooling across many languages.",
+  "best_when": "The stack is primarily Ruby on Rails, Phoenix, or Node.js and the team wants a low-configuration, all-in-one APM with errors, traces, logs, and metrics in one place.",
+  "avoid_when": "The application is written in Go, Java, Python, or another language not supported by AppSignal's native agents, or the team requires a self-hosted APM solution.",
   "alternatives": ["datadog-api", "new-relic-api", "sentry-api", "honeybadger-api"],
   "interface": {
     "has_rest_api": true,
@@ -38,28 +38,28 @@
     "methods": ["api_key"],
     "oauth": false,
     "scopes": false,
-    "notes": "API key is scoped per app or per organisation token; passed as a query param or Authorization header depending on endpoint."
+    "notes": "API authentication uses a personal API token passed as a query parameter (?token=) or Authorization header. App-level push API keys are used by language agents for data ingestion. No OAuth or fine-grained scopes."
   },
   "pricing": {
     "model": "freemium",
     "free_tier_exists": true,
-    "free_tier_limits": "1 app, limited error and performance data retention",
-    "paid_tiers": "Starter ~$18/mo; Growth and Business tiers scale by host count and data volume",
+    "free_tier_limits": "Free trial available; free tier limited to 1 app with limited retention and alerting",
+    "paid_tiers": "Plans start around $18/month per app, scaling with host count and data retention",
     "requires_credit_card": false,
-    "notes": "Pricing is per app/host combination; self-hosted option is not available — SaaS only."
+    "notes": "Pricing is per app per month. Higher tiers unlock longer retention, more hosts, and advanced features like anomaly detection."
   },
   "performance": {
-    "latency_p50_ms": 120,
+    "latency_p50_ms": 150,
     "latency_p99_ms": 600,
-    "uptime_sla_percent": 99.5,
-    "rate_limits": "Not publicly documented; practical limits observed around 100 req/min per token",
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "Not publicly documented; practical limits apply to data ingestion endpoints",
     "data_source": "llm_estimated"
   },
   "requirements": {
     "requires_signup": true,
     "requires_credit_card": false,
     "domain_verification": false,
-    "data_residency": ["EU", "US"],
+    "data_residency": ["EU"],
     "compliance": ["GDPR"],
     "min_contract": "none"
   },
@@ -68,38 +68,38 @@
     "mcp_security_score": null,
     "documentation_accuracy": 75,
     "error_message_quality": 72,
-    "error_message_notes": "API errors return JSON with a message field but HTTP status codes are sometimes inconsistently applied (e.g., 200 with error body).",
+    "error_message_notes": "REST API errors return JSON with a message field but HTTP status codes are the primary signal; some error responses lack actionable detail for automated retry logic.",
     "idempotency_support": "partial",
-    "idempotency_notes": "Read endpoints are fully idempotent; write endpoints (alerts, markers) lack idempotency keys so retries can create duplicates.",
-    "pagination_style": "page_number",
+    "idempotency_notes": "Read endpoints are idempotent. Write endpoints (markers, alerts) do not provide idempotency keys.",
+    "pagination_style": "offset",
     "retry_guidance_documented": false,
     "known_agent_gotchas": [
-      "API key scope differs between app-level and org-level tokens — using the wrong one silently returns empty results rather than an auth error",
-      "Timestamps in responses use Unix epoch integers, not ISO 8601 — agents must convert before display or comparison",
-      "Rate limits are not returned in response headers, so agents cannot implement proactive backoff",
-      "Some endpoints require the internal numeric app ID, not the app slug shown in the UI — discovery requires a separate listing call",
-      "Webhook payloads are unsigned; agents ingesting webhooks cannot verify authenticity without network-level controls"
+      "API token is passed as a query parameter in many examples, which risks token leakage in server logs",
+      "The REST API for reading data (errors, metrics) is separate and less documented than the data ingestion (push) API",
+      "App identifier (app_id) must be obtained through the dashboard before making most API calls — no discovery endpoint",
+      "Time ranges in queries use Unix timestamps and timezone handling is not clearly documented",
+      "Rate limit headers are not consistently returned, making adaptive throttling difficult for agents"
     ]
   },
   "af_score_components": {
     "mcp_score": 0,
-    "api_doc_score": 75,
-    "error_handling_score": 72,
+    "api_doc_score": 72,
+    "error_handling_score": 70,
     "auth_complexity_score": 78,
     "rate_limit_clarity_score": 55
   },
   "security_score_components": {
     "tls_enforcement": 100,
-    "auth_strength": 75,
-    "scope_granularity": 60,
+    "auth_strength": 72,
+    "scope_granularity": 50,
     "dependency_hygiene": 78,
-    "secret_handling": 75,
-    "security_notes": "API keys have no expiry mechanism by default; no IP allowlist for API access; GDPR-compliant EU data residency available."
+    "secret_handling": 65,
+    "security_notes": "API token passed as query parameter is a security concern. No OAuth, no fine-grained scopes. TLS enforced on all endpoints."
   },
   "reliability_score_components": {
-    "uptime_documented": 70,
-    "version_stability": 75,
-    "breaking_changes_history": 72,
-    "error_recovery": 70
+    "uptime_documented": 78,
+    "version_stability": 80,
+    "breaking_changes_history": 78,
+    "error_recovery": 72
   }
 }

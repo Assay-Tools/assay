@@ -1,0 +1,113 @@
+{
+  "id": "cargo-crates-api",
+  "name": "Crates.io API",
+  "version_evaluated": "current",
+  "homepage": "https://crates.io",
+  "repo_url": "https://github.com/rust-lang/crates.io",
+  "category": "developer-tools",
+  "subcategories": ["package-registry", "dependency-management", "rust"],
+  "tags": ["rust", "cargo", "crates", "package-registry", "rest-api", "dependencies", "open-source"],
+  "what_it_does": "The Crates.io API provides access to the official Rust package registry, enabling agents to search crates, retrieve package metadata, list versions, inspect dependencies, fetch download statistics, and look up documentation links. It is the canonical source of truth for Rust ecosystem packages.",
+  "use_cases": [
+    "Resolving Rust crate metadata and available versions for Cargo.toml generation",
+    "Checking latest stable version of a crate for automated dependency updates",
+    "Searching crates by keyword or category to discover libraries for a given use case",
+    "Fetching dependency graphs for security audit or license compliance analysis",
+    "Monitoring download trends to assess crate popularity and maintenance activity"
+  ],
+  "not_for": [
+    "Actual crate compilation or Cargo workspace operations (use Cargo CLI)",
+    "Non-Rust package ecosystems",
+    "Private crate hosting (Crates.io is public-only; use Cloudsmith or Artifactory for private)"
+  ],
+  "best_when": "An agent needs to inspect, search, or audit Rust crates as part of a dependency management, code generation, or security analysis workflow.",
+  "avoid_when": "You need private crate hosting, or you need to compile/run Rust code (this API is metadata-only).",
+  "alternatives": ["jfrog-artifactory-api", "cloudsmith-api", "github-packages-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": false,
+    "sdk_languages": [],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["api_key"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Read operations are unauthenticated. Publishing crates and managing ownership require an API token generated via crates.io account settings. The User-Agent header is required on all requests per Crates.io policy — requests without it are rejected. Tokens have no scope granularity; a single token can publish any crate owned by the account."
+  },
+  "pricing": {
+    "model": "free",
+    "free_tier_exists": true,
+    "free_tier_limits": "Fully free for all public crate reads and publishes",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Crates.io is a community service run by the Rust Foundation. There are no paid tiers. Rate limits are enforced to protect the service."
+  },
+  "performance": {
+    "latency_p50_ms": 100,
+    "latency_p99_ms": 500,
+    "uptime_sla_percent": 99.5,
+    "rate_limits": "1 request/second sustained for unauthenticated; burst allowed. Crawlers and bulk downloads are rate-limited more aggressively. Static assets (crate downloads) served via CDN.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["US"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 68,
+    "error_message_quality": 60,
+    "error_message_notes": "Errors are returned as JSON with an `errors` array containing `detail` strings. Messages are human-readable but terse. Rate limit responses include a Retry-After header but no structured code. Documentation on error conditions is incomplete.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "GET operations are fully idempotent. Crate publishing is idempotent only if the exact same version doesn't already exist (conflict returns 422). Ownership changes are idempotent.",
+    "pagination_style": "page",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "User-Agent header is mandatory — omitting it returns 403 and is a common agent failure mode",
+      "Crate versions, once published, cannot be deleted (only yanked) — agents must not publish test builds to crates.io",
+      "The search API has a maximum of 100 results per query; no cursor-based deep pagination available",
+      "Yanked versions still appear in version lists but have `yanked: true` — agents must filter these for dependency resolution",
+      "Download URLs for .crate tarballs are separate from the API domain (static.crates.io); plan for two distinct hostnames",
+      "Rate limiting for bulk metadata scraping is aggressively enforced; agents doing mass crate analysis should use the database dump instead"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": null,
+    "api_doc_score": 68,
+    "error_handling_score": 60,
+    "auth_complexity_score": 75,
+    "rate_limit_clarity_score": 50
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 65,
+    "scope_granularity": 40,
+    "dependency_hygiene": 80,
+    "secret_handling": 65,
+    "security_notes": "HTTPS enforced on all endpoints. API tokens lack scope granularity — a token grants full publish rights for all owned crates. No fine-grained permissions. The mandatory User-Agent policy provides minimal abuse deterrence. Crate publishing history is immutable (can only yank, not delete), which is a security feature against supply chain attacks."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 70,
+    "version_stability": 82,
+    "breaking_changes_history": 85,
+    "error_recovery": 58
+  },
+  "af_score": 58,
+  "fq_score": 68,
+  "score_rationale": "The Crates.io API is functional and free but lightly documented and lacking agent-friendly features. The mandatory User-Agent header requirement is a common gotcha. No MCP server, no OpenAPI spec, and no scope-granular tokens limit its agent readiness. Best used for read-only metadata lookups; extreme caution required for publish operations since versions cannot be removed. The database dump is the better choice for bulk analysis.",
+  "score_version": "1.0",
+  "evaluated_at": "2026-03-02",
+  "evaluator": "claude-sonnet-4-6",
+  "confidence": "medium"
+}

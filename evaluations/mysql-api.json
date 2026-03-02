@@ -1,0 +1,94 @@
+{
+  "id": "mysql-api",
+  "name": "MySQL / MariaDB",
+  "version_evaluated": "current",
+  "homepage": "https://www.mysql.com",
+  "repo_url": "https://github.com/mysql/mysql-server",
+  "category": "database",
+  "subcategories": ["relational-database", "sql", "oltp"],
+  "tags": ["mysql", "mariadb", "sql", "relational", "acid", "open-source", "mysql2", "mysqlclient", "lamp-stack"],
+  "what_it_does": "One of the world's most widely deployed open source relational database management systems, offering ACID-compliant transactions, robust SQL support, replication, and a massive ecosystem. Accessed via SQL drivers (mysql2 for Node, mysqlclient/PyMySQL for Python, MySQL Connector for Java). MariaDB is a community fork with additional features and performance improvements.",
+  "use_cases": [
+    "Primary relational datastore for web applications and agent backends",
+    "Read-heavy workloads with replica routing",
+    "CMS and e-commerce backends (WordPress, Magento) that agents interact with",
+    "Transactional operations requiring InnoDB ACID guarantees",
+    "Multi-tenant SaaS applications with per-tenant schema isolation"
+  ],
+  "not_for": [
+    "Complex analytical queries requiring advanced window functions or CTEs (PostgreSQL excels here)",
+    "Document or graph workloads",
+    "High-cardinality time-series data",
+    "Agents needing a REST API without infrastructure setup"
+  ],
+  "best_when": "An agent is working with an existing MySQL-based application stack (LAMP, LEMP) or needs a widely supported, battle-tested relational database with broad hosting provider support.",
+  "avoid_when": "You need advanced SQL features (recursive CTEs, lateral joins, full JSON support), complex geospatial queries, or a database with stronger standards compliance.",
+  "alternatives": ["postgresql-api", "sqlite-api", "cockroachdb-api", "mariadb-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": true,
+    "mcp_server_url": "https://github.com/designcomputer/mysql_mcp_server",
+    "has_sdk": true,
+    "sdk_languages": ["python", "node", "java", "go", "ruby", "php", "csharp", "rust"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["password", "ssl_cert", "mysql_native_password", "caching_sha2_password", "iam_rds"],
+    "oauth": false,
+    "scopes": true,
+    "notes": "Authentication via connection string (host, port, database, user, password). MySQL 8.0+ defaults to caching_sha2_password which some older drivers don't support — a common gotcha for agents. Fine-grained permissions via GRANT statements. SSL available but not always enforced by default in self-hosted deployments. AWS RDS MySQL supports IAM database authentication."
+  },
+  "pricing": {
+    "model": "open-source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free to self-host (MySQL Community Edition, MariaDB). Managed: PlanetScale free tier (5GB), Railway free tier, AWS RDS free tier (750 hrs/mo t2.micro for 12 months).",
+    "paid_tiers": "MySQL Enterprise from Oracle (pricing on request). Managed: PlanetScale from $29/mo, AWS RDS from ~$15/mo, Google Cloud SQL from ~$10/mo",
+    "requires_credit_card": false,
+    "notes": "MySQL Community Edition and MariaDB are free. MySQL Enterprise includes advanced features (audit, thread pool, enterprise backup) but targets commercial users. PlanetScale (built on Vitess) is a popular serverless MySQL platform."
+  },
+  "performance": {
+    "latency_p50_ms": 2,
+    "latency_p99_ms": 25,
+    "uptime_sla_percent": 99.95,
+    "rate_limits": "No protocol-level rate limits. Constrained by max_connections (default 151), innodb_buffer_pool_size, and hardware. Connection pooling (ProxySQL, MySQL Router) recommended for agent workloads.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted-anywhere", "US", "EU", "APAC"],
+    "compliance": ["SOC2-via-managed", "HIPAA-via-managed", "GDPR-capable", "PCI-DSS-capable"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": 60,
+    "mcp_security_score": 62,
+    "documentation_accuracy": 82,
+    "error_message_quality": 72,
+    "error_message_notes": "MySQL error messages include error codes (e.g., ERROR 1062: Duplicate entry) which are well-documented. Messages are generally readable but sometimes terse. SQLSTATE codes are supported. Driver-level error handling varies — mysql2 (Node) provides good structured errors; mysqlclient (Python) is more raw. Error 2003 (Can't connect) is notoriously uninformative about the root cause.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "No built-in idempotency. Agents must use INSERT IGNORE, INSERT ... ON DUPLICATE KEY UPDATE, or application-level deduplication. Transactions provide atomicity. LAST_INSERT_ID() helps track inserts. PlanetScale's branching model adds schema change safety.",
+    "pagination_style": "offset",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "MySQL 8.0 changed default auth to caching_sha2_password — many older drivers/ORMs fail to connect until configured with mysql_native_password",
+      "STRICT_TRANS_TABLES mode (default in 5.7+) rejects invalid data that older versions silently truncated — agent-generated data may fail validation",
+      "max_connections default of 151 is very low for multi-agent workloads — always configure connection pooling",
+      "MyISAM tables (still found in legacy databases) lack transactions and foreign keys — verify InnoDB is used",
+      "MySQL BIGINT AUTO_INCREMENT wraps at 2^63 — agents doing bulk inserts should monitor ID exhaustion",
+      "Character set issues: ensure utf8mb4 not utf8 is used (MySQL's 'utf8' is actually 3-byte and mangles emoji)",
+      "No community MCP server with broad adoption — third-party MCP servers have inconsistent quality and security"
+    ]
+  },
+  "af_score": 66,
+  "fq_score": 79,
+  "score_rationale": "MySQL is battle-tested and ubiquitous but trails PostgreSQL in SQL standards compliance and advanced features. Agent-friendliness suffers from the same SQL-only interface constraints as PostgreSQL, with additional gotchas around auth changes in MySQL 8.0, character set foot-guns, and a weaker MCP server ecosystem. MariaDB partially addresses some MySQL limitations. The broad managed hosting support and extensive documentation keep scores reasonable. fq_score is lower than PostgreSQL due to weaker advanced SQL support and historical quirks that agents must work around.",
+  "score_version": "1.0",
+  "evaluated_at": "2026-03-02",
+  "evaluator": "claude-sonnet-4-6",
+  "confidence": "high"
+}
