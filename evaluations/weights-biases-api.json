@@ -1,0 +1,105 @@
+{
+  "id": "weights-biases-api",
+  "name": "Weights & Biases API",
+  "version_evaluated": "current",
+  "homepage": "https://wandb.ai",
+  "repo_url": null,
+  "category": "infrastructure",
+  "subcategories": ["ml-ops", "experiment-tracking", "artifact-registry", "model-monitoring"],
+  "tags": ["ml", "experiment-tracking", "hyperparameter-tuning", "model-registry", "mlops", "sweeps"],
+  "what_it_does": "Tracks ML experiments, manages model artifacts and registries, and provides monitoring for model training runs via REST API and Python SDK.",
+  "use_cases": [
+    "Log training metrics and hyperparameters from automated ML pipelines without human intervention",
+    "Pull experiment results via REST API to compare runs and select the best-performing model checkpoint",
+    "Trigger downstream workflows via webhooks when a training run completes or a model artifact is published",
+    "Manage artifact versions in a model registry to promote models from staging to production programmatically",
+    "Run hyperparameter sweeps (W&B Sweeps) coordinated by an agent across distributed training jobs"
+  ],
+  "not_for": [
+    "Serving or hosting ML models for inference (use a dedicated inference platform)",
+    "General-purpose data storage or database workloads outside of ML artifacts",
+    "Real-time low-latency event streaming or observability for non-ML applications"
+  ],
+  "best_when": "Best when an AI agent needs to orchestrate and monitor long-running ML training pipelines and must programmatically compare runs, retrieve artifacts, or trigger downstream actions on completion.",
+  "avoid_when": "Avoid when you only need simple file storage for model weights with no experiment metadata — S3 or GCS is cheaper and simpler.",
+  "alternatives": ["mlflow-api", "neptune-api", "comet-ml-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": true,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "javascript", "r"],
+    "openapi_spec_url": null,
+    "webhooks": true
+  },
+  "auth": {
+    "methods": ["api_key"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Single API key per user; key is passed via WANDB_API_KEY environment variable or wandb.login(). Team/org workspaces are accessed via the same key scoped to the entity. No fine-grained scopes — the key has full account access."
+  },
+  "pricing": {
+    "model": "freemium",
+    "free_tier_exists": true,
+    "free_tier_limits": "Unlimited tracked experiments for personal use; 100 GB artifact storage free; limited team seats and private projects",
+    "paid_tiers": "Team plan from ~$50/user/month; Enterprise pricing available with SSO, audit logs, and dedicated support",
+    "requires_credit_card": false,
+    "notes": "Free tier is generous for individual and research use. Storage overages are billed. Artifact storage beyond free tier is ~$0.08/GB/month."
+  },
+  "performance": {
+    "latency_p50_ms": 300,
+    "latency_p99_ms": 1500,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "REST API rate limits not publicly documented; SDK batches metric logs internally. GraphQL API subject to undocumented per-org limits. Sweeps agents poll on ~5s intervals.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["US"],
+    "compliance": ["SOC2"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 83,
+    "error_message_quality": 78,
+    "error_message_notes": "SDK exceptions are descriptive but HTTP error bodies from the REST/GraphQL API are often minimal JSON with a generic message field. Agents need to handle HTTP 429 and 5xx with exponential backoff as the SDK does not always do this transparently.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Run creation is idempotent if you pass a fixed run ID (id= parameter). Artifact logging is append-only; re-logging the same artifact version creates a new version rather than overwriting. Metric logging is always append-only.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "API key has full account scope — leaking it in logs or environment dumps exposes all projects and artifacts with no way to limit blast radius",
+      "wandb.finish() must be called explicitly at the end of a run; if an agent crashes without calling it, the run stays in 'running' state and must be manually killed via the UI or API",
+      "Artifact download URLs are pre-signed S3/GCS URLs with short expiry (~1 hour); agents caching these URLs will get 403 errors on subsequent requests",
+      "The public REST API is underdocumented — most programmatic access relies on the Python SDK internals or the GraphQL API, which can change between SDK releases without a formal versioning guarantee",
+      "Sweeps controller runs locally or in the cloud but requires a persistent process; if the sweep agent process dies, in-flight runs are orphaned and must be manually stopped"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 78,
+    "error_handling_score": 76,
+    "auth_complexity_score": 85,
+    "rate_limit_clarity_score": 65
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 72,
+    "scope_granularity": 55,
+    "dependency_hygiene": 80,
+    "secret_handling": 75,
+    "security_notes": "API key provides full account access with no scoping — a significant risk for automated agents. No IP allowlisting on free/team tiers. Artifact access URLs are pre-signed and time-limited, which is good. SOC2 Type II certified."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 80,
+    "version_stability": 78,
+    "breaking_changes_history": 75,
+    "error_recovery": 78
+  }
+}
