@@ -1,98 +1,105 @@
 {
   "id": "supabase-api",
-  "name": "Supabase REST API",
+  "name": "Supabase",
   "version_evaluated": "current",
   "homepage": "https://supabase.com",
   "repo_url": "https://github.com/supabase/supabase",
   "category": "database",
-  "subcategories": ["postgres", "backend-as-a-service", "rest-api", "realtime", "auth"],
-  "tags": ["supabase", "postgres", "rest-api", "postgrest", "realtime", "auth", "storage", "edge-functions", "open-source", "management-api", "mcp-server"],
-  "what_it_does": "Supabase is an open-source Firebase alternative built on PostgreSQL that auto-generates a RESTful API (via PostgREST) from your database schema. Every table and view immediately gets CRUD endpoints at your-project.supabase.co/rest/v1/. Supabase also provides a Management API for provisioning and managing projects programmatically, a Realtime API for subscribing to database changes, an Auth service (JWT-based), and an official MCP server for AI agent integration. The platform combines multiple services — database, auth, storage, edge functions, and realtime — behind a single project interface, making it particularly powerful for agents that need to manage the full application stack.",
+  "subcategories": ["baas", "postgres", "auth", "realtime", "storage"],
+  "tags": ["supabase", "postgres", "baas", "realtime", "auth", "storage", "open-source"],
+  "what_it_does": "Open-source Firebase alternative providing Postgres database, authentication, realtime subscriptions, object storage, and edge functions as a unified backend platform.",
   "use_cases": [
-    "Auto-generated REST CRUD API over PostgreSQL tables without writing any backend code",
-    "Agent-driven schema changes using the Supabase Management API (create tables, add columns, run migrations)",
-    "Real-time data subscriptions for agents monitoring live database changes via WebSocket",
-    "User authentication and session management using Supabase Auth with JWT verification",
-    "File storage operations via Supabase Storage with auto-generated signed URLs",
-    "Multi-project provisioning for multi-tenant SaaS using the Management API"
+    "Full backend for AI agent apps: Postgres DB + auth + storage + realtime in one platform",
+    "Vector search for RAG systems using pgvector extension in Supabase Postgres",
+    "User authentication and session management with Row Level Security for multi-tenant agents",
+    "Realtime event subscriptions for agents to react to database changes via Postgres CDC",
+    "File storage with automatic image transforms and CDN delivery via Supabase Storage"
   ],
   "not_for": [
-    "Non-Supabase PostgreSQL databases (use direct pg drivers or PostgREST self-hosted instead)",
-    "Extremely high-throughput OLAP analytics (Supabase PostgreSQL is OLTP-optimized)",
-    "Teams requiring on-premise deployment without cloud connectivity",
-    "Applications needing sub-10ms latency without read replicas (Supabase has geo-routing but single region by default)"
+    "Applications requiring databases other than Postgres",
+    "Workloads needing more than 500MB database on free tier without upgrading",
+    "Teams needing multi-region active-active database replication"
   ],
-  "best_when": "You want a complete backend platform (database + auth + storage + realtime + API) on top of PostgreSQL, with excellent developer tooling, an auto-generated REST API, and MCP server support for AI agent workflows.",
-  "avoid_when": "You only need a PostgreSQL database without the platform features, or you're running on-premise without cloud access.",
-  "alternatives": [
-    {"id": "neon-api", "reason": "Neon is better for branching-focused workflows; Supabase has the richer full-stack platform"},
-    {"id": "supabase-mcp", "reason": "The MCP server variant — prefer supabase-api for REST API automation, supabase-mcp for agent chat integration"},
-    {"id": "planetscale-api", "reason": "PlanetScale offers similar branching but is MySQL-only and lacks the full platform features"}
-  ],
+  "best_when": "Building full-stack AI applications that need a complete backend (auth + DB + storage + realtime) with Postgres flexibility and open-source self-hosting option.",
+  "avoid_when": "You only need a simple key-value store, or you require a proprietary DB like MongoDB or DynamoDB.",
+  "alternatives": ["firebase-api", "neon-database-api", "planetscale-api", "appwrite-api"],
   "interface": {
     "has_rest_api": true,
-    "has_graphql": true,
+    "has_graphql": false,
     "has_grpc": false,
     "has_mcp_server": true,
     "mcp_server_url": "https://github.com/supabase-community/supabase-mcp",
     "has_sdk": true,
-    "sdk_languages": ["javascript", "typescript", "python", "dart", "swift", "kotlin", "go"],
-    "openapi_spec_url": "https://api.supabase.com/api/v1",
+    "sdk_languages": ["javascript", "typescript", "python", "dart", "swift", "kotlin", "c_sharp"],
+    "openapi_spec_url": null,
     "webhooks": true
   },
   "auth": {
-    "methods": ["api_key", "bearer_token", "jwt"],
+    "methods": ["api_key", "jwt"],
     "oauth": false,
-    "scopes": true,
-    "notes": "Three credential tiers: (1) anon key — public key for client-side use, respects Row Level Security policies; (2) service_role key — bypasses RLS, full database access, treat like root credentials; (3) Personal Access Token (PAT) for Management API. PostgREST auto-generates API with RLS enforcement when anon key is used. Agents using service_role key have unrestricted access — critical security consideration."
+    "scopes": false,
+    "notes": "anon key (public, RLS-limited) vs service_role key (bypass RLS — never expose to clients). JWT tokens issued for authenticated users. supabase-js handles token refresh automatically."
   },
   "pricing": {
     "model": "freemium",
     "free_tier_exists": true,
-    "free_tier_limits": "Free: 500MB database, 1GB storage, 50,000 monthly active users, 500K edge function invocations, 2 projects",
-    "paid_tiers": "Pro $25/project/month (8GB database, 100GB storage, 100K MAU), Team $599/month (unlimited projects, HIPAA), Enterprise custom",
+    "free_tier_limits": "2 free projects, 500MB DB, 1GB storage, 50MB file size, 2 concurrent active projects",
+    "paid_tiers": "Pro: $25/month (8GB DB, 100GB storage); Team: $599/month; Enterprise: custom",
     "requires_credit_card": false,
-    "notes": "Free tier projects are paused after 1 week of inactivity — first request after pause has a cold start delay. Pro plan needed for production workloads. Database branching requires Pro plan. Point-in-time recovery available on Pro and above."
+    "notes": "Free projects pause after 1 week of inactivity. Pro includes daily backups and no pausing. Additional compute add-ons available."
   },
   "performance": {
     "latency_p50_ms": 30,
-    "latency_p99_ms": 200,
+    "latency_p99_ms": 300,
     "uptime_sla_percent": 99.9,
-    "rate_limits": "PostgREST API: configurable via max_rows setting. Management API: not publicly documented. Realtime: concurrent connections limited by plan.",
+    "rate_limits": "Free: 500 requests/second; Pro: 1000 RPS; higher with add-ons",
     "data_source": "llm_estimated"
   },
   "requirements": {
     "requires_signup": true,
     "requires_credit_card": false,
     "domain_verification": false,
-    "data_residency": ["US-East", "US-West", "EU-West", "EU-Central", "AP-Southeast", "AP-Northeast"],
-    "compliance": ["SOC2", "GDPR", "HIPAA"],
+    "data_residency": ["US", "EU", "AP", "multiple_regions"],
+    "compliance": ["SOC2", "HIPAA_eligible_paid"],
     "min_contract": "none"
   },
   "agent_readiness": {
-    "mcp_server_quality": 84,
-    "mcp_security_score": 80,
-    "documentation_accuracy": 88,
-    "error_message_quality": 84,
-    "error_message_notes": "PostgREST layer returns structured JSON error responses with code, message, details, and hint fields — very agent-friendly. SQL errors include PostgreSQL error codes. The Management API returns standard HTTP errors with descriptive messages. MCP server surfaces both API and SQL errors with clear context.",
-    "idempotency_support": "full",
-    "idempotency_notes": "PostgreSQL ON CONFLICT DO NOTHING/UPDATE provides true upsert semantics. PostgREST supports Prefer: resolution=merge-duplicates and ignore-duplicates headers for idempotent writes. Migrations are tracked via schema_migrations table with timestamps. Management API project creation is not idempotent by name.",
+    "mcp_server_quality": 75,
+    "mcp_security_score": 70,
+    "documentation_accuracy": 87,
+    "error_message_quality": 85,
+    "error_message_notes": "PostgREST errors return JSON with message and details; auth errors well-structured with AuthError type",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Upsert operations idempotent with onConflict parameter; regular inserts not idempotent",
     "pagination_style": "offset",
     "retry_guidance_documented": true,
     "known_agent_gotchas": [
-      "Free tier projects pause after 1 week of inactivity — first request after pause triggers a 5-30 second cold start with 503 errors before resuming",
-      "service_role key bypasses ALL Row Level Security policies — agents using it have unrestricted read/write to all tables; use anon key with RLS for least-privilege agent access",
-      "PostgREST auto-generated API requires schema cache refresh (via NOTIFY pgrst, reload) when new tables are added — MCP server and API may return 404 for new tables until cache reloads",
-      "GraphQL API (pg_graphql extension) uses a separate endpoint (/graphql/v1) and requires understanding of the auto-generated schema",
-      "Storage file URLs are signed and expire — agents must handle URL refresh when working with stored files",
-      "Realtime subscriptions require explicit enable_realtime() and proper RLS policies — tables not enabled for realtime won't broadcast changes",
-      "Edge functions run on Deno, not Node.js — npm packages not directly compatible; use deno-compatible imports or esm.sh",
-      "Management API requires separate Personal Access Token from project API keys — different credential for infrastructure vs data plane"
-    ],
-    "error_message_score": 84,
-    "auth_complexity_score": 80,
-    "rate_limit_score": 76,
-    "security_score": 82
+      "service_role key bypasses ALL RLS policies — using it client-side exposes your entire database; strictly server-side only",
+      "Free projects pause after 1 week inactivity — agents hitting paused project get 503; must un-pause in dashboard",
+      "Realtime CDC requires REPLICA IDENTITY FULL on tables for old record values in UPDATE events",
+      "supabase-js v1 to v2 migration was breaking — check client version in dependencies before using v2 docs",
+      "Row Level Security must be explicitly enabled per table — new tables default to no RLS (full access with anon key)"
+    ]
   },
-  "last_evaluated": "2026-03-01"
+  "af_score_components": {
+    "mcp_score": 75,
+    "api_doc_score": 87,
+    "error_handling_score": 85,
+    "auth_complexity_score": 80,
+    "rate_limit_clarity_score": 83
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 85,
+    "scope_granularity": 80,
+    "dependency_hygiene": 85,
+    "secret_handling": 82,
+    "security_notes": "RLS is the primary security model — must be enabled per table. service_role key must never leave server. JWT secret rotation requires re-issuing all tokens."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 87,
+    "version_stability": 83,
+    "breaking_changes_history": 78,
+    "error_recovery": 85
+  }
 }

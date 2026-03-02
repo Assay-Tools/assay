@@ -2,28 +2,27 @@
   "id": "vercel-api",
   "name": "Vercel API",
   "version_evaluated": "current",
-  "homepage": "https://vercel.com/docs/rest-api",
+  "homepage": "https://vercel.com",
   "repo_url": null,
-  "category": "developer-tools",
-  "subcategories": ["deployment", "hosting", "serverless", "cdn"],
-  "tags": ["vercel", "deployment", "serverless", "hosting", "cdn", "rest-api", "frontend", "nextjs"],
-  "what_it_does": "Vercel's REST API for programmatically managing deployments, projects, domains, environment variables, and team settings on the Vercel platform.",
+  "category": "infrastructure",
+  "subcategories": ["hosting", "serverless", "edge-functions", "cdn"],
+  "tags": ["vercel", "nextjs", "edge-functions", "serverless", "cdn", "jamstack"],
+  "what_it_does": "Frontend cloud platform with git-based deployments, edge network, serverless functions, and native Next.js integration for deploying web apps globally.",
   "use_cases": [
-    "Automating deployments from CI/CD pipelines via agents",
-    "Managing environment variables across projects and environments",
-    "Monitoring deployment status and build logs from agents",
-    "Provisioning new Vercel projects programmatically",
-    "Managing custom domains and SSL certificates via automation"
+    "Deploying Next.js applications with zero-config automatic optimization and edge distribution",
+    "Running AI-powered edge functions close to users for low-latency inference routing",
+    "Managing deployments programmatically via API (create, promote, rollback)",
+    "Setting and managing environment variables and project configs via API in CI/CD",
+    "Preview deployments per PR branch for automated testing in agent workflows"
   ],
   "not_for": [
-    "Backend-heavy applications needing persistent servers",
-    "Teams not deploying frontend/serverless workloads",
-    "Long-running compute jobs (Vercel has execution time limits)",
-    "Self-hosted infrastructure requirements"
+    "Long-running backend services (max 30s serverless timeout on Pro, 60s on Enterprise)",
+    "GPU workloads or stateful applications needing persistent compute",
+    "Cost-sensitive workloads — Vercel can get expensive at scale vs self-hosted alternatives"
   ],
-  "best_when": "An agent needs to manage Vercel deployments, environment variables, or project configuration as part of a DevOps or CI/CD workflow.",
-  "avoid_when": "You need persistent server processes, GPU compute, or are deploying non-JS/non-frontend workloads.",
-  "alternatives": ["netlify-api", "flyio-api", "digitalocean-api"],
+  "best_when": "Building Next.js or React apps needing best-in-class developer experience, edge SSR, and tight GitHub integration.",
+  "avoid_when": "You need more than 60 seconds of execution time, stateful servers, or are cost-optimizing at high traffic volumes.",
+  "alternatives": ["netlify-api", "cloudflare-workers-api", "railway-api", "render-api"],
   "interface": {
     "has_rest_api": true,
     "has_graphql": false,
@@ -31,59 +30,76 @@
     "has_mcp_server": false,
     "mcp_server_url": null,
     "has_sdk": true,
-    "sdk_languages": ["javascript", "typescript"],
-    "openapi_spec_url": "https://openapi.vercel.sh",
+    "sdk_languages": ["node", "typescript"],
+    "openapi_spec_url": "https://vercel.com/docs/rest-api",
     "webhooks": true
   },
   "auth": {
     "methods": ["api_key", "oauth2"],
     "oauth": true,
     "scopes": true,
-    "notes": "Personal access tokens for single-account use. OAuth2 for integrations needing multi-user access. Tokens are team-scoped. Very straightforward for agent use with PATs."
+    "notes": "Access tokens (personal) or OAuth2 tokens for integrations. Tokens scoped to team or user. Deploy tokens available for CI/CD with limited scope."
   },
   "pricing": {
     "model": "freemium",
     "free_tier_exists": true,
-    "free_tier_limits": "Hobby tier: unlimited deployments, 100GB bandwidth/month",
-    "paid_tiers": "Pro $20/user/month, Enterprise custom",
+    "free_tier_limits": "Hobby: 100GB bandwidth, 100K function invocations/day, 6000 build minutes/month",
+    "paid_tiers": "Pro: $20/month/member; Enterprise: custom. Function duration limits increase with tier.",
     "requires_credit_card": false,
-    "notes": "Free Hobby tier has generous limits for personal projects. Pro required for team features. Commercial use requires Pro or Enterprise."
+    "notes": "Bandwidth and function invocations are primary cost drivers at scale. Edge function pricing is separate from serverless function pricing."
   },
   "performance": {
-    "latency_p50_ms": 120,
-    "latency_p99_ms": 500,
+    "latency_p50_ms": 20,
+    "latency_p99_ms": 150,
     "uptime_sla_percent": 99.99,
-    "rate_limits": "3,000 requests/minute for most endpoints",
+    "rate_limits": "API: 3000 requests/minute; deployments: varies by plan",
     "data_source": "llm_estimated"
   },
   "requirements": {
     "requires_signup": true,
     "requires_credit_card": false,
     "domain_verification": false,
-    "data_residency": ["US", "EU"],
+    "data_residency": ["US", "EU", "AP"],
     "compliance": ["SOC2", "GDPR"],
     "min_contract": "none"
   },
   "agent_readiness": {
     "mcp_server_quality": null,
-    "mcp_security_score": 78,
+    "mcp_security_score": null,
     "documentation_accuracy": 85,
-    "error_message_quality": 80,
-    "error_message_notes": "Clean JSON error responses with error code and message. Deployment build errors are retrievable from logs endpoint. Generally very agent-friendly.",
+    "error_message_quality": 83,
+    "error_message_notes": "REST API errors return JSON with error.code and error.message; deployment build errors in build log only",
     "idempotency_support": "partial",
-    "idempotency_notes": "Deployments are inherently idempotent by git SHA. Environment variable operations are idempotent by key.",
+    "idempotency_notes": "Deployment by git SHA is idempotent; API mutations are not",
     "pagination_style": "cursor",
     "retry_guidance_documented": true,
     "known_agent_gotchas": [
-      "Hobby plan forbids commercial use — agents automating business workflows need Pro",
-      "Build logs require polling the deployment status endpoint — no push notification",
-      "Environment variables are encrypted at rest and cannot be read back after setting",
-      "Team ID vs personal account scoping requires careful parameter handling",
-      "Deployment URLs are immutable — each deploy gets a unique URL, aliases require separate call"
-    ],
-    "error_message_score": 80,
-    "auth_complexity_score": 82,
-    "rate_limit_score": 88,
-    "security_score": 78
+      "Deployment state must be polled — POST /deployments returns immediately, poll /deployments/{id} for READY state",
+      "Environment variable changes don't take effect until next deployment — no live reload of env vars",
+      "teamId parameter required for all API calls when accessing team projects (not personal account)",
+      "Edge runtime vs Node.js runtime have different capabilities — edge has no Node APIs, no file system, limited npm packages",
+      "Vercel rewrites and redirects run before serverless functions — misconfigured vercel.json can silently swallow requests"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 83,
+    "auth_complexity_score": 85,
+    "rate_limit_clarity_score": 82
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 83,
+    "scope_granularity": 80,
+    "dependency_hygiene": 87,
+    "secret_handling": 87,
+    "security_notes": "Environment variables encrypted at rest and never exposed in logs. Edge config for fast secret reads without cold start."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 92,
+    "version_stability": 88,
+    "breaking_changes_history": 85,
+    "error_recovery": 87
   }
 }
