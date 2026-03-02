@@ -1,0 +1,105 @@
+{
+  "id": "amazon-sp-api",
+  "name": "Amazon Selling Partner API",
+  "version_evaluated": "current",
+  "homepage": "https://developer-docs.amazon.com/sp-api",
+  "repo_url": "https://github.com/amzn/selling-partner-api-docs",
+  "category": "e-commerce",
+  "subcategories": ["marketplace", "fulfillment", "retail"],
+  "tags": ["amazon", "marketplace", "fba", "listings", "orders", "reports", "fulfillment"],
+  "what_it_does": "Provides programmatic access to Amazon marketplace seller data including listings, orders, fulfillment, inventory, reports, and account management for sellers and vendors on Amazon.",
+  "use_cases": [
+    "Automated order management: pull new orders, update fulfillment status, and generate shipping labels via FBA or merchant-fulfilled workflows",
+    "Listing catalog management: create, update, and monitor product listings including pricing, inventory, and content attributes",
+    "Inventory replenishment automation using inventory reports and FBA inbound shipment creation",
+    "Sales analytics pipeline: schedule and download reports (inventory, orders, sales) for business intelligence dashboards",
+    "Returns and refund processing automation integrated with seller support workflows"
+  ],
+  "not_for": [
+    "Buyer-facing shopping experiences — SP-API is exclusively for sellers/vendors, not consumers browsing products",
+    "Competitor price scraping at scale — violates Amazon terms of service and is rate-limited aggressively",
+    "Real-time inventory broadcasting to Amazon with sub-second freshness — SP-API is batch/async oriented for most report types"
+  ],
+  "best_when": "Best when building seller automation tools for Amazon that require deep integration with orders, inventory, FBA logistics, and sales reporting.",
+  "avoid_when": "Avoid when the auth complexity of LWA + STS + SigV4 cannot be justified for the use case, or when your team lacks experience with AWS IAM role assumption.",
+  "alternatives": ["ebay-api", "shopify-api", "bigcommerce-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["java", "python", "javascript", "csharp"],
+    "openapi_spec_url": "https://github.com/amzn/selling-partner-api-models",
+    "webhooks": true
+  },
+  "auth": {
+    "methods": ["oauth2", "aws_sigv4"],
+    "oauth": true,
+    "scopes": true,
+    "notes": "Extremely complex three-layer auth: (1) Login with Amazon (LWA) OAuth2 to obtain access token for the seller's account; (2) AWS STS AssumeRole to obtain temporary AWS credentials via an IAM role associated with your SP-API application; (3) AWS SigV4 request signing applied to every API call using the STS credentials. All three layers are required simultaneously. Access tokens expire in 1 hour; STS credentials expire in 1 hour. Refresh token rotation must be managed. Sandbox uses separate credentials."
+  },
+  "pricing": {
+    "model": "free",
+    "free_tier_exists": true,
+    "free_tier_limits": "API access is free for approved developers. Seller fees are separate marketplace transaction costs.",
+    "paid_tiers": "No tiered API pricing. Costs are Amazon marketplace selling fees (referral fees, FBA fees) on actual sales.",
+    "requires_credit_card": false,
+    "notes": "Developer registration requires an approved SP-API application via the Amazon Developer Console. Approval process can take days to weeks and requires business justification."
+  },
+  "performance": {
+    "latency_p50_ms": 400,
+    "latency_p99_ms": 2000,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "Per-operation rate limits expressed as requests per second (RPS) with a burst quota. Examples: GetOrders 0.0167 RPS (1/min), burst 20; GetOrder 0.5 RPS, burst 30; CreateReport 0.0167 RPS. Each API operation has its own independent rate limit bucket. Rate limits are per seller account, not per app.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": false,
+    "domain_verification": true,
+    "data_residency": ["US", "EU", "JP", "AU"],
+    "compliance": ["SOC2", "PCI-DSS", "GDPR"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 82,
+    "error_message_quality": 70,
+    "error_message_notes": "Error responses are structured but terse. Many errors require consulting separate documentation to decode. Throttling errors (429) include retry-after headers but not always. Some errors are generic 400s without sufficient detail.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Some write operations support client-assigned order or shipment IDs for idempotency. Report requests are inherently async — agents must poll for completion. No universal idempotency key mechanism across all operations.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Triple-layer auth (LWA + STS AssumeRole + SigV4) requires careful token lifecycle management — STS credentials expire hourly and must be refreshed before they lapse mid-workflow",
+      "Per-operation rate limits are extremely low (some as low as 1 req/min) — agents must implement per-operation rate limit tracking, not a single global counter",
+      "Reports API is fully asynchronous: request report → poll for DONE status → get download URL → fetch gzipped file — naive sync agent patterns will fail",
+      "Marketplace IDs are region-specific (ATVPDKIKX0DER for US, A1F83G8C2ARO7P for UK) and must be passed explicitly on most operations — getting these wrong silently returns wrong-region data",
+      "SP-API distinguishes Sellers vs Vendors (1P suppliers) — some APIs are only available to one type; confirm seller type before designing the integration"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 82,
+    "error_handling_score": 70,
+    "auth_complexity_score": 40,
+    "rate_limit_clarity_score": 75
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 95,
+    "scope_granularity": 88,
+    "dependency_hygiene": 85,
+    "secret_handling": 85,
+    "security_notes": "Exceptionally strong auth due to SigV4 signing and STS role assumption — credentials are short-lived and scoped. LWA scopes provide fine-grained access control per seller resource. The complexity is the main drawback, not security strength."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 78,
+    "breaking_changes_history": 75,
+    "error_recovery": 76
+  }
+}
