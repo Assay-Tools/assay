@@ -1,0 +1,105 @@
+{
+  "id": "boto3-api",
+  "name": "boto3 (AWS SDK for Python)",
+  "version_evaluated": "current",
+  "homepage": "https://boto3.amazonaws.com/v1/documentation/api/latest/index.html",
+  "repo_url": "https://github.com/boto/boto3",
+  "category": "cloud",
+  "subcategories": ["aws", "cloud-sdk", "infrastructure"],
+  "tags": ["boto3", "aws", "python", "s3", "ec2", "lambda", "iam", "cloud"],
+  "what_it_does": "boto3 is the official AWS SDK for Python, providing Python-native access to all AWS services including S3, EC2, Lambda, DynamoDB, IAM, and hundreds more.",
+  "use_cases": [
+    "Upload, download, and manage S3 objects and buckets for agent artifact storage and retrieval",
+    "Invoke Lambda functions asynchronously and poll for results using waiters for event-driven workflows",
+    "Query and write to DynamoDB tables for serverless state management in distributed agent systems",
+    "Enumerate and manage EC2 instances or ECS tasks to provision or deprovision compute for agent workloads",
+    "Use SQS to send and receive messages for reliable task queuing between agent components"
+  ],
+  "not_for": [
+    "Multi-cloud workflows spanning Azure or GCP — use cloud-agnostic tools like Terraform or Pulumi SDK instead",
+    "Local development environments where AWS credentials and network access are unavailable or undesirable",
+    "Simple static file serving — direct S3 presigned URLs or CloudFront are more appropriate than SDK calls in that path"
+  ],
+  "best_when": "You are building Python automation, agents, or data pipelines that need to interact with AWS services programmatically.",
+  "avoid_when": "You need provider-agnostic cloud abstractions or are operating outside an AWS-credentialed environment.",
+  "alternatives": ["aws-cdk-api", "pulumi-aws-api", "terraform-aws-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["aws_credentials", "iam_role", "environment_variables", "aws_profile"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Credentials resolved via standard chain: environment vars (AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY), ~/.aws/credentials file, IAM instance/task role, or explicit session.client() kwargs. IAM roles are the recommended approach in AWS environments."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "SDK itself is free; AWS API calls incur service-specific charges",
+    "paid_tiers": "None for the SDK; underlying AWS services are pay-per-use",
+    "requires_credit_card": false,
+    "notes": "boto3 is free and open source under Apache 2.0; costs come from AWS API calls made through it."
+  },
+  "performance": {
+    "latency_p50_ms": 50,
+    "latency_p99_ms": 500,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "Per-service AWS API rate limits apply (e.g. S3: 3500 PUT/s per prefix, EC2: varies by API); botocore includes automatic retry with exponential backoff",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": true,
+    "domain_verification": false,
+    "data_residency": ["aws_region"],
+    "compliance": ["SOC2", "ISO27001", "HIPAA", "PCI-DSS"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 88,
+    "error_message_quality": 82,
+    "error_message_notes": "botocore ClientError exceptions include error Code and Message in the response dict — agents must parse error['Error']['Code'] rather than the exception message string.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Read operations are idempotent; many write operations (e.g. S3 PutObject, SQS SendMessage) are idempotent by design, but others (e.g. EC2 RunInstances) are not — use client tokens where available.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Paginated responses: most list operations (list_objects_v2, describe_instances, list_users) return only the first page by default — agents MUST use get_paginator() and iterate paginator.paginate() to retrieve all results, otherwise silently missing data",
+      "Region must be explicit: boto3 uses us-east-1 as default if AWS_DEFAULT_REGION is unset, causing NoRegionError or operating on the wrong region's resources; always pass region_name explicitly or set the environment variable",
+      "botocore exceptions are not boto3 exceptions: error handling requires catching botocore.exceptions.ClientError and botocore.exceptions.NoCredentialsError, not boto3-namespaced exceptions — a common agent import mistake",
+      "Waiters block synchronously until a resource reaches the desired state (e.g. waiter.wait(InstanceIds=[id])) — without a timeout config they can block indefinitely; always pass WaiterConfig={'MaxAttempts': N, 'Delay': M}",
+      "IAM eventual consistency: newly created IAM roles, policies, and users may not be usable for 10-30 seconds after creation — agents that immediately try to assume a newly created role will get AccessDenied until propagation completes"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 88,
+    "error_handling_score": 80,
+    "auth_complexity_score": 75,
+    "rate_limit_clarity_score": 82
+  },
+  "security_score_components": {
+    "tls_enforcement": 95,
+    "auth_strength": 88,
+    "scope_granularity": 92,
+    "dependency_hygiene": 82,
+    "secret_handling": 85,
+    "security_notes": "All AWS API calls use TLS by default; prefer IAM roles over long-lived access keys; use least-privilege IAM policies; never log credentials or embed them in code — use IAM role assumption or Secrets Manager."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 90,
+    "version_stability": 85,
+    "breaking_changes_history": 80,
+    "error_recovery": 85
+  }
+}

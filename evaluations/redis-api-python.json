@@ -1,0 +1,105 @@
+{
+  "id": "redis-api-python",
+  "name": "redis-py (Redis Python Client)",
+  "version_evaluated": "current",
+  "homepage": "https://redis-py.readthedocs.io",
+  "repo_url": "https://github.com/redis/redis-py",
+  "category": "developer-tools",
+  "subcategories": ["database", "caching", "messaging"],
+  "tags": ["redis", "cache", "pubsub", "python", "key-value", "pipeline", "queue"],
+  "what_it_does": "redis-py is the official Python client for Redis, providing connection pooling, pipelining, pub/sub messaging, and access to all Redis data structures and commands.",
+  "use_cases": [
+    "Cache expensive computation results or API responses with TTL-based expiration using set()/get()",
+    "Implement distributed rate limiting using Redis atomic INCR and EXPIRE commands",
+    "Batch multiple Redis commands into a single round-trip using pipeline() to reduce network overhead",
+    "Subscribe to keyspace notifications or pub/sub channels to trigger agent actions on data changes",
+    "Use Redis Streams (xadd/xread) as a durable message queue for agent task distribution"
+  ],
+  "not_for": [
+    "Durable primary storage for data that cannot be lost — Redis persistence is best-effort unless carefully configured with AOF",
+    "Complex relational queries or joins across multiple data structures (use a relational DB instead)",
+    "Storing large binary blobs or files — Redis is optimized for small, frequently accessed values"
+  ],
+  "best_when": "You need sub-millisecond in-memory key-value access, atomic counters, or lightweight pub/sub between agent processes.",
+  "avoid_when": "Data durability is critical and you cannot tolerate potential loss on crash or restart.",
+  "alternatives": ["memcached-api", "valkey-api", "dragonflydb-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["password", "acl"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Redis 6+ supports ACL-based user authentication; connection URL format: redis://:password@host:6379/db or redis://user:password@host for ACL."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Unlimited, open source",
+    "paid_tiers": "None (client library; Redis server has commercial tiers separately)",
+    "requires_credit_card": false,
+    "notes": "redis-py client is free and open source under MIT license; Redis server licensing changed in 2024 (SSPL for Redis 7.4+)."
+  },
+  "performance": {
+    "latency_p50_ms": 1,
+    "latency_p99_ms": 5,
+    "uptime_sla_percent": null,
+    "rate_limits": "None (library; server-side limits depend on Redis configuration)",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self_hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 88,
+    "error_message_quality": 85,
+    "error_message_notes": "ConnectionError and TimeoutError messages are clear; ResponseError from Redis server includes command-level context.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "GET/SET are idempotent; INCR, LPUSH, and SADD are not — agents must use SET NX or Lua scripts for idempotent writes.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "decode_responses=False by default means all returned values are bytes, not strings — agents must set decode_responses=True on the connection or manually call .decode('utf-8') on every response",
+      "Pipeline commands are queued and not executed until pipe.execute() — agents that check return values of individual pipe.set() calls inside the pipeline block will always see None",
+      "Connection pool exhaustion: the default pool has max_connections=None (unlimited), but Redis server maxclients may reject connections; always use a single shared Redis() instance, not one per request",
+      "Keyspace notifications are disabled by default on the Redis server (notify-keyspace-events must be configured) — agents that set up pub/sub subscribers expecting them will receive nothing without server-side config",
+      "KEYS pattern command blocks the server for its full duration — never use KEYS in production; use SCAN with a cursor for large keyspaces to avoid freezing all other clients"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 88,
+    "error_handling_score": 85,
+    "auth_complexity_score": 90,
+    "rate_limit_clarity_score": 95
+  },
+  "security_score_components": {
+    "tls_enforcement": 0,
+    "auth_strength": 78,
+    "scope_granularity": 70,
+    "dependency_hygiene": 85,
+    "secret_handling": 80,
+    "security_notes": "Use TLS (rediss:// URL scheme) and ACL users in production; avoid exposing Redis port publicly; passwords in connection URLs should come from environment variables not hardcoded strings."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 0,
+    "version_stability": 88,
+    "breaking_changes_history": 80,
+    "error_recovery": 82
+  }
+}

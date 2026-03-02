@@ -1,0 +1,105 @@
+{
+  "id": "sqlalchemy-api",
+  "name": "SQLAlchemy",
+  "version_evaluated": "current",
+  "homepage": "https://www.sqlalchemy.org",
+  "repo_url": "https://github.com/sqlalchemy/sqlalchemy",
+  "category": "developer-tools",
+  "subcategories": ["database", "orm", "data-access"],
+  "tags": ["sqlalchemy", "orm", "sql", "database", "python", "postgresql", "mysql", "sqlite"],
+  "what_it_does": "SQLAlchemy provides both a Python ORM and a SQL expression toolkit for database-agnostic query construction and object-relational mapping.",
+  "use_cases": [
+    "Define database schemas as Python classes and persist/query objects without writing raw SQL",
+    "Construct complex, composable SQL queries programmatically using the Core expression language",
+    "Perform high-throughput bulk inserts using bulk_insert_mappings or insert().values() to bypass ORM overhead",
+    "Manage connection pooling and transactions across multiple database backends with a single API",
+    "Reflect existing database schemas into Python metadata for introspection or migration tooling"
+  ],
+  "not_for": [
+    "Simple single-file or embedded use cases where raw sqlite3 or aiosqlite is sufficient",
+    "Non-relational document or graph databases (use motor for MongoDB, neo4j driver for graphs)",
+    "Extremely high-throughput write paths where even bulk ORM overhead is unacceptable (use asyncpg or psycopg3 directly)"
+  ],
+  "best_when": "You need database-agnostic query logic, ORM-mapped objects, and connection pooling in a Python application.",
+  "avoid_when": "You are doing simple one-off scripts or your performance budget cannot tolerate ORM object instantiation overhead.",
+  "alternatives": ["peewee-api", "tortoise-orm-api", "django-orm-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["connection_string"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Auth is embedded in the database connection URL (user:password@host/db); SQLAlchemy itself adds no auth layer."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Unlimited, open source",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Free and open source under MIT license."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "None (library)",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self_hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 88,
+    "error_message_quality": 85,
+    "error_message_notes": "IntegrityError and OperationalError messages include driver-level detail but agents need to know to check __cause__ for the underlying DB error.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Reads are idempotent; writes require explicit transaction management — session.rollback() must be called after exceptions before reuse.",
+    "pagination_style": "offset",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "expire_on_commit=True (the default) causes all ORM attributes to expire after commit — accessing a relationship attribute outside the session raises DetachedInstanceError; agents must eager-load or access attributes before session close",
+      "Lazy loading N+1 problem: accessing a relationship attribute in a loop issues one SELECT per row; agents must use joinedload() or selectinload() in the query to avoid hundreds of implicit queries",
+      "session.add() does not immediately INSERT — the INSERT is deferred until session.flush() or session.commit(); agents that check the DB between add() and commit() will see stale data",
+      "bulk_insert_mappings and bulk_save_objects bypass ORM events and validations silently — uniqueness checks, before_flush hooks, and hybrid properties will not fire",
+      "Engine connection pool exhaustion: if agents open sessions in loops without closing them, pool_size connections are consumed and subsequent calls block indefinitely; always use context managers (with Session() as s:)"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 88,
+    "error_handling_score": 85,
+    "auth_complexity_score": 95,
+    "rate_limit_clarity_score": 100
+  },
+  "security_score_components": {
+    "tls_enforcement": 0,
+    "auth_strength": 75,
+    "scope_granularity": 0,
+    "dependency_hygiene": 85,
+    "secret_handling": 80,
+    "security_notes": "Connection strings with embedded passwords should be passed via environment variables; logging engine echo=True will print full SQL including parameter values — disable in production."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 0,
+    "version_stability": 85,
+    "breaking_changes_history": 78,
+    "error_recovery": 82
+  }
+}
