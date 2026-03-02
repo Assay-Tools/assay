@@ -1,0 +1,105 @@
+{
+  "id": "daily-api",
+  "name": "Daily.co REST API",
+  "version_evaluated": "current",
+  "homepage": "https://www.daily.co",
+  "repo_url": null,
+  "category": "communications",
+  "subcategories": ["video", "voice", "webrtc", "recording"],
+  "tags": ["webrtc", "video-calls", "live-streaming", "transcription", "hipaa", "embedded"],
+  "what_it_does": "Provides WebRTC video and audio infrastructure via REST API and client SDK, enabling agents to create rooms, issue access tokens, trigger cloud recording, and receive real-time transcription without managing media servers.",
+  "use_cases": [
+    "Agent creates a Daily room on-demand for a scheduled customer support call and returns the room URL to a human operator",
+    "Agent issues meeting tokens with expiry and role (owner/attendee) to control who can join a telehealth session",
+    "Agent triggers cloud recording of an ongoing room and later retrieves the recording URL for archival or compliance",
+    "Agent enables live transcription on a room and receives webhook events with utterance text to log or act on in real time",
+    "Agent creates a HIPAA-eligible room with end-to-end encryption for a sensitive patient consultation workflow"
+  ],
+  "not_for": [
+    "Bulk SMS or voice call broadcasting — Daily is video/audio rooms only, not telephony",
+    "Large-scale webinar platforms with 500+ simultaneous viewers — use a dedicated streaming CDN instead",
+    "Agents that need only audio conferencing without any browser or SDK client on the other end"
+  ],
+  "best_when": "You need embeddable WebRTC video rooms that agents can provision and control via REST, especially in HIPAA-regulated or compliance-sensitive contexts.",
+  "avoid_when": "Your use case is pure telephony (PSTN calls, SMS) or you need a fully self-hosted media server with no SaaS dependency.",
+  "alternatives": ["livekit-api", "twilio-video-api", "agora-api", "whereby-api", "zoom-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["javascript", "react", "react-native", "ios", "android", "python"],
+    "openapi_spec_url": "https://docs.daily.co/reference/openapi",
+    "webhooks": true
+  },
+  "auth": {
+    "methods": ["api_key", "meeting_token"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "REST API authenticated with a per-domain API key passed as a Bearer token. Room-level access for end users is controlled via meeting tokens (JWTs) generated server-side with Daily's API, carrying role (owner/attendee), expiry, and capability claims."
+  },
+  "pricing": {
+    "model": "usage-based",
+    "free_tier_exists": true,
+    "free_tier_limits": "2,000 participant-minutes per month free; recording and transcription billed separately",
+    "paid_tiers": "Pay-as-you-go from ~$0.00099/participant-minute for video; enterprise plans available with volume discounts",
+    "requires_credit_card": false,
+    "notes": "Cloud recording, transcription, and live streaming are add-on costs beyond base participant-minutes. HIPAA Business Associate Agreement available on paid plans."
+  },
+  "performance": {
+    "latency_p50_ms": 120,
+    "latency_p99_ms": 600,
+    "uptime_sla_percent": 99.95,
+    "rate_limits": "REST API rate limits not publicly documented per endpoint; generally permissive for room creation; webhook delivery retries on failure",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": false,
+    "domain_verification": true,
+    "data_residency": ["US", "EU"],
+    "compliance": ["SOC2", "GDPR", "HIPAA"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 88,
+    "error_message_quality": 83,
+    "error_message_notes": "REST API returns structured JSON errors with descriptive messages and HTTP status codes; token validation errors are clear but room configuration validation errors can be terse",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Room names are stable identifiers — creating a room with the same name returns the existing room rather than an error, providing natural idempotency for room creation. Recording and transcription start calls are not idempotent.",
+    "pagination_style": "offset",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Meeting tokens must be generated server-side and expire quickly — agents must mint a fresh token before handing a room URL to a user, not reuse old tokens",
+      "Room URLs are stable but room 'privacy' setting (public vs private) must be set at creation time; changing it requires deleting and recreating the room",
+      "Cloud recording does not start automatically — agents must explicitly call the recording start endpoint after a participant joins, or configure auto-record at room creation",
+      "Webhook event delivery is best-effort with retries but not guaranteed exactly-once; agents processing transcription or recording-complete events should handle duplicate delivery",
+      "HIPAA-eligible configuration requires specific room properties (enable_prejoin_ui, enable_knocking, etc.) to be set deliberately — there is no single 'HIPAA mode' flag"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 88,
+    "error_handling_score": 83,
+    "auth_complexity_score": 78,
+    "rate_limit_clarity_score": 72
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 84,
+    "scope_granularity": 78,
+    "dependency_hygiene": 84,
+    "secret_handling": 82,
+    "security_notes": "API key is a long-lived credential scoped to a Daily domain — treat as a secret and never expose client-side. Meeting tokens provide fine-grained per-user capability control (is_owner, start_video_off, max_cam_streams, etc.). HIPAA BAA available. End-to-end encryption supported but opt-in per room."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 90,
+    "version_stability": 84,
+    "breaking_changes_history": 82,
+    "error_recovery": 83
+  }
+}
