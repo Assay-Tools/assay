@@ -1,0 +1,107 @@
+{
+  "id": "fitbit-api",
+  "name": "Fitbit Web API",
+  "version_evaluated": "current",
+  "homepage": "https://dev.fitbit.com",
+  "repo_url": "https://github.com/orcasgit/python-fitbit",
+  "category": "health-fitness",
+  "subcategories": ["wearables", "biometrics", "activity-tracking", "personal-health"],
+  "tags": ["fitbit", "wearable", "health", "fitness", "sleep", "heart-rate", "steps", "oauth2", "google-health", "activity"],
+  "what_it_does": "REST API providing access to Fitbit device data including activity (steps, calories, distance), sleep stages and scoring, heart rate (resting and intraday), SpO2, body composition, menstrual health, nutrition logging, and device/app management. Requires user OAuth2 authorization to access personal health data.",
+  "use_cases": [
+    "Building personal health dashboards that aggregate Fitbit activity, sleep, and heart rate trends over time",
+    "Research applications collecting longitudinal wearable data from consenting participants",
+    "Corporate wellness platforms that reward employees for meeting activity goals based on Fitbit data",
+    "Sleep coaching applications that analyze sleep stage data and HRV trends to provide personalized recommendations",
+    "Health and fitness apps that supplement manual logging with automatic Fitbit activity sync"
+  ],
+  "not_for": [
+    "Clinical or medical-grade applications requiring FDA-cleared device data (Fitbit is consumer-grade)",
+    "Real-time biometric streaming — Fitbit syncs are periodic, not continuous streaming",
+    "Applications requiring data from non-Fitbit wearables (use Apple HealthKit or Google Health Connect instead)"
+  ],
+  "best_when": "Your users already own Fitbit devices and you want to enrich an application with their historical health and activity data with minimal friction via OAuth2 authorization.",
+  "avoid_when": "You need real-time or near-real-time data streams, medical-grade accuracy, or coverage across multiple wearable ecosystems.",
+  "alternatives": ["apple-healthkit", "google-fit-api", "withings-api", "oura-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": false,
+    "sdk_languages": [],
+    "openapi_spec_url": null,
+    "webhooks": true
+  },
+  "auth": {
+    "methods": ["oauth2"],
+    "oauth": true,
+    "scopes": true,
+    "notes": "OAuth2 Authorization Code flow with PKCE. Scopes are granular per data type: activity, heartrate, sleep, nutrition, oxygen_saturation, respiratory_rate, settings, social, weight, profile. Access tokens expire in 8 hours; refresh tokens are long-lived. Intraday data (per-minute heart rate) requires approval from Fitbit for third-party apps — it is not available to all developers."
+  },
+  "pricing": {
+    "model": "free",
+    "free_tier_exists": true,
+    "free_tier_limits": "150 API calls/hour per user; no cost for standard access",
+    "paid_tiers": "No paid tiers — access is free but gated by approval for premium data types (intraday)",
+    "requires_credit_card": false,
+    "notes": "Fitbit's commercial partnership model changed after Google acquisition. Apps intending commercial use or accessing sensitive data types must apply for access and agree to Fitbit Platform Terms. Intraday (per-minute resolution) data requires a separate application and approval process that can take weeks."
+  },
+  "performance": {
+    "latency_p50_ms": 300,
+    "latency_p99_ms": 1500,
+    "uptime_sla_percent": 99.0,
+    "rate_limits": "150 requests/hour per user (not per app); rate limit headers included in all responses; hitting the limit returns 429 with Retry-After header",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": false,
+    "domain_verification": true,
+    "data_residency": ["US", "EU"],
+    "compliance": ["GDPR", "CCPA"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 72,
+    "error_message_quality": 70,
+    "error_message_notes": "Error responses are JSON with errorType and message fields but error codes are not consistently documented. Some errors (especially rate limit edge cases) return HTML error pages rather than JSON, breaking agents that expect consistent content types.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "GET requests are naturally idempotent. Log creation (food, activity, water) endpoints are not idempotent and have no client-generated idempotency key support — retrying a failed POST may create duplicate log entries.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "The rate limit is 150 requests/hour per user OAuth token, not per application — a user with multiple connected apps shares the same quota, so your app may get 429s even with low request volume if the user has other Fitbit integrations",
+      "Intraday (per-minute) heart rate and activity data requires separate developer approval that is not automatic — building a feature that relies on this data before approval is approved will result in 403s on production users",
+      "Date parameters use YYYY-MM-DD format based on the user's Fitbit account timezone, not UTC — querying 'today' in UTC may return yesterday's data for users in UTC+ timezones",
+      "Sleep data is attributed to the day the sleep session ends, not starts — a sleep session from 11pm Monday to 7am Tuesday appears under Tuesday's date",
+      "Access tokens expire in 8 hours; agents that cache tokens without tracking expiry will silently fail overnight; implement proactive refresh before expiry",
+      "The webhooks (subscriptions) API delivers notifications without a payload — agents must make a follow-up API call to fetch the changed data, meaning one webhook event requires one additional authenticated request",
+      "After Google's acquisition of Fitbit, some developer documentation and endpoints have been deprecated or migrated with minimal notice; always validate endpoints against current docs before building"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 70,
+    "error_handling_score": 68,
+    "auth_complexity_score": 72,
+    "rate_limit_clarity_score": 78
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 85,
+    "scope_granularity": 90,
+    "dependency_hygiene": 78,
+    "secret_handling": 82,
+    "security_notes": "Granular OAuth2 scopes allow requesting only the data types needed. Health data is sensitive — GDPR consent requirements apply. Users can revoke access at any time and agents must handle token invalidation gracefully. Data portability requests under GDPR require Fitbit, not your app, to fulfill."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 72,
+    "version_stability": 70,
+    "breaking_changes_history": 65,
+    "error_recovery": 70
+  }
+}

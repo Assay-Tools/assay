@@ -5,53 +5,54 @@
   "homepage": "https://developer.vimeo.com",
   "repo_url": "https://github.com/vimeo/vimeo.py",
   "category": "media",
-  "subcategories": ["video-hosting", "video-streaming", "content-management"],
-  "tags": ["vimeo", "video", "hosting", "streaming", "oauth", "rest-api", "sdk"],
-  "what_it_does": "Video hosting and sharing platform with an API for uploading, managing, and embedding professional video content with privacy controls.",
+  "subcategories": ["video-hosting", "streaming", "creator-tools"],
+  "tags": ["vimeo", "video", "hosting", "streaming", "embedding", "privacy", "creator"],
+  "what_it_does": "Vimeo's REST API manages video hosting, privacy controls, player customization, folder organization, and analytics — focused on creative professionals and teams needing privacy-controlled, ad-free video delivery.",
   "use_cases": [
-    "Uploading and organizing video libraries programmatically",
-    "Embedding password-protected or domain-restricted videos",
-    "Managing video metadata, thumbnails, and captions from agents",
-    "Retrieving video analytics and engagement stats",
-    "Building video portfolios and showcases"
+    "Uploading and managing a video content library programmatically from content pipelines",
+    "Generating embed codes with custom player settings for different platforms",
+    "Reading video engagement analytics (plays, completions) for content performance agents",
+    "Managing video privacy settings (password, domain-restricted, unlisted) from agent workflows",
+    "Organizing video content into showcases and folders for client delivery automation"
   ],
   "not_for": [
-    "Live streaming at scale (Mux or Twitch are better)",
-    "High-volume video processing pipelines",
-    "Free or low-budget projects needing large storage"
+    "Live streaming at scale (Vimeo supports it but Cloudflare Stream or Mux are more robust for high-volume live)",
+    "Consumer UGC platforms — Vimeo is creator/professional focused",
+    "Very large volume video operations (Vimeo Free/Plus plans have upload limits)"
   ],
-  "best_when": "You need reliable video hosting with privacy controls, a clean player, and API access for managing a video library.",
-  "avoid_when": "You need live streaming, high-throughput video encoding, or very detailed analytics.",
-  "alternatives": ["mux-api", "cloudinary-api"],
+  "best_when": "Your team creates professional video content and needs API-driven management of a privacy-controlled, ad-free video library without self-hosting infrastructure.",
+  "avoid_when": "You need massive scale live streaming, advanced video AI features, or a platform without per-video storage limits.",
+  "alternatives": ["mux-api", "wistia-api", "cloudinary-api", "cloudflare-stream-api"],
   "interface": {
     "has_rest_api": true,
     "has_graphql": false,
     "has_grpc": false,
     "has_mcp_server": false,
+    "mcp_server_url": null,
     "has_sdk": true,
-    "sdk_languages": ["python", "node", "php", "ios", "android"],
+    "sdk_languages": ["python", "node", "php"],
     "openapi_spec_url": null,
     "webhooks": true
   },
   "auth": {
-    "methods": ["oauth2", "api_key"],
+    "methods": ["bearer_token", "oauth2"],
     "oauth": true,
     "scopes": true,
-    "notes": "OAuth 2.0 for user-authenticated requests. Personal access tokens (app tokens) for server-side access. Scopes control read/write/delete permissions."
+    "notes": "Personal Access Token for direct automation; OAuth 2.0 for user-delegated apps. Scopes: public, private, video_files, upload, delete, edit. Token does not expire for PATs. App review required for production OAuth apps."
   },
   "pricing": {
-    "model": "subscription",
+    "model": "freemium",
     "free_tier_exists": true,
-    "free_tier_limits": "Free: 500MB/week upload, 5GB total storage, basic features",
-    "paid_tiers": "Starter $20/mo, Standard $65/mo, Advanced $235/mo, Enterprise custom",
+    "free_tier_limits": "Free: 5 GB total storage, 500 MB/week upload, basic features",
+    "paid_tiers": "Plus $7/month, Pro $20/month, Business $50/month, Premium $75/month. API access on all paid plans.",
     "requires_credit_card": false,
-    "notes": "API access requires at least a paid plan for production use. Free tier is severely limited. OAuth app creation available on all tiers."
+    "notes": "Upload limits and storage caps depend on plan. API access is not gated by plan for basic operations. Business+ plans required for advanced analytics and white-labeling."
   },
   "performance": {
     "latency_p50_ms": 250,
-    "latency_p99_ms": 1000,
-    "uptime_sla_percent": 99.9,
-    "rate_limits": "1000 API requests per minute per access token",
+    "latency_p99_ms": 1200,
+    "uptime_sla_percent": 99.5,
+    "rate_limits": "~100 requests per minute for authenticated requests; stricter for uploads",
     "data_source": "llm_estimated"
   },
   "requirements": {
@@ -59,29 +60,46 @@
     "requires_credit_card": false,
     "domain_verification": false,
     "data_residency": ["US", "EU"],
-    "compliance": ["GDPR"],
+    "compliance": ["GDPR", "CCPA"],
     "min_contract": "none"
   },
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
     "documentation_accuracy": 80,
-    "error_message_quality": 75,
-    "error_message_notes": "Error messages include error code and developer message. Docs are somewhat dated and not always accurate for newer endpoints.",
+    "error_message_quality": 78,
+    "error_message_notes": "REST errors with error and developer_message fields. Rate limit errors include per-second rate info. Upload errors can be cryptic when files exceed plan limits (generic error vs clear quota message).",
     "idempotency_support": "none",
-    "idempotency_notes": "No idempotency key support. Duplicate uploads create duplicate videos.",
-    "pagination_style": "offset",
+    "idempotency_notes": "No idempotency keys. Uploading same file creates duplicate videos. Agents must search for existing videos by title or metadata before uploading.",
+    "pagination_style": "page",
     "retry_guidance_documented": false,
     "known_agent_gotchas": [
-      "Video uploads use a tus-based resumable protocol - not a simple POST, requires specialized upload logic",
-      "OAuth token scopes must be explicitly requested and approved by user flow",
-      "Rate limits are per access token, not per app - agents with many users can exceed limits",
-      "Transcoding is async - agents must poll video status or use webhooks before embedding",
-      "Some API endpoints require specific paid plan features - errors are not always clear about this"
-    ],
-    "error_message_score": 75,
-    "auth_complexity_score": 65,
-    "rate_limit_score": 72,
-    "security_score": 78
+      "Vimeo uses tus.io resumable upload protocol — standard HTTP PUT won't work for large files; agents need tus client",
+      "Video processing after upload is async — transcoding can take minutes; agents must poll or listen to webhooks for ready state",
+      "Weekly upload bandwidth limits (not just storage) can block agent upload pipelines unexpectedly",
+      "Privacy settings must be configured at upload time or via explicit update — default privacy may expose videos unintentionally",
+      "Embed codes change when player settings are updated — agents must regenerate and deploy embed codes after player configuration changes"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 80,
+    "error_handling_score": 78,
+    "auth_complexity_score": 80,
+    "rate_limit_clarity_score": 72
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 80,
+    "scope_granularity": 82,
+    "dependency_hygiene": 80,
+    "secret_handling": 80,
+    "security_notes": "OAuth scopes limit video access. Domain-restricted embeds prevent unauthorized video sharing. GDPR compliant. PATs never expire — rotation recommended. No fine-grained per-video API access control."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 82,
+    "version_stability": 80,
+    "breaking_changes_history": 78,
+    "error_recovery": 78
   }
 }

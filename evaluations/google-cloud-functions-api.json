@@ -1,0 +1,106 @@
+{
+  "id": "google-cloud-functions-api",
+  "name": "Google Cloud Functions API",
+  "version_evaluated": "current",
+  "homepage": "https://cloud.google.com/functions",
+  "repo_url": "https://github.com/GoogleCloudPlatform/functions-framework-python",
+  "category": "cloud-compute",
+  "subcategories": ["serverless", "faas", "event-driven", "http-functions"],
+  "tags": ["serverless", "faas", "gcp", "event-driven", "http", "pubsub", "cloud-events", "python", "nodejs", "go", "java", "functions-framework"],
+  "what_it_does": "Fully managed serverless compute platform that lets you run single-purpose functions in response to HTTP requests, Cloud Pub/Sub messages, Cloud Storage events, Firestore changes, and other Google Cloud events. 1st gen and 2nd gen (Cloud Run-based) variants with up to 60-minute timeouts and 16 GB RAM on 2nd gen.",
+  "use_cases": [
+    "HTTP microservices and API backends that scale to zero when idle with no infrastructure management",
+    "Event-driven data pipelines triggered by Cloud Storage uploads, Pub/Sub messages, or Firestore writes",
+    "Lightweight webhook receivers for third-party integrations (Stripe, GitHub, Slack) without managing servers",
+    "Scheduled background jobs using Cloud Scheduler as the trigger for periodic data processing",
+    "AI agent tool endpoints that execute specific capabilities (web scraping, data enrichment) called by an orchestrating agent"
+  ],
+  "not_for": [
+    "Long-running processes exceeding 60 minutes (use Cloud Run or GKE instead)",
+    "Stateful workloads requiring persistent local filesystem or in-memory state across invocations",
+    "Applications with complex networking requirements like VPC peering without Serverless VPC Access connector"
+  ],
+  "best_when": "You are in the Google Cloud ecosystem and need event-driven compute that scales to zero, integrates natively with Pub/Sub, Firestore, and Cloud Storage, and requires minimal operational overhead.",
+  "avoid_when": "Your workloads require persistent connections, have >60 minute execution windows, need predictable latency without cold starts, or you want to avoid GCP vendor lock-in.",
+  "alternatives": ["aws-lambda-api", "gcp-functions-api", "cloudflare-workers-api", "modal-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "nodejs", "go", "java", "ruby", "php", "dotnet"],
+    "openapi_spec_url": "https://cloudfunctions.googleapis.com/$discovery/rest?version=v2",
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["google_oauth2", "service_account", "api_key", "oidc"],
+    "oauth": true,
+    "scopes": true,
+    "notes": "HTTP functions can be public (unauthenticated) or require Google identity (IAM-protected). Authenticated callers need the `roles/cloudfunctions.invoker` IAM role. Service-to-service auth uses OIDC tokens attached to requests. Background functions (Pub/Sub, Storage) are invoked by trusted GCP infrastructure with no caller auth needed. Admin/deployment APIs use OAuth2 with `cloud-platform` scope."
+  },
+  "pricing": {
+    "model": "pay-as-you-go",
+    "free_tier_exists": true,
+    "free_tier_limits": "2 million invocations/month; 400,000 GB-seconds compute; 200,000 GHz-seconds CPU; 5 GB egress free (monthly, permanent)",
+    "paid_tiers": "Invocations: $0.40/million after free tier; Compute: $0.0000025/GB-second; Networking egress at standard GCP rates",
+    "requires_credit_card": true,
+    "notes": "Pricing is per-invocation plus compute time (memory * duration). 2nd gen functions on Cloud Run infrastructure may have slightly different pricing. Network egress costs (to internet) are a common surprise bill item for functions that make external HTTP calls."
+  },
+  "performance": {
+    "latency_p50_ms": 80,
+    "latency_p99_ms": 3000,
+    "uptime_sla_percent": 99.95,
+    "rate_limits": "Default: 1,000 concurrent function instances per region; 60-minute max timeout (2nd gen); 16 GB max memory (2nd gen); adjustable via quotas",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": true,
+    "domain_verification": false,
+    "data_residency": ["US", "EU", "APAC", "multi-region"],
+    "compliance": ["SOC1", "SOC2", "SOC3", "ISO27001", "PCI-DSS", "HIPAA", "FedRAMP"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 83,
+    "error_message_quality": 78,
+    "error_message_notes": "Deployment errors from `gcloud functions deploy` are detailed but verbose. Runtime errors are captured in Cloud Logging with structured JSON. Cold start failures and out-of-memory errors surface in logs but not always in the HTTP response body — agents invoking functions via HTTP may receive a 500 with no body on OOM.",
+    "idempotency_support": "none",
+    "idempotency_notes": "Cloud Functions provides at-least-once delivery for event-triggered functions — Pub/Sub and Storage triggers can deliver the same event multiple times. HTTP functions have no built-in idempotency. Agents must implement idempotency in function logic using Firestore or Cloud Spanner for deduplication keys.",
+    "pagination_style": "page_token",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Pub/Sub and Storage triggered functions have at-least-once delivery semantics — functions must be idempotent or implement their own deduplication, as duplicate events are common during GCP infrastructure maintenance",
+      "Cold starts can add 1-10+ seconds for JVM-based runtimes (Java) — agents with latency SLAs must use minimum-instances=1 or select lighter runtimes, which adds minimum compute cost",
+      "The 2nd gen function execution environment is actually Cloud Run under the hood — deployment errors referencing Cloud Run Artifacts Registry or Build triggers can be confusing when you think you are only using Cloud Functions",
+      "Environment variables are set at deploy time and require a redeployment to change — storing dynamic config in environment variables is an anti-pattern; use Secret Manager instead and fetch at runtime",
+      "HTTP functions return 200 on startup errors if the function framework initializes but your code crashes on first invocation — always check response body, not just status code",
+      "IAM propagation after granting invoker role can take 60-120 seconds; agents that deploy a function and immediately invoke it may get spurious 403s during this propagation window"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 82,
+    "error_handling_score": 76,
+    "auth_complexity_score": 72,
+    "rate_limit_clarity_score": 78
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 88,
+    "scope_granularity": 85,
+    "dependency_hygiene": 85,
+    "secret_handling": 88,
+    "security_notes": "IAM-based invocation auth is well-integrated. Secret Manager integration avoids embedding secrets in environment variables or code. VPC Service Controls can restrict function network access. Binary Authorization available for supply chain security."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 82,
+    "breaking_changes_history": 80,
+    "error_recovery": 78
+  }
+}

@@ -2,56 +2,57 @@
   "id": "twitch-api",
   "name": "Twitch API (Helix)",
   "version_evaluated": "current",
-  "homepage": "https://dev.twitch.tv/docs/api",
+  "homepage": "https://dev.twitch.tv/docs/api/",
   "repo_url": null,
   "category": "media",
-  "subcategories": ["live-streaming", "gaming", "social-media"],
-  "tags": ["twitch", "live-streaming", "gaming", "oauth", "webhooks", "eventsub", "rest-api"],
-  "what_it_does": "Twitch's Helix API for accessing live stream data, VODs, channel information, subscriptions, and real-time events via EventSub webhooks.",
+  "subcategories": ["live-streaming", "gaming", "social"],
+  "tags": ["twitch", "live-streaming", "gaming", "chat", "clips", "helix", "eventsub"],
+  "what_it_does": "Twitch's Helix REST API provides access to stream data, channel information, clips, subscriptions, chat, and EventSub webhooks — enabling agent-driven Twitch bots, analytics, and streaming tools.",
   "use_cases": [
-    "Monitoring live streams and detecting when streamers go live",
-    "Retrieving viewer counts, game categories, and stream metadata",
-    "Building Discord bots or dashboards for Twitch channel status",
-    "Automating channel point rewards and chat interactions",
-    "Aggregating Twitch clip and VOD data for analysis"
+    "Monitoring live streams and fetching real-time viewer count and stream metadata for analytics",
+    "Building Twitch chatbots that respond to events via EventSub and IRC",
+    "Fetching top clips and VODs for content curation or repurposing pipelines",
+    "Tracking Twitch channel growth metrics (followers, subscribers, views) for creator analytics",
+    "Automating channel point redemption handling and prediction management"
   ],
   "not_for": [
-    "Non-gaming streaming (audience and content is gaming-focused)",
-    "Video hosting and on-demand delivery",
-    "Commercial live streaming for business presentations"
+    "Downloading copyrighted stream content (Twitch TOS prohibits archiving other users' content)",
+    "Accessing private viewer/subscriber data beyond what the channel authorizes",
+    "Real-time chat at scale without IRC/WebSocket connection (REST is not real-time)"
   ],
-  "best_when": "You need to integrate with Twitch's gaming/streaming ecosystem or build tools for Twitch streamers and communities.",
-  "avoid_when": "You need general video hosting, non-gaming live streaming, or fine-grained video analytics.",
-  "alternatives": ["youtube-api", "mux-api"],
+  "best_when": "You're building Twitch-specific tooling — stream notifications, chat bots, analytics dashboards, or content discovery for gaming/streaming audiences.",
+  "avoid_when": "You need general live streaming infrastructure — Twitch API only gives you data access, not streaming capability.",
+  "alternatives": ["youtube-data-api", "kick-api", "discord-api"],
   "interface": {
     "has_rest_api": true,
     "has_graphql": false,
     "has_grpc": false,
     "has_mcp_server": false,
+    "mcp_server_url": null,
     "has_sdk": false,
     "sdk_languages": [],
-    "openapi_spec_url": "https://dev.twitch.tv/docs/api/reference/",
+    "openapi_spec_url": null,
     "webhooks": true
   },
   "auth": {
-    "methods": ["oauth2", "api_key"],
+    "methods": ["bearer_token", "oauth2"],
     "oauth": true,
     "scopes": true,
-    "notes": "App access tokens for server-to-server requests. User access tokens (OAuth) for user-context actions. Client ID always required in headers alongside token."
+    "notes": "App Access Token (client credentials, for public data) or User Access Token (OAuth2 PKCE, for user-specific data). EventSub webhooks require App Access Token. Chat IRC requires OAuth user token. Tokens expire in ~60 days; refresh tokens available."
   },
   "pricing": {
     "model": "free",
     "free_tier_exists": true,
-    "free_tier_limits": "Free to use with rate limits. No paid tiers.",
-    "paid_tiers": "None - completely free API",
+    "free_tier_limits": "Free to use; 800 requests/minute per client ID",
+    "paid_tiers": "No paid tiers — API is free",
     "requires_credit_card": false,
-    "notes": "Completely free to use. Developer program requires registration. Commercial products may need review."
+    "notes": "Twitch API is free. Rate limits apply per client ID. Twitch Partners and Affiliates get access to additional endpoints."
   },
   "performance": {
     "latency_p50_ms": 150,
     "latency_p99_ms": 600,
     "uptime_sla_percent": 99.5,
-    "rate_limits": "800 points/minute per Client-ID (each endpoint has a cost)",
+    "rate_limits": "800 requests/minute per client ID; EventSub: up to 10,000 active subscriptions per client",
     "data_source": "llm_estimated"
   },
   "requirements": {
@@ -59,29 +60,46 @@
     "requires_credit_card": false,
     "domain_verification": false,
     "data_residency": ["US"],
-    "compliance": ["GDPR"],
+    "compliance": ["GDPR", "COPPA"],
     "min_contract": "none"
   },
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
-    "documentation_accuracy": 82,
-    "error_message_quality": 72,
-    "error_message_notes": "Errors include status, error type, and message. Pagination cursor errors are sometimes confusing.",
-    "idempotency_support": "none",
-    "idempotency_notes": "No idempotency support. Write operations like sending whispers or creating clips are not idempotent.",
+    "documentation_accuracy": 85,
+    "error_message_quality": 80,
+    "error_message_notes": "Standard HTTP errors with error, status, and message fields. Rate limit responses include Ratelimit-Remaining and Ratelimit-Reset headers. EventSub verification errors are clear. Chat IRC errors require parsing IRC error codes.",
+    "idempotency_support": "full",
+    "idempotency_notes": "GET endpoints are fully idempotent. EventSub subscriptions are idempotent — duplicate subscriptions for the same condition return the existing one.",
     "pagination_style": "cursor",
     "retry_guidance_documented": true,
     "known_agent_gotchas": [
-      "Both Client-ID and Authorization headers are required for every request - missing one gives misleading 401 errors",
-      "App access tokens must be generated via client_credentials flow and refreshed after expiry",
-      "EventSub webhooks require a publicly reachable HTTPS endpoint with signature verification",
-      "The legacy Kraken v5 API is deprecated - Helix endpoints differ significantly",
-      "Rate limit points vary by endpoint type - read the cost for each endpoint you use"
-    ],
-    "error_message_score": 72,
-    "auth_complexity_score": 65,
-    "rate_limit_score": 70,
-    "security_score": 78
+      "App Access Tokens vs User Access Tokens have different endpoint coverage — many endpoints require user token; check requirements per endpoint",
+      "EventSub webhook verification challenge must be responded to within 10 seconds — missed challenge deactivates subscription",
+      "Helix API returns partial failures as HTTP 200 with error objects in data array — agents must inspect each response item",
+      "Old Kraken API (v5) is deprecated but still documented in some community resources — use Helix endpoints only",
+      "Chat moderation requires a User Access Token with the moderator's OAuth scope — App Access Token is insufficient for chat actions"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 80,
+    "auth_complexity_score": 75,
+    "rate_limit_clarity_score": 82
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 82,
+    "scope_granularity": 85,
+    "dependency_hygiene": 82,
+    "secret_handling": 82,
+    "security_notes": "OAuth 2.0 PKCE for user tokens. Granular scopes for chat, subscriptions, moderation, analytics. EventSub HMAC message signature verification. Client secret must be kept server-side. GDPR compliant."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 85,
+    "version_stability": 82,
+    "breaking_changes_history": 78,
+    "error_recovery": 80
   }
 }

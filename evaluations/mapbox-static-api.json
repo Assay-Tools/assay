@@ -1,0 +1,106 @@
+{
+  "id": "mapbox-static-api",
+  "name": "Mapbox Static Images API",
+  "version_evaluated": "current",
+  "homepage": "https://docs.mapbox.com/api/maps/static-images/",
+  "repo_url": null,
+  "category": "mapping",
+  "subcategories": ["static-maps", "geospatial", "image-generation", "visualization"],
+  "tags": ["mapbox", "static-map", "png", "geospatial", "map-image", "overlay", "geojson", "satellite", "tile"],
+  "what_it_does": "HTTP API that generates static map images (PNG or JPEG) of any location at any zoom level, with optional overlays including GeoJSON features, markers, paths, and custom styles. Returns a rasterized image URL or binary suitable for embedding in emails, PDFs, reports, SMS messages, or any context where interactive maps cannot be rendered.",
+  "use_cases": [
+    "Embedding location maps in transactional emails, order confirmations, or delivery notifications without JavaScript",
+    "Generating map thumbnails for location-based app listings, real estate portals, or event pages",
+    "Producing map images for PDF reports or exported documents requiring visual geographic context",
+    "Rendering route or polygon visualizations as images for sharing via SMS or social media",
+    "Server-side map image generation for OG preview images on location-tagged content"
+  ],
+  "not_for": [
+    "Interactive maps requiring pan, zoom, or click interaction (use Mapbox GL JS instead)",
+    "High-volume real-time tile fetching — this is an image API, not a tile server",
+    "Applications needing frequent dynamic updates (the static image must be regenerated for every change)"
+  ],
+  "best_when": "You need a server-side generated, shareable map image for a fixed location with optional overlays, especially for email, PDF, or social sharing contexts where JavaScript-based interactive maps cannot run.",
+  "avoid_when": "Your users need to interact with the map, you need real-time data overlays that update frequently, or your volume is high enough that per-request pricing becomes prohibitive.",
+  "alternatives": ["google-maps-static-api", "openstreetmap-api", "here-maps-api", "mapbox-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": false,
+    "sdk_languages": [],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["api_key"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Authentication is via a Mapbox access token appended as a `access_token` query parameter. Tokens can be scoped with URL restrictions (allowed URLs) to prevent abuse if exposed in client-side code. Public tokens are safe to embed in HTML; secret tokens must not be exposed in client requests."
+  },
+  "pricing": {
+    "model": "pay-as-you-go",
+    "free_tier_exists": true,
+    "free_tier_limits": "50,000 free static image requests/month permanently",
+    "paid_tiers": "$0.10 per 1,000 requests after free tier; volume discounts for enterprise",
+    "requires_credit_card": false,
+    "notes": "Each API call to generate a static image counts as one request. Caching generated images client-side or in CDN is strongly recommended to avoid redundant charges for the same location/zoom/style combination."
+  },
+  "performance": {
+    "latency_p50_ms": 150,
+    "latency_p99_ms": 800,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "No documented per-minute rate limit for standard use; sustained high-volume requests may trigger throttling; cache responses aggressively",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["US"],
+    "compliance": ["GDPR", "SOC2"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 88,
+    "error_message_quality": 75,
+    "error_message_notes": "Errors are returned as JSON with a message field. Invalid parameters (bad coordinates, missing access token) return descriptive 400 or 401 errors. However, some GeoJSON overlay issues (invalid geometry, too-large payload) return generic 400s without specifying which parameter is problematic.",
+    "idempotency_support": "full",
+    "idempotency_notes": "GET requests with the same parameters always return the same image — fully cacheable and idempotent by nature.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "GeoJSON overlays in the URL must be URL-encoded and the total URL length cannot exceed 8,192 characters — complex GeoJSON geometries with many coordinates will silently get truncated or return a 414 error; use the `overlay` parameter with POST for large geometries",
+      "Longitude comes before latitude in all Mapbox APIs — this is the GeoJSON standard but opposite to many other mapping APIs and human-readable address formats; agents trained on Google Maps conventions may silently swap coordinates",
+      "Custom style IDs require the format `mapbox://styles/{username}/{style_id}` — using just the style ID without the full URI prefix returns a 404 with a non-obvious error message",
+      "The `@2x` suffix for retina/high-DPI images doubles the pixel dimensions but also counts as the same number of API requests — always request @2x for display use to avoid blurry images on modern screens",
+      "Marker overlays use a specific URL syntax (`pin-s-label+color(lon,lat)`) that is not JSON and cannot be constructed by concatenating standard GeoJSON properties; agents must understand the custom overlay DSL",
+      "Static images do not support animated features, clustering, or data-driven styling — these are only available in the interactive Mapbox GL JS library; building a feature that relies on these in static images will require a different approach"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 88,
+    "error_handling_score": 74,
+    "auth_complexity_score": 90,
+    "rate_limit_clarity_score": 72
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 78,
+    "scope_granularity": 72,
+    "dependency_hygiene": 82,
+    "secret_handling": 80,
+    "security_notes": "Access tokens can be URL-restricted to specific domains, limiting abuse if exposed in frontend code. No OAuth or per-user auth — single token per app. Tokens are revocable via Mapbox dashboard. Sensitive data should not be embedded in map URLs as they may appear in server access logs."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 85,
+    "version_stability": 90,
+    "breaking_changes_history": 88,
+    "error_recovery": 82
+  }
+}

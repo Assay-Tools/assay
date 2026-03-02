@@ -1,0 +1,106 @@
+{
+  "id": "npmjs-registry-api",
+  "name": "npm Registry API",
+  "version_evaluated": "current",
+  "homepage": "https://www.npmjs.com",
+  "repo_url": "https://github.com/npm/registry",
+  "category": "developer-tools",
+  "subcategories": ["package-registry", "dependency-management", "javascript", "nodejs"],
+  "tags": ["npm", "package-registry", "javascript", "nodejs", "packages", "semver", "couchdb", "registry", "downloads"],
+  "what_it_does": "Public REST API and CouchDB-based registry for the npm JavaScript package ecosystem. Provides package metadata lookup, version history, download statistics, search, and package manifest access. Also supports publishing packages and managing user/org scopes via authenticated endpoints. The download counts API tracks package popularity over time.",
+  "use_cases": [
+    "Fetching package metadata (description, versions, dependencies, license, maintainers) for dependency analysis tools",
+    "Building security audit pipelines that enumerate transitive dependencies and check for known vulnerabilities",
+    "Tracking download trends for packages to measure adoption or compare alternatives",
+    "Automating package publication and tagging workflows in CI/CD pipelines via npm publish API",
+    "Building registry mirrors, caching proxies, or private registry federations on top of the public registry"
+  ],
+  "not_for": [
+    "High-frequency automated queries at scale without caching — the registry has rate limits and bans abusive crawlers",
+    "Private package hosting for proprietary code (use GitHub Packages, Verdaccio, or Artifactory instead)",
+    "Non-JavaScript ecosystems — use PyPI, crates.io, or Maven Central for other language packages"
+  ],
+  "best_when": "You need to programmatically look up package metadata, versions, or download statistics for JavaScript/Node.js packages, especially for dependency analysis, security scanning, or developer tooling.",
+  "avoid_when": "You need to host private packages, require guaranteed SLAs on the registry, or are building against the full CouchDB replication API which is no longer publicly supported.",
+  "alternatives": ["pypi-api", "crates-io-api", "github-rest-api", "dockerhub-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["javascript", "nodejs"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["api_key", "token", "legacy_password"],
+    "oauth": false,
+    "scopes": true,
+    "notes": "Read-only registry queries (package metadata, download counts) are unauthenticated. Publishing, deprecating, and team management require npm access tokens. Tokens are scoped: read-only, automation (publish without 2FA), and publish (requires 2FA or TOTP). Granular access tokens (GATs) introduced in 2022 support IP allow-lists and package-specific scope."
+  },
+  "pricing": {
+    "model": "freemium",
+    "free_tier_exists": true,
+    "free_tier_limits": "Unlimited public package reads; unlimited public package publishing",
+    "paid_tiers": "npm Pro: $7/month for private packages; npm Teams: $4/user/month; npm Enterprise (custom pricing) for self-hosted",
+    "requires_credit_card": false,
+    "notes": "Reading public package data and download stats is completely free. Private packages require a paid plan. The registry itself has no explicit published rate limits for reads, but aggressive scraping results in IP bans. Use the replicate endpoint or bulk download APIs for large-scale analysis."
+  },
+  "performance": {
+    "latency_p50_ms": 100,
+    "latency_p99_ms": 500,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "No published rate limits for read API; aggressive crawling (thousands of req/min) will trigger IP bans; download stats API has a 86,400-second cache TTL",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["US"],
+    "compliance": ["GDPR"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 72,
+    "error_message_quality": 72,
+    "error_message_notes": "The public registry API is only partially documented at registry.npmjs.org. Error messages for authentication failures are clear. Package-not-found returns 404 with a brief message. Some endpoints return CouchDB-style documents with legacy fields that are undocumented and occasionally surprising.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "GET requests are idempotent and cacheable. Publishing the same package version twice returns a 403 (version already exists) which is a deterministic error. Deprecation calls are idempotent. Unpublishing is irreversible and not idempotent.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "The `dist-tags` field in package metadata (e.g., `latest`) is the authoritative resolved version for `npm install package` — agents that parse the full versions list and sort semantically may get a different result than what npm actually installs if the maintainer has set a non-latest dist-tag",
+      "Package names are case-insensitive in the registry but canonical names are lowercase — querying `Express` returns data but the canonical package is `express`; always normalize to lowercase before lookups",
+      "The download counts API (api.npmjs.org/downloads) is a separate service from registry.npmjs.org and uses a different base URL; agents that try to fetch download stats from the registry URL will get 404s",
+      "Scoped packages (@org/package) must be URL-encoded in API paths — `@scope/name` becomes `%40scope%2Fname`; forgetting the encoding returns 404 even for packages that exist",
+      "The `time` field in package manifests contains publish timestamps for every version but uses ISO 8601 with milliseconds — some JSON parsers that coerce dates may lose sub-second precision",
+      "npm's registry has eventually consistent mirrors — immediately after publishing, some CDN edge nodes may return a 404 for the new version for up to 30 seconds; build retry logic into publish verification steps"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 70,
+    "error_handling_score": 72,
+    "auth_complexity_score": 80,
+    "rate_limit_clarity_score": 60
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 82,
+    "scope_granularity": 80,
+    "dependency_hygiene": 70,
+    "secret_handling": 78,
+    "security_notes": "Granular access tokens with IP allow-lists improve supply chain security. 2FA enforcement for publish operations on high-value packages is supported. The public registry has had historical supply chain attacks (typosquatting, account takeovers) — consumers should validate package integrity via checksums. npm audit uses a separate Advisory database, not the registry API."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 78,
+    "version_stability": 75,
+    "breaking_changes_history": 72,
+    "error_recovery": 75
+  }
+}

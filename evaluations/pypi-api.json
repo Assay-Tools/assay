@@ -1,0 +1,106 @@
+{
+  "id": "pypi-api",
+  "name": "PyPI (Python Package Index) API",
+  "version_evaluated": "current",
+  "homepage": "https://pypi.org",
+  "repo_url": "https://github.com/pypi/warehouse",
+  "category": "developer-tools",
+  "subcategories": ["package-registry", "dependency-management", "python", "open-source"],
+  "tags": ["pypi", "python", "package-registry", "pip", "packages", "semver", "warehouse", "simple-repository-protocol", "pep-503"],
+  "what_it_does": "The official Python package repository serving pip and other Python package managers. Provides a JSON API for package metadata lookup, version enumeration, release file download URLs, and project statistics. Also implements the PEP 503 Simple Repository API used by pip, uv, and Poetry to discover and install packages. The separate PyPI Stats API (pypistats.org) provides download analytics.",
+  "use_cases": [
+    "Fetching package metadata (author, license, dependencies, classifiers, release history) for dependency analysis and security scanning",
+    "Building Python environment management tools that need to resolve package versions without running pip",
+    "Checking latest stable version of a package or discovering all available versions for upgrade advisory tools",
+    "Automating package publication workflows using the PyPI upload API (Twine-compatible XMLRPC or Trusted Publisher OIDC flow)",
+    "Building internal mirrors or caches of the Python package index using the Simple Repository Protocol"
+  ],
+  "not_for": [
+    "Private Python package hosting — use PyPI's private index feature (Trusted Publishing), Artifactory, or a self-hosted devpi server",
+    "High-volume parallel download of package files without caching — use a mirror or CDN layer",
+    "Non-Python package ecosystems — use npm, crates.io, or Maven for other languages"
+  ],
+  "best_when": "You need programmatic access to Python package metadata, version history, or release files — especially for dependency scanning, upgrade tooling, or building Python-aware developer tools.",
+  "avoid_when": "You need SLA guarantees, private package hosting, or are performing bulk operations that could be interpreted as scraping — PyPI actively rate-limits and bans abusive clients.",
+  "alternatives": ["npmjs-registry-api", "crates-io-api", "dockerhub-api", "conda-forge"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": false,
+    "sdk_languages": [],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["api_key", "oidc_trusted_publisher"],
+    "oauth": false,
+    "scopes": true,
+    "notes": "Reading package data (JSON API, Simple API) requires no authentication. Publishing requires either a PyPI API token (scoped to all projects or a specific project) or the preferred Trusted Publisher flow (OIDC from GitHub Actions, GitLab CI, or Google Cloud). Username/password auth for uploads was deprecated in 2023. API tokens start with `pypi-` prefix."
+  },
+  "pricing": {
+    "model": "free",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free — no rate limit published for normal use",
+    "paid_tiers": "No paid tiers",
+    "requires_credit_card": false,
+    "notes": "PyPI is a non-profit operated by the Python Software Foundation. There are no charges for reads or uploads. However, aggressive automated clients will be blocked. TestPyPI (test.pypi.org) is available for testing publish workflows without polluting the real index."
+  },
+  "performance": {
+    "latency_p50_ms": 150,
+    "latency_p99_ms": 800,
+    "uptime_sla_percent": 99.5,
+    "rate_limits": "No formally published rate limits; practical limits enforced by Fastly CDN; bulk crawlers blocked; JSON API responses are cached at CDN with TTLs ranging from 10 seconds to 10 minutes depending on endpoint",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["US"],
+    "compliance": ["GDPR"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 75,
+    "error_message_quality": 72,
+    "error_message_notes": "The JSON API is informally documented with few official guarantees. Errors for missing packages return 404 with an HTML body (not JSON) — agents must handle content-type checks rather than assuming JSON error responses. Upload errors via Twine return XMLRPC faults which are harder to parse than REST JSON.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "GET requests to the JSON and Simple APIs are idempotent and heavily cached. Publishing the same version twice returns a 400 error (version already exists). Yanking a release is idempotent (yanking an already-yanked release is a no-op).",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "The PyPI JSON API endpoint is `https://pypi.org/pypi/{package}/json` — not the Simple API at `/simple/` — and these two APIs serve completely different data; the JSON API has rich metadata while Simple API only has download URLs per PEP 503",
+      "Package names are normalized per PEP 503 (lowercase, hyphens and underscores interchangeable, dots collapsed) — `my-package`, `my_package`, and `My.Package` all resolve to the same project; always normalize before lookups using the PEP 503 normalization rules",
+      "The `requires_dist` field in the JSON API contains raw PEP 508 dependency strings with environment markers — agents that try to parse these as plain package names will miss conditional dependencies and extras",
+      "Yanked releases still appear in the Simple API (they are not deleted) but have a `data-yanked` attribute on their `<a>` tags — pip will skip them unless the user specifies the exact version; agents scanning for latest safe versions must check for yanked status",
+      "The JSON API caches aggressively at the CDN — immediately after publishing a new version, the `/pypi/{package}/json` endpoint may return the previous version for up to 10 minutes; use `/pypi/{package}/{version}/json` for the specific new version which bypasses some caches",
+      "Trusted Publisher (OIDC) uploads require the GitHub Actions workflow to call `sigstore/gh-action-sigstore-python` and the PyPI project to pre-configure the trusted publisher — both sides must be configured before the first upload attempt or it will fall back to token auth with a confusing error"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 72,
+    "error_handling_score": 68,
+    "auth_complexity_score": 82,
+    "rate_limit_clarity_score": 62
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 85,
+    "scope_granularity": 78,
+    "dependency_hygiene": 72,
+    "secret_handling": 82,
+    "security_notes": "Trusted Publisher (OIDC) eliminates long-lived API tokens from CI/CD systems, significantly improving supply chain security. Project-scoped API tokens limit blast radius if a token is leaked. PyPI supports PEP 740 attestations for provenance verification. The public index has experienced typosquatting attacks — consumers should use hash pinning in requirements files."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 75,
+    "version_stability": 72,
+    "breaking_changes_history": 70,
+    "error_recovery": 72
+  }
+}

@@ -1,0 +1,107 @@
+{
+  "id": "aws-iot-core-api",
+  "name": "AWS IoT Core API",
+  "version_evaluated": "current",
+  "homepage": "https://aws.amazon.com/iot-core/",
+  "repo_url": "https://github.com/aws/aws-iot-device-sdk-python-v2",
+  "category": "iot",
+  "subcategories": ["device-management", "messaging", "iot-platform", "edge-computing"],
+  "tags": ["iot", "mqtt", "mqtt5", "device-shadow", "rules-engine", "aws", "thing-registry", "greengrass", "fleet-provisioning", "jobs"],
+  "what_it_does": "Managed IoT platform that connects billions of devices to AWS and to each other using MQTT, HTTPS, and WebSockets. Provides device registry (Thing management), device shadows (digital twins), rules engine for routing messages to 20+ AWS services, fleet provisioning, and over-the-air update support via IoT Jobs.",
+  "use_cases": [
+    "Connecting embedded devices and microcontrollers to AWS for telemetry ingestion and command delivery",
+    "Implementing device shadows to maintain last-known device state and sync offline devices when they reconnect",
+    "Routing sensor data to DynamoDB, S3, Lambda, or Kinesis via rules engine without custom middleware",
+    "Fleet provisioning and certificate rotation for large device deployments using IoT Fleet Provisioning APIs",
+    "Building remote firmware update pipelines using IoT Jobs with rollout configurations and rollback policies"
+  ],
+  "not_for": [
+    "Purely HTTP REST integrations where MQTT semantics are unnecessary overhead",
+    "Teams without AWS expertise — the IAM/policy/certificate model has a steep learning curve",
+    "Lightweight hobby projects where simpler MQTT brokers (HiveMQ, Mosquitto) suffice without AWS lock-in"
+  ],
+  "best_when": "You are already in the AWS ecosystem and need reliable, scalable MQTT-based device connectivity with built-in fleet management, rules-based routing, and deep integration with Lambda, DynamoDB, Kinesis, and S3.",
+  "avoid_when": "You need vendor-agnostic MQTT infrastructure, are building a small proof-of-concept, or your devices cannot support TLS mutual authentication required by IoT Core.",
+  "alternatives": ["azure-iot-api", "arduino-iot-api", "particle-api", "mqtt-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "javascript", "java", "c", "cpp", "embedded-c", "go", "rust"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["x509_certificate", "aws_sigv4", "custom_authorizer", "cognito_identity"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Devices authenticate with X.509 client certificates signed by AWS IoT CA or a private CA. IoT policies (distinct from IAM policies) control what MQTT topics and operations a certificate can access. REST control-plane APIs use AWS SigV4. Custom authorizers allow JWT or token-based auth for MQTT connections without certificates — useful for mobile clients."
+  },
+  "pricing": {
+    "model": "pay-as-you-go",
+    "free_tier_exists": true,
+    "free_tier_limits": "AWS Free Tier: 250,000 messages/month for 12 months; device shadow and rules engine operations charged separately",
+    "paid_tiers": "Messaging: $1.00/million messages (first billion); Device Shadow: $1.25/million operations; Rules Engine: $0.15/million rules triggered; Fleet Provisioning: $0.003/provisioning claim",
+    "requires_credit_card": true,
+    "notes": "Cost can scale unexpectedly — each MQTT publish/subscribe counts as messages, rules engine triggers add cost per rule matched, and device shadow operations are metered separately from messaging. A device that publishes 1 message with 3 matching rules generates at least 4 billable events."
+  },
+  "performance": {
+    "latency_p50_ms": 30,
+    "latency_p99_ms": 200,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "Default: 20,000 MQTT connections/second per account; 100 msg/s per connection; API throttling at 200 TPS for most control-plane calls; limits adjustable via service quota increases",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": true,
+    "domain_verification": false,
+    "data_residency": ["US", "EU", "APAC", "GovCloud"],
+    "compliance": ["SOC1", "SOC2", "SOC3", "ISO27001", "PCI-DSS", "HIPAA", "FedRAMP"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 82,
+    "error_message_quality": 70,
+    "error_message_notes": "MQTT connection errors are often surfaced as generic disconnect codes without actionable detail. Certificate validation failures and policy denials both result in connection drops with minimal error information on the device side. Control-plane REST API errors are well-structured AWS JSON with error codes.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Thing creation and certificate attachment are idempotent if using deterministic names. Fleet provisioning claims are single-use by design. IoT Jobs execution updates are idempotent. Shadow updates use version numbers to prevent lost updates but do not support client-side idempotency tokens.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "IoT policies are completely separate from IAM policies — IAM controls who can call control-plane APIs, IoT policies control what MQTT operations a certificate can perform; forgetting to attach an IoT policy to a certificate causes silent connection drops",
+      "Device shadows use optimistic locking with a `version` field; if two agents update the shadow concurrently, the one with the lower version gets a 409 ConflictException that must be handled with a read-modify-write retry loop",
+      "MQTT topic wildcards (# and +) in IoT policies must be carefully scoped — overly permissive wildcards allow devices to subscribe to other devices' topics, a common misconfiguration causing data leakage",
+      "Rules engine SQL runs against the message payload at publish time; if a device publishes a message that doesn't match the WHERE clause, the rule silently does nothing — debugging requires enabling CloudWatch Logs on the rule",
+      "Fleet Provisioning provisioning claims are one-time-use certificates that must be exchanged for permanent certificates; if the exchange fails mid-process the device may be stuck with an unusable claim certificate",
+      "The `aws iot-data` endpoint (HTTPS data plane) and the `aws iot` endpoint (control plane) are completely different base URLs — agents that conflate them will get 404s on valid operations",
+      "Thing Groups and Billing Groups are separate concepts; dynamic Thing Groups based on registry queries can have propagation delays up to 60 seconds before newly registered things appear in groups"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 80,
+    "error_handling_score": 68,
+    "auth_complexity_score": 60,
+    "rate_limit_clarity_score": 75
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 95,
+    "scope_granularity": 90,
+    "dependency_hygiene": 88,
+    "secret_handling": 90,
+    "security_notes": "X.509 mutual TLS is the gold standard for device identity. IoT policies support fine-grained topic-level access control. Certificate rotation via IoT Jobs is well-supported. Private CA integration available for bring-your-own-PKI scenarios. FIPS 140-2 compliant endpoints available in GovCloud."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 85,
+    "version_stability": 88,
+    "breaking_changes_history": 85,
+    "error_recovery": 75
+  }
+}
