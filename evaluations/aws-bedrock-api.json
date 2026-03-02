@@ -1,104 +1,105 @@
 {
   "id": "aws-bedrock-api",
-  "name": "AWS Bedrock",
+  "name": "Amazon Bedrock API",
   "version_evaluated": "current",
   "homepage": "https://aws.amazon.com/bedrock/",
   "repo_url": null,
   "category": "ai-ml",
-  "subcategories": ["foundation-models", "llm-api", "model-gateway"],
-  "tags": ["aws", "llm", "claude", "llama", "titan", "mistral", "cohere", "bedrock", "foundation-models", "enterprise"],
-  "what_it_does": "Provides a unified AWS API for accessing and running foundation models from Anthropic, Meta, Mistral, Cohere, Amazon, and others, with data remaining inside your AWS VPC.",
+  "subcategories": ["llm", "foundation-models", "generative-ai", "serverless"],
+  "tags": ["aws", "bedrock", "llm", "claude", "titan", "llama", "mistral", "generative-ai", "foundation-models"],
+  "what_it_does": "Amazon Bedrock REST API — fully managed foundation model service enabling agents to invoke frontier LLMs (Claude, Llama, Mistral, Titan, Stable Diffusion) via a unified API with serverless inference, fine-tuning, knowledge bases (RAG), and agents built on AWS infrastructure.",
   "use_cases": [
-    "Running Claude, Llama, or Mistral models within an AWS environment without data leaving the VPC",
-    "Building enterprise AI applications that require SOC2/HIPAA compliance and IAM-based access control",
-    "Comparing and switching between multiple foundation model providers through a single API surface",
-    "Fine-tuning and evaluating foundation models on private datasets using Bedrock Model Customization"
+    "Agents invoking Claude or Llama for text generation via InvokeModel — standardized request format across model providers without managing inference infrastructure",
+    "Bedrock Agents — building multi-step agentic workflows with tool use, memory, and knowledge bases entirely within AWS, with automatic Lambda integration for action groups",
+    "Knowledge Base RAG — agents querying Bedrock Knowledge Bases backed by S3 + OpenSearch for semantic search over company documents with managed embeddings",
+    "Streaming responses — agents using InvokeModelWithResponseStream for real-time token streaming in user-facing applications",
+    "Model evaluation — agents running Bedrock Model Evaluation jobs to compare foundation model outputs for quality and safety before deployment"
   ],
   "not_for": [
-    "Teams without an AWS account — setup overhead is significant compared to direct provider APIs",
-    "Quick prototyping or hobbyist use where OpenAI or Anthropic direct APIs are simpler",
-    "Lowest-cost inference — Bedrock pricing is comparable to direct providers but adds IAM complexity"
+    "Non-AWS environments requiring minimal cloud lock-in — Bedrock ties inference to AWS IAM, VPC, and S3; use OpenAI or Anthropic directly for cloud-agnostic deployments",
+    "Fine-grained model customization with custom architectures — Bedrock fine-tuning is limited to supported models with adapter-based tuning; use SageMaker for full control",
+    "Ultra-low latency inference at edge — Bedrock is a managed cloud service; for on-device or edge inference use ONNX, CoreML, or TensorRT"
   ],
-  "best_when": "Your team is already on AWS infrastructure, needs data residency guarantees, wants model portability across providers, or requires enterprise compliance (HIPAA, SOC2) without managing your own model serving.",
-  "avoid_when": "You want the fastest path to a working LLM integration and have no existing AWS infrastructure — direct Anthropic or OpenAI APIs will be much simpler to set up.",
-  "alternatives": ["anthropic-api", "openai-api", "google-vertex-ai-api", "azure-openai-api"],
+  "best_when": "You're deploying AI agents within AWS and want unified access to frontier models with enterprise compliance (VPC, IAM, CloudTrail, HIPAA) and managed RAG/agent orchestration without additional infrastructure.",
+  "avoid_when": "You need direct access to model providers' latest features before they reach Bedrock, require custom model architectures, or are building outside AWS.",
+  "alternatives": ["openai-api", "anthropic-api", "google-vertex-ai-api", "azure-openai-api"],
   "interface": {
     "has_rest_api": true,
     "has_graphql": false,
     "has_grpc": false,
-    "has_mcp_server": true,
-    "mcp_server_url": "https://github.com/awslabs/mcp/tree/main/src/bedrock",
+    "has_mcp_server": false,
+    "mcp_server_url": null,
     "has_sdk": true,
-    "sdk_languages": ["python", "node", "java", "go", "dotnet", "ruby", "cpp"],
+    "sdk_languages": ["python", "javascript", "java", "go", "ruby", "csharp"],
     "openapi_spec_url": null,
     "webhooks": false
   },
   "auth": {
-    "methods": ["aws_iam"],
+    "methods": ["aws-iam"],
     "oauth": false,
-    "scopes": true,
-    "notes": "AWS SigV4 signing via IAM credentials or roles. IAM roles on EC2/ECS/Lambda are the recommended approach — no long-lived credentials needed. Model access must be explicitly requested per region in the Bedrock console before use."
+    "scopes": false,
+    "notes": "AWS IAM SigV4 signing for all requests. IAM policies control access to specific models (bedrock:InvokeModel on specific model ARNs). Model access must be enabled per-model in the Bedrock console before API calls work. Cross-account model access via resource policies."
   },
   "pricing": {
-    "model": "pay-as-you-go",
+    "model": "usage-based",
     "free_tier_exists": false,
     "free_tier_limits": null,
-    "paid_tiers": "On-demand pricing per input/output token, varies by model. Example: Claude 3.5 Sonnet ~$3/M input, $15/M output. Provisioned throughput available for committed workloads at lower per-token cost.",
+    "paid_tiers": "On-demand: per input/output token — Claude 3.5 Sonnet: $3/$15 per 1M tokens; Llama 3.1 70B: $0.72/$0.72 per 1M tokens; Provisioned throughput available for committed capacity",
     "requires_credit_card": true,
-    "notes": "No free tier. Pricing matches or is very close to direct provider APIs. Provisioned throughput (monthly commitment) reduces costs for steady-state workloads. Cross-region inference adds slight cost."
+    "notes": "Token-based pricing varies significantly by model. No free tier — minimum spend required. Provisioned throughput (committed model units) reduces per-token cost with upfront commitment. Knowledge Base and Agent features have additional costs for S3 storage and API calls."
   },
   "performance": {
-    "latency_p50_ms": 600,
+    "latency_p50_ms": 500,
     "latency_p99_ms": 3000,
     "uptime_sla_percent": 99.9,
-    "rate_limits": "Default TPS and token limits per model; vary by model family. Increase via AWS Service Quotas console. Provisioned throughput bypasses on-demand limits.",
+    "rate_limits": "Default: 50 on-demand model units; InvokeModel: varies by model (10-50 TPS); quotas can be increased via Service Quotas",
     "data_source": "llm_estimated"
   },
   "requirements": {
     "requires_signup": true,
     "requires_credit_card": true,
     "domain_verification": false,
-    "data_residency": ["US", "EU", "APAC", "CA", "SA"],
-    "compliance": ["SOC1", "SOC2", "SOC3", "ISO27001", "ISO27017", "ISO27018", "HIPAA", "GDPR", "FedRAMP-Moderate", "PCI-DSS"],
+    "data_residency": ["US", "EU", "APAC"],
+    "compliance": ["SOC2", "ISO-27001", "HIPAA", "FedRAMP", "GDPR"],
     "min_contract": "none"
   },
   "agent_readiness": {
-    "mcp_server_quality": 55,
-    "mcp_security_score": 80,
-    "documentation_accuracy": 82,
-    "error_message_quality": 76,
-    "error_message_notes": "Errors surface as structured AWS exceptions (e.g., ThrottlingException, ModelNotReadyException) with clear codes, but error messages can be generic for quota issues. Model access not enabled errors are clear.",
-    "idempotency_support": "partial",
-    "idempotency_notes": "InvokeModel is not idempotent by design. Agent workflows should implement their own retry/deduplication. Converse API session tracking helps with multi-turn agents.",
-    "pagination_style": "cursor",
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 88,
+    "error_message_quality": 82,
+    "error_message_notes": "AWS SDK provides typed exceptions. Model-specific errors (ThrottlingException, ModelTimeoutException) are well-documented. Model access errors (AccessDeniedException) can be misleading when model access isn't enabled in console. Streaming errors require separate handling.",
+    "idempotency_support": "full",
+    "idempotency_notes": "InvokeModel is stateless — same inputs produce equivalent outputs (non-deterministic by nature). Bedrock Agents support session context via sessionId for multi-turn conversations. Knowledge Base queries are idempotent.",
+    "pagination_style": "token",
     "retry_guidance_documented": true,
     "known_agent_gotchas": [
-      "Model access must be manually enabled per region in the Bedrock console before the API will respond — a common source of confusing AccessDeniedException errors",
-      "Cross-region inference (using a profile instead of a model ID) is required for higher throughput but adds latency and subtle configuration differences",
-      "On-demand rate limits are per-account per-region and can be hit quickly at scale; provisioned throughput is the production solution",
-      "The official aws-mcp server is experimental and not production-ready as of early 2026",
-      "Streaming responses require different SDK handling than non-streaming — ensure your agent framework supports the EventStream pattern"
+      "Model access must be explicitly enabled per model in the Bedrock console before API calls — AccessDeniedException doesn't clearly indicate 'model not enabled' vs permission issue",
+      "Each model has a different request/response format wrapped by Bedrock's unified API — agents must handle model-specific body schemas (Anthropic Messages API format vs Llama format)",
+      "Bedrock Agents (orchestration feature) are distinct from calling Bedrock for model inference — agents often confuse the two; Bedrock Agents have their own API surface",
+      "Quota limits are per-region and per-model — agents hitting ThrottlingException must implement per-model backoff and may need to request quota increases via AWS Service Quotas",
+      "Streaming via InvokeModelWithResponseStream requires parsing chunked event stream format — standard HTTP response handling won't work; must use AWS SDK streaming utilities"
     ]
   },
   "af_score_components": {
-    "mcp_score": 25,
-    "api_doc_score": 82,
-    "error_handling_score": 76,
-    "auth_complexity_score": 68,
-    "rate_limit_clarity_score": 72
+    "mcp_score": 0,
+    "api_doc_score": 88,
+    "error_handling_score": 82,
+    "auth_complexity_score": 70,
+    "rate_limit_clarity_score": 78
   },
   "security_score_components": {
     "tls_enforcement": 100,
     "auth_strength": 95,
     "scope_granularity": 92,
     "dependency_hygiene": 90,
-    "secret_handling": 95,
-    "security_notes": "IAM roles for EC2/Lambda are strongly preferred over access keys — AWS SDKs handle credential rotation automatically. All Bedrock traffic can be routed through VPC endpoints, keeping data off the public internet. Model invocations can be logged to CloudTrail for audit. IAM conditions can restrict which models a role can invoke."
+    "secret_handling": 92,
+    "security_notes": "IAM resource-level policies for per-model access control. VPC endpoint support. CloudTrail logging for all invocations. KMS encryption for Knowledge Base data. HIPAA BAA available. FedRAMP authorized. Data not used for model training by default."
   },
   "reliability_score_components": {
     "uptime_documented": 90,
     "version_stability": 85,
     "breaking_changes_history": 82,
-    "error_recovery": 80
+    "error_recovery": 85
   }
 }

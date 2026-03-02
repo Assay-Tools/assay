@@ -1,27 +1,28 @@
 {
   "id": "google-vertex-ai-api",
-  "name": "Google Vertex AI",
+  "name": "Google Vertex AI API",
   "version_evaluated": "current",
   "homepage": "https://cloud.google.com/vertex-ai",
   "repo_url": null,
   "category": "ai-ml",
-  "subcategories": ["foundation-models", "llm-api", "mlops", "model-gateway", "model-training"],
-  "tags": ["google", "gcp", "vertex-ai", "gemini", "llm", "foundation-models", "model-training", "mlops", "enterprise"],
-  "what_it_does": "Google Cloud's unified AI platform for accessing Gemini and other foundation models, training and deploying custom models, running batch predictions, and orchestrating ML pipelines.",
+  "subcategories": ["llm", "foundation-models", "generative-ai", "mlops"],
+  "tags": ["google", "vertex-ai", "gemini", "palm", "generative-ai", "foundation-models", "ml-pipeline"],
+  "what_it_does": "Google Vertex AI REST API — unified ML platform enabling agents to invoke Gemini models, access Model Garden (Llama, Claude via Garden), train and deploy custom models, run ML pipelines, manage datasets, and use grounding (Google Search, enterprise data) for factual AI responses.",
   "use_cases": [
-    "Accessing Gemini models (Pro, Flash, Ultra) via API within a Google Cloud environment with enterprise compliance",
-    "Building ML pipelines that combine Gemini with custom-trained models using Vertex Pipelines",
-    "Running batch prediction jobs over large datasets against Gemini or custom endpoints",
-    "Multimodal agent workflows using Gemini's native support for text, images, audio, and video in a single call"
+    "Agents invoking Gemini Pro/Flash for text generation via generateContent — multimodal inputs (text, images, video, audio) with long context windows up to 1M tokens",
+    "Grounded generation — agents using Vertex AI Search grounding to anchor Gemini responses to real-time Google Search results or enterprise document corpora",
+    "Model Garden access — agents calling Claude (Anthropic), Llama, Mistral, and other third-party models through Vertex AI's unified API surface",
+    "Embeddings at scale — agents using Vertex AI embedding models to generate text embeddings for vector search, with batch embedding jobs for large document corpora",
+    "ML pipelines — agents triggering Vertex AI Pipelines (Kubeflow) for automated training, evaluation, and deployment workflows with managed compute"
   ],
   "not_for": [
-    "Teams not on GCP — AWS Bedrock or Azure OpenAI will integrate better with existing infrastructure",
-    "Quick API access to Gemini — the Google AI Studio / Gemini API (ai.google.dev) is simpler for non-GCP users",
-    "Small-scale or hobby projects where GCP account setup and billing complexity outweighs the benefit"
+    "Simple LLM inference without Google Cloud commitment — Vertex AI requires Google Cloud billing; use Google AI Studio (Gemini API) for simple, direct access",
+    "Teams unfamiliar with Google Cloud IAM — Vertex AI auth via service accounts and Workload Identity is significantly more complex than API-key-based providers",
+    "Very small projects — minimum setup overhead (Cloud project, APIs enabled, billing, service account) not justified for hobby or quick prototyping"
   ],
-  "best_when": "You are building enterprise AI on GCP, need Gemini with data residency and VPC Service Controls, or want to combine Google's foundation models with your own trained models in a unified platform.",
-  "avoid_when": "You want the simplest path to Gemini — use the Gemini API (ai.google.dev) directly. Vertex AI adds significant configuration overhead that only pays off at enterprise scale.",
-  "alternatives": ["aws-bedrock-api", "azure-openai-api", "anthropic-api", "google-gemini-api"],
+  "best_when": "You're building enterprise AI applications on Google Cloud and need Gemini's multimodal capabilities, grounding with Google Search, or unified access to multiple foundation models with GCP compliance posture.",
+  "avoid_when": "You want simple API-key access without GCP setup overhead — use Google AI Studio's Gemini API directly for that use case.",
+  "alternatives": ["aws-bedrock-api", "azure-openai-api", "anthropic-api", "openai-api"],
   "interface": {
     "has_rest_api": true,
     "has_graphql": false,
@@ -29,29 +30,29 @@
     "has_mcp_server": false,
     "mcp_server_url": null,
     "has_sdk": true,
-    "sdk_languages": ["python", "node", "java", "go", "dotnet"],
-    "openapi_spec_url": null,
+    "sdk_languages": ["python", "javascript", "java", "go"],
+    "openapi_spec_url": "https://cloud.google.com/vertex-ai/docs/reference/rest",
     "webhooks": false
   },
   "auth": {
-    "methods": ["oauth2", "service_account"],
+    "methods": ["google-oauth2", "service-account"],
     "oauth": true,
     "scopes": true,
-    "notes": "Application Default Credentials (ADC) is the recommended approach — uses gcloud CLI, Workload Identity for GKE, or a service account key file. OAuth 2.0 scopes required: cloud-platform. Service account keys are supported but discouraged in favor of Workload Identity Federation. Auth is more complex than AWS IAM roles for most developers."
+    "notes": "Google Cloud service account credentials (JSON key file or Workload Identity Federation). Application Default Credentials (ADC) for local development. OAuth2 scopes: cloud-platform. API key available for Google AI Studio (Gemini API) but NOT for Vertex AI — Vertex requires IAM auth."
   },
   "pricing": {
-    "model": "pay-as-you-go",
+    "model": "usage-based",
     "free_tier_exists": true,
-    "free_tier_limits": "$300 Google Cloud free trial credit for new accounts (90-day expiry). Gemini 1.5 Flash: free tier via AI Studio (not Vertex). Vertex AI itself has no persistent free tier after trial.",
-    "paid_tiers": "Gemini 1.5 Pro: $1.25–$2.50/M input tokens, $5–$10/M output tokens (context-dependent). Gemini 1.5 Flash: $0.075–$0.15/M input, $0.30/M output. Batch prediction: 50% discount vs. online. Custom model training: per compute hour.",
+    "free_tier_limits": "Gemini 1.5 Flash: free tier with 1M tokens/day; other models have limited free quota in specific regions",
+    "paid_tiers": "Gemini 1.5 Pro: $3.50/$10.50 per 1M input/output tokens; Flash: $0.075/$0.30 per 1M tokens; custom model training: per compute hour",
     "requires_credit_card": true,
-    "notes": "The $300 credit is useful for experimentation. Production pricing is competitive with AWS Bedrock for Gemini models. Committed use discounts available. Batch prediction at half the online price is a significant advantage for offline agent workloads."
+    "notes": "Token pricing varies by model. Grounding with Google Search has additional per-query costs. Batch prediction is cheaper than online prediction. Custom model training billed by machine hour. Budget alerts recommended."
   },
   "performance": {
-    "latency_p50_ms": 700,
-    "latency_p99_ms": 3500,
+    "latency_p50_ms": 300,
+    "latency_p99_ms": 3000,
     "uptime_sla_percent": 99.9,
-    "rate_limits": "Default: 60 requests/minute for Gemini 1.5 Pro; 1000 requests/minute for Flash. Token-level limits also apply. Increase via quota requests in Google Cloud Console. Batch prediction bypasses online quotas.",
+    "rate_limits": "Gemini: 360 requests/minute default (varies by model and region); quota increases via Google Cloud console",
     "data_source": "llm_estimated"
   },
   "requirements": {
@@ -59,46 +60,46 @@
     "requires_credit_card": true,
     "domain_verification": false,
     "data_residency": ["US", "EU", "APAC"],
-    "compliance": ["SOC1", "SOC2", "SOC3", "ISO27001", "ISO27017", "ISO27018", "HIPAA", "GDPR", "FedRAMP-High", "PCI-DSS", "HITRUST", "CSA-STAR"],
+    "compliance": ["SOC2", "ISO-27001", "HIPAA", "FedRAMP", "GDPR"],
     "min_contract": "none"
   },
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
-    "documentation_accuracy": 78,
-    "error_message_quality": 74,
-    "error_message_notes": "Google API errors use a standard Status object with code and message, but Vertex-specific errors (quota exceeded, model unavailable) can have generic messages. The Python SDK wraps errors in google.api_core.exceptions, which are well-documented.",
-    "idempotency_support": "partial",
-    "idempotency_notes": "GenerateContent is not idempotent. Batch prediction jobs support deduplication via job names. Long-running operations (training, batch prediction) return an Operation object that can be polled.",
-    "pagination_style": "page_token",
+    "documentation_accuracy": 85,
+    "error_message_quality": 80,
+    "error_message_notes": "Google Cloud SDK provides structured errors with HTTP codes and machine-readable error reasons. RESOURCE_EXHAUSTED for quota limits. PERMISSION_DENIED for IAM issues. Error messages often lack actionable context — CloudConsole investigation needed.",
+    "idempotency_support": "full",
+    "idempotency_notes": "generateContent is stateless — same request produces equivalent response. Batch jobs use job IDs for status polling. Long-running operations tracked by operation name. No client-side idempotency tokens needed.",
+    "pagination_style": "token",
     "retry_guidance_documented": true,
     "known_agent_gotchas": [
-      "Application Default Credentials setup requires running 'gcloud auth application-default login' locally — missing this step causes cryptic authentication errors that look like network issues",
-      "The Vertex AI SDK (vertexai Python package) and the Google AI SDK (google-generativeai) are different packages with different APIs — even though both access Gemini, they are not interchangeable",
-      "Quota limits for online prediction are per project per region and reset every minute — agents hitting limits need exponential backoff with jitter",
-      "Enabling the Vertex AI API in a Google Cloud project is required before any calls succeed — a step that is easy to miss in automation scripts",
-      "VPC Service Controls (for data residency) add significant configuration complexity and must be set up before the first API call — retroactive application is disruptive"
+      "Vertex AI requires GCP project and enabled APIs before any call works — agents onboarding new environments must enable 'aiplatform.googleapis.com' via Cloud Console or gcloud CLI",
+      "Endpoint URLs include region and project ID — agents using different regions must construct correct endpoint URLs; wrong region causes immediate failure with confusing errors",
+      "Service account key files are long-lived credentials — agents in production should use Workload Identity Federation (no key files) rather than JSON key files to reduce credential exposure risk",
+      "Model availability varies by region — Gemini 1.5 Pro may not be available in all regions; agents must handle INVALID_ARGUMENT errors when model isn't available in selected region",
+      "Grounding with Google Search is an additional billable feature that must be explicitly enabled per project — agents using grounding without enabling the feature get quota errors, not helpful messages"
     ]
   },
   "af_score_components": {
     "mcp_score": 0,
-    "api_doc_score": 78,
-    "error_handling_score": 74,
-    "auth_complexity_score": 58,
-    "rate_limit_clarity_score": 70
+    "api_doc_score": 85,
+    "error_handling_score": 80,
+    "auth_complexity_score": 65,
+    "rate_limit_clarity_score": 78
   },
   "security_score_components": {
     "tls_enforcement": 100,
-    "auth_strength": 90,
-    "scope_granularity": 88,
+    "auth_strength": 92,
+    "scope_granularity": 90,
     "dependency_hygiene": 88,
-    "secret_handling": 85,
-    "security_notes": "Workload Identity Federation eliminates service account keys for GKE and other GCP workloads. VPC Service Controls enable data perimeter enforcement. CMEK (customer-managed encryption keys) supported. All traffic can stay within Google's private network via Private Google Access."
+    "secret_handling": 88,
+    "security_notes": "IAM-based auth with fine-grained resource-level policies. Workload Identity Federation for keyless auth. VPC Service Controls for network isolation. HIPAA BAA and FedRAMP available. Data governance with CMEK (Customer Managed Encryption Keys). Prompts not used for training."
   },
   "reliability_score_components": {
-    "uptime_documented": 88,
-    "version_stability": 80,
-    "breaking_changes_history": 75,
-    "error_recovery": 78
+    "uptime_documented": 90,
+    "version_stability": 85,
+    "breaking_changes_history": 82,
+    "error_recovery": 85
   }
 }

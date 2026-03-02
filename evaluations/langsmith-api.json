@@ -1,89 +1,105 @@
 {
   "id": "langsmith-api",
-  "name": "LangSmith",
+  "name": "LangSmith API",
   "version_evaluated": "current",
   "homepage": "https://smith.langchain.com",
-  "repo_url": "https://github.com/langchain-ai/langsmith-sdk",
+  "repo_url": null,
   "category": "ai-ml",
-  "subcategories": ["llm-observability", "agent-evaluation", "ai-debugging"],
-  "tags": ["langsmith", "langchain", "llm-observability", "tracing", "evaluation", "ai-agents", "debugging"],
-  "what_it_does": "LLM observability and evaluation platform from LangChain that traces, monitors, and evaluates LLM application runs including agent chains, with a REST API for programmatic access to traces and evaluation datasets.",
+  "subcategories": ["llm-observability", "tracing", "evaluation", "debugging"],
+  "tags": ["langsmith", "langchain", "tracing", "llm", "observability", "evaluation", "debugging", "agents"],
+  "what_it_does": "LangSmith REST API — LLM observability, tracing, and evaluation platform enabling agents to log runs, trace multi-step chains, evaluate outputs with datasets, and monitor production LLM applications for latency, cost, and quality.",
   "use_cases": [
-    "Tracing agent execution steps to debug multi-turn LLM workflows",
-    "Running automated evaluations against golden datasets to measure LLM output quality",
-    "Querying run history to identify patterns in failures and latency spikes",
-    "Creating and managing evaluation datasets for regression testing of prompts",
-    "Monitoring production LLM applications for cost, latency, and quality metrics"
+    "Agents logging traces of LLM calls — instrument agent runs with LangSmith SDK to capture every LLM call, tool invocation, and chain step for debugging and audit",
+    "Evaluation pipelines — agents running automated evaluations on datasets (golden test sets) using LangSmith evaluators to catch regressions before production deployment",
+    "Production monitoring — agents querying LangSmith API for run metrics (p50/p99 latency, error rates, token costs) to power dashboards and alerting",
+    "Prompt management — agents using LangSmith Hub to pull versioned prompt templates and push tested prompt improvements via API",
+    "Feedback collection — agents submitting human feedback scores to LangSmith runs to build training datasets and track quality trends over time"
   ],
   "not_for": [
-    "General application performance monitoring (use Datadog or New Relic for non-LLM tracing)",
-    "Teams not using LangChain ecosystem (integration is deeper for LangChain users)",
-    "Real-time alerting on latency or errors (limited alerting capabilities)",
-    "Open-source teams requiring fully self-hosted observability with no SaaS dependency"
+    "Non-LangChain LLM stacks without custom instrumentation — LangSmith is most valuable with LangChain/LangGraph; integrating other frameworks requires manual SDK calls",
+    "Real-time monitoring at millisecond granularity — LangSmith is for audit/debugging, not sub-second production alerting; use Datadog or OpenTelemetry for that",
+    "Model serving or inference — LangSmith only observes and evaluates; use Bedrock, Vertex AI, or direct APIs for actual inference"
   ],
-  "best_when": "You're building LangChain-based agents or any LLM application and want traces, evals, and debugging without building custom observability infrastructure.",
-  "avoid_when": "You're using a different observability platform already integrated with your LLM stack, or you need general APM capabilities beyond LLM-specific tracing.",
-  "alternatives": ["honeycomb-api", "wandb-api", "datadog-api", "sentry-api"],
+  "best_when": "You're building LLM agents or chains and need end-to-end tracing, automated evaluation against test datasets, and production quality monitoring in a single platform.",
+  "avoid_when": "Your LLM stack doesn't use LangChain and you can't add custom SDK instrumentation, or you need sub-second alerting on production failures.",
+  "alternatives": ["arize-api", "helicone-api", "traceloop-api", "patronus-ai-api"],
   "interface": {
     "has_rest_api": true,
     "has_graphql": false,
     "has_grpc": false,
     "has_mcp_server": false,
+    "mcp_server_url": null,
     "has_sdk": true,
-    "sdk_languages": ["python", "node"],
+    "sdk_languages": ["python", "javascript", "typescript"],
     "openapi_spec_url": "https://api.smith.langchain.com/docs",
-    "webhooks": false
+    "webhooks": true
   },
   "auth": {
     "methods": ["api_key"],
     "oauth": false,
     "scopes": false,
-    "notes": "API keys are workspace-scoped with no fine-grained permission model. Keys are set via LANGCHAIN_API_KEY environment variable for SDK use. No scoped tokens currently available."
+    "notes": "API key from LangSmith settings. Set as LANGCHAIN_API_KEY environment variable for SDK auto-instrumentation. Separate keys per workspace supported. Service API key for CI/CD pipelines. No granular scopes — full access per key."
   },
   "pricing": {
     "model": "freemium",
     "free_tier_exists": true,
-    "free_tier_limits": "Free: 5,000 traces/month, 3,000 dataset examples",
-    "paid_tiers": "Plus: $39/month; Enterprise: custom",
+    "free_tier_limits": "Developer: free with 5K traces/month, 1 user, 5K LangSmith Hub pushes",
+    "paid_tiers": "Plus: $39/month (50K traces, 5 users); Enterprise: custom pricing with SSO, on-premises options",
     "requires_credit_card": false,
-    "notes": "Free tier is useful for development and small production workloads. Trace volume can grow quickly for high-frequency agents."
+    "notes": "Trace volume determines cost. Evaluation runs count against trace quota. Generous free tier for individual developers. Team features and higher trace limits require paid plans."
   },
   "performance": {
-    "latency_p50_ms": 80,
-    "latency_p99_ms": 300,
+    "latency_p50_ms": 100,
+    "latency_p99_ms": 500,
     "uptime_sla_percent": 99.9,
-    "rate_limits": "API rate limits not prominently documented; depends on plan",
+    "rate_limits": "Trace ingestion: 100 requests/s on free tier; higher on paid; REST API: reasonable limits not hard-documented",
     "data_source": "llm_estimated"
   },
   "requirements": {
     "requires_signup": true,
     "requires_credit_card": false,
     "domain_verification": false,
-    "data_residency": ["US"],
+    "data_residency": ["US", "EU"],
     "compliance": ["SOC2"],
     "min_contract": "none"
   },
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
-    "documentation_accuracy": 82,
-    "error_message_quality": 75,
-    "error_message_notes": "API returns standard HTTP codes with JSON error detail. SDK errors are generally more descriptive than raw API errors.",
+    "documentation_accuracy": 88,
+    "error_message_quality": 82,
+    "error_message_notes": "REST API with OpenAPI spec. SDK wraps most operations cleanly. Error responses include descriptive messages. Trace ingestion failures are silent (fire-and-forget by default) — agents must configure error callbacks to detect ingest failures.",
     "idempotency_support": "partial",
-    "idempotency_notes": "Run creation is not idempotent — submitting the same trace twice creates duplicate runs. Dataset example creation supports upsert patterns.",
+    "idempotency_notes": "Run creation with explicit run_id is idempotent — re-posting same run_id updates rather than duplicates. Dataset creation not idempotent by name. Evaluation runs create new examples — not idempotent.",
     "pagination_style": "cursor",
     "retry_guidance_documented": false,
     "known_agent_gotchas": [
-      "Trace data is eventually consistent — freshly submitted traces may not be immediately queryable",
-      "Run IDs must be UUIDs — agents generating their own run IDs must use proper UUID format",
-      "Nested runs (parent/child) require explicit parent_run_id linkage — automatic only with LangChain SDK",
-      "Evaluation datasets are version-specific — updating examples creates new versions, not in-place edits",
-      "Free tier trace retention is limited — production systems may need paid plan to retain history"
-    ],
-    "error_message_score": 75,
-    "auth_complexity_score": 82,
-    "rate_limit_score": 65,
-    "security_score": 75
+      "Trace ingestion is async and fire-and-forget by default — errors in trace submission don't propagate to the calling agent code unless error callbacks are explicitly configured",
+      "LangSmith SDK adds latency overhead to every traced call — in latency-sensitive production paths, consider sampling traces rather than tracing 100% of requests",
+      "Dataset examples must be uploaded before running evaluations — agents automating eval pipelines must handle dataset creation, example upload, and eval run as separate sequential steps",
+      "Prompt Hub pulls incur API calls — agents loading prompts at inference time (not startup) will add latency and API calls on every run",
+      "Workspace isolation is enforced by API key — agents in multi-tenant systems must use separate API keys per tenant to prevent trace data cross-contamination"
+    ]
   },
-  "last_evaluated": "2026-02-28"
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 88,
+    "error_handling_score": 80,
+    "auth_complexity_score": 88,
+    "rate_limit_clarity_score": 75
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 75,
+    "scope_granularity": 60,
+    "dependency_hygiene": 80,
+    "secret_handling": 80,
+    "security_notes": "SOC2 certified. TLS enforced. LLM inputs/outputs are stored in LangSmith — agents must ensure no PII is sent in traces for GDPR compliance. EU data residency option. No granular API key scopes (full-access keys only). SSO on Enterprise."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 85,
+    "version_stability": 85,
+    "breaking_changes_history": 82,
+    "error_recovery": 80
+  }
 }
