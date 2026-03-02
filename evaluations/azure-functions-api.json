@@ -1,0 +1,105 @@
+{
+  "id": "azure-functions-api",
+  "name": "Azure Functions API",
+  "version_evaluated": "current",
+  "homepage": "https://azure.microsoft.com/en-us/products/functions/",
+  "repo_url": "https://github.com/Azure/azure-functions-host",
+  "category": "serverless-compute",
+  "subcategories": ["serverless", "event-driven", "faas", "azure"],
+  "tags": ["azure", "functions", "serverless", "faas", "event-driven", "triggers", "bindings", "consumption-plan", "durable-functions"],
+  "what_it_does": "Microsoft Azure's serverless compute platform enabling event-driven function execution without managing infrastructure. The management REST API exposes control-plane operations: creating, deploying, configuring, and monitoring function apps and individual functions. Supports a rich trigger and binding system (HTTP, Timer, Service Bus, Event Hub, Blob Storage, Cosmos DB, etc.). Durable Functions extension adds stateful orchestration patterns (chains, fan-out/fan-in, human interaction). Functions can run on Consumption (pay-per-execution), Premium, or Dedicated (App Service) plans.",
+  "use_cases": [
+    "Serverless HTTP APIs and webhooks that scale to zero when idle, deployed and managed via the management API",
+    "Event-driven data processing pipelines triggered by Azure Service Bus, Event Hub, or Blob Storage changes",
+    "Scheduled tasks (cron jobs) using Timer triggers managed and monitored programmatically",
+    "Durable Functions orchestrations for long-running multi-step workflows with stateful checkpointing",
+    "CI/CD pipelines that deploy function code via ZIP deploy or container push using the management API"
+  ],
+  "not_for": [
+    "Long-running CPU-intensive workloads — Consumption plan has a 10-minute timeout (configurable up to 60 minutes on Premium)",
+    "Workloads requiring persistent local filesystem state — use Azure Blob Storage or Cosmos DB for state",
+    "GPU compute workloads or specialized hardware requirements"
+  ],
+  "best_when": "You are in the Azure ecosystem, need event-driven serverless compute with deep Azure service integration (bindings make connecting to Service Bus, Cosmos DB, etc. near-zero code), and want pay-per-execution economics for bursty workloads.",
+  "avoid_when": "You need cold start latency under 500ms consistently (use Premium plan to avoid cold starts), or your workload is better suited to a containerized microservice with predictable traffic (use Azure Container Apps instead).",
+  "alternatives": ["aws-lambda", "google-cloud-functions", "azure-container-apps", "vercel-functions", "cloudflare-workers"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["C#", "JavaScript", "TypeScript", "Python", "Java", "PowerShell", "F#"],
+    "openapi_spec_url": "https://raw.githubusercontent.com/Azure/azure-rest-api-specs/main/specification/web/resource-manager/readme.md",
+    "webhooks": true
+  },
+  "auth": {
+    "methods": ["azure-active-directory", "managed-identity", "function-keys", "master-key"],
+    "oauth": true,
+    "scopes": true,
+    "notes": "Management API uses Azure AD Bearer tokens (az login or service principal). Runtime HTTP triggers support function-level keys, host-level keys, or anonymous access configured per function. Managed Identity is preferred for service-to-service calls. Function keys are simple shared secrets — rotate regularly."
+  },
+  "pricing": {
+    "model": "pay-as-you-go",
+    "free_tier_exists": true,
+    "free_tier_limits": "1 million executions/month and 400,000 GB-s of resource consumption free per month per subscription",
+    "paid_tiers": "Consumption: $0.20/million executions + $0.000016/GB-s. Premium: from ~$0.173/vCPU-hour (avoids cold starts, VNet integration). Dedicated: App Service Plan pricing (~$55+/month for B1).",
+    "requires_credit_card": true,
+    "notes": "The free grant resets monthly and applies across all function apps in the subscription. Premium plan is significantly more expensive but eliminates cold starts. Durable Functions add storage costs for orchestration state in Azure Storage."
+  },
+  "performance": {
+    "latency_p50_ms": 200,
+    "latency_p99_ms": 2000,
+    "uptime_sla_percent": 99.95,
+    "rate_limits": "Consumption plan: 200 concurrent executions per function app by default (configurable). HTTP trigger scale-out takes 10-30 seconds for cold instances. Premium: up to 100 pre-warmed instances. Management API: ARM rate limits apply (1200 requests per hour per subscription).",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": true,
+    "domain_verification": false,
+    "data_residency": ["US", "EU", "APAC", "60+ Azure regions"],
+    "compliance": ["SOC1", "SOC2", "SOC3", "PCI-DSS", "HIPAA", "ISO-27001", "FedRAMP-High"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 83,
+    "error_message_quality": 78,
+    "error_message_notes": "Management API (ARM) errors return structured JSON with code and message nested under an 'error' key. Function runtime errors are captured in Application Insights (separate query required). Cold-start timeout errors surface as generic 503s without actionable detail in the response body.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "ARM operations (PUT for creating/updating function apps) are idempotent. Function invocations via HTTP trigger are not idempotent unless the function code handles it. Durable Functions orchestration provides built-in replay and idempotency for orchestrator functions.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Cold starts on the Consumption plan can take 5-15 seconds for C#/.NET functions and 1-5 seconds for Python/JS; agents invoking functions in latency-sensitive workflows must account for this or use Premium plan with pre-warmed instances",
+      "Function app configuration (app settings / environment variables) updates cause an immediate restart of the function app — all in-flight executions are interrupted; agents updating config must coordinate with active traffic or use deployment slots for zero-downtime updates",
+      "The management API and the runtime API are completely separate surfaces — the Azure Resource Manager API manages infrastructure (function app metadata, config, deployment), while the Kudu API (scm endpoint) manages code and logs; agents need different auth tokens and base URLs for each",
+      "Durable Functions use Azure Storage under the hood (queues, blobs, tables); the storage account is a hard dependency and its connection string must be set in AzureWebJobsStorage — agents deploying Durable Functions must provision and configure this storage separately",
+      "ARM API operations are asynchronous for most create/update operations — they return HTTP 202 Accepted with an Azure-AsyncOperation or Location header; agents must poll that URL until the operation reaches Succeeded or Failed state, which can take 30-120 seconds for function app provisioning"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 83,
+    "error_handling_score": 78,
+    "auth_complexity_score": 72,
+    "rate_limit_clarity_score": 75
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 88,
+    "scope_granularity": 85,
+    "dependency_hygiene": 85,
+    "secret_handling": 82,
+    "security_notes": "Azure AD and Managed Identity provide strong, keyless authentication. Function keys are a weaker fallback — avoid for production. VNet integration available on Premium plan for private network access. Key Vault references for app settings prevent secrets appearing in plain text in the portal."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 82,
+    "breaking_changes_history": 80,
+    "error_recovery": 80
+  }
+}

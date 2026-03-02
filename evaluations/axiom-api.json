@@ -1,0 +1,106 @@
+{
+  "id": "axiom-api",
+  "name": "Axiom API",
+  "version_evaluated": "current",
+  "homepage": "https://axiom.co/",
+  "repo_url": "https://github.com/axiomhq/axiom-go",
+  "category": "Observability",
+  "subcategories": ["Log Management", "Analytics", "Event Ingestion"],
+  "tags": ["logs", "analytics", "observability", "events", "apl", "columnar", "cloud-native"],
+  "what_it_does": "Axiom is a cloud-native log management and analytics platform built on a columnar storage engine. Provides APIs for high-throughput event ingestion, querying via APL (Axiom Processing Language), and dataset management. Designed for cost-effective retention at scale without per-GB ingestion pricing beyond a tier.",
+  "use_cases": [
+    "Ingest and query agent execution traces, tool call logs, and LLM prompt/response logs",
+    "Build structured log pipelines for AI agent observability with fast ad-hoc querying",
+    "Replace expensive per-GB log management (Datadog Logs, Splunk) for high-volume event data",
+    "Correlate agent errors with deployment events and user sessions via APL analytics",
+    "Real-time streaming queries for live dashboards monitoring agent fleet health"
+  ],
+  "not_for": [
+    "Application performance monitoring with distributed tracing (use Honeycomb or Jaeger)",
+    "Metrics time-series storage and alerting (use Prometheus/Grafana or Datadog Metrics)",
+    "Teams needing on-premise or self-hosted deployment (Axiom is cloud-only SaaS)"
+  ],
+  "best_when": "You have high event volume (millions of log lines/day), want columnar analytics performance for ad-hoc queries, and want predictable pricing not tied to per-GB ingestion.",
+  "avoid_when": "You need APM-style distributed traces with flame graphs, or your team is standardized on ELK/OpenSearch and cannot migrate query patterns to APL.",
+  "alternatives": ["datadog-api", "logtail-api", "grafana-loki-api", "honeycomb-api", "new-relic-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["Go", "Python", "JavaScript/TypeScript", "Rust"],
+    "openapi_spec_url": "https://axiom.co/docs/restapi/endpoints",
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["api_token", "personal_token"],
+    "oauth": false,
+    "scopes": true,
+    "notes": "API tokens scoped to specific datasets with read/write/admin permissions. Personal tokens for user-level access. Tokens managed via UI or API. Organization tokens available for multi-dataset operations. No OAuth 2.0 flow — pure bearer token model."
+  },
+  "pricing": {
+    "model": "usage_based_tiered",
+    "free_tier_exists": true,
+    "free_tier_limits": "500 GB/month ingest, 90-day retention, unlimited queries",
+    "paid_tiers": "Team from $25/month (1TB ingest), Scale custom pricing for enterprise",
+    "requires_credit_card": false,
+    "notes": "Generous free tier compared to competitors. Pricing based on ingest volume and retention, not query volume — important for analytics-heavy agent workloads. Unlimited queries is a key differentiator from Datadog or Splunk."
+  },
+  "performance": {
+    "latency_p50_ms": 100,
+    "latency_p99_ms": 600,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "Ingest: up to 1,000 events/request recommended, no hard per-request limit. Query API: no documented rate limit but complex queries are subject to execution timeout. Batch ingest recommended for agents.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["US", "EU"],
+    "compliance": ["SOC2", "GDPR"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 82,
+    "error_message_notes": "REST API returns structured JSON errors with message and status fields. APL query errors include line/column context for syntax errors. Ingest errors include per-event failure details in batch responses, enabling partial success handling.",
+    "idempotency_support": "none",
+    "idempotency_notes": "Ingest is append-only with no deduplication. Agents retrying failed ingest requests will create duplicate events. Implement idempotency at the agent layer by tracking ingestion state or using unique event IDs in payloads for downstream dedup.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Ingest is append-only with no deduplication — retry on failure creates duplicate log entries; agents must track ingest state externally or accept duplicates and deduplicate at query time",
+      "APL (Axiom Processing Language) is Kusto-inspired but not identical — agents trained on KQL or SQL must adjust syntax, especially for time functions and string operations",
+      "Dataset must exist before ingest — attempting to ingest into a non-existent dataset returns 404, not an auto-create; agents must pre-create datasets or handle this error",
+      "Batch ingest has a 10MB request body limit — agents sending large payloads must chunk events into multiple requests rather than one large batch",
+      "Query results are not paginated for large result sets — APL queries returning millions of rows will time out; agents must use summarize operators to aggregate before returning data",
+      "Token permissions are dataset-scoped — an agent with write-only access cannot verify a dataset exists before ingesting (needs read permission); design token scopes with this workflow in mind"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 82,
+    "auth_complexity_score": 85,
+    "rate_limit_clarity_score": 78
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 82,
+    "scope_granularity": 80,
+    "dependency_hygiene": 82,
+    "secret_handling": 82,
+    "security_notes": "Dataset-level token scoping provides solid isolation. No OAuth flow means simpler token management but no delegated access patterns. SOC2 Type II certified. EU region available for GDPR workloads. TLS 1.2+ enforced."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 85,
+    "version_stability": 82,
+    "breaking_changes_history": 80,
+    "error_recovery": 80
+  }
+}

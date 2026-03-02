@@ -1,0 +1,105 @@
+{
+  "id": "mangopay-api",
+  "name": "Mangopay API",
+  "version_evaluated": "current",
+  "homepage": "https://mangopay.com/",
+  "repo_url": "https://github.com/Mangopay/mangopay2-python-sdk",
+  "category": "payments",
+  "subcategories": ["marketplace-payments", "e-money", "split-payments", "escrow", "kyc"],
+  "tags": ["mangopay", "marketplace", "payments", "e-money", "escrow", "split-payments", "kyc", "wallets", "europe", "regulated"],
+  "what_it_does": "Regulated European e-money and marketplace payments infrastructure. Mangopay provides a white-label wallet and payment routing system for platforms: each user gets a wallet, money flows between wallets with full audit trails, and payouts go to bank accounts after KYC verification. Unlike Stripe Connect, Mangopay is an e-money institution licensed under EU regulations, making it suitable for marketplaces that need to hold funds on behalf of users for extended periods. Supports card payments, bank transfers (SEPA/SWIFT), and local European payment methods.",
+  "use_cases": [
+    "European marketplace platforms (rental, freelance, e-commerce) needing licensed e-money wallet infrastructure for buyer/seller fund holding",
+    "Escrow services where funds must be held in regulated wallets before release on contract completion",
+    "Crowdfunding platforms that collect payments and hold in escrow until funding goals are met",
+    "Platforms in regulated industries (real estate, lending) needing full KYC/AML compliance built into the payment flow",
+    "Multi-currency European marketplaces needing SEPA direct debit, bank wire, and card payment with automatic FX"
+  ],
+  "not_for": [
+    "Global platforms with significant non-European user bases — Mangopay's core strength is EU/EEA coverage",
+    "Simple single-party payment processing where Stripe standard is cheaper and simpler",
+    "Platforms needing instant real-time payouts at low cost — Mangopay payouts typically process in 1-3 business days"
+  ],
+  "best_when": "Your platform is European or EU-focused, you need to hold user funds in regulated e-money wallets (not just route payments through), and KYC/AML compliance must be built into the payment flow.",
+  "avoid_when": "Your users are primarily outside the EU, you need same-day or instant payouts, or your transaction volume makes Mangopay's per-transaction fees prohibitive compared to Stripe Connect.",
+  "alternatives": ["stripe-connect", "adyen-marketplace", "paypal-marketplace", "lemonway", "treezor"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["Python", "PHP", "Ruby", "Java", ".NET", "JavaScript"],
+    "openapi_spec_url": null,
+    "webhooks": true
+  },
+  "auth": {
+    "methods": ["oauth2-client-credentials"],
+    "oauth": true,
+    "scopes": false,
+    "notes": "OAuth2 Client Credentials flow using ClientId and API Key. Access tokens have a 1-hour TTL and must be refreshed. Sandbox and production use different base URLs and separate credentials. No per-operation scope granularity — the client credentials grant full API access."
+  },
+  "pricing": {
+    "model": "pay-as-you-go",
+    "free_tier_exists": false,
+    "free_tier_limits": "Sandbox environment is free with no limits for testing",
+    "paid_tiers": "Custom pricing negotiated per platform. Typical: 1.4-2.5% + fixed fee per card transaction. Bank wire fees: ~€1-3 per payout. Monthly platform fee may apply. Volume discounts from €50K+ monthly volume.",
+    "requires_credit_card": false,
+    "notes": "Pricing is not publicly listed — requires sales engagement. Fees tend to be higher than Stripe for low-volume platforms but more favorable terms for marketplaces needing the regulatory compliance features."
+  },
+  "performance": {
+    "latency_p50_ms": 300,
+    "latency_p99_ms": 1500,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "Not publicly documented. In practice, the API handles hundreds of requests per minute per client. Webhook delivery may be delayed during high load. Payin and payout operations may take 10-30 seconds to process asynchronously.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": false,
+    "domain_verification": true,
+    "data_residency": ["EU", "EEA"],
+    "compliance": ["PSD2", "GDPR", "AML5D", "EMD2", "PCI-DSS"],
+    "min_contract": "varies"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 78,
+    "error_message_quality": 72,
+    "error_message_notes": "Mangopay API errors return JSON with ResultCode (numeric) and ResultMessage (string). Error codes are documented but the documentation can be outdated. ResultCode 001999 is a generic 'technical error' that requires contacting support. Webhook events include the same ResultCode/ResultMessage for payment status updates.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Mangopay does not have a native idempotency key mechanism like Stripe. Tag field on resources can be used to store external identifiers for deduplication. Agents must implement their own idempotency layer by storing resource IDs and checking for existing resources before creating new ones.",
+    "pagination_style": "offset",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "OAuth2 access tokens expire after 1 hour; agents with long-running sessions must implement token refresh logic — using an expired token returns a 401 that looks identical to a bad credential error, making it hard to distinguish token expiry from auth misconfiguration",
+      "The sandbox and production environments are completely isolated with different client IDs, API keys, and base URLs (api.sandbox.mangopay.com vs api.mangopay.com); agents that hardcode URLs will need environment-specific configuration, and sandbox test users/wallets cannot be migrated to production",
+      "KYC document submission is asynchronous — uploading a KYC document returns immediately but the validation status (VALIDATED or REFUSED) comes back via webhook hours or days later; agents building onboarding flows cannot confirm KYC synchronously",
+      "Wallet-to-wallet transfers are immediate but payouts (wallet to bank account) require the user to be KYC-verified; attempting a payout for an unverified user returns a ResultCode 003-001 error with a message that does not clearly indicate the KYC issue without consulting the documentation",
+      "Pagination uses page and per_page query parameters with a maximum of 100 items per page; the total count is returned in a header (X-Number-Of-Items and X-Number-Of-Pages), not in the response body — agents that parse only the response body will not know how many pages remain"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 75,
+    "error_handling_score": 70,
+    "auth_complexity_score": 72,
+    "rate_limit_clarity_score": 65
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 82,
+    "scope_granularity": 65,
+    "dependency_hygiene": 80,
+    "secret_handling": 80,
+    "security_notes": "Licensed e-money institution under French ACPR, regulated under EU PSD2 and EMD2. Full KYC/AML compliance built into the platform. Data stored in EU. TLS enforced on all endpoints. OAuth2 tokens limit credential exposure. No per-scope granularity — credentials are all-or-nothing."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 80,
+    "version_stability": 78,
+    "breaking_changes_history": 75,
+    "error_recovery": 72
+  }
+}

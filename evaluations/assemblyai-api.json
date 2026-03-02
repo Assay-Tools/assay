@@ -2,86 +2,104 @@
   "id": "assemblyai-api",
   "name": "AssemblyAI API",
   "version_evaluated": "current",
-  "last_evaluated": "2026-02-28",
-  "homepage": "https://www.assemblyai.com",
-  "repo_url": null,
+  "homepage": "https://www.assemblyai.com/docs",
+  "repo_url": "https://github.com/AssemblyAI/assemblyai-python-sdk",
   "category": "ai-ml",
-  "subcategories": ["speech-to-text", "nlp", "audio"],
-  "tags": ["assemblyai", "speech-to-text", "transcription", "nlp", "sentiment-analysis", "pii-detection", "rest-api", "sdk"],
-  "what_it_does": "Speech-to-text API with built-in LLM-powered features including transcription, speaker diarization, sentiment analysis, summarization, and PII detection from audio.",
+  "subcategories": ["speech-to-text", "audio-intelligence", "transcription"],
+  "tags": ["assemblyai", "speech-to-text", "transcription", "audio", "llm", "lemur", "diarization"],
+  "what_it_does": "AssemblyAI transcribes audio and video with high accuracy, speaker diarization, sentiment analysis, topic detection, and LeMUR — an LLM layer for asking questions about audio content directly.",
   "use_cases": [
-    "Transcribing meeting recordings with speaker labels",
-    "Building voice-enabled agents that process audio input",
-    "Detecting PII in call center audio for compliance",
-    "Generating meeting summaries and action items from recordings",
-    "Sentiment analysis on customer support calls"
+    "Transcribing meeting recordings with speaker labels for meeting summary agents",
+    "Running LeMUR to ask natural language questions about audio content without separate LLM call",
+    "Detecting sensitive information (PII) in audio for compliance and redaction workflows",
+    "Sentiment and topic analysis on customer support calls for agent routing",
+    "Real-time streaming transcription for voice-enabled agent interfaces"
   ],
   "not_for": [
-    "Real-time transcription with sub-100ms latency (use streaming for near-real-time)",
-    "Languages with limited audio training data outside their supported set",
-    "Very short audio clips where transcription overhead dominates"
+    "Ultra-low-latency real-time TTS/STT pipelines (Deepgram or Cartesia for <200ms needs)",
+    "Very short clips under a few seconds (API overhead not worth it)",
+    "Teams needing on-premises or self-hosted speech processing"
   ],
-  "best_when": "You need transcription plus downstream audio intelligence (sentiment, PII, summaries) in one API call.",
-  "avoid_when": "You only need basic transcription and want the cheapest possible option, or need true real-time streaming with very low latency.",
-  "alternatives": ["deepgram-api", "openai-api"],
+  "best_when": "Your agent needs rich audio intelligence beyond raw transcription — speaker identification, topic detection, sentiment, or asking LLM questions about audio without building a separate pipeline.",
+  "avoid_when": "You only need raw transcription without audio intelligence features — Deepgram or Whisper are cheaper for pure STT.",
+  "alternatives": ["deepgram-api", "google-cloud-speech-api", "aws-transcribe-api", "openai-whisper-api"],
   "interface": {
     "has_rest_api": true,
     "has_graphql": false,
     "has_grpc": false,
     "has_mcp_server": false,
+    "mcp_server_url": null,
     "has_sdk": true,
-    "sdk_languages": ["python", "node", "ruby", "java", "csharp", "go"],
+    "sdk_languages": ["python", "node", "ruby", "java", "go", "csharp"],
+    "openapi_spec_url": "https://www.assemblyai.com/openapi.json",
     "webhooks": true
   },
   "auth": {
     "methods": ["api_key"],
     "oauth": false,
     "scopes": false,
-    "notes": "Single API key in Authorization header. No scopes - key has full account access. Use separate keys per environment."
+    "notes": "Single API key in Authorization header. Account-level key with no granular scopes. Separate keys for development vs production recommended via API key rotation."
   },
   "pricing": {
     "model": "pay-as-you-go",
     "free_tier_exists": true,
     "free_tier_limits": "$50 in free credits on signup",
-    "paid_tiers": "~$0.37/hour for transcription; LLM features (summarization, etc.) add per-feature cost",
+    "paid_tiers": "Core transcription: $0.37/hour; Nano model: $0.12/hour; LeMUR: $3/1M LeMUR input tokens",
     "requires_credit_card": false,
-    "notes": "Free credits expire. Pricing is per audio hour. Advanced features (sentiment, PII, summarization) are additional per-request charges. Webhook delivery is free."
+    "notes": "Audio intelligence features (sentiment, diarization, topics) are addons priced per hour. LeMUR is priced separately per token. Generous free trial credit."
   },
   "performance": {
-    "latency_p50_ms": 3000,
-    "latency_p99_ms": 30000,
-    "uptime_sla_percent": 99.5,
-    "rate_limits": "5 concurrent transcriptions on free; higher on paid",
+    "latency_p50_ms": 30000,
+    "latency_p99_ms": 120000,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "5 concurrent transcriptions on free tier; contact for higher limits",
     "data_source": "llm_estimated"
   },
   "requirements": {
     "requires_signup": true,
     "requires_credit_card": false,
     "domain_verification": false,
-    "data_residency": ["US", "EU"],
+    "data_residency": ["US"],
     "compliance": ["SOC2", "GDPR", "HIPAA"],
     "min_contract": "none"
   },
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
-    "documentation_accuracy": 88,
-    "error_message_quality": 82,
-    "error_message_notes": "Clear error messages with error type and message. Transcription failures include reason codes.",
-    "idempotency_support": "partial",
-    "idempotency_notes": "Transcription jobs are create-once; use transcript ID to poll status. Submitting same audio again creates a new job.",
+    "documentation_accuracy": 92,
+    "error_message_quality": 88,
+    "error_message_notes": "Clear status field (queued/processing/completed/error) with error message when applicable. SDK throws typed exceptions. Webhook payloads include status and error fields. Well-documented error codes for common failures.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Each transcript request gets a unique transcript_id. Submitting same audio URL creates a new transcript each time — agents should store transcript_id to avoid duplicate submissions.",
     "pagination_style": "cursor",
     "retry_guidance_documented": true,
     "known_agent_gotchas": [
-      "Transcription is async - agents must poll for completion or use webhooks; there is no synchronous mode for long audio",
-      "Audio must be publicly accessible via URL or uploaded first via their upload endpoint",
-      "LLM features (summarization, entity detection) must be enabled at transcription submission time, not after",
-      "Free credits expire after 1 year - agents tested in dev may hit billing surprises in prod",
-      "Speaker diarization with many speakers can produce inconsistent speaker labels across similar audio"
-    ],
-    "error_message_score": 82,
-    "auth_complexity_score": 88,
-    "rate_limit_score": 70,
-    "security_score": 80
+      "Transcription is async — submit returns transcript_id, agents must poll or use webhook for completion (typically 30-120 seconds)",
+      "Audio URL must be publicly accessible at transcription time — pre-signed S3 URLs with short expiry can cause failures if not enough time",
+      "LeMUR context window limits — very long transcripts may need chunking before LeMUR can process them",
+      "Real-time streaming uses WebSocket, not REST — different SDK methods and connection handling required",
+      "Speaker diarization increases processing time significantly — disable if only raw text needed"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 92,
+    "error_handling_score": 88,
+    "auth_complexity_score": 92,
+    "rate_limit_clarity_score": 80
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 78,
+    "scope_granularity": 60,
+    "dependency_hygiene": 85,
+    "secret_handling": 80,
+    "security_notes": "Single API key with no scope granularity. HIPAA BAA available. SOC 2 Type II. Audio stored temporarily during processing. Audio files deleted after processing unless explicitly stored."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 88,
+    "breaking_changes_history": 85,
+    "error_recovery": 85
   }
 }

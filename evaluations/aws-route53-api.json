@@ -1,0 +1,106 @@
+{
+  "id": "aws-route53-api",
+  "name": "AWS Route 53 API",
+  "version_evaluated": "current",
+  "homepage": "https://aws.amazon.com/route53/",
+  "repo_url": "https://github.com/boto/boto3",
+  "category": "Infrastructure",
+  "subcategories": ["DNS Management", "Health Checks", "Traffic Routing"],
+  "tags": ["aws", "dns", "route53", "health-checks", "failover", "geolocation", "infrastructure"],
+  "what_it_does": "AWS Route 53 is a scalable DNS web service with APIs for managing hosted zones, DNS records, health checks, and traffic policies. Supports advanced routing policies including weighted, latency-based, geolocation, geoproximity, failover, and multivalue routing.",
+  "use_cases": [
+    "Automate DNS record creation and updates during infrastructure provisioning (CI/CD, IaC)",
+    "Implement programmatic failover by toggling DNS routing based on health check status",
+    "Build agents that manage blue/green deployment traffic splits via weighted routing",
+    "Register and manage domain names programmatically through the Domains API",
+    "Query DNS resolver for debugging and validation during infrastructure automation"
+  ],
+  "not_for": [
+    "Application-layer load balancing (use ALB/NLB instead)",
+    "DNS management outside AWS ecosystem without accepting AWS billing complexity",
+    "Teams needing multi-cloud DNS abstraction (consider Cloudflare or NS1)"
+  ],
+  "best_when": "Your infrastructure is AWS-native and you need tightly integrated DNS management with health checks, CloudWatch alarms, and IAM-based access control for automated pipelines.",
+  "avoid_when": "You need real-time low-latency DNS propagation feedback, or your team lacks AWS IAM expertise to safely scope permissions for automation agents.",
+  "alternatives": ["cloudflare-api", "google-cloud-dns-api", "ns1-api", "azure-dns-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["Python (boto3)", "JavaScript", "Java", "Go", "Ruby", "PHP", "C++", ".NET"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["aws_signature_v4", "iam_roles", "sts_assume_role"],
+    "oauth": false,
+    "scopes": true,
+    "notes": "Authentication via AWS Signature V4 (SigV4). IAM policies control access at action and resource level (e.g., route53:ChangeResourceRecordSets on specific hosted zone ARNs). Best practice for agents: use IAM roles with least-privilege policies, not long-lived access keys."
+  },
+  "pricing": {
+    "model": "usage_based",
+    "free_tier_exists": false,
+    "free_tier_limits": "No free tier for hosted zones",
+    "paid_tiers": "$0.50/hosted zone/month (first 25 zones), $0.10/zone after. DNS queries: $0.40/million (first 1B), $0.20/million after. Health checks: $0.50/endpoint/month basic, $1.00/month advanced.",
+    "requires_credit_card": true,
+    "notes": "Costs are predictable and low for typical use cases. High-volume DNS query environments (billions of queries/day) can incur significant costs. No minimum commitment."
+  },
+  "performance": {
+    "latency_p50_ms": 50,
+    "latency_p99_ms": 500,
+    "uptime_sla_percent": 100,
+    "rate_limits": "API rate limits by action: ChangeResourceRecordSets 5 req/sec, GetHostedZone 400 req/sec, ListResourceRecordSets 100 req/sec. Limits apply per AWS account.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": true,
+    "domain_verification": false,
+    "data_residency": ["US"],
+    "compliance": ["SOC1", "SOC2", "SOC3", "PCI DSS", "HIPAA", "ISO 27001", "FedRAMP"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 90,
+    "error_message_quality": 85,
+    "error_message_notes": "AWS SDK error responses include error codes (e.g., InvalidChangeBatch, NoSuchHostedZone) and descriptive messages. XML-based REST API returns structured error bodies. SDK wraps these into typed exceptions for easy programmatic handling.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "ChangeResourceRecordSets uses a change batch model — submitting the same UPSERT action is idempotent for the record value. However, the change batch itself gets a unique ChangeId; polling for INSYNC status is required to confirm propagation. No client-supplied idempotency token.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "DNS propagation is asynchronous — after ChangeResourceRecordSets returns, agents must poll GetChange with the ChangeId until status is INSYNC (can take 60+ seconds); never assume immediate propagation",
+      "Hosted zone IDs have a '/hostedzone/' prefix (e.g., '/hostedzone/Z1234ABC') — many API calls require just the ID portion; strip the prefix or use SDK helpers to avoid InvalidInput errors",
+      "Rate limits are per action type and per account — parallel agent tasks sharing one AWS account can collide; implement per-action rate limiters, not a global limiter",
+      "Alias records (pointing to AWS resources like ALBs) require specific AliasTarget format with EvaluateTargetHealth; plain A records and alias records have different payload schemas",
+      "The API uses XML (not JSON) for the underlying REST layer — when not using the SDK, content-type and XML namespace errors are common failure modes for agents building raw HTTP requests",
+      "IAM permissions for Route 53 are global (not region-scoped) but you must still specify the correct partition; confusion between hosted zone IDs and domain names causes silent permission denials"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 90,
+    "error_handling_score": 85,
+    "auth_complexity_score": 78,
+    "rate_limit_clarity_score": 85
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 95,
+    "scope_granularity": 92,
+    "dependency_hygiene": 90,
+    "secret_handling": 90,
+    "security_notes": "IAM provides extremely granular action/resource-level permissions. DNSSEC signing supported. No long-lived secrets required when using IAM roles. Cloudtrail audit logging of all API calls is automatic."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 100,
+    "version_stability": 92,
+    "breaking_changes_history": 88,
+    "error_recovery": 85
+  }
+}
