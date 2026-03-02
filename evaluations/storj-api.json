@@ -1,0 +1,105 @@
+{
+  "id": "storj-api",
+  "name": "Storj",
+  "version_evaluated": "current",
+  "homepage": "https://www.storj.io",
+  "repo_url": "https://github.com/storj/storj",
+  "category": "infrastructure",
+  "subcategories": ["object-storage", "decentralized-storage", "cloud-storage"],
+  "tags": ["storj", "s3-compatible", "decentralized", "end-to-end-encryption", "erasure-coding"],
+  "what_it_does": "Delivers S3-compatible decentralized object storage with built-in client-side end-to-end encryption, distributing data across 80+ independent storage nodes via erasure coding.",
+  "use_cases": [
+    "Store sensitive agent artifacts (PII outputs, confidential reports) with client-side encryption ensuring the provider never sees plaintext data",
+    "Use as a privacy-preserving drop-in S3 replacement for agent pipelines that handle regulated or confidential data",
+    "Archive agent training datasets or model checkpoints with high durability guarantees without vendor lock-in to a single cloud provider",
+    "Distribute large file workloads across a decentralized network to reduce geographic concentration risk in agent storage infrastructure",
+    "Implement multi-cloud storage redundancy for agent outputs using Storj's S3-compatible gateway alongside traditional providers"
+  ],
+  "not_for": [
+    "Latency-sensitive workloads where consistent sub-100ms time-to-first-byte is critical — decentralized routing introduces variability",
+    "Tiny file workloads with thousands of sub-KB objects — erasure coding overhead and per-segment billing make micro-object storage inefficient",
+    "Teams requiring a fully managed SLA with enterprise support contracts comparable to AWS or GCP storage tiers"
+  ],
+  "best_when": "Privacy and data sovereignty are critical requirements and your agent pipeline can tolerate S3-compatible interfaces with slightly higher latency than centralized alternatives.",
+  "avoid_when": "Your workload demands consistent low latency, has many tiny files, or requires advanced S3 features like cross-region replication or Object Lock.",
+  "alternatives": ["aws-s3", "cloudflare-r2-api", "backblaze-b2", "filebase-api", "wasabi"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": true,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["javascript", "typescript", "go", "python", "java", "android", "swift"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["api_key", "s3_access_key", "uplink_access_grant"],
+    "oauth": false,
+    "scopes": true,
+    "notes": "Primary auth via Uplink Access Grants (macaroon-based, can be restricted by path/time/operation); S3-compatible gateway uses derived Access Key ID and Secret; access grants can be shared with limited scope for delegated agent access"
+  },
+  "pricing": {
+    "model": "freemium",
+    "free_tier_exists": true,
+    "free_tier_limits": "25GB storage/month, 25GB egress/month",
+    "paid_tiers": "$4/TB-month storage, $7/TB egress; pro plan has higher limits; no minimum commitment",
+    "requires_credit_card": false,
+    "notes": "Significantly cheaper than AWS S3 at scale; egress fees are much lower than AWS; STORJ token payment option available for additional discounts"
+  },
+  "performance": {
+    "latency_p50_ms": 120,
+    "latency_p99_ms": 500,
+    "uptime_sla_percent": 99.95,
+    "rate_limits": "No documented hard API rate limits; throughput scales with number of storage nodes; parallel segment downloads improve large file speeds",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["global", "eu"],
+    "compliance": ["GDPR", "HIPAA"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 82,
+    "error_message_quality": 75,
+    "error_message_notes": "S3-compatible errors are standard XML format; native Uplink errors can be cryptic and require cross-referencing Go SDK source for full context",
+    "idempotency_support": "full",
+    "idempotency_notes": "S3 PUT is idempotent; multipart uploads use upload IDs for safe resumable retry",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Uplink CLI and S3-compatible gateway are two distinct access paths with different authentication models — mixing them in a pipeline causes confusion",
+      "Client-side encryption means lost access grants cannot be recovered even by Storj support — agents must manage access grant storage carefully",
+      "Minimum upload segment size is 64MB for optimal erasure coding; many small files below this threshold are stored less efficiently and billed per segment",
+      "S3 gateway is a separate service endpoint from the native Uplink API — latency characteristics differ and gateway adds a hop not present in native access",
+      "Access grant serialization is a long base58 string; agents passing grants through environment variables or config files must handle the full string length without truncation"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 82,
+    "error_handling_score": 75,
+    "auth_complexity_score": 78,
+    "rate_limit_clarity_score": 80
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 95,
+    "scope_granularity": 92,
+    "dependency_hygiene": 85,
+    "secret_handling": 95,
+    "security_notes": "End-to-end client-side AES-256-GCM encryption; Storj nodes never see plaintext; macaroon-based access grants support fine-grained path and time restrictions; open-source codebase auditable"
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 82,
+    "breaking_changes_history": 82,
+    "error_recovery": 88
+  }
+}
