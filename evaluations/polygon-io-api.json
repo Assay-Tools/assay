@@ -2,27 +2,27 @@
   "id": "polygon-io-api",
   "name": "Polygon.io API",
   "version_evaluated": "current",
-  "homepage": "https://polygon.io",
-  "repo_url": "https://github.com/polygon-io/client-python",
-  "category": "finance",
-  "subcategories": ["market-data", "stocks", "options", "forex", "crypto"],
-  "tags": ["polygon", "financial-data", "stocks", "options", "forex", "crypto", "real-time", "websocket", "rest-api", "sdk", "market-data"],
-  "what_it_does": "Real-time and historical market data API covering US stocks, options, forex, and crypto with REST and WebSocket interfaces and official SDKs in four languages.",
+  "homepage": "https://polygon.io/docs/",
+  "repo_url": null,
+  "category": "fintech",
+  "subcategories": ["market-data", "financial-data"],
+  "tags": ["polygon", "stocks", "market-data", "real-time", "historical", "websocket", "options", "crypto", "forex", "nbbo", "sip"],
+  "what_it_does": "Market data platform providing real-time and historical stock, options, forex, and crypto price data via REST and WebSocket with SIP consolidated tape access and a generous free tier for delayed data.",
   "use_cases": [
-    "Agents making trading decisions using real-time stock and options quotes",
-    "Portfolio analysis agents fetching OHLCV history for multiple tickers",
-    "Market research pipelines pulling earnings, company fundamentals, and news",
-    "Algorithmic trading bots streaming live trade and quote data via WebSocket",
-    "Options chain analysis for derivatives pricing and volatility surface modeling"
+    "Stream real-time NBBO quotes and last sale data for equities via WebSocket for signal-generating trading agents",
+    "Query multi-year historical OHLCV candlestick data for backtesting and ML feature engineering pipelines",
+    "Fetch options chain snapshots including Greeks, open interest, and IV for options strategy agents",
+    "Subscribe to real-time forex mid-prices across 100+ currency pairs for FX monitoring or hedging agents",
+    "Use the aggregates endpoint to pre-compute VWAP, daily highs/lows, and volume statistics across a watchlist"
   ],
   "not_for": [
-    "Order execution — Polygon is data-only, not a broker",
-    "Non-US market data at scale (coverage outside US markets is limited)",
-    "Teams needing real-time data at zero cost (real-time requires paid plan)"
+    "Order execution — Polygon is market data only; pair with a brokerage API (Alpaca, Interactive Brokers) for trading",
+    "Corporate actions, fundamentals, or earnings data — use a dedicated data provider like Intrinio or Quandl",
+    "Tick-level institutional data requiring co-located feeds — Polygon distributes via cloud, not colocation"
   ],
-  "best_when": "An agent needs comprehensive, reliable US market data — stocks, options, or crypto — for analysis, signal generation, or real-time monitoring, and can afford a paid plan.",
-  "avoid_when": "You only need a handful of price lookups per day and cannot afford $29/month — the free tier's 5-call/minute cap is functionally unusable for agents.",
-  "alternatives": ["alpha-vantage-api", "alpaca-trading-api", "coinmarketcap-api"],
+  "best_when": "Your agent needs affordable, developer-friendly access to real-time or historical US equity, options, or crypto market data with solid WebSocket streaming.",
+  "avoid_when": "You need full-depth level 2 order book data or institutional-grade direct exchange feeds with sub-millisecond guarantees.",
+  "alternatives": ["alpaca-markets-api", "intrinio-api", "iex-cloud-api", "tradier-api"],
   "interface": {
     "has_rest_api": true,
     "has_graphql": false,
@@ -30,29 +30,29 @@
     "has_mcp_server": false,
     "mcp_server_url": null,
     "has_sdk": true,
-    "sdk_languages": ["python", "node", "go", "rust"],
-    "openapi_spec_url": "https://polygon.io/docs/stocks",
+    "sdk_languages": ["python", "node", "go", "kotlin"],
+    "openapi_spec_url": "https://polygon.io/docs/openapi",
     "webhooks": false
   },
   "auth": {
     "methods": ["api_key"],
     "oauth": false,
     "scopes": false,
-    "notes": "Single API key passed via Authorization Bearer header or apiKey query parameter. One key covers all endpoints. No per-endpoint scopes. Very agent-friendly — no token refresh needed."
+    "notes": "Single API key passed as query parameter or Authorization header. Key permissions tied to subscription tier — lower tiers return 403 on premium endpoints rather than indicating the required tier."
   },
   "pricing": {
     "model": "freemium",
     "free_tier_exists": true,
-    "free_tier_limits": "5 API calls/minute; end-of-day data only (15-min delayed); no WebSocket access",
-    "paid_tiers": "Starter $29/month (unlimited calls, real-time data); Developer $79/month; Advanced $199/month (options, higher WebSocket concurrency)",
+    "free_tier_limits": "Free tier includes 15-minute delayed data and limited API calls; real-time SIP data requires paid plan",
+    "paid_tiers": "Starter $29/mo (real-time IEX), Developer $79/mo (real-time SIP), Advanced $199/mo (full data + options), Business custom pricing",
     "requires_credit_card": false,
-    "notes": "Free tier is too restricted for any meaningful agent workflow — real-time data and practical rate limits require paid. Starter at $29/month is reasonable for indie traders. Options data requires Advanced plan."
+    "notes": "Free tier is useful for development and testing. Real-time NBBO (SIP) requires Developer plan or higher. Options Greeks require Advanced plan."
   },
   "performance": {
-    "latency_p50_ms": 80,
-    "latency_p99_ms": 300,
+    "latency_p50_ms": 50,
+    "latency_p99_ms": 250,
     "uptime_sla_percent": 99.9,
-    "rate_limits": "Free: 5 requests/minute; Starter and above: unlimited REST calls; WebSocket concurrent connections vary by plan",
+    "rate_limits": "Varies by tier: free = unlimited unlimited calls but 5 req/min on some endpoints; paid tiers have higher or unlimited rate limits; WebSocket subscriptions limited by plan",
     "data_source": "llm_estimated"
   },
   "requirements": {
@@ -60,47 +60,46 @@
     "requires_credit_card": false,
     "domain_verification": false,
     "data_residency": ["US"],
-    "compliance": ["SEC", "FINRA"],
+    "compliance": ["SOC2"],
     "min_contract": "none"
   },
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
-    "documentation_accuracy": 88,
-    "error_message_quality": 84,
-    "error_message_notes": "Consistent JSON error envelopes with status, request_id, and message fields. HTTP status codes are semantically correct (401, 403, 429, 500). Error bodies are machine-parseable.",
+    "documentation_accuracy": 87,
+    "error_message_quality": 80,
+    "error_message_notes": "REST errors return a status field and message string that are generally informative. Subscription-tier 403s sometimes lack the specific upgrade path required. WebSocket errors include a message field.",
     "idempotency_support": "full",
-    "idempotency_notes": "All REST endpoints are read-only GET requests — fully idempotent. WebSocket subscriptions are stateful but reconnectable.",
+    "idempotency_notes": "All data endpoints are read-only and fully idempotent. No state mutation endpoints exist.",
     "pagination_style": "cursor",
     "retry_guidance_documented": true,
     "known_agent_gotchas": [
-      "Free tier rate limit of 5/minute is effectively unusable for agents — budget for a paid plan before building",
-      "Real-time vs delayed data is plan-gated; agents must know which plan they are on to trust data freshness",
-      "Ticker symbols must be exact (AAPL, not Apple Inc.) — no fuzzy matching on most endpoints",
-      "Options symbols use OCC 21-character symbology (e.g., O:AAPL251219C00150000) — agents must construct or parse this format",
-      "WebSocket connections require reconnection logic; streams drop silently under network instability",
-      "Market hours affect data availability — after-hours quotes require checking the correct snapshot endpoint"
+      "Free tier returns 15-minute delayed data with no warning in the response — agents may mistake delayed data for real-time without checking the subscription tier",
+      "WebSocket connections require subscribing to individual ticker symbols; wildcard subscriptions (T.*) count against connection limits and can exhaust rate budgets rapidly",
+      "Historical aggregate endpoints return results in ascending time order by default but sort direction is configurable — agents must be explicit to avoid reversed series",
+      "Ticker symbol format differs between asset classes (stocks use 'AAPL', options use 'O:AAPL251219C00150000', crypto uses 'X:BTCUSD') — agents must normalize symbols before cross-asset queries",
+      "The /v2/last/nbbo endpoint returns the most recent NBBO quote but may be stale outside market hours; agents must check the timestamp before using the value in time-sensitive logic"
     ]
   },
   "af_score_components": {
     "mcp_score": 0,
-    "api_doc_score": 88,
-    "error_handling_score": 84,
-    "auth_complexity_score": 92,
+    "api_doc_score": 87,
+    "error_handling_score": 80,
+    "auth_complexity_score": 85,
     "rate_limit_clarity_score": 78
   },
   "security_score_components": {
     "tls_enforcement": 100,
-    "auth_strength": 80,
-    "scope_granularity": 60,
-    "dependency_hygiene": 82,
-    "secret_handling": 75,
-    "security_notes": "API key passed as query parameter is a security anti-pattern (appears in server logs, browser history). Bearer header method is preferable and available. No key rotation tooling exposed in dashboard."
+    "auth_strength": 78,
+    "scope_granularity": 65,
+    "dependency_hygiene": 85,
+    "secret_handling": 80,
+    "security_notes": "Single API key with no scope granularity — key compromise exposes all data access. No IP allowlisting. Key should be stored as a secret and rotated regularly. Data is market data only (no PII or financial account access)."
   },
   "reliability_score_components": {
-    "uptime_documented": 85,
-    "version_stability": 88,
+    "uptime_documented": 88,
+    "version_stability": 87,
     "breaking_changes_history": 85,
-    "error_recovery": 82
+    "error_recovery": 83
   }
 }

@@ -1,58 +1,58 @@
 {
   "id": "kraken-api",
-  "name": "Kraken",
+  "name": "Kraken API",
   "version_evaluated": "current",
-  "homepage": "https://www.kraken.com",
+  "homepage": "https://docs.kraken.com/api/",
   "repo_url": null,
-  "category": "finance",
-  "subcategories": ["cryptocurrency", "exchange", "trading", "market-data"],
-  "tags": ["crypto", "exchange", "trading", "market-data", "websocket", "hmac", "bitcoin", "defi", "staking"],
-  "what_it_does": "Cryptocurrency exchange REST and WebSocket API providing real-time market data, order management, account balances, and trade execution with HMAC-signed authenticated endpoints.",
+  "category": "fintech",
+  "subcategories": ["crypto-exchange", "trading"],
+  "tags": ["kraken", "crypto", "trading", "bitcoin", "ethereum", "futures", "rest", "websocket", "hmac", "exchange", "regulated"],
+  "what_it_does": "Kraken's REST and WebSocket API for spot and futures crypto trading on a regulated US-licensed exchange, using HMAC-SHA512 signed private endpoints and unauthenticated public market data feeds.",
   "use_cases": [
-    "Execute automated trading strategies by placing, modifying, and cancelling limit/market orders via the private REST API",
-    "Stream real-time order book and trade ticker data over WebSocket for low-latency market analysis without polling",
-    "Monitor portfolio balances and open positions across all assets to trigger rebalancing logic when allocation drifts beyond thresholds",
-    "Pull historical OHLCV (candlestick) data for multiple trading pairs to feed backtesting and ML model training pipelines",
-    "Automate staking and unstaking of proof-of-stake assets based on yield rate thresholds and liquidity requirements"
+    "Execute spot buy/sell and stop-loss orders on a US-regulated crypto exchange with competitive fees",
+    "Stream real-time order book, trade, and OHLC candlestick data via WebSocket v2 for market analysis agents",
+    "Manage futures positions and query margin account health for automated derivatives risk agents",
+    "Query staking rewards and balance history for portfolio accounting and tax reporting automation",
+    "Implement conditional close orders (reduce-only) on Kraken Futures to automate position exit logic"
   ],
   "not_for": [
-    "Fiat-only payment processing — Kraken is a crypto exchange, not a payment gateway for traditional currency transactions",
-    "High-frequency trading requiring microsecond latency — Kraken's API is not a co-location trading API; use dedicated HFT infrastructure",
-    "Retail users in jurisdictions where Kraken is not licensed — geographic restrictions on API access apply"
+    "Widest altcoin selection — Kraken lists fewer tokens than Binance; use Binance for obscure pairs",
+    "Institutional OTC or prime brokerage workflows — use Kraken Institutional or a prime broker",
+    "Automated fiat wire transfers — ACH and wire withdrawals require manual verification steps not fully automatable via API"
   ],
-  "best_when": "An automated trading agent needs to execute orders and stream market data from a reputable, regulated exchange with a well-documented REST and WebSocket API.",
-  "avoid_when": "Your use case requires DeFi or on-chain transactions — Kraken is a centralized exchange and does not expose smart contract or blockchain interaction APIs.",
-  "alternatives": [],
+  "best_when": "Your agent needs a US-regulated crypto exchange with a solid compliance record, solid WebSocket v2 API, and access to both spot and futures from a single account.",
+  "avoid_when": "You need maximum asset selection or the absolute lowest fees at high volume — Binance typically wins on both dimensions.",
+  "alternatives": ["coinbase-advanced-api", "binance-api", "okx-api"],
   "interface": {
     "has_rest_api": true,
     "has_graphql": false,
     "has_grpc": false,
     "has_mcp_server": false,
     "mcp_server_url": null,
-    "has_sdk": false,
-    "sdk_languages": [],
-    "openapi_spec_url": "https://docs.kraken.com/rest/",
+    "has_sdk": true,
+    "sdk_languages": ["python", "node", "go", "rust", "java"],
+    "openapi_spec_url": "https://docs.kraken.com/api/docs/rest-api/get-server-time",
     "webhooks": false
   },
   "auth": {
-    "methods": ["api_key", "hmac_signature"],
+    "methods": ["hmac_sha512", "api_key"],
     "oauth": false,
-    "scopes": true,
-    "notes": "Private API endpoints require an API key (public key) plus an HMAC-SHA512 signature generated from the request payload + nonce using the API secret (private key). Scopes (permissions) are set at key creation time: Query, Trade, Withdraw, etc. Withdrawal permission must be explicitly enabled — it is off by default. API keys can be restricted by IP address for additional security."
+    "scopes": false,
+    "notes": "Private endpoints signed with HMAC-SHA512 using API key + secret. Nonce required per request (incrementing integer or timestamp). API key permissions (query, trade, deposit, withdraw) set at creation. No OAuth or JWT support."
   },
   "pricing": {
-    "model": "usage_based",
+    "model": "transaction_fee",
     "free_tier_exists": true,
-    "free_tier_limits": "Public market data API (order book, tickers, OHLCV) is free with no authentication required. Private APIs (trading, balances) require a funded account.",
-    "paid_tiers": "No direct API subscription fee. Trading fees apply per trade: 0.16% maker / 0.26% taker for spot, lower for high-volume accounts. Pro and institutional fee tiers available.",
+    "free_tier_limits": "Public market data endpoints are free and unauthenticated; trading fees start at 0.25% maker / 0.40% taker (Starter tier)",
+    "paid_tiers": "Volume-based tiers down to 0.00% maker at Pro tier (>$10M monthly volume); Kraken Pro interface has lower fees than retail",
     "requires_credit_card": false,
-    "notes": "API access is free; costs are purely trading fees on executed orders. Kraken Pro (futures) has separate fee schedules. Staking rewards are earned automatically with no API fee."
+    "notes": "API access is free. Spot trading fees are volume-based. Futures fees are separate and lower. Staking and earn products have no API fee."
   },
   "performance": {
-    "latency_p50_ms": 80,
-    "latency_p99_ms": 500,
-    "uptime_sla_percent": 99.5,
-    "rate_limits": "REST API: 15-20 calls per minute for private endpoints (counter-based system that replenishes over time). WebSocket: no hard rate limit on subscriptions but connection limits apply. Exceeding REST rate limits returns error code EAPI:Rate limit exceeded.",
+    "latency_p50_ms": 70,
+    "latency_p99_ms": 350,
+    "uptime_sla_percent": 99.6,
+    "rate_limits": "Private REST: 15-20 calls per rolling window (tier-based); Public REST: 1 req/s per endpoint; WebSocket v2: no hard subscription limit but fair use enforced",
     "data_source": "llm_estimated"
   },
   "requirements": {
@@ -60,46 +60,46 @@
     "requires_credit_card": false,
     "domain_verification": false,
     "data_residency": ["US", "EU"],
-    "compliance": ["SOC2", "GDPR", "FinCEN", "MiCA"],
+    "compliance": ["FinCEN", "FCA", "BaFin", "VARA"],
     "min_contract": "none"
   },
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
-    "documentation_accuracy": 85,
-    "error_message_quality": 80,
-    "error_message_notes": "REST API returns a JSON array of errors under the 'error' key (e.g., ['EAPI:Invalid key', 'EOrder:Insufficient funds']). Error codes are well-documented and machine-parseable. WebSocket error messages are also structured. Error strings are prefixed with category codes (EAPI, EOrder, EFunding) enabling programmatic handling.",
-    "idempotency_support": "none",
-    "idempotency_notes": "Order placement is not idempotent — the same request submitted twice creates two separate orders. Agents must track order IDs and check for existing open orders before placing new ones to prevent duplicate trades.",
-    "pagination_style": "none",
+    "documentation_accuracy": 82,
+    "error_message_quality": 76,
+    "error_message_notes": "REST errors are returned in an 'error' array of strings (e.g., 'EOrder:Insufficient funds') — machine-parseable but the format is unusual compared to JSON object patterns most agents expect.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "userref parameter on orders provides a client-defined reference for deduplication lookup but does not prevent duplicate submission — agents must query by userref to check existence before resubmitting.",
+    "pagination_style": "offset",
     "retry_guidance_documented": true,
     "known_agent_gotchas": [
-      "HMAC signature generation requires precise nonce management — nonces must be strictly increasing integers; using timestamps in microseconds is recommended but clock skew causes signature failures",
-      "Kraken's rate limit system uses a counter (not a sliding window) that increments differently per endpoint — agents using simple request counting will hit limits unexpectedly",
-      "WebSocket authenticated feeds require a separate WebSocket auth token obtained via REST API (/0/private/GetWebSocketsToken) that expires after 15 minutes",
-      "Order pair names differ between REST API ('XXBTZUSD') and WebSocket ('XBT/USD') — using the wrong format causes silent failures or 'Unknown asset pair' errors",
-      "Withdrawal endpoint is disabled on new API keys by default and requires explicit activation in the dashboard — agents testing withdrawals will receive permission errors even with valid keys"
+      "The nonce must be strictly increasing per API key — agents running concurrent requests with the same key will get EAPI:Invalid nonce errors if requests arrive out of order",
+      "Rate limiting uses a counter-decay system (not a fixed window) that is not directly observable; agents must implement conservative spacing to avoid hitting unpublished thresholds",
+      "Kraken asset names use internal identifiers (XXBT for Bitcoin, ZUSD for USD) that differ from standard tickers — agents must map between display names and API asset names via the /0/public/Assets endpoint",
+      "WebSocket v2 (current) and v1 (legacy) are both active but have different message schemas and auth flows — documentation sometimes mixes examples from both versions",
+      "Order status transitions can be delayed during high volatility; agents polling order status must handle 'open' status persisting briefly after a fill before transitioning to 'closed'"
     ]
   },
   "af_score_components": {
     "mcp_score": 0,
-    "api_doc_score": 85,
-    "error_handling_score": 80,
-    "auth_complexity_score": 65,
+    "api_doc_score": 82,
+    "error_handling_score": 76,
+    "auth_complexity_score": 73,
     "rate_limit_clarity_score": 72
   },
   "security_score_components": {
     "tls_enforcement": 100,
-    "auth_strength": 88,
-    "scope_granularity": 85,
-    "dependency_hygiene": 82,
-    "secret_handling": 85,
-    "security_notes": "HMAC-SHA512 signing prevents replay attacks and provides strong request integrity. Granular permission scopes (Query, Trade, Withdraw) allow least-privilege key creation. IP allowlisting is available and strongly recommended for trading bots. The API secret is shown only once at key creation — loss requires key rotation."
+    "auth_strength": 85,
+    "scope_granularity": 80,
+    "dependency_hygiene": 83,
+    "secret_handling": 83,
+    "security_notes": "HMAC-SHA512 is strong but shared-secret model means key exposure is catastrophic. Per-key permission scoping (query/trade/withdraw) limits blast radius. Two-factor confirmation available for withdrawals. IP allowlisting supported."
   },
   "reliability_score_components": {
-    "uptime_documented": 82,
-    "version_stability": 85,
+    "uptime_documented": 80,
+    "version_stability": 82,
     "breaking_changes_history": 80,
-    "error_recovery": 82
+    "error_recovery": 78
   }
 }
