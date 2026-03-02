@@ -1,0 +1,105 @@
+{
+  "id": "cloudfront-api",
+  "name": "AWS CloudFront API",
+  "version_evaluated": "current",
+  "homepage": "https://aws.amazon.com/cloudfront/",
+  "repo_url": null,
+  "category": "infrastructure",
+  "subcategories": ["cdn", "caching", "content-delivery", "edge"],
+  "tags": ["cdn", "aws", "cloudfront", "cache-invalidation", "edge", "iam", "distribution"],
+  "what_it_does": "Provides programmatic control over AWS CloudFront CDN distributions via the AWS SDK and REST API, enabling agents to manage content delivery configurations, trigger cache invalidations, and update distribution settings across a global edge network.",
+  "use_cases": [
+    "Trigger cache invalidations after content deployments to ensure users receive updated assets without waiting for TTL expiry",
+    "Programmatically create or update CloudFront distributions when provisioning new application environments in IaC pipelines",
+    "Retrieve distribution metrics and access logs to feed CDN performance data into observability or analytics agents",
+    "Update origin configurations, cache behaviors, and geographic restrictions as part of automated security or compliance responses",
+    "Manage real-time logs delivery configuration to route edge access logs to S3 or Kinesis for downstream processing"
+  ],
+  "not_for": [
+    "Application-layer content management or CMS workflows — CloudFront manages delivery, not the content or authoring experience itself",
+    "Teams not already invested in AWS — CloudFront is tightly coupled to the AWS ecosystem and IAM, making it a poor standalone choice outside that context",
+    "Real-time sub-second cache invalidation guarantees — invalidations propagate across the edge network within minutes, not instantly"
+  ],
+  "best_when": "Best when an agent is already operating within the AWS ecosystem and needs to automate CDN distribution management, cache purging, or edge configuration as part of deployment or incident response workflows.",
+  "avoid_when": "Avoid when the infrastructure stack is not AWS-based, as CloudFront requires IAM credentials and integrates deeply with S3, ACM, and other AWS services that add complexity outside that ecosystem.",
+  "alternatives": ["fastly-api", "cloudflare-api", "akamai-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "javascript", "java", "go", "ruby", "php", "dotnet", "rust"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["aws_iam"],
+    "oauth": false,
+    "scopes": true,
+    "notes": "Uses AWS Signature Version 4 (SigV4) request signing with IAM credentials (Access Key ID + Secret Access Key or IAM roles). Granular IAM policies control which CloudFront actions are permitted. All AWS SDKs handle SigV4 signing automatically. Roles with least-privilege CloudFront permissions are strongly recommended."
+  },
+  "pricing": {
+    "model": "usage_based",
+    "free_tier_exists": true,
+    "free_tier_limits": "AWS Free Tier includes 1 TB data transfer out, 10 million HTTP/HTTPS requests, and 2 million CloudFront function invocations per month for the first 12 months",
+    "paid_tiers": "Data transfer out from ~$0.0085-$0.12/GB depending on region and volume tier; HTTPS requests ~$0.01/10,000; cache invalidation requests free for first 1,000 paths/month then $0.005/path",
+    "requires_credit_card": true,
+    "notes": "Costs scale with traffic volume and are typically low for most workloads relative to the value delivered. Invalidation costs can add up if invalidations are triggered too aggressively by automated agents."
+  },
+  "performance": {
+    "latency_p50_ms": 100,
+    "latency_p99_ms": 500,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "CloudFront API calls are subject to AWS service quotas: default 100 distribution create/update operations per account; invalidation requests limited to 3,000 paths per distribution per second",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": true,
+    "domain_verification": false,
+    "data_residency": ["US", "EU", "AP", "global"],
+    "compliance": ["SOC1", "SOC2", "SOC3", "ISO27001", "HIPAA", "PCI-DSS", "FedRAMP"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 90,
+    "error_message_quality": 85,
+    "error_message_notes": "AWS API errors follow consistent XML and JSON patterns with error codes, messages, and request IDs. Error codes are well documented in the CloudFront API reference. SDK exceptions map directly to API error types.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Distribution update operations use ETags for optimistic concurrency control. Agents must GET the current distribution config ETag and include it in update requests to prevent conflicting concurrent modifications.",
+    "pagination_style": "marker",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Cache invalidations propagate globally over 5-15 minutes — agents that check invalidation status immediately after creation will see it as in-progress, not complete",
+      "Distribution updates require fetching the current ETag before every PUT request — agents that cache the ETag across multiple updates will fail with precondition errors",
+      "The CloudFront API uses a global endpoint (cloudfront.amazonaws.com) regardless of the distribution's edge locations — routing to regional endpoints will fail",
+      "Wildcard invalidations (e.g., /*) are powerful but count as a single path against the per-month free allowance — over-use of wildcard invalidations can accumulate costs",
+      "CloudFront distribution changes take 10-20 minutes to propagate globally after API acceptance — agents must poll DistributionDeployed status rather than assuming immediate effect"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 90,
+    "error_handling_score": 85,
+    "auth_complexity_score": 70,
+    "rate_limit_clarity_score": 82
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 95,
+    "scope_granularity": 95,
+    "dependency_hygiene": 90,
+    "secret_handling": 90,
+    "security_notes": "IAM-based authentication with SigV4 signing is among the most robust auth models available. Least-privilege IAM policies can restrict agents to specific CloudFront actions. Supports resource-level permissions and condition keys for fine-grained control. AWS CloudTrail logs all API calls for auditability."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 95,
+    "version_stability": 92,
+    "breaking_changes_history": 90,
+    "error_recovery": 88
+  }
+}

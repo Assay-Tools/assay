@@ -1,0 +1,105 @@
+{
+  "id": "cognito-api",
+  "name": "AWS Cognito API",
+  "version_evaluated": "current",
+  "homepage": "https://aws.amazon.com/cognito/",
+  "repo_url": null,
+  "category": "auth",
+  "subcategories": ["authentication", "user-management", "identity", "aws", "oauth"],
+  "tags": ["aws", "cognito", "auth", "user-pools", "identity", "oauth", "oidc", "saml", "mfa"],
+  "what_it_does": "AWS Cognito REST and SDK API — managed user directory and authentication service providing user pools (signup/signin/MFA) and identity pools (federated identity for AWS resource access), enabling agents to manage user accounts, authentication flows, and AWS federated access at scale.",
+  "use_cases": [
+    "Agents managing user account lifecycle — creating, confirming, updating, and disabling users in Cognito user pools via admin API",
+    "Token management — agents using Cognito to issue JWT tokens for application authentication and validating tokens in API gateways",
+    "MFA administration — agents enabling/disabling MFA for specific users and managing TOTP device associations",
+    "Group management — agents assigning users to Cognito groups for role-based access control in downstream services",
+    "Custom auth flows — agents implementing custom challenge responses (CAPTCHA, risk-based auth) via Cognito Lambda triggers"
+  ],
+  "not_for": [
+    "B2B enterprise SSO — Cognito handles consumer identity well but is limited for complex enterprise SSO; use Okta or Auth0 for enterprise SAML/OIDC federation",
+    "Non-AWS architectures — Cognito is tightly coupled to AWS ecosystem; use Auth0 or Firebase Auth for cloud-agnostic auth",
+    "Simple projects — Cognito setup complexity is high for small applications; use Supabase Auth or Firebase Auth for simpler use cases"
+  ],
+  "best_when": "You're building an AWS-native application and need managed user authentication with tight integration with API Gateway, Lambda authorizers, and IAM roles.",
+  "avoid_when": "You need enterprise SSO, advanced B2B features, or want to avoid AWS vendor lock-in — Auth0 or Okta are more flexible for complex identity scenarios.",
+  "alternatives": ["auth0-api", "okta-api", "firebase-auth-api", "supabase-auth-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "javascript", "java", "dotnet", "go", "ruby", "php"],
+    "openapi_spec_url": "https://docs.aws.amazon.com/cognito-user-identity-pools/latest/APIReference/",
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["iam", "api_key"],
+    "oauth": true,
+    "scopes": true,
+    "notes": "Admin API requires AWS IAM credentials (SigV4 signing) with appropriate IAM policies. User-facing operations (InitiateAuth, etc.) use Client ID + optional Client Secret — no IAM required. OAuth2/OIDC token endpoints for JWT issuance. Lambda triggers for custom auth flows. No traditional API key — AWS access key/secret key via SDK."
+  },
+  "pricing": {
+    "model": "usage_based",
+    "free_tier_exists": true,
+    "free_tier_limits": "50,000 monthly active users free for user pools; always free for first 50,000 MAU",
+    "paid_tiers": "User pools: $0.0055 per MAU beyond 50K; Advanced security: additional cost; Identity pools: $0 for most use cases",
+    "requires_credit_card": false,
+    "notes": "Very affordable for moderate scale. Advanced security features (anomaly detection, compromised credential check) cost extra. Identity pools are effectively free. Pricing per monthly active user, not per API call."
+  },
+  "performance": {
+    "latency_p50_ms": 100,
+    "latency_p99_ms": 500,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "AdminCreateUser: 50 req/s; AdminGetUser: 120 req/s; InitiateAuth: 100 req/s (per user pool); limits vary by operation",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["US", "EU", "APAC", "CA", "AU"],
+    "compliance": ["SOC2", "HIPAA", "PCI-DSS", "ISO27001", "GDPR", "FedRAMP"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 80,
+    "error_message_notes": "AWS-standard API with detailed documentation. Error messages include error code and message. Some Cognito-specific errors (NotAuthorizedException, UserNotFoundException) require specific handling. SigV4 signing is automatic via AWS SDK.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "AdminCreateUser is idempotent if user already exists (returns existing user). AdminUpdateUserAttributes is idempotent. Token operations are non-idempotent — new tokens issued each call.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "AdminCreateUser requires IAM permissions — agents using user-pool-level operations need separate IAM policy from app-level operations",
+      "Per-user-pool rate limits are separate from global account limits — agents managing multiple user pools must track limits per pool",
+      "Temporary password from AdminCreateUser requires user to change on first login — agents initiating flows should handle FORCE_CHANGE_PASSWORD challenge",
+      "Token validation requires fetching JWKS from Cognito endpoint — agents should cache the JWKS and refresh periodically, not on every request",
+      "User pool ID format (region_poolId) must match region — agents with multi-region deployments must route to correct regional endpoint"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 80,
+    "auth_complexity_score": 72,
+    "rate_limit_clarity_score": 80
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 92,
+    "scope_granularity": 88,
+    "dependency_hygiene": 90,
+    "secret_handling": 88,
+    "security_notes": "AWS IAM with fine-grained policies. HIPAA BAA, FedRAMP authorized, PCI-DSS, SOC2 Type II. Advanced security features include compromised credential detection and adaptive authentication. GDPR compliant with EU data residency."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 92,
+    "version_stability": 90,
+    "breaking_changes_history": 88,
+    "error_recovery": 88
+  }
+}

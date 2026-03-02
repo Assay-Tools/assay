@@ -1,0 +1,105 @@
+{
+  "id": "nomad-api",
+  "name": "HashiCorp Nomad API",
+  "version_evaluated": "current",
+  "homepage": "https://developer.hashicorp.com/nomad/api-docs",
+  "repo_url": "https://github.com/hashicorp/nomad",
+  "category": "devops",
+  "subcategories": ["workload-orchestration", "scheduling", "infrastructure"],
+  "tags": ["nomad", "hashicorp", "orchestration", "scheduling", "containers", "batch", "open-source"],
+  "what_it_does": "HashiCorp Nomad's REST API enables programmatic scheduling, management, and monitoring of containerized and non-containerized workloads across a cluster, including job submission, allocation inspection, node management, and ACL-based access control.",
+  "use_cases": [
+    "Submit a new job spec to the cluster to deploy a containerized service, then poll allocation status until healthy",
+    "Inspect running allocations for a job to retrieve their logs, resource utilization, and current task states",
+    "Scale a job's task group up or down by updating the count field in response to load metrics detected by an agent",
+    "List all nodes in the cluster and their health status to identify degraded nodes that need maintenance",
+    "Stop and garbage-collect a batch job after its completion is confirmed, freeing cluster resources"
+  ],
+  "not_for": [
+    "Kubernetes-native ecosystems — Nomad has a different scheduling model and is not a drop-in Kubernetes replacement",
+    "Complex multi-tenant environments requiring Kubernetes RBAC, network policies, and rich ecosystem integrations",
+    "Teams that need the broad vendor support and tooling ecosystem that has grown around Kubernetes"
+  ],
+  "best_when": "An agent needs to orchestrate diverse workloads (containers, binaries, JVM apps, batch jobs) across a cluster without the operational overhead of Kubernetes.",
+  "avoid_when": "Your infrastructure is already standardized on Kubernetes and switching orchestrators would create more complexity than benefit.",
+  "alternatives": ["kubernetes-api", "ecs-api", "docker-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["go", "python", "ruby"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["acl-token"],
+    "oauth": false,
+    "scopes": true,
+    "notes": "Nomad uses ACL tokens with associated policies that grant specific capabilities (submit-job, read-logs, etc.) on namespaces. Anonymous access can be enabled for read-only operations in trusted environments. Tokens are passed via X-Nomad-Token header."
+  },
+  "pricing": {
+    "model": "open-source + enterprise",
+    "free_tier_exists": true,
+    "free_tier_limits": "Open-source Nomad is fully free with no cluster size or feature limits on core scheduling; HCP Nomad is available as a managed control plane",
+    "paid_tiers": "Nomad Enterprise adds multi-region federation, resource quotas, audit logging, Sentinel policy enforcement, and namespace isolation",
+    "requires_credit_card": false,
+    "notes": "Self-hosted open-source is entirely free. Enterprise features require a HashiCorp license agreement."
+  },
+  "performance": {
+    "latency_p50_ms": 10,
+    "latency_p99_ms": 100,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "No documented hard rate limits for the REST API; throughput is constrained by cluster leader capacity; large job submission batches should be spaced to avoid Raft pressure",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": ["SOC2"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 80,
+    "error_message_notes": "Returns plain text or JSON error messages depending on the endpoint; allocation failure reasons are surfaced in task event logs rather than the top-level response, requiring agents to drill down.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Job registration is idempotent when the same JobID is submitted — Nomad will create a new version. Allocation operations are not idempotent. Deregistration is safe to retry.",
+    "pagination_style": "index",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Nomad uses a blocking query pattern with ?index= and ?wait= parameters for long-polling — polling without these will cause high CPU usage on both client and server",
+      "Job evaluation status 'complete' does not mean allocations are healthy — agents must separately check allocation and task states",
+      "Namespace support must be explicitly enabled; forgetting to include ?namespace= in queries returns only the default namespace silently",
+      "Log retrieval requires streaming the /v1/client/fs/logs endpoint against the specific client node hosting the allocation, not the server",
+      "ACL bootstrap is a one-time operation — losing the bootstrap token requires Vault integration or manual recovery"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 80,
+    "auth_complexity_score": 78,
+    "rate_limit_clarity_score": 72
+  },
+  "security_score_components": {
+    "tls_enforcement": 95,
+    "auth_strength": 85,
+    "scope_granularity": 82,
+    "dependency_hygiene": 85,
+    "secret_handling": 80,
+    "security_notes": "ACL policies support fine-grained capability grants per namespace. Native Vault integration enables secrets injection into task environments. TLS mutual authentication is supported for inter-node communication."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 85,
+    "version_stability": 83,
+    "breaking_changes_history": 80,
+    "error_recovery": 82
+  }
+}

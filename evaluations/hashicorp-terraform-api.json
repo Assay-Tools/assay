@@ -1,0 +1,105 @@
+{
+  "id": "hashicorp-terraform-api",
+  "name": "Terraform Cloud/Enterprise REST API",
+  "version_evaluated": "current",
+  "homepage": "https://developer.hashicorp.com/terraform/cloud-docs/api-docs",
+  "repo_url": null,
+  "category": "devops",
+  "subcategories": ["infrastructure-as-code", "cloud-management", "ci-cd"],
+  "tags": ["terraform", "hashicorp", "iac", "infrastructure", "cloud", "workspace", "runs"],
+  "what_it_does": "The Terraform Cloud and Enterprise REST API lets agents programmatically manage workspaces, trigger and monitor plan/apply runs, read and write state, configure variables, and manage organizations and teams.",
+  "use_cases": [
+    "Trigger a Terraform plan and apply run for a workspace when infrastructure changes are detected, then poll for completion status",
+    "Read workspace state outputs to discover resource attributes (e.g., load balancer DNS names) for use in downstream automation",
+    "Create and update workspace variables to inject environment-specific configuration or secrets before a run",
+    "List all workspaces in an organization and check for runs stuck in a pending state to alert or auto-cancel them",
+    "Create a new workspace, link it to a VCS repository, and queue an initial speculative plan as part of an onboarding workflow"
+  ],
+  "not_for": [
+    "Executing Terraform locally — the API only manages Terraform Cloud/Enterprise, not the open-source CLI",
+    "Real-time streaming of Terraform logs — log access requires polling or a separate log streaming endpoint with buffered reads",
+    "Managing the Terraform provider registry or module registry at the public scale"
+  ],
+  "best_when": "An agent needs to orchestrate infrastructure provisioning or changes through Terraform Cloud as part of a GitOps or self-service infrastructure pipeline.",
+  "avoid_when": "Your team uses only open-source Terraform CLI without Terraform Cloud — the API has no equivalent for local state backends.",
+  "alternatives": ["pulumi-api", "aws-cloudformation-api", "github-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["go", "python"],
+    "openapi_spec_url": null,
+    "webhooks": true
+  },
+  "auth": {
+    "methods": ["bearer-token"],
+    "oauth": false,
+    "scopes": true,
+    "notes": "Uses Bearer token authentication via a Terraform Cloud user token or organization/team token. Organization tokens have broad access; team tokens are scoped to specific workspaces. All requests must include Authorization: Bearer <token> header."
+  },
+  "pricing": {
+    "model": "freemium",
+    "free_tier_exists": true,
+    "free_tier_limits": "HCP Terraform Free tier: up to 500 managed resources, unlimited users, community support",
+    "paid_tiers": "Plus plan at $20/user/month adds audit logging, SSO, and policy-as-code; Enterprise adds self-hosted deployment and advanced compliance features",
+    "requires_credit_card": false,
+    "notes": "Free tier is generous for small teams. Enterprise pricing is negotiated contract-based."
+  },
+  "performance": {
+    "latency_p50_ms": 200,
+    "latency_p99_ms": 1000,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "429 Too Many Requests responses when rate limited; documented at 30 requests per second per organization; run operations are queued and may take minutes depending on concurrency",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["US", "EU"],
+    "compliance": ["SOC2", "ISO-27001"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 88,
+    "error_message_quality": 80,
+    "error_message_notes": "Returns JSON:API formatted errors with detail strings; error messages are generally useful but workspace and run errors sometimes require cross-referencing the run log for root cause.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Workspace creation is idempotent if the name is unique per organization; triggering runs is not idempotent and will queue a new run each call. Variable writes via the Variables API are idempotent with PATCH.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Run status transitions are asynchronous — agents must poll the run endpoint repeatedly; webhook notifications are available but require setup",
+      "The API uses JSON:API format (not plain JSON) — data is nested under 'data', 'attributes', and 'relationships' keys, which can trip up naive JSON parsers",
+      "Workspace locks block new runs silently — check for a locked workspace before queuing runs to avoid mysterious queue buildup",
+      "Speculative plans and confirmed applies are different run types — a plan that succeeds does not auto-apply unless the workspace has auto-apply enabled",
+      "State versions are immutable — reading the current state requires fetching the latest state version, not a fixed URL"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 88,
+    "error_handling_score": 80,
+    "auth_complexity_score": 85,
+    "rate_limit_clarity_score": 80
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 85,
+    "scope_granularity": 82,
+    "dependency_hygiene": 85,
+    "secret_handling": 85,
+    "security_notes": "Sensitive variables are write-only (cannot be read back via API once set), protecting secrets from exfiltration. Team-scoped tokens limit blast radius. Audit logging available on paid tiers."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 85,
+    "breaking_changes_history": 83,
+    "error_recovery": 82
+  }
+}

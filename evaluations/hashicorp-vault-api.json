@@ -1,0 +1,105 @@
+{
+  "id": "hashicorp-vault-api",
+  "name": "HashiCorp Vault API",
+  "version_evaluated": "current",
+  "homepage": "https://developer.hashicorp.com/vault/api-docs",
+  "repo_url": "https://github.com/hashicorp/vault",
+  "category": "security",
+  "subcategories": ["secrets-management", "identity", "encryption"],
+  "tags": ["secrets", "vault", "hashicorp", "pki", "dynamic-secrets", "encryption-as-a-service"],
+  "what_it_does": "HashiCorp Vault provides a unified API for secrets management, dynamic credential generation, data encryption, and identity-based access — supporting token, AppRole, Kubernetes, AWS IAM, and many other auth methods.",
+  "use_cases": [
+    "Dynamically generate short-lived database credentials for an agent before executing a query, then revoke them after",
+    "Store and retrieve application secrets (API keys, TLS certs) in a namespaced secret path using the KV v2 engine",
+    "Authenticate a Kubernetes pod via the Vault K8s auth method and obtain a scoped token for downstream API calls",
+    "Issue short-lived PKI certificates on demand for mTLS between microservices orchestrated by an agent",
+    "Rotate AWS IAM credentials automatically by calling the AWS secrets engine and distributing the new keys"
+  ],
+  "not_for": [
+    "Storing large binary blobs or files — Vault is optimized for small structured secrets, not object storage",
+    "General-purpose database or message queue use cases — it is specifically a secrets and identity broker",
+    "Teams without operational capacity to run and maintain Vault infrastructure unless using HCP Vault"
+  ],
+  "best_when": "An agent needs to broker secrets, credentials, or encryption keys across multiple systems with fine-grained, auditable access control and dynamic secret generation.",
+  "avoid_when": "Your team cannot manage Vault infrastructure and does not want to pay for HCP Vault — simpler managed alternatives like AWS Secrets Manager may be more appropriate.",
+  "alternatives": ["aws-secrets-manager-api", "azure-key-vault-api", "doppler-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": true,
+    "mcp_server_url": "https://github.com/hashicorp/vault-mcp",
+    "has_sdk": true,
+    "sdk_languages": ["python", "javascript", "go", "ruby", "java", "csharp"],
+    "openapi_spec_url": "https://developer.hashicorp.com/vault/api-docs",
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["token", "approle", "kubernetes", "aws-iam", "ldap", "oidc", "github"],
+    "oauth": false,
+    "scopes": true,
+    "notes": "Vault uses its own token system. AppRole is the recommended method for machine-to-machine auth; Kubernetes and AWS IAM auth are preferred for cloud-native agents. All tokens have configurable TTLs and policies."
+  },
+  "pricing": {
+    "model": "open-source + enterprise",
+    "free_tier_exists": true,
+    "free_tier_limits": "Open-source Vault is free to self-host with no feature limits on core functionality; HCP Vault Dedicated starts at ~$0.03/hr for dev cluster",
+    "paid_tiers": "HCP Vault Dedicated (Plus/Standard) and Enterprise on-prem with DR replication, namespaces, HSM support",
+    "requires_credit_card": false,
+    "notes": "Self-hosted open-source is entirely free. HCP Vault (managed) requires a HashiCorp Cloud Platform account with billing."
+  },
+  "performance": {
+    "latency_p50_ms": 5,
+    "latency_p99_ms": 50,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "No hard API rate limits in open-source; HCP Vault enforces request-per-second limits depending on tier; performance replication can scale read throughput",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["US", "EU", "APAC"],
+    "compliance": ["SOC2", "FIPS-140-2", "PCI-DSS"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": "official",
+    "mcp_security_score": 82,
+    "documentation_accuracy": 90,
+    "error_message_quality": 85,
+    "error_message_notes": "Vault returns structured JSON errors with HTTP status codes; permission denied errors clearly state the missing policy path, aiding automated diagnosis.",
+    "idempotency_support": "full",
+    "idempotency_notes": "KV writes are idempotent with CAS (check-and-set) option; lease renewals and token lookups are naturally idempotent; dynamic secret generation is not idempotent by design.",
+    "pagination_style": "list",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Token TTL expiry mid-session will cause 403 errors — agents must proactively renew or re-authenticate before expiry",
+      "KV v1 and KV v2 have different API paths (secret/ vs secret/data/) — mixing them silently returns wrong data",
+      "Lease IDs for dynamic secrets must be tracked and renewed separately from the auth token",
+      "Namespace paths differ between open-source (no namespaces) and Enterprise — scripts written for one may fail on the other",
+      "AppRole secret_id is single-use by default; agents must generate a new one or configure use_limit > 1"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 70,
+    "api_doc_score": 90,
+    "error_handling_score": 85,
+    "auth_complexity_score": 72,
+    "rate_limit_clarity_score": 75
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 95,
+    "scope_granularity": 95,
+    "dependency_hygiene": 88,
+    "secret_handling": 98,
+    "security_notes": "Vault is purpose-built for secrets security; supports seal/unseal with HSM or cloud KMS, audit logging to file/syslog/socket, and fine-grained HCL policies. TLS is mandatory in production configurations."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 90,
+    "version_stability": 88,
+    "breaking_changes_history": 82,
+    "error_recovery": 88
+  }
+}
