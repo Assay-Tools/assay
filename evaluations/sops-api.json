@@ -1,0 +1,105 @@
+{
+  "id": "sops-api",
+  "name": "SOPS (Secrets OPerationS)",
+  "version_evaluated": "3.x",
+  "homepage": "https://getsops.io",
+  "repo_url": "https://github.com/getsops/sops",
+  "category": "security",
+  "subcategories": ["secrets-management", "encryption", "gitops"],
+  "tags": ["encryption", "kms", "age", "pgp", "gitops", "yaml", "json", "env-files", "mozilla"],
+  "what_it_does": "Mozilla SOPS encrypts secrets stored in YAML, JSON, ENV, and binary files using AWS KMS, GCP KMS, Azure Key Vault, age, or PGP keys, enabling encrypted secrets to be safely committed to git with path-based key routing via .sops.yaml creation_rules.",
+  "use_cases": [
+    "Encrypt a Kubernetes secrets YAML file with AWS KMS so it can be safely committed to a GitOps repository",
+    "Use .sops.yaml creation_rules to automatically select different encryption keys for secrets in different paths (e.g., prod/ vs dev/)",
+    "Decrypt a SOPS-encrypted .env file inline during CI/CD pipeline execution without writing plaintext to disk",
+    "Rotate encryption keys across all SOPS-encrypted files in a repository using sops updatekeys command",
+    "Use sops --decrypt --extract '['database']['password']' to fetch a single value from an encrypted file for injection into a shell script"
+  ],
+  "not_for": [
+    "Centralized secrets management with access auditing, revocation, or dynamic secret generation — use Vault or Secrets Manager instead",
+    "Teams without existing KMS infrastructure or key management practices — setup complexity is significant",
+    "Storing secrets that change frequently, as SOPS re-encrypts the entire file on every edit"
+  ],
+  "best_when": "Storing encrypted secrets directly in a git repository as part of a GitOps workflow where the KMS key access policy serves as the access control mechanism.",
+  "avoid_when": "You need a central secrets UI, audit logs of who accessed which secret, or secret versioning with rollback — SOPS is file-level encryption, not a secrets service.",
+  "alternatives": ["bitwarden-secrets-api", "hashicorp-vault-api", "aws-secrets-manager-api", "sealed-secrets"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": false,
+    "sdk_languages": [],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["aws_credentials", "gcp_credentials", "azure_credentials", "age_key", "pgp_key"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Authentication is entirely handled by the underlying key provider. AWS KMS uses IAM roles/credentials; age uses key files; PGP uses keyring. No SOPS-specific auth layer exists."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Unlimited, open source",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Open source Mozilla Public License 2.0. KMS provider costs apply (AWS KMS charges per API call; age and PGP are free)."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "None (CLI tool; KMS provider API limits apply)",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self_hosted", "kms_provider_dependent"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 78,
+    "error_message_notes": "CLI errors for missing KMS permissions or wrong key IDs are reasonably descriptive, but MAC validation failures (file tampering) produce cryptic error messages.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Decryption is fully idempotent. Encryption generates new ciphertext each time (nonce-based) but produces functionally equivalent results; git diffs on re-encryption are noisy.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "SOPS adds a 'sops' metadata key to every encrypted YAML/JSON file; automated tools that process these files without decryption first will see this unexpected key and may error",
+      "The MAC (Message Authentication Code) covers all values; editing an encrypted file with a text editor instead of 'sops edit' will corrupt the MAC and make the file undecryptable",
+      "sops --decrypt outputs plaintext to stdout by default; piping to a file or environment variable in a script requires careful handling to avoid plaintext touching disk",
+      ".sops.yaml creation_rules are matched in order and first match wins; misconfigured rules silently use the wrong key, causing decryption failures in different environments",
+      "age key files must be available at a specific path (SOPS_AGE_KEY_FILE env var or ~/.config/sops/age/keys.txt); missing key file produces a non-obvious 'could not load keys' error"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 72,
+    "auth_complexity_score": 75,
+    "rate_limit_clarity_score": 95
+  },
+  "security_score_components": {
+    "tls_enforcement": 0,
+    "auth_strength": 88,
+    "scope_granularity": 70,
+    "dependency_hygiene": 85,
+    "secret_handling": 92,
+    "security_notes": "Excellent security model for git-committed secrets. Encryption is envelope encryption with per-file data keys. age is recommended over PGP for new setups. No plaintext secrets ever committed to git when used correctly."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 0,
+    "version_stability": 85,
+    "breaking_changes_history": 80,
+    "error_recovery": 75
+  }
+}

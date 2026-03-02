@@ -1,29 +1,28 @@
 {
   "id": "aws-cdk-api",
   "name": "AWS CDK (Cloud Development Kit)",
-  "version_evaluated": "current",
+  "version_evaluated": "v2",
   "homepage": "https://aws.amazon.com/cdk/",
   "repo_url": "https://github.com/aws/aws-cdk",
-  "category": "developer-tools",
-  "subcategories": ["infrastructure-as-code", "aws", "cloud-automation"],
-  "tags": ["aws-cdk", "cdk", "iac", "aws", "cloudformation", "infrastructure-as-code", "typescript", "python", "java", "go"],
-  "what_it_does": "AWS Cloud Development Kit — defines AWS infrastructure using familiar programming languages (TypeScript, Python, Java, Go, C#) that synthesizes to CloudFormation templates. Provides high-level constructs (L1/L2/L3) that encode AWS best practices. No separate REST API — the CDK CLI synthesizes and deploys via CloudFormation. The CDK Pipelines construct enables CI/CD self-mutation.",
+  "category": "infrastructure",
+  "subcategories": ["iac", "aws"],
+  "tags": ["aws", "iac", "typescript", "python", "cloudformation", "constructs"],
+  "what_it_does": "AWS CDK lets you define cloud infrastructure as code in TypeScript, Python, Java, or Go, compiled to CloudFormation templates.",
   "use_cases": [
-    "Defining AWS infrastructure in TypeScript or Python alongside application code",
-    "Reusable infrastructure constructs as library packages published to npm or PyPI",
-    "CI/CD pipelines that deploy AWS infrastructure via CDK Pipelines",
-    "Translating existing CloudFormation templates to higher-level CDK constructs",
-    "Building opinionated internal infrastructure patterns using L3 constructs"
+    "Define complete AWS infrastructure using familiar programming languages with IDE autocompletion",
+    "Build reusable infrastructure constructs (L3) that encode organizational best practices",
+    "Generate CloudFormation templates programmatically for review and deployment pipelines",
+    "Use CDK Pipelines for self-mutating CI/CD pipelines deployed to multiple accounts/regions",
+    "Compose complex agent infrastructure (Lambda + API Gateway + DynamoDB) with type-safe constructs"
   ],
   "not_for": [
-    "Multi-cloud infrastructure (CDK is AWS-only; use Pulumi or Terraform for multi-cloud)",
-    "Teams not using AWS at all",
-    "Agents that need to programmatically invoke infrastructure changes at runtime — CDK is a build-time tool, not a runtime API",
-    "Simple single-resource deployments where the AWS console or CLI suffices"
+    "Multi-cloud infrastructure — CDK synthesizes to CloudFormation which is AWS-only",
+    "Teams preferring declarative YAML/HCL over imperative programming for infrastructure",
+    "Simple single-resource deployments where CloudFormation YAML is more transparent"
   ],
-  "best_when": "Your team is AWS-only and wants to define infrastructure in TypeScript or Python with full IDE support, type checking, and reusable construct libraries, and you are comfortable with CloudFormation as the underlying execution engine.",
-  "avoid_when": "You need multi-cloud support, or need agents to dynamically create infrastructure at runtime via API calls (CDK is a code synthesis tool, not a runtime API — use Pulumi Automation API instead).",
-  "alternatives": ["pulumi-api", "terraform-cloud-api", "aws-sam"],
+  "best_when": "Best for AWS-native teams who want imperative programming constructs, reusability, and type safety for infrastructure.",
+  "avoid_when": "Avoid when team prefers declarative IaC (Terraform/CloudFormation) or when multi-cloud support is required.",
+  "alternatives": ["aws-cloudformation-api", "terraform-api", "pulumi-api"],
   "interface": {
     "has_rest_api": false,
     "has_graphql": false,
@@ -36,77 +35,71 @@
     "webhooks": false
   },
   "auth": {
-    "methods": ["aws_credentials", "iam_role", "oidc"],
+    "methods": ["aws_sigv4", "iam_role"],
     "oauth": false,
     "scopes": true,
-    "notes": "CDK uses standard AWS credential chain (AWS_ACCESS_KEY_ID, IAM roles, instance profiles, SSO). The synthesize step requires read access to resolve context values; the deploy step requires CloudFormation and target service permissions. CDK Pipelines use IAM roles for cross-account deployments. Least-privilege CDK deployment roles are recommended."
+    "notes": "Uses AWS credentials for cdk deploy. CDK bootstrapping requires AdministratorAccess or scoped CDK deployment permissions."
   },
   "pricing": {
     "model": "open_source",
     "free_tier_exists": true,
-    "free_tier_limits": "CDK itself is free and open source (Apache 2.0). You pay for AWS services deployed.",
-    "paid_tiers": "No paid tiers for CDK itself. AWS CloudFormation is free for the first 1,000 handler operations/month, then $0.0009/handler operation.",
-    "requires_credit_card": false,
-    "notes": "CDK is free. Cost comes from AWS resources provisioned. CloudFormation execution is nearly free. The cdk deploy command is the deployment mechanism — no separate service fees."
+    "free_tier_limits": "CDK is free — only provisioned AWS resources are billed",
+    "paid_tiers": "None for CDK itself",
+    "requires_credit_card": true,
+    "notes": "Apache 2.0 licensed. AWS account with billing required for cdk deploy."
   },
   "performance": {
     "latency_p50_ms": null,
     "latency_p99_ms": null,
     "uptime_sla_percent": null,
-    "rate_limits": "CDK synthesis is local and has no API rate limits. Deployment speed is bounded by CloudFormation execution (typically minutes to tens of minutes for complex stacks).",
+    "rate_limits": "None (CLI tool — CloudFormation deployment is async)",
     "data_source": "llm_estimated"
   },
   "requirements": {
-    "requires_signup": false,
-    "requires_credit_card": false,
+    "requires_signup": true,
+    "requires_credit_card": true,
     "domain_verification": false,
-    "data_residency": ["US", "EU", "APAC"],
-    "compliance": ["SOC1", "SOC2", "ISO27001", "FedRAMP", "HIPAA"],
+    "data_residency": ["self_hosted"],
+    "compliance": ["SOC2"],
     "min_contract": "none"
   },
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
     "documentation_accuracy": 88,
-    "error_message_quality": 75,
-    "error_message_notes": "CDK synthesis errors are TypeScript/Python type errors and are quite clear when constructs are misconfigured. CloudFormation deployment errors are less friendly — they surface stack events that require parsing rollback messages. ROLLBACK_COMPLETE states require manual diagnosis of the failed resource event.",
+    "error_message_quality": 80,
+    "error_message_notes": "CDK synth errors are TypeScript/Python compile-time; deploy errors delegate to CloudFormation stack events.",
     "idempotency_support": "full",
-    "idempotency_notes": "CloudFormation stacks are fully idempotent — running cdk deploy twice with no changes is a no-op. CDK diff shows what will change before deployment. Drift detection available via CloudFormation.",
+    "idempotency_notes": "cdk deploy is idempotent — re-deploying same app is safe and only changes diffs.",
     "pagination_style": "none",
     "retry_guidance_documented": false,
     "known_agent_gotchas": [
-      "CDK is a synthesis tool, not a runtime API — agents cannot call CDK to provision resources dynamically at runtime without forking a subprocess",
-      "cdk bootstrap must be run in each AWS account/region before first deployment — a common setup oversight",
-      "CloudFormation stack updates use change sets — some changes require resource replacement (destructive), not just update",
-      "Stack naming collisions cause deployment failures — agents generating stack names must ensure uniqueness per account/region",
-      "CDK context values are cached in cdk.context.json — agents in CI must manage or clear this file appropriately",
-      "Lambda asset bundling (Docker-based) requires Docker running on the agent host",
-      "CDK Aspects run at synthesis time, not deploy time — agents cannot apply aspects dynamically after synthesis"
+      "cdk bootstrap must run once per account/region before first deploy — missing bootstrap causes CDKToolkit stack errors",
+      "CDK asset uploads go to S3 (ECR for Docker) — large Lambda bundles slow down deploy due to S3 upload time",
+      "Construct IDs are part of the CloudFormation logical ID — renaming constructs causes resource replacement (delete + recreate), not update",
+      "Stack outputs and cross-stack references create implicit stack dependencies — deploy order matters and circular dependencies cause failures",
+      "CDK v2 bundles all AWS constructs in a single package (aws-cdk-lib) — CDK v1's per-service packages are deprecated and incompatible"
     ]
   },
   "af_score_components": {
-    "mcp_score": null,
+    "mcp_score": 0,
     "api_doc_score": 88,
-    "error_handling_score": 75,
-    "auth_complexity_score": 80,
-    "rate_limit_clarity_score": 85
+    "error_handling_score": 78,
+    "auth_complexity_score": 72,
+    "rate_limit_clarity_score": 100
   },
   "security_score_components": {
-    "tls_enforcement": 100,
-    "auth_strength": 90,
-    "scope_granularity": 85,
-    "dependency_hygiene": 80,
+    "tls_enforcement": 0,
+    "auth_strength": 0,
+    "scope_granularity": 0,
+    "dependency_hygiene": 85,
     "secret_handling": 82,
-    "security_notes": "IAM integration is first-class — CDK has grant() methods on constructs for least-privilege permissions. CDK Nag and CDK Aspects enable policy-as-code security checks at synthesis. No secrets stored in CDK — uses AWS Secrets Manager and SSM Parameter Store lookups at deploy time. CDK constructs can inadvertently create overly permissive IAM roles if L2 convenience methods are used without review."
+    "security_notes": "Never hardcode secrets in CDK code — use SecretValue.ssmSecure() or CfnParameter with NoEcho for sensitive values."
   },
   "reliability_score_components": {
-    "uptime_documented": 88,
-    "version_stability": 80,
-    "breaking_changes_history": 72,
-    "error_recovery": 75
-  },
-  "score_version": "1.0",
-  "evaluated_at": "2026-03-02",
-  "evaluator": "claude-sonnet-4-6",
-  "confidence": "medium"
+    "uptime_documented": 0,
+    "version_stability": 85,
+    "breaking_changes_history": 80,
+    "error_recovery": 82
+  }
 }
