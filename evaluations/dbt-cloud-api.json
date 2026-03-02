@@ -1,0 +1,109 @@
+{
+  "id": "dbt-cloud-api",
+  "name": "dbt Cloud API",
+  "version_evaluated": "current",
+  "homepage": "https://docs.getdbt.com/dbt-cloud/api-v2",
+  "repo_url": "https://github.com/dbt-labs/dbt-core",
+  "category": "data-pipeline",
+  "subcategories": ["data-transformation", "analytics-engineering", "sql", "developer-tooling"],
+  "tags": ["dbt", "data-transformation", "sql", "analytics-engineering", "data-pipeline", "elt", "cloud"],
+  "what_it_does": "dbt Cloud is a hosted platform for dbt (data build tool), which transforms raw data in warehouses using SQL-based models. The dbt Cloud REST API provides programmatic control over the full analytics engineering lifecycle: trigger job runs, poll run status, retrieve run artifacts (compiled SQL, manifest.json, run_results.json), manage projects, environments, and connections, and administer users and permissions. It is the operational layer for scheduling and orchestrating dbt transformations on top of warehouses like Snowflake, BigQuery, Redshift, and Databricks.",
+  "use_cases": [
+    "Triggering dbt job runs from CI/CD pipelines or orchestrators (Airflow, Prefect, Dagster) after upstream data loads complete",
+    "Polling job run status and retrieving run artifacts (run_results.json) for downstream quality checks or alerting",
+    "Programmatically creating and managing dbt Cloud projects, environments, and warehouse connections for multi-tenant setups",
+    "Building metadata pipelines that consume dbt artifacts (manifest.json, catalog.json) for data lineage and documentation systems",
+    "Automating environment promotion: trigger runs in dev, staging, and prod environments with different variable overrides"
+  ],
+  "not_for": [
+    "Teams using open-source dbt Core without a Cloud account — dbt Core has no hosted API; orchestration must be done via CLI or third-party schedulers",
+    "Real-time data transformation — dbt runs are batch SQL jobs, not streaming processors",
+    "Non-SQL transformations — dbt is SQL-first; Python models exist but are limited compared to dedicated Python data tools",
+    "Querying or reading transformed data directly — dbt Cloud API manages runs and metadata, not data retrieval from the warehouse"
+  ],
+  "best_when": "An agent needs to trigger and monitor dbt transformation jobs as part of an ELT pipeline, or when integrating dbt metadata (lineage, test results) into a broader data orchestration or observability workflow.",
+  "avoid_when": "You need streaming/real-time transformation, you're using dbt Core exclusively without a Cloud account, or you need to query the transformed data itself rather than manage the transformation process.",
+  "alternatives": ["airflow-api", "prefect-api", "dagster-api", "hightouch-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": "https://docs.getdbt.com/dbt-cloud/api-v2",
+    "webhooks": true
+  },
+  "auth": {
+    "methods": ["bearer_token", "api_key"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Personal API tokens and service account tokens both use Bearer token auth via Authorization header. Service account tokens are preferred for CI/CD and agent use — they are not tied to a specific user's account. Token permissions inherit from the service account's role in the dbt Cloud account. No fine-grained token scoping; access is coarse-grained by role (Account Admin, Developer, Analyst, etc.)."
+  },
+  "pricing": {
+    "model": "freemium",
+    "free_tier_exists": true,
+    "free_tier_limits": "Developer plan: 1 developer seat, 1 project, community support. Limited job scheduling.",
+    "paid_tiers": "Team plan ~$100/month per seat (varies by contract). Enterprise: custom pricing with SSO, audit logs, dedicated support.",
+    "requires_credit_card": false,
+    "notes": "Developer plan is free and provides API access, making it viable for agent development and testing. Team and Enterprise plans unlock advanced scheduling, SSO, and SLA guarantees. Annual contracts available with discounts."
+  },
+  "performance": {
+    "latency_p50_ms": 300,
+    "latency_p99_ms": 2000,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "Not publicly documented. In practice, the API is not heavily rate-limited for management operations. Job run triggers are bounded by plan-level concurrency limits (number of simultaneous runs).",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["US", "EU"],
+    "compliance": ["SOC2", "GDPR"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 80,
+    "error_message_quality": 74,
+    "error_message_notes": "API errors return HTTP status codes with JSON bodies containing a status field and message. Error messages are generally human-readable but sometimes generic (e.g., '400 Bad Request' without detailed field validation errors). Run-level errors are better surfaced via the run artifacts (run_results.json) than via the API response itself.",
+    "idempotency_support": "none",
+    "idempotency_notes": "Job run triggers are not idempotent — each POST to /runs/ creates a new run. Agents must track run IDs externally to avoid duplicate runs. There is no native deduplication key or idempotency header support.",
+    "pagination_style": "offset",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Job runs are asynchronous — triggering a run returns a run ID immediately; agents must poll GET /runs/{run_id}/ until status is 'Success', 'Error', or 'Cancelled'. No webhook-based completion notification without additional setup.",
+      "Run status is numeric (1=Queued, 2=Starting, 3=Running, 10=Success, 20=Error, 30=Cancelled) — agents must map these integers; the API does not return string status in the primary field.",
+      "Account ID is required as a path parameter on nearly every endpoint (/api/v2/accounts/{account_id}/...) — agents must store and inject this at initialization.",
+      "Concurrent run limits vary by plan tier — if the account's concurrency limit is reached, new run triggers are queued or rejected; agents must handle queued state without assuming the run failed.",
+      "Artifacts (run_results.json, manifest.json) are only available after a run completes — polling for artifacts before completion returns 404; agents must wait for terminal run status before fetching artifacts.",
+      "Environment-scoped API tokens are not supported — a single service account token has access to all projects in the account; agents should use dedicated service accounts with minimal role assignment.",
+      "The v2 API and the older v2 beta API have overlapping but inconsistent endpoint structures — always verify endpoint path against the current docs as examples online may reference deprecated paths."
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 80,
+    "error_handling_score": 74,
+    "auth_complexity_score": 82,
+    "rate_limit_clarity_score": 60
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 78,
+    "scope_granularity": 60,
+    "dependency_hygiene": 80,
+    "secret_handling": 80,
+    "security_notes": "Service account tokens are the correct pattern for agent use — avoids tying credentials to a user's personal account. However, token scoping is coarse (role-based, not endpoint-based), meaning an agent token typically has broader access than necessary. No support for token expiry or rotation via API. TLS enforced on all endpoints."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 80,
+    "version_stability": 78,
+    "breaking_changes_history": 75,
+    "error_recovery": 72
+  },
+  "last_evaluated": "2026-03-01"
+}

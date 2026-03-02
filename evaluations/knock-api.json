@@ -1,0 +1,109 @@
+{
+  "id": "knock-api",
+  "name": "Knock API",
+  "version_evaluated": "current",
+  "homepage": "https://docs.knock.app",
+  "repo_url": "https://github.com/knocklabs/knock-node",
+  "category": "notifications",
+  "subcategories": ["in-app-notifications", "notification-workflows", "multi-channel", "feeds"],
+  "tags": ["knock", "notifications", "in-app", "notification-feed", "workflows", "email", "sms", "push", "slack"],
+  "what_it_does": "Knock is a notification infrastructure platform focused on notification workflows and in-app notification feeds. Unlike basic transactional email APIs, Knock provides a workflow engine where you visually design multi-step notification sequences: wait steps, batch/digest steps, branch conditions, and channel delivery across email, SMS, push, Slack, and in-app feeds. Knock's in-app feed is a first-class primitive — a pre-built, real-time notification feed component (React, Angular, iOS, Android SDKs) that renders a bell icon / notification drawer, eliminating the need to build this common UI pattern. The API handles user identity, preferences, workflow triggering, and feed state management (read/unread/archived).",
+  "use_cases": [
+    "Building in-app notification feeds (bell icon with unread count and notification list) without building the feed storage and real-time delivery layer",
+    "Implementing digest/batch notifications — collecting individual events and sending a single summary email after a quiet period using Knock's batch step",
+    "Designing multi-channel notification workflows visually: trigger → wait 10 min → if unread in-app, send email → else stop",
+    "Managing user notification preferences per channel and per notification type, with a hosted preferences UI or API-driven preference management",
+    "Triggering notifications from event streams or webhooks and routing them through complex conditional delivery logic without custom code"
+  ],
+  "not_for": [
+    "Marketing campaigns, newsletters, or audience segmentation — Knock is transactional and workflow-driven, not a marketing automation tool",
+    "Simple transactional email sending without workflow logic — dedicated ESPs (Postmark, Sendgrid) are cheaper and simpler for pure email",
+    "Teams that need to own notification storage and infrastructure entirely — Knock is a managed service; self-hosting is not available",
+    "Real-time chat or two-way messaging — Knock's in-app feed is a notification feed, not a chat system"
+  ],
+  "best_when": "You need an in-app notification feed plus multi-channel notification delivery with workflow logic (batching, delays, branching) and don't want to build the notification infrastructure layer from scratch.",
+  "avoid_when": "You only need simple transactional email, you need marketing campaign tooling, or you need to self-host your notification infrastructure.",
+  "alternatives": ["courier-api", "novu-api", "customer-io-api", "sendgrid-api", "firebase-fcm-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["javascript", "typescript", "python", "ruby", "go", "php", "java", "elixir", "react", "ios", "android"],
+    "openapi_spec_url": "https://docs.knock.app/reference",
+    "webhooks": true
+  },
+  "auth": {
+    "methods": ["bearer_token", "api_key"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Secret API key for server-side REST API calls (Authorization: Bearer sk_...). Public API key for client-side SDK initialization (safe to expose). In-app feed requires a per-user signed user token (HMAC-SHA256 of user ID using a signing key) for secure user identification — without token signing, any user ID can be impersonated. Test and production environments have separate key pairs. No fine-grained token scoping beyond the secret/public split."
+  },
+  "pricing": {
+    "model": "freemium",
+    "free_tier_exists": true,
+    "free_tier_limits": "Free: 10,000 monthly notifications, 1 environment, core workflows and in-app feed.",
+    "paid_tiers": "Starter: ~$100/month for 50,000 notifications. Pro/Growth: custom pricing with higher limits, SSO, priority support. Enterprise: custom with dedicated infrastructure and SLA.",
+    "requires_credit_card": false,
+    "notes": "Pricing is per notification sent across all channels. In-app feed messages count toward the notification limit. Free tier is generous for development and small production use. Annual plans available with discounts."
+  },
+  "performance": {
+    "latency_p50_ms": 150,
+    "latency_p99_ms": 800,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "Not publicly documented with specific numbers. Workflow triggers are processed asynchronously — the API accepts the trigger and returns immediately. High-volume triggering should use bulk trigger endpoints.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["US", "EU"],
+    "compliance": ["SOC2", "GDPR"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 86,
+    "error_message_quality": 80,
+    "error_message_notes": "API returns well-structured JSON errors with a code, message, and errors array for validation failures. Workflow trigger errors (e.g., missing required data, unknown recipient) are returned synchronously on the trigger response. Workflow execution errors (channel delivery failures) surface asynchronously via the message log API or webhooks.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Workflow triggers support an idempotency key (cancellation key) that can be used to cancel in-flight workflows — not the same as standard idempotency keys for deduplication. User identification (identify calls) is idempotent by user ID — repeated identifies merge/update the user. There is no HTTP Idempotency-Key header support for deduplicating trigger requests.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Workflow triggers are asynchronous — POST /v1/workflows/{key}/trigger returns HTTP 200 with a workflow_run_id immediately, but the workflow executes in the background; agents must use the workflow run API or webhooks to track execution status.",
+      "In-app feed requires HMAC-signed user tokens for secure operation — agents building client-facing features must generate signed tokens server-side per user session; using unsigned tokens (allowed in development mode) is insecure in production.",
+      "Batch/digest steps use time-window accumulation — triggering a workflow multiple times within a batch window accumulates notifications into a single digest; agents that need immediate delivery must configure batch window to 0 or use non-batched workflows.",
+      "Recipient users must be identified via PUT /v1/users/{id} before or alongside workflow triggers — sending a notification to an unidentified user ID creates a 'pending' user but may miss profile data needed for personalization in templates.",
+      "Workflow keys are defined in the Knock dashboard UI and referenced by string key in API calls — agents must maintain a mapping of workflow key strings that are managed outside of code, creating a coordination dependency between dashboard config and agent code.",
+      "Cancellation keys (workflow trigger cancellation) cancel ALL pending steps for a given cancellation key — agents using the same key for multiple triggers will cancel unintended workflows if they share a key accidentally.",
+      "Channel provider configuration (Sendgrid, Twilio, etc.) is managed in the Knock dashboard — agents triggering notifications will silently fail to deliver if the upstream provider is not configured or has invalid credentials in Knock's channel settings."
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 86,
+    "error_handling_score": 80,
+    "auth_complexity_score": 82,
+    "rate_limit_clarity_score": 65
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 84,
+    "scope_granularity": 65,
+    "dependency_hygiene": 82,
+    "secret_handling": 86,
+    "security_notes": "HMAC-signed user tokens for in-app feed are a strong security model that prevents user impersonation — this is the correct pattern and Knock enforces it in production mode. Secret/public key separation is clean. No token scoping granularity beyond the secret/public split — the secret key has full account access. Signing key rotation available in dashboard. Webhook payload verification via HMAC signature is documented and recommended."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 84,
+    "version_stability": 84,
+    "breaking_changes_history": 82,
+    "error_recovery": 78
+  },
+  "last_evaluated": "2026-03-01"
+}

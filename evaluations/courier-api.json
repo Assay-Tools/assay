@@ -1,0 +1,109 @@
+{
+  "id": "courier-api",
+  "name": "Courier API",
+  "version_evaluated": "current",
+  "homepage": "https://www.courier.com/docs/reference",
+  "repo_url": "https://github.com/trycourier/courier-node",
+  "category": "notifications",
+  "subcategories": ["multi-channel", "email", "sms", "push", "messaging", "routing"],
+  "tags": ["courier", "notifications", "multi-channel", "email", "sms", "push", "slack", "routing", "templates"],
+  "what_it_does": "Courier is a multi-channel notification routing platform that lets developers send notifications across email, SMS, push, Slack, Microsoft Teams, WhatsApp, and other channels through a single API. Rather than integrating separately with Sendgrid for email, Twilio for SMS, and Firebase for push, Courier abstracts all channels behind a unified Send API. Routing rules, channel failover, and notification templates are managed in the Courier Studio UI or via API, allowing non-engineers to control notification logic without code changes. Courier also handles user preferences (letting end users control which channels they receive notifications on), delivery tracking, and notification audit logs.",
+  "use_cases": [
+    "Sending transactional notifications across multiple channels (email + SMS + push) with a single API call and channel routing logic",
+    "Implementing user notification preferences — letting end users opt out of specific channels or notification types without developer involvement",
+    "Building notification audit trails and delivery status dashboards using Courier's message log API",
+    "Managing reusable notification templates with dynamic variable substitution across channels without hardcoding message content",
+    "Routing notifications to Slack or Microsoft Teams channels for internal alerting alongside user-facing email and SMS"
+  ],
+  "not_for": [
+    "High-volume transactional email at email-only scale — dedicated ESPs (Sendgrid, Postmark) offer lower per-email costs and more advanced deliverability tooling",
+    "Marketing campaigns with A/B testing, segmentation, and audience management — Courier is transactional-first, not a marketing automation platform",
+    "Real-time chat or two-way messaging — Courier sends notifications outbound but does not handle inbound message routing or conversation threading",
+    "Teams that need sub-cent per-email pricing at millions of emails/month — Courier's pricing reflects the multi-channel routing layer on top of underlying providers"
+  ],
+  "best_when": "Your application needs to send notifications across multiple channels and you want to manage routing logic, templates, and user preferences centrally without building per-channel integrations.",
+  "avoid_when": "You're sending only one notification type on one channel (pure email or pure SMS), need marketing campaign tooling, or are highly cost-sensitive at very high email volumes.",
+  "alternatives": ["sendgrid-api", "twilio-api", "knock-api", "novu-api", "customer-io-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["javascript", "typescript", "python", "ruby", "go", "php", "java", "dotnet"],
+    "openapi_spec_url": "https://www.courier.com/docs/reference",
+    "webhooks": true
+  },
+  "auth": {
+    "methods": ["bearer_token"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Single API key per Courier workspace, passed as a Bearer token. Production and test environments have separate API keys — test environment sends are intercepted and not delivered, making it safe for development. No fine-grained token scoping; a single key has full access to the workspace. Multiple workspaces can be used to isolate environments or tenants."
+  },
+  "pricing": {
+    "model": "freemium",
+    "free_tier_exists": true,
+    "free_tier_limits": "10,000 notifications/month free across all channels. Includes all core features.",
+    "paid_tiers": "Starting at ~$100/month for higher volume. Enterprise: custom with dedicated support, SLA, SSO. Per-notification pricing above free tier.",
+    "requires_credit_card": false,
+    "notes": "Free tier is generous for development and low-volume production use. Channel provider costs (Twilio, Sendgrid, etc.) are separate — Courier routes through your own provider accounts or its built-in providers at additional cost. Enterprise plans include SLA guarantees and advanced features like custom domains."
+  },
+  "performance": {
+    "latency_p50_ms": 200,
+    "latency_p99_ms": 1500,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "Send API: not publicly documented with hard limits. In practice, high-volume sending should use bulk send or list send endpoints. Workspace-level throttling applies.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["US", "EU"],
+    "compliance": ["SOC2", "GDPR", "HIPAA"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 82,
+    "error_message_quality": 78,
+    "error_message_notes": "Send API returns a requestId immediately on acceptance — delivery errors surface later via webhooks or the message log API, not in the initial response. API errors (auth, validation) return HTTP 4xx with JSON bodies containing a message field. Agents relying solely on the HTTP 200 response for send confirmation will miss delivery failures.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Send requests support an idempotency key via the Idempotency-Key header — submitting the same key within 24 hours returns the original response without sending a duplicate. Agents should always generate and store idempotency keys per notification attempt to prevent duplicates on retry.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Send API accepts requests and returns HTTP 202 (accepted) even if the downstream channel fails — delivery status must be checked via the message log API (GET /messages/{message_id}) or webhooks; there is no synchronous delivery confirmation.",
+      "Notification template IDs are referenced by name or UUID — agents must look up or store template IDs; using a deleted or renamed template silently fails or routes to a fallback.",
+      "Test vs. production API keys are distinct and not interchangeable — agents must manage environment-specific key configuration; using a test key in production results in notifications being intercepted, not delivered.",
+      "User profile data sent with a notification is merged into Courier's recipient profile store — agents sending PII in notification data should be aware that Courier stores recipient profiles, which has data privacy implications.",
+      "Routing rules (channel priority, failover) are configured in Courier Studio UI, not via API — agents cannot programmatically change routing logic without using the routing object in the send payload to override templates.",
+      "Webhook events for delivery status (DELIVERED, UNDELIVERABLE) require webhook endpoint configuration — agents assuming in-app polling is sufficient will miss delivery failures that only surface via webhook events.",
+      "Bulk sends via /send/list use list IDs that must be pre-created and managed — agents sending to dynamic recipient lists must create/update lists before triggering bulk sends."
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 82,
+    "error_handling_score": 78,
+    "auth_complexity_score": 85,
+    "rate_limit_clarity_score": 65
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 78,
+    "scope_granularity": 60,
+    "dependency_hygiene": 82,
+    "secret_handling": 80,
+    "security_notes": "No token scoping — a single API key has full workspace access including reading message logs and recipient profiles. Separate production/test keys are a good practice enforced by design. HIPAA compliance available on Enterprise plans with BAA. Recipient profile data (including PII) is stored in Courier's platform; agents must understand data residency implications when sending user data with notifications."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 82,
+    "version_stability": 82,
+    "breaking_changes_history": 80,
+    "error_recovery": 76
+  },
+  "last_evaluated": "2026-03-01"
+}

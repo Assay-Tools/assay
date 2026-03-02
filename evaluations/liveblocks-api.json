@@ -1,0 +1,109 @@
+{
+  "id": "liveblocks-api",
+  "name": "Liveblocks API",
+  "version_evaluated": "current",
+  "homepage": "https://liveblocks.io/docs/api-reference/rest-api-endpoints",
+  "repo_url": "https://github.com/liveblocks/liveblocks",
+  "category": "realtime",
+  "subcategories": ["collaboration", "presence", "shared-state", "developer-tooling"],
+  "tags": ["liveblocks", "realtime", "collaboration", "presence", "cursors", "yjs", "crdt", "websocket"],
+  "what_it_does": "Liveblocks is a real-time collaboration infrastructure platform that provides pre-built primitives for adding collaborative features to web applications: live cursors, user presence indicators, shared document state (via CRDT/Yjs integration), comments and threads, and notifications. The REST API provides server-side management of rooms (collaboration sessions), storage (persistent shared state), users (presence and access), webhooks, and inbox notifications. The client-side JavaScript SDK handles WebSocket connections and real-time sync; the REST API is used for authentication, room management, and server-triggered operations.",
+  "use_cases": [
+    "Implementing Google Docs-style multiplayer editing in web apps with live cursors and presence avatars",
+    "Managing access control for collaboration rooms — granting users access tokens with specific permissions per room",
+    "Querying room storage state server-side for backup, migration, or server-initiated updates to shared documents",
+    "Building notification systems for @mentions, comment threads, and collaboration events using the inbox API",
+    "Retrieving active room participants and presence data for analytics or moderation purposes"
+  ],
+  "not_for": [
+    "Server-to-server real-time communication — Liveblocks is designed for browser clients with server-side auth and management support only",
+    "Persistent databases or structured data storage — Liveblocks storage is ephemeral collaboration state, not a replacement for a production database",
+    "Mobile apps without JavaScript — primary SDKs are JavaScript/TypeScript; React Native support exists but is limited",
+    "High-throughput event streaming at scale — Liveblocks is designed for collaborative document sessions, not pub/sub message buses or IoT telemetry"
+  ],
+  "best_when": "You're building a web app that needs real-time collaborative editing, presence, or shared state and want to avoid building WebSocket infrastructure, conflict resolution, or CRDT logic from scratch.",
+  "avoid_when": "You need persistent structured data storage, non-JavaScript client support, high-throughput event streaming, or full control over the real-time infrastructure without a managed service.",
+  "alternatives": ["ably-api", "pusher-api", "supabase-realtime-api", "partykit-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["javascript", "typescript", "react", "react-native"],
+    "openapi_spec_url": null,
+    "webhooks": true
+  },
+  "auth": {
+    "methods": ["api_key", "bearer_token"],
+    "oauth": false,
+    "scopes": true,
+    "notes": "Two auth patterns: (1) Secret key (sk_...) used server-side for REST API management calls via Authorization header. (2) Access tokens generated server-side using the secret key and passed to browser clients — tokens are scoped per user and per room with read/write/full permissions. Public key (pk_...) is used in client SDK initialization and is safe to expose. Secret keys must never be exposed client-side. Room-level permission scoping enables least-privilege access per user per session."
+  },
+  "pricing": {
+    "model": "freemium",
+    "free_tier_exists": true,
+    "free_tier_limits": "Starter: 50 monthly active users (MAU), unlimited rooms, core features. Community plan available.",
+    "paid_tiers": "Pro: ~$99/month for 500 MAU, then per-MAU pricing. Enterprise: custom with SLA, SSO, dedicated support.",
+    "requires_credit_card": false,
+    "notes": "MAU-based pricing model — an MAU is any user who connects to a Liveblocks room in a calendar month. The free tier is generous for development and small-scale deployment. Costs scale with user count rather than data volume or requests. No credit card required for free tier."
+  },
+  "performance": {
+    "latency_p50_ms": 80,
+    "latency_p99_ms": 400,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "REST API: not publicly documented with specific limits. WebSocket connections: bounded by plan tier's MAU limits. Storage API operations have undocumented per-room rate limits.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["US", "EU"],
+    "compliance": ["SOC2", "GDPR"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 76,
+    "error_message_notes": "REST API returns standard HTTP status codes with JSON error bodies. Error messages are generally descriptive for authentication and authorization failures. Storage mutation errors can be less specific about which operation failed in a batch.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Room creation is idempotent by room ID — creating a room that already exists returns the existing room. Storage updates are CRDT-based and naturally merge, but REST storage mutations are not idempotent in the traditional sense. Webhook delivery has at-least-once semantics requiring idempotent handlers.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "The REST API is a management plane only — actual real-time collaboration data flows through WebSocket connections using the JavaScript SDK; agents cannot participate in live collaboration sessions directly via REST.",
+      "Access token generation is required server-side before any client can join a room — agents building auth flows must implement the token endpoint pattern, not pass secret keys to clients.",
+      "Room storage read via REST API returns CRDT state that may need deserialization — Liveblocks storage types (LiveObject, LiveList, LiveMap) have specific JSON representations that differ from plain JSON objects.",
+      "Webhook events are delivered with at-least-once semantics and can arrive out of order — agents consuming webhooks for presence or storage events must handle duplicates and use event timestamps for ordering.",
+      "The 'storageUpdated' webhook fires on any storage change but does not include the diff — agents needing to track specific field changes must call the storage read API to fetch current state after each webhook.",
+      "Room IDs are agent-controlled strings but must be URL-safe — agents generating room IDs programmatically must sanitize special characters or use UUID format.",
+      "Presence data is ephemeral and tied to active WebSocket connections — REST API presence queries only reflect currently connected users; disconnected users' last-known presence is not persisted."
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 76,
+    "auth_complexity_score": 80,
+    "rate_limit_clarity_score": 60
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 85,
+    "scope_granularity": 82,
+    "dependency_hygiene": 80,
+    "secret_handling": 88,
+    "security_notes": "Strong separation between public key (safe for client-side) and secret key (server-only) prevents accidental credential exposure. Room-level access token scoping enables fine-grained authorization. Secret key must be kept server-side; Liveblocks docs clearly emphasize this. No token rotation API available — key rotation requires manual secret key regeneration in dashboard."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 82,
+    "version_stability": 80,
+    "breaking_changes_history": 78,
+    "error_recovery": 75
+  },
+  "last_evaluated": "2026-03-01"
+}

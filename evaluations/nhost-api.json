@@ -1,0 +1,109 @@
+{
+  "id": "nhost-api",
+  "name": "Nhost API",
+  "version_evaluated": "current",
+  "homepage": "https://docs.nhost.io",
+  "repo_url": "https://github.com/nhost/nhost",
+  "category": "backend-as-a-service",
+  "subcategories": ["database", "auth", "storage", "graphql", "serverless", "open-source"],
+  "tags": ["nhost", "firebase-alternative", "postgres", "graphql", "hasura", "auth", "storage", "open-source", "baas"],
+  "what_it_does": "Nhost is an open-source Firebase alternative built on PostgreSQL, Hasura (GraphQL engine), and a suite of integrated services: authentication (email/password, OAuth, magic links), file storage (S3-compatible), serverless functions, and email. The platform auto-generates a GraphQL API from your PostgreSQL schema via Hasura, with real-time subscriptions and fine-grained row-level permissions. The management REST API (Nhost Cloud) handles project provisioning, configuration, and deployment. Applications interact with the platform primarily via GraphQL for data, REST endpoints for auth and storage, and the Nhost JavaScript/TypeScript SDK that wraps all services.",
+  "use_cases": [
+    "Bootstrapping a full-stack web or mobile app backend with database, auth, and file storage without managing infrastructure",
+    "Building real-time applications using Hasura's GraphQL subscriptions over PostgreSQL — chat, dashboards, collaborative tools",
+    "Implementing social auth (Google, GitHub, Facebook) and JWT-based session management via the auth service without custom implementation",
+    "Storing and serving user-uploaded files with access control tied to Hasura permission rules",
+    "Self-hosting the entire Nhost stack via Docker Compose for on-premise or private cloud deployment"
+  ],
+  "not_for": [
+    "Teams needing MySQL, MongoDB, or non-PostgreSQL databases — Nhost is PostgreSQL-only via Hasura",
+    "High-scale enterprise workloads requiring dedicated infrastructure without managed service overhead",
+    "Projects that prefer REST-first APIs over GraphQL — Nhost's data layer is GraphQL-primary; REST requires Hasura REST endpoints or custom functions",
+    "Teams that need multi-region active-active replication — Nhost Cloud is single-region per project"
+  ],
+  "best_when": "You want a Firebase-like developer experience (auth, database, storage in one platform) but with PostgreSQL and GraphQL instead of NoSQL, and you want the option to self-host the entire stack.",
+  "avoid_when": "Your team is not comfortable with GraphQL, you need a non-Postgres database, or you require enterprise-grade SLAs and dedicated infrastructure without the complexity of self-hosting.",
+  "alternatives": ["supabase-api", "firebase-api", "appwrite-api", "pocketbase-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": true,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["javascript", "typescript", "react", "react-native", "flutter", "dart"],
+    "openapi_spec_url": null,
+    "webhooks": true
+  },
+  "auth": {
+    "methods": ["bearer_token", "api_key"],
+    "oauth": true,
+    "scopes": true,
+    "notes": "Auth service issues JWTs (access tokens, 15-minute expiry by default) and refresh tokens. Hasura uses JWT claims to enforce row-level permissions — the JWT must contain a hasura namespace with x-hasura-role and x-hasura-user-id. Admin secret (plaintext header x-hasura-admin-secret) bypasses all permission rules — never expose in client-side code. Nhost SDK handles token refresh automatically. Service-level API keys used for management API (project creation, configuration). OAuth providers (Google, GitHub, etc.) supported for user-facing auth flows."
+  },
+  "pricing": {
+    "model": "freemium",
+    "free_tier_exists": true,
+    "free_tier_limits": "Free: 1 project, 100MB database, 1GB storage, 1GB bandwidth/month. Community support only.",
+    "paid_tiers": "Pro: ~$25/month per project with higher limits and priority support. Enterprise: custom. Self-hosting is free forever.",
+    "requires_credit_card": false,
+    "notes": "The free tier is functional for development and small production apps. Self-hosting via Docker Compose is completely free and provides the same feature set. Cloud pricing is competitive with Firebase and Supabase for small to medium projects."
+  },
+  "performance": {
+    "latency_p50_ms": 50,
+    "latency_p99_ms": 300,
+    "uptime_sla_percent": 99.5,
+    "rate_limits": "Not publicly documented for cloud tier. Hasura enforces query depth and node limits (configurable). Storage upload size limits apply per plan.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["US", "EU"],
+    "compliance": ["SOC2", "GDPR"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 78,
+    "error_message_quality": 74,
+    "error_message_notes": "GraphQL errors are returned as HTTP 200 with an errors array in the response body — agents must check for the errors key even on successful HTTP responses. Auth service REST errors use standard HTTP codes with JSON bodies. Hasura permission errors can be cryptic (e.g., 'not found' when a row exists but the permission rule excludes it), making debugging access control issues difficult for agents.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "GraphQL mutations are not inherently idempotent — agents must use Hasura's 'on_conflict' (upsert) clause to achieve idempotency for insert operations. File uploads by path are effectively idempotent (overwrite). Auth signup is idempotent by email (returns existing user).",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "GraphQL errors return HTTP 200 — agents that only check HTTP status codes will miss data errors; always inspect the 'errors' field in the response body.",
+      "Hasura admin secret bypasses all row-level security — agents using the admin secret for convenience will silently return data that should be restricted; use user-scoped JWTs with proper role claims instead.",
+      "JWT access tokens expire in 15 minutes by default — long-running agents must implement token refresh using the refresh token endpoint or the SDK's auto-refresh capability; expired token errors look like permission errors, not auth errors.",
+      "Hasura permission rules are Postgres expressions evaluated per row — incorrectly written permission rules can silently return empty results instead of an error, making it hard to distinguish 'no data' from 'permission denied'.",
+      "File storage paths are user-controlled strings — agents generating paths must avoid collisions and handle the case where a file already exists at the target path (overwrite vs. error behavior varies by configuration).",
+      "Hasura's query depth and node limits are enforced — deeply nested GraphQL queries (common when auto-generating queries) will be rejected; agents must set reasonable query complexity bounds.",
+      "Real-time subscriptions via GraphQL require a WebSocket connection — agents cannot use subscriptions over plain HTTP; for server-side change detection, agents must poll or use Hasura event triggers with webhook callbacks."
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 78,
+    "error_handling_score": 74,
+    "auth_complexity_score": 72,
+    "rate_limit_clarity_score": 58
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 82,
+    "scope_granularity": 80,
+    "dependency_hygiene": 78,
+    "secret_handling": 75,
+    "security_notes": "Admin secret is a plaintext shared secret with no expiry — it's a significant security risk if leaked and cannot be rotated without downtime on self-hosted instances. JWT-based auth with Hasura claims is the correct security model for production. Row-level security is enforced via Hasura permission rules, not PostgreSQL RLS — this is a single point of failure if Hasura is bypassed via direct database access. Self-hosted deployments must secure the Hasura endpoint independently."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 72,
+    "version_stability": 75,
+    "breaking_changes_history": 72,
+    "error_recovery": 70
+  },
+  "last_evaluated": "2026-03-01"
+}
