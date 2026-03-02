@@ -3,11 +3,11 @@
 from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from sqlalchemy.orm import Session, joinedload
 
 from assay.database import get_db
-from assay.models import Category, Package, PackageInterface, PackagePricing, PackageRequirements
+from assay.models import Category, Package, PackageAgentReadiness, PackageInterface, PackagePricing, PackageRequirements
 
 from .schemas import (
     AgentGuideResponse,
@@ -245,6 +245,47 @@ def get_evaluation_queue(
         for p in unevaluated
     ]
 
+    if include_stale and len(results) < limit:
+        # Packages with composite scores but missing security/reliability sub-components
+        remaining = limit - len(results)
+        iq = (
+            db.query(Package)
+            .join(PackageAgentReadiness, Package.id == PackageAgentReadiness.package_id, isouter=True)
+            .filter(
+                Package.af_score.isnot(None),
+                or_(
+                    PackageAgentReadiness.tls_enforcement.is_(None),
+                    PackageAgentReadiness.package_id.is_(None),
+                ),
+            )
+        )
+        if package_type:
+            iq = iq.filter(Package.package_type == package_type)
+        if priority:
+            iq = iq.filter(Package.priority == priority)
+
+        incomplete = (
+            iq.order_by(Package.priority.asc(), Package.created_at.desc())
+            .limit(remaining)
+            .all()
+        )
+        results.extend([
+            {
+                "id": p.id,
+                "name": p.name,
+                "repo_url": p.repo_url,
+                "category": p.category_slug,
+                "package_type": p.package_type,
+                "priority": p.priority,
+                "stars": p.stars,
+                "status": "needs_reevaluation",
+                "reason": "missing_sub_components",
+                "last_evaluated": p.last_evaluated.isoformat() if p.last_evaluated else None,
+                "current_af_score": p.af_score,
+            }
+            for p in incomplete
+        ])
+
     # Stale packages (evaluated > 90 days ago)
     if include_stale and len(results) < limit:
         stale_cutoff = datetime.now(timezone.utc) - timedelta(days=90)
@@ -273,6 +314,7 @@ def get_evaluation_queue(
                 "priority": p.priority,
                 "stars": p.stars,
                 "status": "needs_reevaluation",
+                "reason": "stale",
                 "last_evaluated": p.last_evaluated.isoformat() if p.last_evaluated else None,
                 "current_af_score": p.af_score,
             }

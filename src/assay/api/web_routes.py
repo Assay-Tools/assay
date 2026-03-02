@@ -12,7 +12,7 @@ from sqlalchemy import func, or_
 from sqlalchemy.orm import Session, joinedload
 
 from assay.database import get_db
-from assay.models import Category, Package
+from assay.models import Category, Package, PackageAgentReadiness
 
 _templates_dir = Path(__file__).parent.parent / "templates"
 templates = Jinja2Templates(directory=str(_templates_dir))
@@ -343,9 +343,9 @@ def contribute(request: Request, db: Session = Depends(get_db)):
         .scalar() or 0
     )
 
-    # Packages needing re-evaluation (evaluated > 90 days ago)
+    # Packages needing re-evaluation (evaluated > 90 days ago OR missing security sub-components)
     stale_cutoff = datetime.now(timezone.utc) - timedelta(days=90)
-    needs_reeval_count = (
+    stale_count = (
         db.query(func.count(Package.id))
         .filter(
             Package.af_score.isnot(None),
@@ -353,6 +353,19 @@ def contribute(request: Request, db: Session = Depends(get_db)):
         )
         .scalar() or 0
     )
+    missing_subcomponents_count = (
+        db.query(func.count(Package.id))
+        .join(PackageAgentReadiness, Package.id == PackageAgentReadiness.package_id, isouter=True)
+        .filter(
+            Package.af_score.isnot(None),
+            or_(
+                PackageAgentReadiness.tls_enforcement.is_(None),
+                PackageAgentReadiness.package_id.is_(None),
+            ),
+        )
+        .scalar() or 0
+    )
+    needs_reeval_count = stale_count + missing_subcomponents_count
 
     total_evaluated = (
         db.query(func.count(Package.id))
@@ -363,6 +376,7 @@ def contribute(request: Request, db: Session = Depends(get_db)):
     queue_stats = {
         "needs_eval": needs_eval_count,
         "needs_reeval": needs_reeval_count,
+        "needs_subcomponents": missing_subcomponents_count,
         "total_evaluated": total_evaluated,
     }
 
@@ -376,7 +390,27 @@ def contribute(request: Request, db: Session = Depends(get_db)):
         .all()
     )
 
-    # If fewer than 20 unevaluated, add stale ones
+    # If fewer than 20 unevaluated, add packages missing security/reliability sub-components
+    if len(queue_packages) < 20:
+        remaining = 20 - len(queue_packages)
+        incomplete_packages = (
+            db.query(Package)
+            .options(joinedload(Package.category))
+            .join(PackageAgentReadiness, Package.id == PackageAgentReadiness.package_id, isouter=True)
+            .filter(
+                Package.af_score.isnot(None),
+                or_(
+                    PackageAgentReadiness.tls_enforcement.is_(None),
+                    PackageAgentReadiness.package_id.is_(None),
+                ),
+            )
+            .order_by(Package.priority.asc(), Package.created_at.desc())
+            .limit(remaining)
+            .all()
+        )
+        queue_packages.extend(incomplete_packages)
+
+    # If still fewer than 20, add stale ones
     if len(queue_packages) < 20:
         remaining = 20 - len(queue_packages)
         stale_packages = (
