@@ -1,0 +1,105 @@
+{
+  "id": "meltano-api",
+  "name": "Meltano",
+  "version_evaluated": "3.4",
+  "homepage": "https://meltano.com/",
+  "repo_url": "https://github.com/meltano/meltano",
+  "category": "data-engineering",
+  "subcategories": ["elt-pipelines", "data-integration", "open-source"],
+  "tags": ["python", "elt", "singer", "tap", "target", "cli", "open-source", "incremental"],
+  "what_it_does": "Open-source Singer-based ELT CLI that orchestrates taps (extractors), targets (loaders), and mappers using a declarative meltano.yml config with built-in state management for incremental loads.",
+  "use_cases": [
+    "Extract data from SaaS APIs (Stripe, Salesforce, GitHub) using Singer taps and load into a warehouse (Snowflake, BigQuery, Postgres) with a single `meltano run tap-X target-Y` command",
+    "Manage incremental extraction state automatically — Meltano persists Singer bookmarks between runs so subsequent extractions only fetch new or updated records",
+    "Integrate dbt transformations into the same pipeline: run `meltano run tap-stripe target-postgres dbt-postgres:run` to extract, load, and transform in one orchestrated sequence",
+    "Manage plugin versions and configs as code in meltano.yml, enabling GitOps workflows where pipeline definitions are reviewed, versioned, and deployed like application code",
+    "Test and validate new Singer connectors locally before deploying to production by running `meltano run --dry-run` to verify configuration without touching the destination"
+  ],
+  "not_for": [
+    "Real-time or streaming ingestion — Meltano is batch-oriented; Singer taps poll APIs on a schedule, not event-driven",
+    "Complex in-flight transformations during extraction — the EL step is intentionally dumb; transformation belongs in the T layer (dbt) after loading",
+    "Teams that need a managed SaaS solution with a UI — Meltano is CLI-first and self-hosted; use Airbyte Cloud or Fivetran if you need a managed connector platform with web UI"
+  ],
+  "best_when": "You want code-first, GitOps-managed ELT pipelines with Singer's broad connector ecosystem, incremental state management, and the flexibility to extend with custom taps or dbt transformations.",
+  "avoid_when": "Your team lacks Python/CLI comfort, you need a managed SaaS platform, or your sources require streaming semantics — Meltano's batch model and self-hosted ops overhead are significant.",
+  "alternatives": ["azure-data-factory-api", "airbyte", "fivetran"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No Meltano-level auth. Individual tap/target plugins handle their own auth (API keys, OAuth tokens, service account credentials) configured in meltano.yml or via environment variables."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Fully open source and self-hosted with no restrictions",
+    "paid_tiers": "Meltano Cloud (managed) offered commercial tiers; check meltano.com for current availability",
+    "requires_credit_card": false,
+    "notes": "Core Meltano is MIT-licensed. Connector plugins (Singer taps/targets) are separately licensed, most are open source. Hosting and infrastructure costs are borne by the operator."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "None (CLI tool); rate limits are imposed by upstream tap source APIs",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self_hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 78,
+    "error_message_quality": 72,
+    "error_message_notes": "Meltano surfaces plugin errors through Singer protocol stderr — error messages come from the tap/target plugin itself and vary widely in quality depending on the connector author.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "EL runs are idempotent for full syncs if the target supports upserts. Incremental runs with state bookmarks are not safely replayable without resetting state — agents must explicitly reset state for re-extraction.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Plugin state is stored per environment and job name — agents running the same pipeline in different environments (dev/prod) have separate state, so a failed prod run cannot be resumed from dev state",
+      "meltano.yml is the source of truth for all plugin configs; environment variables override settings at runtime but are not persisted — agents must write config changes to meltano.yml for them to survive restarts",
+      "Singer catalog schema is negotiated between tap and target at runtime; schema mismatches (tap emits a field the target doesn't accept) cause silent data drops or hard failures depending on the target's error handling",
+      "The EL distinction is strict — mappers must be explicitly added to the pipeline if in-flight transformations are needed; placing transformation logic in a tap or target is an antipattern that breaks reusability",
+      "Plugin installation via `meltano add` resolves versions from the Meltano Hub at install time; pinning plugin versions in meltano.yml is critical for reproducible pipelines, as unpinned plugins can receive breaking updates silently"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 78,
+    "error_handling_score": 72,
+    "auth_complexity_score": 95,
+    "rate_limit_clarity_score": 95
+  },
+  "security_score_components": {
+    "tls_enforcement": 0,
+    "auth_strength": 0,
+    "scope_granularity": 0,
+    "dependency_hygiene": 72,
+    "secret_handling": 75,
+    "security_notes": "Meltano itself has no network-facing surface. Secrets should be passed via environment variables rather than hardcoded in meltano.yml. Plugin supply chain risk exists as taps/targets are third-party packages — dependency auditing is recommended."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 0,
+    "version_stability": 75,
+    "breaking_changes_history": 70,
+    "error_recovery": 68
+  }
+}

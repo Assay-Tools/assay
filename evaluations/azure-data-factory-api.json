@@ -1,0 +1,105 @@
+{
+  "id": "azure-data-factory-api",
+  "name": "Azure Data Factory",
+  "version_evaluated": "current",
+  "homepage": "https://azure.microsoft.com/en-us/products/data-factory",
+  "repo_url": null,
+  "category": "cloud",
+  "subcategories": ["etl-orchestration", "data-integration", "pipeline-automation"],
+  "tags": ["azure", "etl", "elt", "orchestration", "pipelines", "cloud", "integration"],
+  "what_it_does": "Azure cloud ETL/ELT orchestration service that moves and transforms data across 90+ sources and sinks using pipelines, activities, datasets, and linked services — all manageable via REST API or SDK.",
+  "use_cases": [
+    "Orchestrate nightly data ingestion from on-premises SQL Server via Self-Hosted Integration Runtime into Azure Data Lake Storage Gen2, triggered on a schedule",
+    "Build parameterized pipelines that copy data from hundreds of source tables by iterating with ForEach activities over a metadata-driven table list",
+    "Trigger pipelines on new file arrival in a blob container using Storage Event triggers, enabling event-driven ELT without polling logic",
+    "Coordinate complex multi-stage workflows: Copy Activity loads raw data, then a Databricks Notebook Activity transforms it, then a Stored Procedure Activity updates a control table",
+    "Monitor pipeline run health via the ADF REST API (pipelineRuns/query, activityRuns/query) to build custom alerting dashboards outside the Azure portal"
+  ],
+  "not_for": [
+    "Sub-minute latency streaming — ADF pipelines have scheduling granularity of 1 minute minimum; use Azure Stream Analytics or Event Hubs for real-time ingestion",
+    "Complex in-pipeline data transformations without external compute — native Data Flow activities are expensive ($0.228/hour for Mapping Data Flows) and less flexible than Spark/SQL",
+    "Teams outside the Azure ecosystem — ADF's value proposition is deep Azure service integration; multi-cloud or AWS-native teams should evaluate alternatives"
+  ],
+  "best_when": "Your organization is Azure-native, data moves between Azure services and on-premises systems regularly, and you need a managed orchestration layer with built-in monitoring, lineage, and 90+ connectors.",
+  "avoid_when": "You need code-first pipeline definitions, complex branching logic, or heavy in-pipeline transformations — ADF's visual/JSON authoring becomes brittle at scale and lacks the expressiveness of Airflow or dbt.",
+  "alternatives": ["meltano-api", "aws-emr-api", "airflow"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "dotnet", "java", "javascript", "go"],
+    "openapi_spec_url": "https://raw.githubusercontent.com/Azure/azure-rest-api-specs/main/specification/datafactory/resource-manager/readme.md",
+    "webhooks": true
+  },
+  "auth": {
+    "methods": ["azure_active_directory", "managed_identity", "service_principal"],
+    "oauth": true,
+    "scopes": true,
+    "notes": "Service Principal with client credentials (client_id + client_secret) is standard for automation. Managed Identity is preferred for workloads running in Azure. OAuth2 token endpoint: https://login.microsoftonline.com/{tenant}/oauth2/token with resource=https://management.azure.com/."
+  },
+  "pricing": {
+    "model": "usage_based",
+    "free_tier_exists": true,
+    "free_tier_limits": "5 pipeline activity runs/month free; 1 cloud IR hour/month free per region",
+    "paid_tiers": "Orchestration: $0.001 per activity run. Data movement: $0.25/DIU-hour. Mapping Data Flows: $0.228/vCore-hour. Self-Hosted IR: free software, pay for your VMs.",
+    "requires_credit_card": true,
+    "notes": "Costs scale with pipeline complexity and data volumes. ForEach loops that iterate over hundreds of items each trigger individual activity run charges. Debug runs are billed at the same rate as production runs."
+  },
+  "performance": {
+    "latency_p50_ms": 5000,
+    "latency_p99_ms": 30000,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "REST API: 10,000 requests per 10 minutes per subscription. Concurrent pipeline runs: 10,000 per factory. Activity runs per pipeline: 40.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": true,
+    "domain_verification": false,
+    "data_residency": ["azure_region_selectable"],
+    "compliance": ["soc2", "hipaa", "pci", "iso27001", "fedramp"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 84,
+    "error_message_quality": 80,
+    "error_message_notes": "ADF activity errors include errorCode, message, and failureType fields; most are human-readable, though Mapping Data Flow errors sometimes surface internal Spark exceptions requiring additional parsing.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Pipeline runs triggered via CreateRun are not idempotent — each call creates a new run. Agents should check for existing runs in InProgress state before triggering to avoid duplicate executions.",
+    "pagination_style": "token",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Pipelines and activities use a hierarchical resource model (factory > pipeline > activity) — agents must pass all three levels of identifiers correctly; missing any level returns a generic 404",
+      "Trigger types have different invocation semantics: Schedule and Tumbling Window triggers cannot be manually run; agents must use CreateRun on the pipeline directly for on-demand execution",
+      "Debug runs and production runs use different Integration Runtimes by default — a pipeline that succeeds in debug may fail in production if the IR selection is misconfigured in linked services",
+      "Pipeline parameters must be declared at the pipeline level before they can be referenced in activities; passing undeclared parameters silently ignores them rather than raising an error",
+      "The REST API uses ARM (Azure Resource Manager) resource paths — agents must include the full path (/subscriptions/{sub}/resourceGroups/{rg}/providers/Microsoft.DataFactory/factories/{adf}/...) for every call, not just the factory name"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 84,
+    "error_handling_score": 80,
+    "auth_complexity_score": 65,
+    "rate_limit_clarity_score": 82
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 90,
+    "scope_granularity": 85,
+    "dependency_hygiene": 85,
+    "secret_handling": 90,
+    "security_notes": "All ADF API calls are over TLS. Secrets should be stored in Azure Key Vault and referenced via Linked Services — ADF never stores secret values directly. Managed Identity eliminates credential management for Azure-to-Azure connections. VNET integration available for Self-Hosted IR."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 90,
+    "version_stability": 85,
+    "breaking_changes_history": 82,
+    "error_recovery": 82
+  }
+}

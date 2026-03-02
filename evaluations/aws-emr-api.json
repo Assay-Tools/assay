@@ -1,0 +1,105 @@
+{
+  "id": "aws-emr-api",
+  "name": "AWS EMR",
+  "version_evaluated": "current",
+  "homepage": "https://aws.amazon.com/emr/",
+  "repo_url": null,
+  "category": "cloud",
+  "subcategories": ["managed-hadoop", "distributed-computing", "batch-processing"],
+  "tags": ["aws", "spark", "hadoop", "hive", "presto", "managed", "cluster", "big-data"],
+  "what_it_does": "Managed cloud big data platform that runs Apache Spark, Hadoop, Hive, Presto, and other frameworks on auto-provisioned EC2 clusters with S3 as the default storage layer.",
+  "use_cases": [
+    "Run large-scale PySpark batch jobs without managing Hadoop cluster infrastructure — submit steps to an EMR cluster and AWS handles node provisioning and framework setup",
+    "Process petabyte-scale ETL pipelines on a schedule using EMR Steps, where each step is a Spark or Hive script that reads from S3 and writes results back to S3",
+    "Reduce compute costs for batch workloads by using Spot Instances for EMR task nodes, accepting interruption risk in exchange for 60-90% cost reduction",
+    "Run interactive Spark notebooks via EMR Studio connected to a long-running cluster, enabling data scientists to query live data without cluster management",
+    "Integrate with AWS Glue Data Catalog so EMR Spark jobs can discover table schemas defined by Glue crawlers, enabling shared metadata across Athena and EMR"
+  ],
+  "not_for": [
+    "Short-duration queries where Athena's serverless model is more cost-effective — EMR clusters charge for the full cluster lifetime including idle time",
+    "Teams unfamiliar with Hadoop ecosystem configuration — bootstrap actions, instance fleet selection, and Spark tuning require significant expertise",
+    "Workloads requiring sub-minute job startup — EMR cluster provisioning takes 5-15 minutes; use EMR Serverless or pre-warmed clusters for latency-sensitive batch jobs"
+  ],
+  "best_when": "You have long-running, resource-intensive Spark or Hadoop jobs that justify dedicated cluster capacity, and you need fine-grained control over instance types, Spark configuration, and cluster lifecycle.",
+  "avoid_when": "Your jobs are short, infrequent, or unpredictable in size, as cluster startup time and per-minute billing make EMR more expensive than serverless alternatives like Athena or EMR Serverless.",
+  "alternatives": ["aws-athena-api", "spark-api", "azure-data-factory-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "java", "go", "javascript", "ruby", "dotnet"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["aws_iam", "aws_sts_assume_role"],
+    "oauth": false,
+    "scopes": true,
+    "notes": "IAM roles required: an EMR service role (for AWS API calls) and an EC2 instance profile (for cluster nodes to access S3, Glue, etc.). Fine-grained S3 permissions applied via bucket policies or Lake Formation."
+  },
+  "pricing": {
+    "model": "usage_based",
+    "free_tier_exists": false,
+    "free_tier_limits": "No free tier; charges per EC2 instance-hour plus EMR surcharge per instance-hour",
+    "paid_tiers": "EMR surcharge: $0.048-$0.27/hr per core/task node depending on instance type, on top of EC2 costs. EMR Serverless: $0.052324/vCPU-hour + $0.0057785/GB-hour",
+    "requires_credit_card": true,
+    "notes": "Spot Instances for task nodes can reduce costs 60-90%. Auto-termination policies prevent runaway costs on idle clusters. Reserved Instances or Savings Plans apply to master/core nodes."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "AWS API rate limits apply (e.g., RunJobFlow: 10 requests/second). Cluster count limits vary by region (default ~20 running clusters per account).",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": true,
+    "domain_verification": false,
+    "data_residency": ["aws_region_selectable"],
+    "compliance": ["soc2", "hipaa", "pci", "fedramp"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 82,
+    "error_message_quality": 75,
+    "error_message_notes": "EMR step failures return a status but require fetching logs from S3 or the cluster to get the actual Spark/Hadoop error — agents need S3 log access and log parsing logic to diagnose failures.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Cluster creation (RunJobFlow) is not idempotent — repeated calls create duplicate clusters. Step submission is idempotent at the API level but Spark job output must handle overwrites explicitly.",
+    "pagination_style": "token",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Cluster provisioning takes 5-15 minutes — agents must poll DescribeCluster for WAITING state before submitting steps, and implement exponential backoff on the polling loop",
+      "Spot Instance interruptions can terminate task nodes mid-job without warning; agents should enable auto-termination protection on core nodes and design jobs to checkpoint to S3",
+      "Step logs are written to S3 asynchronously — the step may show FAILED status before logs are available; agents must retry S3 log fetches with delay before concluding no logs exist",
+      "Instance type selection dramatically affects cost and performance: m5.xlarge vs r5.4xlarge can differ 8x in hourly cost — agents generating clusters must validate instance type choices against workload memory requirements",
+      "Terminated clusters cannot be restarted — RunJobFlow creates a new cluster every time; agents managing recurring jobs should use long-running clusters with step queuing or EMR Serverless to avoid repeated cold starts"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 82,
+    "error_handling_score": 75,
+    "auth_complexity_score": 68,
+    "rate_limit_clarity_score": 80
+  },
+  "security_score_components": {
+    "tls_enforcement": 95,
+    "auth_strength": 88,
+    "scope_granularity": 82,
+    "dependency_hygiene": 80,
+    "secret_handling": 85,
+    "security_notes": "All AWS API calls are over TLS. Cluster nodes communicate over VPC — security group configuration is critical to prevent unauthorized access. Encryption at rest (EBS, S3 SSE) and in transit (TLS for HDFS) must be explicitly configured in the security configuration."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 82,
+    "breaking_changes_history": 80,
+    "error_recovery": 75
+  }
+}
