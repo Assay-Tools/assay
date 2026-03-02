@@ -1,28 +1,28 @@
 {
   "id": "powerbi-api",
-  "name": "Power BI REST API",
+  "name": "Microsoft Power BI REST API",
   "version_evaluated": "current",
-  "homepage": "https://powerbi.microsoft.com",
+  "homepage": "https://learn.microsoft.com/en-us/rest/api/power-bi/",
   "repo_url": null,
-  "category": "developer-tools",
-  "subcategories": ["business-intelligence", "data-visualization", "analytics", "microsoft", "azure"],
-  "tags": ["power-bi", "microsoft", "bi", "reporting", "dashboards", "azure", "analytics", "azure-ad"],
-  "what_it_does": "Microsoft Power BI REST API — programmatic access to Power BI service for managing reports, datasets, dashboards, and workspaces, enabling agents to automate dataset refreshes, embed analytics, and manage Power BI content in enterprise Microsoft environments.",
+  "category": "business-intelligence",
+  "subcategories": ["dashboards", "data-visualization", "reporting", "enterprise-bi"],
+  "tags": ["power-bi", "microsoft", "bi", "dashboards", "azure", "enterprise", "reporting", "dax"],
+  "what_it_does": "Provides programmatic control of Microsoft Power BI workspaces, datasets, reports, dashboards, and dataflows for automating BI operations within the Microsoft 365 and Azure ecosystem.",
   "use_cases": [
-    "Agents triggering Power BI dataset refreshes after data pipeline completion to keep reports current",
-    "Embedded analytics — agents generating Power BI embed tokens for embedding interactive reports in enterprise applications",
-    "Workspace automation — agents creating and managing Power BI workspaces, datasets, and reports programmatically",
-    "Report distribution — agents exporting Power BI report pages as PDF/PNG for scheduled email distribution",
-    "Dataset management — agents pushing streaming data to Power BI streaming datasets for near-real-time dashboards"
+    "Trigger dataset refresh programmatically after an ETL pipeline completes to keep Power BI reports current",
+    "Embed Power BI reports into custom web applications using the Embed Token API for customer-facing analytics",
+    "Automate workspace and user provisioning when onboarding new business units or clients",
+    "Export report pages as PDFs or PowerPoint files for scheduled distribution to stakeholders",
+    "Monitor dataset refresh history and alert when a scheduled refresh fails or exceeds duration thresholds"
   ],
   "not_for": [
-    "Non-Microsoft environments — Power BI is deeply integrated with Azure AD; heavy friction without Microsoft 365 ecosystem",
-    "Open-source BI — Power BI requires Microsoft licensing; use Metabase or Apache Superset for open-source alternatives",
-    "Public-facing dashboards — Power BI Pro is required for external sharing; use Grafana for public metrics dashboards"
+    "Ad-hoc data queries — the REST API manages Power BI objects; use the XMLA endpoint or DAX query API separately for querying data inside datasets",
+    "Organizations outside Microsoft 365 — Power BI is deeply integrated with Azure AD and Microsoft licensing; non-Microsoft shops face significant setup overhead",
+    "Simple, low-cost BI needs — Power BI Pro ($10/user/mo minimum) and service principal setup make this heavy for small teams"
   ],
-  "best_when": "You're in a Microsoft 365 ecosystem and need to automate Power BI administration, dataset refreshes, or embed analytics in internal applications.",
-  "avoid_when": "You're not using Azure AD/Microsoft 365 — Power BI's auth and licensing are too heavily Microsoft-dependent to use effectively in non-Microsoft environments.",
-  "alternatives": ["tableau-api", "looker-api", "metabase-api", "grafana-api"],
+  "best_when": "An agent needs to orchestrate Power BI operations (refresh, embed, export, provision) in an Azure-native environment where Azure AD service principals are already in use.",
+  "avoid_when": "The team is not using Microsoft 365 or Azure AD, as service principal setup and Azure app registration are mandatory prerequisites that create significant operational overhead.",
+  "alternatives": ["tableau-api", "looker-api", "metabase-api"],
   "interface": {
     "has_rest_api": true,
     "has_graphql": false,
@@ -30,76 +30,76 @@
     "has_mcp_server": false,
     "mcp_server_url": null,
     "has_sdk": true,
-    "sdk_languages": ["dotnet", "python", "javascript"],
-    "openapi_spec_url": "https://learn.microsoft.com/en-us/rest/api/power-bi/",
+    "sdk_languages": ["python", "dotnet", "node", "java"],
+    "openapi_spec_url": "https://raw.githubusercontent.com/microsoft/PowerBI-CSharp/master/sdk/PowerBI.Api/Source/PowerBI.json",
     "webhooks": false
   },
   "auth": {
-    "methods": ["oauth"],
+    "methods": ["oauth2", "service_account"],
     "oauth": true,
     "scopes": true,
-    "notes": "Azure Active Directory OAuth2 required. Service principal (app registration) for unattended agent access — recommended over user credentials. Scopes include Dataset.ReadWrite.All, Report.ReadWrite.All, Workspace.ReadWrite.All. Tenant ID required in auth URL. Admin APIs require Power BI Administrator role."
+    "notes": "Azure AD OAuth 2.0 required. For unattended automation, a Service Principal (Azure App Registration) must be registered, granted Power BI service admin consent, and added to Power BI workspaces. Access tokens expire after 1 hour and must be refreshed via client credentials flow. Scopes include Dataset.ReadWrite.All, Report.Read.All, Workspace.ReadWrite.All, etc."
   },
   "pricing": {
     "model": "subscription",
     "free_tier_exists": true,
-    "free_tier_limits": "Power BI Free: personal use only, no sharing or collaboration features",
-    "paid_tiers": "Power BI Pro: $10/user/month; Premium Per User: $20/user/month; Premium Per Capacity: from $4,995/month",
-    "requires_credit_card": false,
-    "notes": "Most API features require Power BI Pro license. Embedding requires Premium capacity or Premium Per User for external users. Often included in Microsoft 365 E5 and some E3 plans. API calls themselves are not separately charged."
+    "free_tier_limits": "Power BI Free supports personal use only; sharing and API access for embedding requires Power BI Pro ($10/user/mo) or Premium capacity.",
+    "paid_tiers": "Power BI Pro ($10/user/mo); Power BI Premium Per User ($20/user/mo); Premium Capacity ($4,995+/mo for dedicated capacity).",
+    "requires_credit_card": true,
+    "notes": "Embedded analytics (generating embed tokens for external users) requires Premium capacity or Premium Per User licensing. Service principal automation requires Pro or Premium."
   },
   "performance": {
-    "latency_p50_ms": 500,
-    "latency_p99_ms": 3000,
+    "latency_p50_ms": 400,
+    "latency_p99_ms": 4000,
     "uptime_sla_percent": 99.9,
-    "rate_limits": "Dataset refresh: 8 per day per dataset (Pro); Workspace: no hard limits documented; Admin API: 200 req/hour",
+    "rate_limits": "200 requests per hour per user token; 120 requests per minute per service principal. Dataset refresh API: 8 refreshes per day per dataset on shared capacity.",
     "data_source": "llm_estimated"
   },
   "requirements": {
     "requires_signup": true,
-    "requires_credit_card": false,
+    "requires_credit_card": true,
     "domain_verification": false,
-    "data_residency": ["US", "EU", "APAC"],
-    "compliance": ["SOC2", "GDPR", "ISO27001", "FedRAMP", "HIPAA"],
+    "data_residency": ["US", "EU", "APAC", "UK", "Canada", "Australia", "India"],
+    "compliance": ["SOC2", "ISO27001", "HIPAA", "FedRAMP", "GDPR"],
     "min_contract": "monthly"
   },
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
-    "documentation_accuracy": 85,
-    "error_message_quality": 80,
-    "error_message_notes": "Microsoft-standard REST API documentation. Error responses follow OData error format. PowerShell module available. Azure AD auth complexity is the primary agent friction. Good documentation but auth setup is involved.",
+    "documentation_accuracy": 82,
+    "error_message_quality": 78,
+    "error_message_notes": "JSON error responses follow Microsoft REST API guidelines with code and message fields. Azure AD auth errors (AADSTS codes) are well-documented separately. Rate limit errors include Retry-After headers.",
     "idempotency_support": "partial",
-    "idempotency_notes": "Dataset refresh triggers are idempotent in concept but limited to 8/day. Report/dataset creation is not idempotent — duplicate names cause errors. Workspace creation with same name fails if workspace exists.",
-    "pagination_style": "none",
+    "idempotency_notes": "GET operations are idempotent. POST refresh triggers are not — duplicate calls create duplicate refresh jobs. Agents should check refresh history before triggering.",
+    "pagination_style": "offset",
     "retry_guidance_documented": true,
     "known_agent_gotchas": [
-      "Azure AD app registration requires admin consent for org-wide service principal access — cannot self-authorize in most enterprise tenants",
-      "Dataset refresh limit (8/day for Pro) is a hard constraint — agents must track refresh count and implement scheduling logic",
-      "Service principal must be enabled in Power BI tenant settings by Power BI administrator before API access works",
-      "Power BI Premium capacity required for API-based embed tokens for external users — Pro-only limits external embedding",
-      "OAuth tokens expire — agents must implement Azure AD token refresh using client credentials flow for unattended operation"
+      "Service principal must be added to each Power BI workspace individually after Azure AD setup — forgetting this step causes 403 errors with no clear explanation",
+      "Dataset refresh limit (8/day on shared capacity) is silent — the API accepts the request but queues it; agents cannot distinguish a queued refresh from a started one",
+      "Access tokens expire after 60 minutes; agents running long operations must implement token refresh or use managed identity in Azure environments",
+      "Embed tokens for external embedding expire quickly (default 1 hour) and cannot be refreshed — agents generating embed tokens must regenerate them before expiry",
+      "The tenant admin must explicitly enable 'Service principals can use Fabric APIs' in the Power BI admin portal — this setting is off by default and causes mysterious 403 errors"
     ]
   },
   "af_score_components": {
     "mcp_score": 0,
-    "api_doc_score": 85,
+    "api_doc_score": 82,
     "error_handling_score": 78,
-    "auth_complexity_score": 65,
-    "rate_limit_clarity_score": 72
+    "auth_complexity_score": 55,
+    "rate_limit_clarity_score": 75
   },
   "security_score_components": {
     "tls_enforcement": 100,
-    "auth_strength": 90,
+    "auth_strength": 92,
     "scope_granularity": 85,
-    "dependency_hygiene": 88,
+    "dependency_hygiene": 85,
     "secret_handling": 85,
-    "security_notes": "Azure AD OAuth2 with granular scopes. FedRAMP authorized. HIPAA BAA available. ISO 27001 / SOC2. GDPR with EU data residency. Microsoft's enterprise security posture is excellent. Service principal auth with least-privilege scopes is recommended."
+    "security_notes": "Azure AD OAuth with fine-grained scopes is enterprise-grade. Service principal client secrets should be stored in Azure Key Vault. Managed Identity support eliminates secret management entirely in Azure-hosted agents."
   },
   "reliability_score_components": {
-    "uptime_documented": 92,
-    "version_stability": 88,
-    "breaking_changes_history": 85,
-    "error_recovery": 85
+    "uptime_documented": 88,
+    "version_stability": 82,
+    "breaking_changes_history": 80,
+    "error_recovery": 80
   }
 }
