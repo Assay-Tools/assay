@@ -1,0 +1,105 @@
+{
+  "id": "vonage-video-api",
+  "name": "Vonage Video API (formerly OpenTok / TokBox)",
+  "version_evaluated": "current",
+  "homepage": "https://www.vonage.com/communications-apis/video/",
+  "repo_url": "https://github.com/Vonage/vonage-node-sdk",
+  "category": "communications",
+  "subcategories": ["video-calling", "webrtc", "real-time-communications", "broadcasting"],
+  "tags": ["vonage", "opentok", "tokbox", "webrtc", "video", "real-time", "sdk", "broadcasting", "screen-sharing", "recording"],
+  "what_it_does": "Cloud-based WebRTC video API platform enabling embedding of live video, audio, and screen sharing into web and mobile applications. Sessions are created server-side via REST API; tokens are generated to allow clients to connect. Supports multi-party video sessions, archiving (recording to S3 or Vonage cloud), live broadcasting to HLS/RTMP, and signal messaging between session participants. Originally TokBox, acquired by Telefonaktiebolaget LM Ericsson then Vonage (Ericsson acquired Vonage in 2022, brand is now part of Ericsson).",
+  "use_cases": [
+    "Embedding multi-party video consultations in telehealth applications (up to 25 interactive participants)",
+    "Live interactive broadcasting to thousands of viewers via HLS or WebRTC",
+    "Recording video sessions to cloud storage for compliance or replay",
+    "Real-time screen sharing and collaboration features within an application",
+    "Automated moderation systems that join a session as a server-side subscriber to monitor or record"
+  ],
+  "not_for": [
+    "Standalone consumer video conferencing app (not a SaaS product, purely an API/SDK)",
+    "Large-scale one-to-many streaming where Mux or AWS MediaLive would be more appropriate",
+    "Simple audio calls without video where Vonage Voice or Twilio Voice is cheaper"
+  ],
+  "best_when": "You need fully customizable WebRTC video embedded into your own application UI, with server-side session control, archiving, and broadcasting — and you are already in the Vonage/Ericsson ecosystem.",
+  "avoid_when": "You need a pre-built video conferencing experience, you want per-minute pricing without a seat commitment, or Twilio Programmable Video or Daily.co offer better pricing for your usage pattern.",
+  "alternatives": ["twilio-video", "daily-co", "livekit", "agora", "100ms", "whereby-embedded"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["JavaScript", "TypeScript", "Python", "Java", "PHP", "Ruby", ".NET", "iOS (Swift/ObjC)", "Android (Kotlin/Java)"],
+    "openapi_spec_url": null,
+    "webhooks": true
+  },
+  "auth": {
+    "methods": ["jwt", "api-key-secret"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Server API calls use HTTP Basic Auth with API Key and Secret. Client SDK tokens (for end users) are signed JWTs generated server-side using the API Secret — the secret must never be exposed to clients. Token role (subscriber, publisher, moderator) and expiry are encoded in the JWT payload."
+  },
+  "pricing": {
+    "model": "pay-as-you-go",
+    "free_tier_exists": true,
+    "free_tier_limits": "Free developer account with limited minutes; exact limits vary by region and account type",
+    "paid_tiers": "Roughly $0.00395/minute per connected client for video. Archiving: ~$0.025/minute. Broadcasting: additional per-minute charges. Volume discounts available.",
+    "requires_credit_card": true,
+    "notes": "Pricing is per participant-minute (each client connected to a session counts separately). A 10-minute session with 3 participants = 30 participant-minutes. Archiving costs stack on top of session costs."
+  },
+  "performance": {
+    "latency_p50_ms": 150,
+    "latency_p99_ms": 500,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "REST API: session creation is not heavily rate-limited in practice. Token generation is done client-side (JWT signing) with no API call required. Session participant limits: 25 for interactive video; thousands for broadcasting.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": true,
+    "domain_verification": false,
+    "data_residency": ["US", "EU", "Asia-Pacific"],
+    "compliance": ["SOC2", "HIPAA-eligible", "GDPR"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 78,
+    "error_message_quality": 72,
+    "error_message_notes": "REST API errors return JSON with code and message fields but documentation of specific error codes is sparse. Client-side SDK errors are thrown as typed exceptions but error messages can be terse. Webhook callbacks for session events are documented but event delivery is not guaranteed.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Session creation returns the same session ID if you pass the same sessionId string (though the API does not deduplicate by content). Token generation is a pure client-side JWT operation — stateless and naturally idempotent. Archive start/stop operations are not idempotent.",
+    "pagination_style": "offset",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Tokens are short-lived JWTs signed client-side with the API Secret — if an agent generates a token and the client does not connect within the token's TTL (default 24 hours, minimum 30 seconds), the connection will be rejected with a 403 even if the session is valid",
+      "Sessions do NOT expire automatically — an agent that creates sessions for each interaction without cleaning them up will accumulate thousands of stale sessions; there is no automatic cleanup and the session list endpoint requires pagination to audit them",
+      "Archive (recording) start is asynchronous — the POST /archive call returns 'started' but the actual recording may take several seconds to begin; if the session ends immediately after calling start, the archive may be empty or fail with 'session ended before recording began'",
+      "The API Key and Secret are the same credentials used for all Vonage Communications APIs (Video, Voice, SMS); a leaked secret compromises all services, not just video — agents must store and rotate these credentials carefully",
+      "WebRTC capability negotiation happens in the browser/native SDK, not the server API; an agent orchestrating a video session cannot programmatically verify that a participant's browser supports the required codecs until the client SDK connection event fires"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 78,
+    "error_handling_score": 72,
+    "auth_complexity_score": 75,
+    "rate_limit_clarity_score": 70
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 80,
+    "scope_granularity": 65,
+    "dependency_hygiene": 78,
+    "secret_handling": 75,
+    "security_notes": "API Secret must be kept server-side and used to sign client tokens — never expose to browser. Media streams encrypted in transit (DTLS-SRTP for WebRTC). No per-resource scope granularity — API key grants access to all sessions. Archive storage in Vonage cloud is encrypted at rest."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 82,
+    "version_stability": 75,
+    "breaking_changes_history": 72,
+    "error_recovery": 72
+  }
+}

@@ -1,0 +1,105 @@
+{
+  "id": "cloudflare-kv-api",
+  "name": "Cloudflare Workers KV API",
+  "version_evaluated": "current",
+  "homepage": "https://developers.cloudflare.com/kv/",
+  "repo_url": "https://github.com/cloudflare/workers-sdk",
+  "category": "data-storage",
+  "subcategories": ["key-value-store", "edge-storage", "globally-distributed", "cache"],
+  "tags": ["cloudflare", "kv", "key-value", "edge", "globally-distributed", "eventually-consistent", "workers", "low-latency"],
+  "what_it_does": "Globally distributed, eventually consistent key-value storage layer built on Cloudflare's edge network. KV values are written to a central store and replicated to all edge locations within ~60 seconds. Values can be up to 25 MB. Keys support TTL-based expiration. Accessible from Workers code via bindings (runtime API) or from outside via REST API. Optimized for high-read, low-write workloads like configuration, feature flags, and user session lookups.",
+  "use_cases": [
+    "Storing feature flags and configuration that Workers read on every request with zero latency",
+    "Caching API responses at the edge with automatic TTL expiration",
+    "User session tokens or auth state accessible globally without origin round-trips",
+    "A/B test variant assignments keyed by user ID or cookie value",
+    "Static asset metadata or content at the edge as a simple CDN origin layer"
+  ],
+  "not_for": [
+    "Strongly consistent coordination or locking — use Durable Objects instead",
+    "High-write workloads — KV writes are expensive ($5/million) and have eventual consistency",
+    "Relational data or anything requiring secondary indexes or queries"
+  ],
+  "best_when": "Your workload is read-heavy (many reads per write), data can tolerate ~60 seconds of staleness, and you need globally low-latency reads from inside Cloudflare Workers.",
+  "avoid_when": "You need read-after-write consistency, high write throughput, or any query capability beyond key lookup. Durable Objects are better for coordination; R2 is better for large objects.",
+  "alternatives": ["cloudflare-durable-objects", "aws-dynamodb-dax", "redis-cloud", "upstash-redis", "vercel-edge-config"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["JavaScript", "TypeScript", "Python", "Go"],
+    "openapi_spec_url": "https://raw.githubusercontent.com/cloudflare/api-schemas/main/openapi.yaml",
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["api-token", "api-key"],
+    "oauth": false,
+    "scopes": true,
+    "notes": "API tokens with Workers KV Storage:Read and Workers KV Storage:Edit permissions. Account ID required in all REST API calls. From inside a Worker, KV is accessed via the binding object (no auth tokens needed at runtime — permissions are set at deployment time)."
+  },
+  "pricing": {
+    "model": "pay-as-you-go",
+    "free_tier_exists": true,
+    "free_tier_limits": "100,000 reads/day, 1,000 writes/day, 1,000 deletes/day, 1,000 list operations/day, 1 GB storage free",
+    "paid_tiers": "Workers Paid plan ($5/month): 10M reads/month free, then $0.50/million. Writes: $5/million. Storage: $0.50/GB-month beyond included.",
+    "requires_credit_card": false,
+    "notes": "Write costs are 10x read costs — design your data model to minimize writes. Bulk key listing (list operations) counts toward the list quota, not reads. Large-value storage costs accumulate if you store many multi-MB values."
+  },
+  "performance": {
+    "latency_p50_ms": 2,
+    "latency_p99_ms": 20,
+    "uptime_sla_percent": 99.99,
+    "rate_limits": "REST API: 1,200 requests per 5 minutes per API token. Runtime KV bindings have no documented per-invocation rate limit but are subject to account-level quotas. Write propagation to all edges: up to 60 seconds.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["Global edge", "No per-region data residency control for KV (unlike Durable Objects)"],
+    "compliance": ["SOC2", "ISO-27001", "PCI-DSS", "GDPR"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 88,
+    "error_message_quality": 82,
+    "error_message_notes": "KV REST API errors follow the standard Cloudflare errors array format with code and message. Missing key returns a 404 with a clear error. Quota exceeded returns a 429 with a clear message. Runtime KV binding errors in Workers surface as exceptions with descriptive messages.",
+    "idempotency_support": "full",
+    "idempotency_notes": "KV put operations are fully idempotent — writing the same key-value pair multiple times produces the same result. Delete of a non-existent key is not an error (returns null). Conditional puts using metadata or ETags are not natively supported.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "KV is eventually consistent — writes propagate to edge nodes within ~60 seconds but there is NO guarantee of read-after-write consistency even on the same edge node; an agent that writes a value and immediately reads it back may get the old value",
+      "The KV list() operation returns keys in lexicographic order and uses cursor-based pagination; listing all keys in a large namespace requires multiple API calls — agents that assume a single list() returns everything will miss keys silently",
+      "KV values can be up to 25 MB but values larger than ~512 KB begin to impact edge replication speed and read latency noticeably; agents storing large JSON blobs should consider chunking or using R2 instead",
+      "Namespaces must be created before use and require the namespace ID (not the name) in all API calls; the namespace ID is assigned by Cloudflare at creation and is not the same as the binding name in your Worker",
+      "TTL (expiration) is set at write time and cannot be updated independently without rewriting the value; agents that want to 'refresh' a TTL must re-put the full value with a new expiration, which counts as a write operation for billing"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 88,
+    "error_handling_score": 82,
+    "auth_complexity_score": 85,
+    "rate_limit_clarity_score": 82
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 88,
+    "scope_granularity": 88,
+    "dependency_hygiene": 85,
+    "secret_handling": 85,
+    "security_notes": "Data encrypted at rest. TLS enforced on REST API. API token scopes are granular (read vs write). No per-key ACLs — access is all-or-nothing per namespace. Namespace IDs are not guessable but are not secrets. Data is globally distributed with no regional data residency option."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 92,
+    "version_stability": 88,
+    "breaking_changes_history": 85,
+    "error_recovery": 82
+  }
+}

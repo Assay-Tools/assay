@@ -1,0 +1,109 @@
+{
+  "id": "stripe-billing-api",
+  "name": "Stripe Billing API",
+  "version_evaluated": "current",
+  "homepage": "https://stripe.com/docs/billing",
+  "repo_url": "https://github.com/stripe/stripe-python",
+  "category": "payments",
+  "subcategories": ["billing", "subscriptions", "invoicing", "pricing", "saas"],
+  "tags": ["stripe", "billing", "subscriptions", "invoicing", "pricing", "metered-billing", "recurring-payments", "rest-api", "sdk", "webhooks", "saas"],
+  "what_it_does": "Stripe Billing is the subscription and invoicing layer of the Stripe platform, providing APIs for managing Products, Prices, Subscriptions, Invoices, and Customer billing portals. Used by SaaS companies to automate recurring revenue, proration, metered usage billing, and dunning workflows.",
+  "use_cases": [
+    "Creating and managing subscription plans with tiered or usage-based pricing for SaaS products",
+    "Automating invoice generation, dunning retries, and payment failure handling from agent workflows",
+    "Implementing agent-driven plan upgrades, downgrades, and proration calculations",
+    "Querying subscription and invoice data for revenue analytics and churn detection agents",
+    "Building self-serve billing portals via the Stripe Customer Portal API for end-users"
+  ],
+  "not_for": [
+    "One-time payment flows without recurring billing (use core Stripe Payments API)",
+    "Platforms in countries where Stripe Billing is not available",
+    "Micropayment platforms where Stripe's per-transaction fees are prohibitive",
+    "Businesses needing complex revenue recognition accounting without additional tools"
+  ],
+  "best_when": "An agent needs to manage recurring subscription lifecycles — plan creation, upgrades, invoice automation, or usage-based billing — for a SaaS or marketplace product on Stripe.",
+  "avoid_when": "Your billing model is purely one-time purchases, or you need a full-featured CPQ system beyond what Stripe Billing provides.",
+  "alternatives": ["stripe-api", "paddle-api", "chargebee-api", "recurly-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": true,
+    "mcp_server_url": "https://github.com/stripe/agent-toolkit",
+    "has_sdk": true,
+    "sdk_languages": ["python", "node", "ruby", "java", "csharp", "go", "php"],
+    "openapi_spec_url": "https://raw.githubusercontent.com/stripe/openapi/master/openapi/spec3.json",
+    "webhooks": true
+  },
+  "auth": {
+    "methods": ["api_key"],
+    "oauth": true,
+    "scopes": true,
+    "notes": "Secret key (sk_live_* / sk_test_*) for server-side agent use. Restricted keys (rk_*) support fine-grained permissions — strongly recommended for agents. Separate test mode keys for development. Publishable key for client-side only — never use in agents. Restricted keys should be scoped to billing resources only (customers, subscriptions, invoices, prices)."
+  },
+  "pricing": {
+    "model": "pay-as-you-go",
+    "free_tier_exists": true,
+    "free_tier_limits": "Test mode is completely free with no limits",
+    "paid_tiers": "0.5% + standard payment processing fees for Billing (subscription management); metered billing has no additional fee",
+    "requires_credit_card": false,
+    "notes": "Stripe Billing adds a 0.5% fee on top of standard payment processing (2.9% + $0.30 per charge). No monthly fee. Test mode is fully featured and free. Smart Retries and Revenue Recovery features included at no extra cost."
+  },
+  "performance": {
+    "latency_p50_ms": 160,
+    "latency_p99_ms": 600,
+    "uptime_sla_percent": 99.99,
+    "rate_limits": "100 reads/second, 100 writes/second per account; Billing operations follow same global rate limits",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["US", "EU", "APAC"],
+    "compliance": ["PCI-DSS", "SOC1", "SOC2", "GDPR", "ISO27001"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": 85,
+    "mcp_security_score": 92,
+    "documentation_accuracy": 97,
+    "error_message_quality": 95,
+    "error_message_notes": "Stripe has class-leading error messages. Billing errors include type (e.g., invalid_request_error), code (e.g., resource_missing), param, message, and doc_url. Invoice and subscription errors are specific — missing payment method, invalid proration date, etc. Error codes are stable and well-documented.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Idempotency keys supported on all mutating operations via Idempotency-Key header. Critical for subscription creation and invoice finalization. Keys are valid for 24 hours — agents retrying after 24h must use a new key.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Subscription updates with proration create prorated invoice items immediately — agents should calculate proration_date carefully to avoid unexpected charges",
+      "Invoice finalization is a two-step process (draft → finalized → paid) — agents must understand the invoice lifecycle before attempting payment",
+      "Subscription schedules (for phase-based billing) have a different data model than simple subscriptions — don't mix the two in agent logic",
+      "Metered usage billing requires reporting usage records via the UsageRecord API — missing a reporting interval results in zero-charge for that period with no warning",
+      "Test mode and live mode are completely separate — subscription and customer IDs do not cross modes; agents need separate configs per mode",
+      "Webhook events for billing (invoice.payment_failed, customer.subscription.deleted) are critical for dunning — agents should process these reliably with idempotent handlers",
+      "Price objects are immutable after creation — to change a price, create a new Price and update subscriptions; agents creating prices should validate before finalizing",
+      "Customer Portal sessions are time-limited (short-lived URLs) — agents generating portal links must provide them immediately to users"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 85,
+    "api_doc_score": 97,
+    "error_handling_score": 95,
+    "auth_complexity_score": 90,
+    "rate_limit_clarity_score": 85
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 95,
+    "scope_granularity": 95,
+    "dependency_hygiene": 88,
+    "secret_handling": 95,
+    "security_notes": "HTTPS enforced everywhere. Restricted API keys (rk_*) provide fine-grained billing-scoped permissions — agents should use restricted keys scoped only to Billing resources. Webhook signature verification enforced via Stripe-Signature header. PCI-DSS Level 1 certified. No cardholder data ever touches agent code — Stripe handles all sensitive data. Test vs live mode separation prevents accidental charges."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 98,
+    "version_stability": 95,
+    "breaking_changes_history": 92,
+    "error_recovery": 95
+  }
+}
