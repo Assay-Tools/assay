@@ -2,28 +2,27 @@
   "id": "netlify-api",
   "name": "Netlify API",
   "version_evaluated": "current",
-  "homepage": "https://docs.netlify.com/api/get-started/",
+  "homepage": "https://netlify.com",
   "repo_url": null,
-  "category": "developer-tools",
-  "subcategories": ["deployment", "hosting", "serverless", "cdn"],
-  "tags": ["netlify", "deployment", "hosting", "serverless", "cdn", "rest-api", "frontend", "jamstack"],
-  "what_it_does": "Netlify's REST API for managing site deployments, builds, functions, forms, identity, and DNS configuration on the Netlify hosting platform.",
+  "category": "infrastructure",
+  "subcategories": ["hosting", "serverless", "cdn", "edge-functions"],
+  "tags": ["netlify", "jamstack", "edge-functions", "serverless", "cdn", "static-hosting"],
+  "what_it_does": "JAMstack hosting and serverless platform with git-based deployments, edge functions, form handling, and built-in CDN for frontend and full-stack apps.",
   "use_cases": [
-    "Triggering site builds and deployments programmatically",
-    "Managing Netlify Functions and environment variables",
-    "Creating and managing site configurations via agents",
-    "Monitoring build status and deployment health",
-    "Managing DNS records and custom domains"
+    "Deploying static sites and SPAs with automatic git-triggered builds and CDN distribution",
+    "Running edge functions at global CDN nodes for request-time personalization",
+    "Triggering and monitoring site deployments via API in CI/CD pipelines",
+    "Managing environment variables and build hooks programmatically",
+    "Handling form submissions and identity management without backend code"
   ],
   "not_for": [
-    "Applications requiring persistent servers or stateful backends",
-    "Teams deploying non-static or non-serverless workloads at scale",
-    "High-throughput API backends (use dedicated compute)",
-    "Teams requiring on-premise or self-hosted deployment"
+    "Long-running backend services or stateful applications requiring persistent compute",
+    "Applications needing more than 10 seconds of serverless function execution",
+    "Heavy database-centric backends (use Railway, Render, or Fly.io instead)"
   ],
-  "best_when": "An agent needs to manage Netlify-hosted sites including deployments, build configuration, and environment variables.",
-  "avoid_when": "You need persistent server processes or are not using Netlify for hosting.",
-  "alternatives": ["vercel-api", "flyio-api", "digitalocean-api"],
+  "best_when": "Building frontend-focused apps, marketing sites, or hybrid apps where most logic is at the edge or in external APIs.",
+  "avoid_when": "You need persistent server processes, long-running jobs, or complex backend orchestration.",
+  "alternatives": ["vercel-api", "cloudflare-workers-api", "railway-api", "render-api"],
   "interface": {
     "has_rest_api": true,
     "has_graphql": false,
@@ -31,29 +30,29 @@
     "has_mcp_server": false,
     "mcp_server_url": null,
     "has_sdk": true,
-    "sdk_languages": ["javascript"],
-    "openapi_spec_url": "https://open-api.netlify.com/",
+    "sdk_languages": ["node", "javascript"],
+    "openapi_spec_url": "https://open-api.netlify.com",
     "webhooks": true
   },
   "auth": {
     "methods": ["api_key", "oauth2"],
     "oauth": true,
-    "scopes": false,
-    "notes": "Personal access tokens are the simplest auth method for agents. OAuth2 available for multi-user integrations. Tokens grant full account access — no fine-grained scopes."
+    "scopes": true,
+    "notes": "Personal access tokens for API automation; OAuth apps for integrations. Tokens scoped to sites or full account. Deploy keys for CI/CD."
   },
   "pricing": {
     "model": "freemium",
     "free_tier_exists": true,
-    "free_tier_limits": "Free: 100GB bandwidth/month, 300 build minutes/month",
-    "paid_tiers": "Pro $19/site/month, Business $99/site/month, Enterprise custom",
+    "free_tier_limits": "100GB bandwidth/month, 300 build minutes/month, 125K edge function invocations",
+    "paid_tiers": "Pro: $19/month/member; Business: $99/month/member; includes higher limits and SLA",
     "requires_credit_card": false,
-    "notes": "Free tier is generous for small projects. Build minute limits can be hit quickly by agents triggering frequent builds."
+    "notes": "Bandwidth and build minutes are primary cost drivers. Functions billed per invocation beyond free tier."
   },
   "performance": {
-    "latency_p50_ms": 150,
-    "latency_p99_ms": 600,
+    "latency_p50_ms": 30,
+    "latency_p99_ms": 200,
     "uptime_sla_percent": 99.99,
-    "rate_limits": "500 requests/minute",
+    "rate_limits": "API: 500 requests/minute; Edge functions: depends on plan",
     "data_source": "llm_estimated"
   },
   "requirements": {
@@ -66,24 +65,41 @@
   },
   "agent_readiness": {
     "mcp_server_quality": null,
-    "mcp_security_score": 72,
-    "documentation_accuracy": 78,
-    "error_message_quality": 75,
-    "error_message_notes": "Standard REST error responses. Build failure logs available through separate logs endpoint. Error messages are adequate but not as detailed as Vercel.",
-    "idempotency_support": "none",
-    "idempotency_notes": "No idempotency keys. Repeated deploy triggers create multiple build jobs.",
-    "pagination_style": "page",
-    "retry_guidance_documented": false,
+    "mcp_security_score": null,
+    "documentation_accuracy": 83,
+    "error_message_quality": 82,
+    "error_message_notes": "REST API returns standard HTTP status codes with JSON error bodies",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Deploy triggers are idempotent by git commit SHA; API mutations are not",
+    "pagination_style": "offset",
+    "retry_guidance_documented": true,
     "known_agent_gotchas": [
-      "Personal access tokens have full account access — no scope limitation is a security concern",
-      "Build minute limits on free tier can be exhausted by agents triggering frequent builds",
-      "OpenAPI spec available but may have gaps vs actual API",
-      "Deploy previews and production deploys have different URL patterns requiring careful handling",
-      "Environment variable updates require a new deploy to take effect"
-    ],
-    "error_message_score": 75,
-    "auth_complexity_score": 80,
-    "rate_limit_score": 80,
-    "security_score": 70
+      "Deploy status polling required — deploy API returns deploy ID, must poll /deploys/{id} for ready state",
+      "Build hooks are one-time URLs; triggering same hook multiple times queues multiple builds",
+      "Edge functions run Deno runtime, not Node.js — npm packages must be imported via esm.sh or similar",
+      "Environment variables set via API are not available until next deploy; no live reload",
+      "Site ID vs site name: API uses site_id (UUID); human-readable name used only in UI"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 83,
+    "error_handling_score": 82,
+    "auth_complexity_score": 85,
+    "rate_limit_clarity_score": 82
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 82,
+    "scope_granularity": 78,
+    "dependency_hygiene": 85,
+    "secret_handling": 85,
+    "security_notes": "Environment variables encrypted at rest; secrets never exposed in build logs. OAuth scopes available for fine-grained access."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 90,
+    "version_stability": 88,
+    "breaking_changes_history": 85,
+    "error_recovery": 85
   }
 }
