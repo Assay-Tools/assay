@@ -1,0 +1,105 @@
+{
+  "id": "argo-workflows-api",
+  "name": "Argo Workflows",
+  "version_evaluated": "3.x",
+  "homepage": "https://argoproj.github.io/workflows/",
+  "repo_url": "https://github.com/argoproj/argo-workflows",
+  "category": "infrastructure",
+  "subcategories": ["workflow-orchestration", "kubernetes", "ci-cd", "ml-pipelines"],
+  "tags": ["kubernetes", "dag", "workflow", "cncf", "containers", "ml-ops", "data-pipelines"],
+  "what_it_does": "Kubernetes-native workflow engine that executes containerized DAG and Steps-based workflows with artifact passing between steps, retry strategies, workflow templates for reuse, and a REST API for programmatic submission and monitoring.",
+  "use_cases": [
+    "Submit a multi-step ML training pipeline as a DAG Workflow via REST API with artifact passing between data prep, training, and evaluation steps",
+    "Create a WorkflowTemplate for a reusable ETL pattern and invoke it programmatically with different parameters via the Argo Workflows REST API",
+    "Poll workflow execution status and retrieve step-level logs via the REST API to track long-running batch jobs from an external orchestration system",
+    "Configure retry strategies (retryStrategy.limit, backoff) on individual DAG nodes to handle flaky steps without rerunning the entire workflow",
+    "Use RBAC-scoped ServiceAccount tokens to submit workflows to specific Kubernetes namespaces with least-privilege access from a CI/CD pipeline"
+  ],
+  "not_for": [
+    "Simple sequential CI/CD pipelines where GitHub Actions or GitLab CI would be simpler and require no Kubernetes cluster",
+    "Teams without Kubernetes infrastructure — Argo Workflows requires a running K8s cluster and cannot run standalone",
+    "Event streaming or real-time data processing workloads better suited to Kafka or Flink"
+  ],
+  "best_when": "Orchestrating containerized batch workflows, ML pipelines, or data processing DAGs on an existing Kubernetes cluster where native K8s RBAC and resource management are required.",
+  "avoid_when": "You don't have a Kubernetes cluster or your workflows are simple enough that a managed CI/CD service (GitHub Actions, Airflow) would reduce operational overhead.",
+  "alternatives": ["airflow-api", "prefect-api", "temporal-api", "kubeflow-pipelines-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": true,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "javascript", "go", "java"],
+    "openapi_spec_url": "https://raw.githubusercontent.com/argoproj/argo-workflows/master/api/openapi-spec/swagger.json",
+    "webhooks": true
+  },
+  "auth": {
+    "methods": ["kubernetes_serviceaccount", "bearer_token", "sso"],
+    "oauth": true,
+    "scopes": true,
+    "notes": "Authentication uses Kubernetes ServiceAccount tokens (projected or static). RBAC is enforced via Kubernetes ClusterRole/Role bindings. SSO via OIDC is supported for UI access. REST API requires Bearer token in Authorization header."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Unlimited, open source",
+    "paid_tiers": "None (CNCF graduated project)",
+    "requires_credit_card": false,
+    "notes": "CNCF graduated open source project. Codefresh offers a managed Argo Workflows service for teams that don't want to self-manage."
+  },
+  "performance": {
+    "latency_p50_ms": 200,
+    "latency_p99_ms": 1000,
+    "uptime_sla_percent": null,
+    "rate_limits": "Kubernetes API server rate limits apply; Argo server itself adds minimal overhead",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self_hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 80,
+    "error_message_quality": 75,
+    "error_message_notes": "Workflow step failures surface container exit codes and stderr logs, but finding the relevant error requires navigating pod logs through the API; top-level workflow status alone is insufficient for diagnosis.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Workflow submission creates a new Workflow object each time by default; use generateName for unique names. Re-submitting the same workflow name will fail with a conflict error.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Workflow names must be unique within a namespace; always use generateName instead of name for programmatic submission to avoid conflict errors on re-runs",
+      "Artifact passing between steps requires a configured artifact repository (S3, GCS, or Minio); workflows silently skip artifact storage if not configured, causing downstream steps to fail with 'artifact not found'",
+      "The Argo Server REST API requires the workflow-controller and argo-server pods to be running; submitting via kubectl apply is an alternative that bypasses the server but lacks status tracking",
+      "ServiceAccount token permissions must include 'pods/log' get access in addition to workflow permissions for log retrieval via the API to succeed",
+      "WorkflowTemplate entrypoint must be explicitly specified on submission if the template has multiple entrypoints; omitting it uses the first defined entrypoint which may not be the intended one"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 80,
+    "error_handling_score": 72,
+    "auth_complexity_score": 72,
+    "rate_limit_clarity_score": 80
+  },
+  "security_score_components": {
+    "tls_enforcement": 85,
+    "auth_strength": 85,
+    "scope_granularity": 82,
+    "dependency_hygiene": 80,
+    "secret_handling": 80,
+    "security_notes": "Native Kubernetes RBAC integration is a strong security positive. Secrets should be passed via Kubernetes Secrets volumes, not workflow parameters. Pod security policies or PSA should be configured to prevent privilege escalation in workflow containers."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 0,
+    "version_stability": 80,
+    "breaking_changes_history": 75,
+    "error_recovery": 80
+  }
+}
