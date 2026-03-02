@@ -1,0 +1,94 @@
+{
+  "id": "sqlite-api",
+  "name": "SQLite",
+  "version_evaluated": "current",
+  "homepage": "https://www.sqlite.org",
+  "repo_url": "https://github.com/sqlite/sqlite",
+  "category": "database",
+  "subcategories": ["relational-database", "sql", "embedded", "serverless"],
+  "tags": ["sqlite", "sql", "embedded", "file-based", "serverless", "python-stdlib", "better-sqlite3", "public-domain"],
+  "what_it_does": "A self-contained, serverless, zero-configuration SQL database engine embedded directly into applications. The database is a single cross-platform file. Available in Python's standard library (sqlite3 module), and via better-sqlite3 for Node.js. The most widely deployed database engine in the world, found in every browser, OS, and mobile device.",
+  "use_cases": [
+    "Local agent state persistence without requiring a database server",
+    "Prototyping and development before migrating to a server database",
+    "Single-user or single-agent applications with moderate data volumes",
+    "Read-heavy analytical queries on local datasets (especially with WAL mode)",
+    "Embedding structured storage in CLI tools, scripts, and agent frameworks"
+  ],
+  "not_for": [
+    "Multi-agent concurrent write workloads (write serialization bottleneck)",
+    "Distributed or replicated databases across multiple nodes",
+    "Very large datasets (>100GB practical limit)",
+    "Applications requiring user-level access control or remote connections"
+  ],
+  "best_when": "An agent runs locally or in a single process and needs reliable SQL storage without the overhead of a database server. Ideal for agentic tools, local state management, and development workflows.",
+  "avoid_when": "Multiple agents or processes need to write concurrently to the same database, or the database needs to be accessed over a network.",
+  "alternatives": ["postgresql-api", "mysql-api", "duckdb-api", "litestream-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": true,
+    "mcp_server_url": "https://github.com/modelcontextprotocol/servers/tree/main/src/sqlite",
+    "has_sdk": true,
+    "sdk_languages": ["python", "node", "go", "rust", "java", "csharp", "ruby", "c"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["filesystem_permissions"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No built-in authentication — access is controlled entirely by OS filesystem permissions on the database file. SQLCipher adds AES-256 encryption at rest. For agents, this means the database is as secure as the filesystem it lives on. No network exposure by default, which is actually a security advantage for local workloads. SQLite SEE (Encryption Extension) is available for commercial use."
+  },
+  "pricing": {
+    "model": "open-source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, public domain — no license restrictions whatsoever.",
+    "paid_tiers": "SQLite Encryption Extension (SEE) from Hwaci: ~$2000 one-time. Litestream (replication) is open source. Turso (distributed SQLite) has free tier.",
+    "requires_credit_card": false,
+    "notes": "SQLite is public domain — no copyright, no license requirements. The most permissive licensing of any major database. Turso (libSQL fork) provides distributed/cloud SQLite with a generous free tier."
+  },
+  "performance": {
+    "latency_p50_ms": 0.1,
+    "latency_p99_ms": 5,
+    "uptime_sla_percent": 99.999,
+    "rate_limits": "No rate limits. Write throughput limited by WAL mode and disk I/O (~10,000-100,000 writes/sec depending on hardware). Reads are extremely fast from memory/page cache.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["local-only", "self-hosted-anywhere"],
+    "compliance": ["GDPR-capable", "HIPAA-capable-local"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": 80,
+    "mcp_security_score": 75,
+    "documentation_accuracy": 95,
+    "error_message_quality": 70,
+    "error_message_notes": "SQLite error messages are functional but minimal — 'UNIQUE constraint failed: table.column' and 'database is locked' are common. Error codes are numeric (SQLITE_BUSY, SQLITE_CONSTRAINT) which are well documented. Python's sqlite3 module raises standard exceptions (IntegrityError, OperationalError) that are intuitive. better-sqlite3 provides synchronous errors that are easier to handle than async databases.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "No built-in idempotency. Agents use INSERT OR IGNORE, INSERT OR REPLACE, or UPSERT (ON CONFLICT) syntax. Transactions are synchronous in better-sqlite3 making idempotent patterns easier to implement. Python sqlite3 uses autocommit by default in Python 3.12+.",
+    "pagination_style": "offset",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "SQLITE_BUSY errors occur when multiple processes/threads try to write simultaneously — implement exponential backoff retry logic",
+      "WAL mode (PRAGMA journal_mode=WAL) is almost always better for agent workloads — enable it explicitly, it is not the default",
+      "Python sqlite3 module check_same_thread=True by default — set to False for multi-threaded agents but ensure proper locking",
+      "Integer overflow: SQLite uses dynamic typing — Python ints > 2^63 are silently stored as REAL (float) losing precision",
+      "The MCP server exposes full read/write access to the file — scope it carefully, consider read-only connections for read-only agents",
+      "No concurrent writers: even with WAL mode, only one writer at a time — design agent workflows accordingly",
+      "Turso/libSQL extends SQLite with remote access but changes some behaviors — test compatibility if migrating"
+    ]
+  },
+  "af_score": 78,
+  "fq_score": 72,
+  "score_rationale": "SQLite excels for local, single-agent workflows — zero setup, zero dependencies, Python stdlib inclusion, and an excellent official MCP server make it highly agent-accessible. The af_score is boosted by the MCP server quality and zero-friction setup. fq_score is limited by the single-writer constraint, absence of network access, user-level auth, and practical size limits. For local agent state and tooling, SQLite is often the best choice. For production multi-agent systems, it is a bottleneck.",
+  "score_version": "1.0",
+  "evaluated_at": "2026-03-02",
+  "evaluator": "claude-sonnet-4-6",
+  "confidence": "high"
+}

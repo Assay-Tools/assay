@@ -1,0 +1,113 @@
+{
+  "id": "helm-artifacthub-api",
+  "name": "ArtifactHub API (Helm / Kubernetes)",
+  "version_evaluated": "current",
+  "homepage": "https://artifacthub.io",
+  "repo_url": "https://github.com/artifacthub/hub",
+  "category": "developer-tools",
+  "subcategories": ["devops", "kubernetes", "helm", "package-registry", "cloud-native"],
+  "tags": ["helm", "kubernetes", "k8s", "artifacthub", "charts", "operators", "oci", "cncf", "package-registry", "rest-api"],
+  "what_it_does": "ArtifactHub is the CNCF-hosted discovery platform for cloud-native packages, primarily Helm charts but also Kubernetes operators, OPA policies, Falco rules, and more. Its REST API enables agents to search for charts, retrieve metadata, check versions, inspect security reports, and discover repositories. It aggregates charts from hundreds of Helm repositories into a single searchable index.",
+  "use_cases": [
+    "Searching for Helm charts by name or keyword to discover deployment manifests for Kubernetes workloads",
+    "Retrieving chart version history and changelog for automated upgrade decisions",
+    "Fetching chart metadata including default values and dependencies before agent-driven deployment",
+    "Checking security audit results and CVE reports for charts before installation",
+    "Discovering the canonical repository URL and OCI reference for a given chart"
+  ],
+  "not_for": [
+    "Downloading chart tarballs directly (ArtifactHub provides metadata; actual download is from the source Helm repository)",
+    "Hosting private Helm charts (use ChartMuseum, Harbor, or OCI-compliant registry)",
+    "Non-Kubernetes workload management"
+  ],
+  "best_when": "An agent needs to discover, evaluate, or prepare Helm charts for Kubernetes deployments by searching across the CNCF ecosystem.",
+  "avoid_when": "You already know the exact chart repository URL and version (use Helm CLI directly). ArtifactHub adds value for discovery, not for chart installation itself.",
+  "alternatives": ["bitnami-charts", "helm-cli", "harbor-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": false,
+    "sdk_languages": [],
+    "openapi_spec_url": "https://artifacthub.io/api/v1/openapi.yaml",
+    "webhooks": true
+  },
+  "auth": {
+    "methods": ["api_key", "bearer_token"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Most read operations (search, package metadata) are unauthenticated. An API key (passed as X-API-KEY header) is required for write operations, webhook management, and accessing account-level data. API keys are generated from the ArtifactHub user settings. No scope granularity on keys. OAuth via GitHub, Google, or OIDC is supported for web login but not for API key issuance."
+  },
+  "pricing": {
+    "model": "free",
+    "free_tier_exists": true,
+    "free_tier_limits": "All search and metadata reads are free and unauthenticated. Repository registration and webhook management are free.",
+    "paid_tiers": "None. ArtifactHub is a CNCF open-source project.",
+    "requires_credit_card": false,
+    "notes": "ArtifactHub.io is freely hosted by CNCF. Organizations can self-host the ArtifactHub software. No commercial tiers."
+  },
+  "performance": {
+    "latency_p50_ms": 130,
+    "latency_p99_ms": 600,
+    "uptime_sla_percent": 99.5,
+    "rate_limits": "No hard published rate limits for read operations. High-volume scraping is discouraged. The service is not SLA-backed like a commercial API.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["US"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 75,
+    "error_message_quality": 65,
+    "error_message_notes": "Errors are returned as JSON with an `alias` and `message` field. Error messages are human-readable but generic. HTTP status codes are used correctly. OpenAPI spec is available which helps agent code generation significantly.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "All search and metadata GET operations are idempotent. Repository and webhook management operations are generally idempotent (create-or-update semantics in some cases). Chart metadata indexing is background-processed and may have eventual consistency delays.",
+    "pagination_style": "offset",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "ArtifactHub is a discovery layer — chart downloads still require fetching from the upstream Helm repository URL, not from ArtifactHub itself",
+      "Chart metadata freshness depends on ArtifactHub's indexing schedule; newly published chart versions may not appear immediately",
+      "Search relevance ordering is not always intuitive; the most popular chart may not be the first result for a generic query",
+      "Package kind must be specified in searches (kind=0 for Helm charts) to avoid mixing results with operators, OPA policies, etc.",
+      "OCI-based chart references (oci://) require OCI-enabled Helm v3.8+; agents should check the chart source type before generating helm commands",
+      "The OpenAPI spec URL is versioned and may drift from the live API — always validate against the actual spec endpoint"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": null,
+    "api_doc_score": 75,
+    "error_handling_score": 65,
+    "auth_complexity_score": 78,
+    "rate_limit_clarity_score": 45
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 65,
+    "scope_granularity": 40,
+    "dependency_hygiene": 72,
+    "secret_handling": 65,
+    "security_notes": "HTTPS enforced. API keys lack scope granularity. ArtifactHub performs automated security scanning (Trivy) on charts and exposes results via the API, which is a significant feature for agent security workflows. Custom X-API-KEY header is non-standard. No rate limit documentation."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 65,
+    "version_stability": 78,
+    "breaking_changes_history": 75,
+    "error_recovery": 58
+  },
+  "af_score": 60,
+  "fq_score": 70,
+  "score_rationale": "ArtifactHub provides a genuinely valuable aggregation layer for Helm chart discovery, and its OpenAPI spec is a plus for agent integration. However, it's a community service without SLAs, rate limit documentation, or an MCP server. Agents must remember that ArtifactHub is a discovery layer only — actual chart operations require the upstream Helm repository. The built-in security scanning exposure via API is a standout feature for security-conscious agent workflows.",
+  "score_version": "1.0",
+  "evaluated_at": "2026-03-02",
+  "evaluator": "claude-sonnet-4-6",
+  "confidence": "medium"
+}

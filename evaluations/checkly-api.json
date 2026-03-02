@@ -3,26 +3,26 @@
   "name": "Checkly",
   "version_evaluated": "current",
   "homepage": "https://www.checklyhq.com",
-  "repo_url": "https://github.com/checkly",
+  "repo_url": "https://github.com/checkly/checkly-cli",
   "category": "developer-tools",
-  "subcategories": ["monitoring", "testing", "synthetic-checks"],
-  "tags": ["monitoring", "e2e-testing", "synthetic", "api-monitoring", "playwright", "alerting", "uptime"],
-  "what_it_does": "Checkly is a programmable synthetic monitoring platform with a REST API for managing API checks, browser-based E2E checks (Playwright), alert channels, and check results across global locations.",
+  "subcategories": ["api-monitoring", "synthetic-testing", "e2e-testing", "observability"],
+  "tags": ["api-monitoring", "synthetic-checks", "e2e-testing", "playwright", "uptime", "alerting", "monitoring-as-code", "nodejs"],
+  "what_it_does": "Checkly is a programmable synthetic monitoring platform that runs scheduled API checks and Playwright-based browser tests from global locations, with a REST API and CLI for managing checks, groups, alert channels, and retrieving check results.",
   "use_cases": [
-    "Create and update API endpoint health checks programmatically as part of a CI/CD pipeline deployment workflow",
-    "Retrieve recent check run results and failure logs to diagnose production incidents from an AI ops agent",
-    "Manage alert channel configurations (Slack, PagerDuty, email) to wire monitoring into incident response workflows",
-    "Trigger manual check executions on-demand to verify a deployment succeeded before marking it complete",
-    "List all failing checks across environments to build a real-time service health summary for a status dashboard"
+    "Creating and managing API endpoint health checks programmatically as part of a CI/CD deployment pipeline",
+    "Querying check run results and failure details to feed an incident triage agent with context",
+    "Triggering on-demand check runs against a staging environment after a deployment to validate correctness",
+    "Managing alert channel configurations (Slack, PagerDuty, email) programmatically when onboarding new services",
+    "Retrieving historical check result metrics (pass rate, response time trends) for SLA reporting automation"
   ],
   "not_for": [
-    "Unit or integration testing within CI pipelines — Checkly runs synthetic checks from external locations, not inside your test runner",
-    "Log aggregation or full APM — Checkly measures availability and correctness, not traces or deep performance profiling",
-    "Monitoring non-HTTP services such as databases, message queues, or internal gRPC endpoints not exposed publicly"
+    "Real user monitoring (RUM) or capturing actual production traffic — Checkly is synthetic-only",
+    "Load testing or performance benchmarking at scale (use k6 or Gatling instead)",
+    "Log aggregation or full APM — Checkly focuses exclusively on uptime and correctness checks"
   ],
-  "best_when": "You need programmable synthetic monitoring defined as code (Checkly CLI / Monitoring as Code) and want to assert on API correctness and browser user flows from global locations.",
-  "avoid_when": "You need passive APM instrumentation, real-user monitoring, or monitoring of internal private services not reachable from Checkly's global runner network.",
-  "alternatives": ["datadog-api", "grafana-cloud-api", "pingdom-api", "runscope-api"],
+  "best_when": "You need monitoring-as-code with a Playwright-native E2E testing workflow that validates critical user journeys and API contracts from multiple geographic locations on a schedule.",
+  "avoid_when": "You only need simple HTTP uptime pings without scripting capability, or you need to monitor non-HTTP protocols at the infrastructure level.",
+  "alternatives": ["datadog-api", "synthetic-monitor-api", "pingdom-api", "grafana-oncall-api"],
   "interface": {
     "has_rest_api": true,
     "has_graphql": false,
@@ -31,28 +31,28 @@
     "mcp_server_url": null,
     "has_sdk": true,
     "sdk_languages": ["node", "typescript"],
-    "openapi_spec_url": "https://api.checklyhq.com/v1/",
+    "openapi_spec_url": "https://developers.checklyhq.com/reference",
     "webhooks": true
   },
   "auth": {
     "methods": ["api_key"],
     "oauth": false,
     "scopes": false,
-    "notes": "API key passed as Bearer token in Authorization header; keys are account-scoped with no per-resource granularity currently."
+    "notes": "API key passed as Bearer token in Authorization header. API keys are account-scoped with no fine-grained permission scopes. Keys are created in the Checkly dashboard under account settings."
   },
   "pricing": {
     "model": "freemium",
     "free_tier_exists": true,
-    "free_tier_limits": "50,000 check runs/month, limited browser check minutes, 1 user",
-    "paid_tiers": "Team plan from ~$80/month with higher check run volumes, team collaboration, and private locations",
+    "free_tier_limits": "Free tier includes up to 50,000 check runs per month across API and browser checks",
+    "paid_tiers": "Paid plans start at $80/month (Team) with higher check run volumes, more parallel workers, and private locations",
     "requires_credit_card": false,
-    "notes": "Pricing scales by check run volume and browser check minutes; Enterprise tier available for private runners and SLAs."
+    "notes": "Check run consumption is the primary billing metric. Browser (Playwright) checks consume more run credits than API checks. Annual billing discounts available."
   },
   "performance": {
-    "latency_p50_ms": 150,
+    "latency_p50_ms": 180,
     "latency_p99_ms": 700,
     "uptime_sla_percent": 99.9,
-    "rate_limits": "100 requests/minute per API key (documented)",
+    "rate_limits": "REST API: 10 requests/second per account; documented in API reference",
     "data_source": "llm_estimated"
   },
   "requirements": {
@@ -60,41 +60,41 @@
     "requires_credit_card": false,
     "domain_verification": false,
     "data_residency": ["US", "EU"],
-    "compliance": ["SOC2", "GDPR"],
+    "compliance": ["SOC2"],
     "min_contract": "none"
   },
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
     "documentation_accuracy": 85,
-    "error_message_quality": 82,
-    "error_message_notes": "API returns structured JSON errors with message and validation field details; HTTP status codes are used correctly and consistently.",
+    "error_message_quality": 80,
+    "error_message_notes": "API returns structured JSON errors with descriptive messages and validation field details. OpenAPI spec is available and reasonably accurate. Error codes are HTTP-standard.",
     "idempotency_support": "partial",
-    "idempotency_notes": "GET and DELETE are idempotent; POST check creation is not — retrying without idempotency key creates duplicate checks.",
-    "pagination_style": "page_number",
+    "idempotency_notes": "GET endpoints are fully idempotent. PUT update operations are idempotent (upsert by ID). POST create operations are not idempotent and can create duplicate checks if retried naively.",
+    "pagination_style": "offset",
     "retry_guidance_documented": true,
     "known_agent_gotchas": [
-      "Check IDs are UUIDs; agents must list checks first rather than constructing IDs — there is no stable slug-based addressing",
-      "Triggering a check run via the API returns a run ID but results are asynchronous — agents must poll the results endpoint with backoff",
-      "Rate limit of 100 req/min is enforced; agents running bulk check updates (e.g., after a deploy) can easily hit this limit",
-      "Webhook signatures use HMAC-SHA256 but verification docs are sparse — agents consuming webhooks should implement signature validation",
-      "The Monitoring as Code (CLI) approach and REST API are separate paradigms; checks created via CLI may not be fully editable via REST API without state conflicts"
+      "Check IDs are UUIDs assigned at creation — agents must store them to update or delete checks later",
+      "The Checkly CLI (monitoring-as-code) and REST API are parallel interfaces; mixing them can cause state conflicts",
+      "Alert channels must be created before checks that reference them — creation order matters",
+      "On-demand trigger runs via API are asynchronous; the trigger endpoint returns a run ID, not the result",
+      "Rate limit of 10 req/s is easy to hit when bulk-managing many checks; no burst allowance documented"
     ]
   },
   "af_score_components": {
     "mcp_score": 0,
-    "api_doc_score": 85,
-    "error_handling_score": 82,
-    "auth_complexity_score": 82,
+    "api_doc_score": 84,
+    "error_handling_score": 80,
+    "auth_complexity_score": 78,
     "rate_limit_clarity_score": 80
   },
   "security_score_components": {
     "tls_enforcement": 100,
     "auth_strength": 75,
-    "scope_granularity": 60,
+    "scope_granularity": 55,
     "dependency_hygiene": 82,
-    "secret_handling": 80,
-    "security_notes": "SOC2 Type II certified; API keys lack fine-grained scopes which is the main auth weakness; webhook HMAC verification is available but not well documented."
+    "secret_handling": 78,
+    "security_notes": "API keys are account-scoped with no permission granularity. TLS enforced. Secrets used in checks (e.g., passwords in scripts) are stored as encrypted environment variables."
   },
   "reliability_score_components": {
     "uptime_documented": 85,

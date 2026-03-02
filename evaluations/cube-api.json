@@ -1,0 +1,107 @@
+{
+  "id": "cube-api",
+  "name": "Cube API",
+  "version_evaluated": "current",
+  "homepage": "https://cube.dev",
+  "repo_url": "https://github.com/cube-js/cube",
+  "category": "developer-tools",
+  "subcategories": ["analytics", "headless-bi", "data-layer", "semantic-layer"],
+  "tags": ["analytics", "semantic-layer", "headless-bi", "metrics", "olap", "sql", "rest"],
+  "what_it_does": "Cube is a headless analytics API layer that sits between data warehouses and frontend applications, exposing a consistent semantic layer (metrics, dimensions, measures) via REST, GraphQL, and SQL APIs so agents and apps can query curated business data without writing raw warehouse SQL.",
+  "use_cases": [
+    "Querying pre-defined business metrics (revenue, DAU, conversion rate) via REST without writing warehouse-specific SQL",
+    "Building agent tools that answer analytical questions using a governed semantic layer with consistent metric definitions",
+    "Fetching aggregated time-series data for dashboards or reports with automatic pre-aggregation and caching",
+    "Executing SQL queries against the Cube semantic layer from BI tools or agent workflows via the SQL API (Postgres wire protocol)",
+    "Retrieving metadata about available cubes, dimensions, and measures to dynamically construct valid analytical queries"
+  ],
+  "not_for": [
+    "Row-level CRUD operations on source data — Cube is read-only and query-focused, not a data mutation layer",
+    "Real-time streaming analytics — Cube is optimized for OLAP batch queries, not sub-second event streams",
+    "Teams without an existing data warehouse — Cube requires a connected warehouse (Snowflake, BigQuery, Postgres, etc.) as the data source"
+  ],
+  "best_when": "An agent needs to answer structured business questions against warehouse data using governed metric definitions, and you want to avoid exposing raw SQL or warehouse credentials directly to the agent.",
+  "avoid_when": "You need real-time streaming data, row-level mutations, or you don't have an existing data warehouse to connect.",
+  "alternatives": ["metabase-api", "dbt-cloud-api", "lightdash-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": true,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["javascript", "typescript", "python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["api_key", "jwt"],
+    "oauth": false,
+    "scopes": true,
+    "notes": "API requests are authenticated via JWT tokens. Cube Cloud deployments use API tokens generated in the Cloud UI. Self-hosted deployments configure a CUBEJS_API_SECRET and issue JWTs with custom claims for row-level security. JWTs can carry security context (e.g., tenant ID, user role) that Cube uses to enforce data access policies at query time."
+  },
+  "pricing": {
+    "model": "freemium",
+    "free_tier_exists": true,
+    "free_tier_limits": "Cube Cloud free tier: limited query volume and 1 deployment. Self-hosted (open source) is free with no limits beyond your own infrastructure.",
+    "paid_tiers": "Cube Cloud Starter ~$99/month, Professional and Enterprise plans with higher query volumes, SLA, and dedicated infrastructure.",
+    "requires_credit_card": false,
+    "notes": "The open-source self-hosted version is fully functional with no API restrictions. Cube Cloud adds managed hosting, pre-aggregations, and enterprise features. Most agent use cases can start with self-hosted."
+  },
+  "performance": {
+    "latency_p50_ms": 150,
+    "latency_p99_ms": 2000,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "No published rate limits for self-hosted. Cube Cloud enforces query concurrency limits by plan tier. Pre-aggregations dramatically reduce query latency for common queries.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["US", "EU"],
+    "compliance": ["SOC2"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 82,
+    "error_message_quality": 78,
+    "error_message_notes": "REST API errors return JSON with error and message fields. Errors are generally descriptive for query validation failures (unknown member, invalid filter), but errors from the underlying warehouse may be surfaced as opaque database error strings that require schema knowledge to interpret.",
+    "idempotency_support": "full",
+    "idempotency_notes": "All Cube API calls are read-only queries — fully idempotent by nature. No state mutations occur through the query API.",
+    "pagination_style": "offset",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Query structure requires knowing the cube schema (cube names, measure names, dimension names) — agents must first call the /meta endpoint to discover available members before constructing queries",
+      "Measure and dimension names use dot notation (Orders.count, Users.city) — agents must not confuse SQL column names with Cube member names",
+      "Pre-aggregations must be built before they accelerate queries; first-run queries may be slow (seconds to minutes) while pre-aggregations are computed for the first time",
+      "The REST API /load endpoint returns 200 with a 'Continue wait' response when queries take too long — agents must implement polling on the same query until a final result is returned",
+      "Row-level security is enforced via JWT security context — an agent token without the correct security context claims may return empty results rather than an authorization error, causing silent data access failures",
+      "GraphQL and REST APIs have different filter syntax — agents using one cannot simply translate queries to the other without adjusting filter format"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 82,
+    "error_handling_score": 78,
+    "auth_complexity_score": 75,
+    "rate_limit_clarity_score": 65
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 82,
+    "scope_granularity": 80,
+    "dependency_hygiene": 78,
+    "secret_handling": 80,
+    "security_notes": "JWT-based security context is a strong pattern for multi-tenant row-level security. API secret must be kept secure as it signs all tokens. Self-hosted deployments are responsible for their own TLS termination and secret management. Cube Cloud enforces TLS on all endpoints."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 80,
+    "version_stability": 78,
+    "breaking_changes_history": 75,
+    "error_recovery": 78
+  },
+  "last_evaluated": "2026-03-02"
+}

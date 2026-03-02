@@ -5,24 +5,24 @@
   "homepage": "https://grafana.com/products/oncall/",
   "repo_url": "https://github.com/grafana/oncall",
   "category": "developer-tools",
-  "subcategories": ["incident-management", "on-call", "alerting"],
-  "tags": ["oncall", "incident-response", "alerting", "pagerduty-alternative", "open-source", "grafana", "escalation"],
-  "what_it_does": "Grafana OnCall is an open-source incident response and on-call management platform with a REST API for managing schedules, escalation chains, alert groups, and integrations with monitoring sources.",
+  "subcategories": ["incident-management", "on-call", "alerting", "observability"],
+  "tags": ["on-call", "incident-management", "pagerduty-alternative", "open-source", "grafana", "alerting", "escalation", "schedules", "python"],
+  "what_it_does": "Grafana OnCall is an open-source incident response and on-call management system with a REST API for managing schedules, escalation chains, alert groups, integrations, and on-call rotations, available as self-hosted or Grafana Cloud managed.",
   "use_cases": [
-    "Query the current on-call engineer for a given schedule to route incident notifications to the right person automatically",
-    "Create and resolve alert groups programmatically to integrate custom alerting sources into the OnCall workflow",
-    "Manage escalation policies and notification channels via API to keep on-call rotations in sync with team changes",
-    "Retrieve incident history and alert group timelines to feed post-mortem analysis or AI-driven RCA workflows",
-    "Trigger manual pages or silences via API from runbooks or ChatOps bots during active incidents"
+    "Querying the current on-call engineer for a given schedule to route an incident to the right person automatically",
+    "Creating or acknowledging alert groups programmatically when an automated system detects a critical condition",
+    "Managing escalation policy configurations as code during team structure changes or runbook updates",
+    "Pulling historical incident data (alert groups, resolution times) to feed an SRE metrics reporting agent",
+    "Creating integrations with custom webhook sources so non-native monitoring tools can route alerts through OnCall"
   ],
   "not_for": [
-    "Full incident management with ticketing, retrospectives, and status pages — OnCall is scoped to alerting and on-call, not complete incident lifecycle",
-    "Standalone deployment without Grafana — OnCall is tightly coupled to Grafana Cloud or a self-hosted Grafana instance",
-    "Teams that need mature enterprise features like audit logs and SSO without running Grafana infrastructure"
+    "Full incident management with post-mortem tracking — use PagerDuty or FireHydrant for richer incident lifecycle management",
+    "Service catalog or reliability scoring — OnCall focuses on alerting and scheduling, not service metadata",
+    "Organizations without an existing Grafana observability stack, where a standalone solution like PagerDuty is simpler"
   ],
-  "best_when": "You are already using Grafana for observability and want native on-call scheduling and alert routing without adopting PagerDuty or OpsGenie as a separate vendor.",
-  "avoid_when": "You need a standalone incident management platform with built-in status pages, retrospective templates, and enterprise SSO that is independent of your monitoring stack.",
-  "alternatives": ["pagerduty-api", "opsgenie-api", "victorops-api", "incident-io-api"],
+  "best_when": "Your team already uses Grafana for observability and wants a tightly integrated, open-source on-call scheduling and escalation system with full API control over rotations and alert routing.",
+  "avoid_when": "You need a polished out-of-the-box on-call experience with mobile apps, status pages, and rich third-party integrations without managing your own deployment.",
+  "alternatives": ["pagerduty-api", "opsgenie-api", "victorops-api", "betterstack-api"],
   "interface": {
     "has_rest_api": true,
     "has_graphql": false,
@@ -38,21 +38,21 @@
     "methods": ["api_key"],
     "oauth": false,
     "scopes": false,
-    "notes": "API key passed as Authorization header; keys are scoped to an organisation. Grafana Cloud uses a different auth flow (Grafana service accounts) than self-hosted."
+    "notes": "API requests use an API token passed in the Authorization header as 'Token <token>'. Tokens are created per-organization in the OnCall UI. No OAuth or fine-grained scopes. Self-hosted deployments also support Grafana service account tokens."
   },
   "pricing": {
     "model": "open_source",
     "free_tier_exists": true,
-    "free_tier_limits": "Free and open-source for self-hosted; Grafana Cloud free tier includes OnCall with limited active alert groups",
-    "paid_tiers": "Grafana Cloud Pro/Advanced tiers bundle OnCall; pricing based on overall Grafana Cloud usage",
+    "free_tier_limits": "Self-hosted: completely free and open-source. Grafana Cloud free tier includes OnCall with limited alert history.",
+    "paid_tiers": "Grafana Cloud paid tiers include OnCall with extended retention and support, bundled with Grafana Cloud pricing",
     "requires_credit_card": false,
-    "notes": "Self-hosted is fully free under AGPL-3.0. Grafana Cloud managed offering has usage-based pricing tied to the broader Grafana Cloud plan."
+    "notes": "Open-source under AGPL-3.0. Grafana Cloud managed version is included in Grafana Cloud plans. Self-hosted requires Docker/Kubernetes deployment."
   },
   "performance": {
-    "latency_p50_ms": 130,
-    "latency_p99_ms": 650,
-    "uptime_sla_percent": 99.5,
-    "rate_limits": "Not publicly documented for self-hosted; Grafana Cloud enforces plan-level limits",
+    "latency_p50_ms": 150,
+    "latency_p99_ms": 600,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "Not publicly documented for the REST API; Grafana Cloud platform limits apply",
     "data_source": "llm_estimated"
   },
   "requirements": {
@@ -67,39 +67,39 @@
     "mcp_server_quality": null,
     "mcp_security_score": null,
     "documentation_accuracy": 78,
-    "error_message_quality": 74,
-    "error_message_notes": "Errors return JSON with detail field; Grafana Cloud and self-hosted sometimes return different error shapes for the same condition.",
+    "error_message_quality": 75,
+    "error_message_notes": "Errors return JSON with detail fields. HTTP status codes are standard. Some endpoints return generic 400 errors without field-level validation context.",
     "idempotency_support": "partial",
-    "idempotency_notes": "GET and DELETE are idempotent; alert group creation is idempotent if the same alert UID is used; schedule and escalation updates are not idempotent.",
-    "pagination_style": "cursor",
+    "idempotency_notes": "GET and PUT operations are idempotent. POST operations for creating schedules, escalation chains, and integrations are not idempotent.",
+    "pagination_style": "offset",
     "retry_guidance_documented": false,
     "known_agent_gotchas": [
-      "Self-hosted and Grafana Cloud base URLs differ significantly — agents must be configured for the specific deployment type",
-      "Alert group IDs are internal — agents must look up groups by alert UID or external source rather than constructing IDs",
-      "The API for self-hosted OSS lags behind Grafana Cloud features; some endpoints documented for Cloud do not exist on OSS builds",
-      "On-call schedule resolution (who is currently on call) requires a separate API call per schedule — there is no bulk 'current on-call' endpoint",
-      "Webhook payloads from OnCall integrations are not signed by default, making inbound webhook consumers vulnerable to spoofing without network controls"
+      "Resource IDs (schedule ID, escalation chain ID, team ID) are opaque strings that must be discovered via list endpoints before use",
+      "On-call schedule resolution requires iterating shifts and overrides — the 'current on-call' endpoint simplifies this but is easy to miss",
+      "The API behaves differently between self-hosted and Grafana Cloud deployments; base URL and token format differ",
+      "Alert group states (firing, acknowledged, resolved, silenced) have specific valid state transitions — invalid transitions return non-obvious errors",
+      "Integration token (used by monitoring sources to send alerts) is separate from the API token used to manage OnCall resources"
     ]
   },
   "af_score_components": {
     "mcp_score": 0,
-    "api_doc_score": 78,
-    "error_handling_score": 74,
-    "auth_complexity_score": 72,
+    "api_doc_score": 76,
+    "error_handling_score": 73,
+    "auth_complexity_score": 75,
     "rate_limit_clarity_score": 55
   },
   "security_score_components": {
-    "tls_enforcement": 95,
-    "auth_strength": 70,
+    "tls_enforcement": 100,
+    "auth_strength": 75,
     "scope_granularity": 55,
-    "dependency_hygiene": 78,
-    "secret_handling": 72,
-    "security_notes": "Self-hosted deployments inherit operator's TLS and network security; no built-in webhook signing; API keys lack scope granularity. SOC2 applies to Grafana Cloud only."
+    "dependency_hygiene": 80,
+    "secret_handling": 75,
+    "security_notes": "Token-based auth with no scopes. Self-hosted deployments inherit security posture from the operator. AGPL-3.0 license allows full source audit. TLS enforced on Grafana Cloud."
   },
   "reliability_score_components": {
-    "uptime_documented": 72,
-    "version_stability": 76,
-    "breaking_changes_history": 70,
-    "error_recovery": 72
+    "uptime_documented": 80,
+    "version_stability": 78,
+    "breaking_changes_history": 76,
+    "error_recovery": 75
   }
 }

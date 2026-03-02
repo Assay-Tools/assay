@@ -1,0 +1,95 @@
+{
+  "id": "keycloak-api",
+  "name": "Keycloak",
+  "version_evaluated": "current",
+  "homepage": "https://www.keycloak.org",
+  "repo_url": "https://github.com/keycloak/keycloak",
+  "category": "authentication",
+  "subcategories": ["identity-management", "oauth2", "oidc", "sso", "access-management"],
+  "tags": ["keycloak", "iam", "identity", "oauth2", "oidc", "saml", "sso", "open-source", "red-hat", "self-hosted"],
+  "what_it_does": "An open source Identity and Access Management (IAM) solution providing Single Sign-On (SSO), OAuth 2.0, OpenID Connect, and SAML 2.0 support. Offers a comprehensive Admin REST API for managing realms, users, clients, roles, and groups. Red Hat SSO (RHSSO) is the supported enterprise distribution. Used as an authentication server that agents can integrate with via standard OIDC flows.",
+  "use_cases": [
+    "Centralizing authentication for multi-service agent architectures",
+    "Managing machine-to-machine (M2M) auth via OAuth2 client credentials flow",
+    "Provisioning and managing users, roles, and permissions via Admin API",
+    "SAML/OIDC federation with enterprise identity providers (Active Directory, LDAP)",
+    "Fine-grained authorization via Keycloak Authorization Services"
+  ],
+  "not_for": [
+    "Simple API key authentication (massive overhead for simple use cases)",
+    "Teams without DevOps capacity to operate a JVM-based service",
+    "Agents needing hosted authentication with no infrastructure management",
+    "Lightweight authentication for single-service applications"
+  ],
+  "best_when": "An agent operates within an enterprise environment that has centralized identity, or when building a multi-service platform requiring SSO, RBAC, and standard OAuth2/OIDC flows.",
+  "avoid_when": "You want managed authentication without infrastructure complexity — Auth0, Clerk, or Supabase Auth are better choices for most agent deployments.",
+  "alternatives": ["aws-cognito-api", "auth0-api", "clerk-api", "okta-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["java", "javascript", "python", "go", "csharp"],
+    "openapi_spec_url": "https://www.keycloak.org/docs-api/latest/rest-api/index.html",
+    "webhooks": true
+  },
+  "auth": {
+    "methods": ["oauth2_client_credentials", "bearer_token", "basic_auth_admin"],
+    "oauth": true,
+    "scopes": true,
+    "notes": "Admin REST API requires a bearer token obtained via the OAuth2 token endpoint, typically using client_credentials grant or admin username/password. Fine-grained admin permissions via Admin API roles. Service accounts enable M2M auth (client_credentials flow). Standard OIDC endpoints for token introspection, userinfo, and JWKS. Token exchange supported for agent-on-behalf-of scenarios."
+  },
+  "pricing": {
+    "model": "open-source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free to self-host. No user limits, no feature limits in the community edition.",
+    "paid_tiers": "Red Hat SSO (RHSSO): included with Red Hat subscriptions. Red Hat build of Keycloak: $0 for community, enterprise support via Red Hat subscription.",
+    "requires_credit_card": false,
+    "notes": "Keycloak is free and open source under Apache 2.0. RHSSO is the enterprise-supported version included in Red Hat middleware subscriptions. Infrastructure costs are the main expense — Keycloak requires meaningful compute (2+ CPU cores, 2GB+ RAM recommended for production)."
+  },
+  "performance": {
+    "latency_p50_ms": 50,
+    "latency_p99_ms": 300,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "No built-in rate limiting by default — typically handled upstream via reverse proxy (Nginx, HAProxy). Token endpoint performance depends on session store (embedded H2 vs PostgreSQL/MySQL). Clustered deployments via Infinispan for HA.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted-anywhere"],
+    "compliance": ["GDPR-capable", "HIPAA-capable", "FedRAMP-via-RHSSO", "SOC2-capable"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 75,
+    "error_message_quality": 65,
+    "error_message_notes": "Keycloak Admin REST API error responses are inconsistent — some return structured JSON ({errorMessage, error, error_description}), others return HTML error pages, and some return empty bodies with only HTTP status codes. OAuth2 standard errors (invalid_client, unauthorized_client) are well-documented by the OIDC spec. Admin API errors often require checking Keycloak server logs for full context. Version-specific behavior changes make documentation lag.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Admin API operations like user creation are idempotent in intent but return 409 Conflict on duplicate usernames/emails. Agents must catch 409 and treat it as success-if-exists or query-before-create. No idempotency key mechanism. PUT operations are generally idempotent by design.",
+    "pagination_style": "offset",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Admin API token expires (default 60s for admin tokens) — agents running long operations must refresh tokens mid-workflow",
+      "Keycloak major versions have significant breaking changes — v18 → v20 → v22 each had breaking Admin API changes",
+      "Default H2 embedded database is NOT suitable for production — must configure PostgreSQL or MySQL before production use",
+      "Client credentials flow requires the service account to be enabled on the client — a non-obvious configuration step",
+      "Token introspection requires a client with introspection permissions — not enabled by default",
+      "Realm isolation means admin tokens are realm-scoped — master realm admin tokens can manage all realms but are a security risk",
+      "Keycloak startup time is 30-120 seconds (JVM warmup) — affects agent deployment pipelines",
+      "No official MCP server — agents must use the REST API directly or via unofficial Python client libraries (python-keycloak)"
+    ]
+  },
+  "af_score": 55,
+  "fq_score": 76,
+  "score_rationale": "Keycloak is a powerful, enterprise-grade IAM solution but is not agent-friendly by default. No MCP server, inconsistent error responses, token expiration management, and significant operational complexity lower the af_score considerably. It is best suited for enterprise environments where Keycloak is already deployed and agents need to integrate with existing identity infrastructure. fq_score is decent given its comprehensive OIDC/OAuth2 support, fine-grained authorization services, and federation capabilities — but the JVM overhead, complex configuration, and breaking changes between versions hold it back.",
+  "score_version": "1.0",
+  "evaluated_at": "2026-03-02",
+  "evaluator": "claude-sonnet-4-6",
+  "confidence": "medium"
+}
