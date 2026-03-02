@@ -22,6 +22,43 @@ router = APIRouter(tags=["web"])
 PER_PAGE = 20
 
 
+def _community_stats(db: Session) -> dict:
+    """Compute sitewide community stats for the footer banner."""
+    stale_cutoff = datetime.now(timezone.utc) - timedelta(days=90)
+    total_evaluated = (
+        db.query(func.count(Package.id))
+        .filter(Package.af_score.isnot(None))
+        .scalar() or 0
+    )
+    needs_eval = (
+        db.query(func.count(Package.id))
+        .filter(Package.af_score.is_(None))
+        .scalar() or 0
+    )
+    stale_count = (
+        db.query(func.count(Package.id))
+        .filter(Package.af_score.isnot(None), Package.last_evaluated < stale_cutoff)
+        .scalar() or 0
+    )
+    missing_sub = (
+        db.query(func.count(Package.id))
+        .join(PackageAgentReadiness, Package.id == PackageAgentReadiness.package_id, isouter=True)
+        .filter(
+            Package.af_score.isnot(None),
+            or_(
+                PackageAgentReadiness.tls_enforcement.is_(None),
+                PackageAgentReadiness.package_id.is_(None),
+            ),
+        )
+        .scalar() or 0
+    )
+    return {
+        "total_evaluated": total_evaluated,
+        "needs_eval": needs_eval,
+        "needs_reeval": stale_count + missing_sub,
+    }
+
+
 # ── Landing page ──────────────────────────────────────────────────────────────
 
 
@@ -75,6 +112,7 @@ def index(request: Request, db: Session = Depends(get_db)):
             "categories": categories,
             "top_packages": top_packages,
             "recent_packages": recent_packages,
+            "community_stats": _community_stats(db),
         },
     )
 
@@ -185,6 +223,7 @@ def packages_list(
             "filter_free": bool(free),
             "min_score": min_score,
             "pagination_qs": pagination_qs,
+            "community_stats": _community_stats(db),
         },
     )
 
@@ -213,13 +252,13 @@ def package_detail(request: Request, package_id: str, db: Session = Depends(get_
     if not package:
         return templates.TemplateResponse(
             "pages/package_detail.html",
-            {"request": request, "package": None},
+            {"request": request, "package": None, "community_stats": _community_stats(db)},
             status_code=404,
         )
 
     return templates.TemplateResponse(
         "pages/package_detail.html",
-        {"request": request, "package": package},
+        {"request": request, "package": package, "community_stats": _community_stats(db)},
     )
 
 
@@ -247,7 +286,7 @@ def categories_list(request: Request, db: Session = Depends(get_db)):
 
     return templates.TemplateResponse(
         "pages/categories.html",
-        {"request": request, "categories": categories},
+        {"request": request, "categories": categories, "community_stats": _community_stats(db)},
     )
 
 
@@ -259,7 +298,7 @@ def category_detail(request: Request, slug: str, db: Session = Depends(get_db)):
     if not category:
         return templates.TemplateResponse(
             "pages/category.html",
-            {"request": request, "category": None, "packages": []},
+            {"request": request, "category": None, "packages": [], "community_stats": _community_stats(db)},
             status_code=404,
         )
 
@@ -276,7 +315,7 @@ def category_detail(request: Request, slug: str, db: Session = Depends(get_db)):
 
     return templates.TemplateResponse(
         "pages/category.html",
-        {"request": request, "category": category, "packages": packages},
+        {"request": request, "category": category, "packages": packages, "community_stats": _community_stats(db)},
     )
 
 
@@ -326,6 +365,7 @@ def compare_packages(
             "packages": packages,
             "ids_str": ids_str,
             "all_packages": all_packages,
+            "community_stats": _community_stats(db),
         },
     )
 
@@ -432,6 +472,7 @@ def contribute(request: Request, db: Session = Depends(get_db)):
             "request": request,
             "queue_stats": queue_stats,
             "queue_packages": queue_packages,
+            "community_stats": _community_stats(db),
         },
     )
 
@@ -462,5 +503,5 @@ def about(request: Request, db: Session = Depends(get_db)):
 
     return templates.TemplateResponse(
         "pages/about.html",
-        {"request": request, "stats": stats},
+        {"request": request, "stats": stats, "community_stats": _community_stats(db)},
     )
