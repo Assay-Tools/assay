@@ -1,30 +1,28 @@
 {
   "id": "hasura-api",
   "name": "Hasura GraphQL Engine",
-  "version_evaluated": "current",
+  "version_evaluated": "v2.x",
   "homepage": "https://hasura.io",
   "repo_url": "https://github.com/hasura/graphql-engine",
   "category": "database",
-  "subcategories": ["graphql", "api-gateway", "backend-services"],
-  "tags": ["graphql", "postgres", "mysql", "mongodb", "instant-api", "open-source", "self-hosted", "subscriptions", "authorization", "apache2"],
-  "what_it_does": "Hasura instantly generates a production-ready GraphQL (and REST) API from your existing PostgreSQL, MySQL, MongoDB, or other databases, with fine-grained row-level authorization, real-time subscriptions, and event triggers — without writing resolvers.",
+  "subcategories": ["graphql", "api-gateway", "realtime", "postgres"],
+  "tags": ["hasura", "graphql", "postgres", "realtime-subscriptions", "auto-api", "permissions"],
+  "what_it_does": "Instant GraphQL and REST APIs over databases (Postgres, MySQL, SQL Server, MongoDB) with role-based permissions, realtime subscriptions, and event triggers.",
   "use_cases": [
-    "Giving agents a GraphQL interface to query and mutate relational database data without a custom API layer",
-    "Using Hasura's permission system to enforce row-level security for multi-tenant agent applications",
-    "Setting up event triggers on database changes to kick off agent workflows",
-    "Exposing existing PostgreSQL databases to agents via auto-generated, strongly-typed GraphQL",
-    "Federating multiple data sources (Postgres + REST services) into a single GraphQL schema for agent consumption",
-    "Building real-time agent dashboards with GraphQL subscriptions over database tables"
+    "Generating instant CRUD GraphQL APIs over existing Postgres databases for agent data access",
+    "Realtime subscriptions for agents to react to database changes without polling",
+    "Role-based data access control where agents have different permission levels",
+    "Event triggers to fire webhooks when database rows are inserted/updated/deleted",
+    "Remote schemas to federate multiple GraphQL APIs into unified schema for agents"
   ],
   "not_for": [
-    "Teams that are not already using or willing to adopt GraphQL",
-    "Non-relational data patterns that don't fit well into table-based schemas",
-    "Agents that need heavy business logic in the API layer (Hasura delegates this to event triggers or custom resolvers)",
-    "Extremely high-throughput write workloads without careful query optimization"
+    "NoSQL databases without Hasura connector support",
+    "Complex custom business logic (Hasura adds API layer, not application logic)",
+    "Teams that prefer REST-only or want to avoid GraphQL complexity"
   ],
-  "best_when": "You have an existing PostgreSQL database and want to instantly expose it to agents via a well-structured, type-safe GraphQL API with built-in auth and row-level security, without writing a custom API layer.",
-  "avoid_when": "Your team is REST-only, you have no existing relational database, or you need complex server-side business logic baked into the API layer.",
-  "alternatives": ["supabase-api", "postgrest-api", "prisma-api"],
+  "best_when": "You have an existing Postgres database and want instant GraphQL API with auth and realtime subscriptions without building boilerplate CRUD code.",
+  "avoid_when": "Your data access patterns are simple enough for direct Postgres queries, or you need complex server-side business logic beyond what Hasura Actions support.",
+  "alternatives": ["supabase-api", "postgraphile-api", "prisma-api", "firebase-api"],
   "interface": {
     "has_rest_api": true,
     "has_graphql": true,
@@ -39,71 +37,69 @@
   "auth": {
     "methods": ["api_key", "jwt"],
     "oauth": false,
-    "scopes": false,
-    "notes": "Admin secret for privileged operations. JWT-based auth for user-scoped access with role claims embedded in the token. Supports webhook-based auth for custom session resolution. Row-level permissions defined by role in Hasura metadata."
+    "scopes": true,
+    "notes": "Admin secret for privileged access; JWT with x-hasura-role and x-hasura-user-id claims for user context. JWT can be issued by Auth0, Clerk, Supabase, or custom service."
   },
   "pricing": {
     "model": "freemium",
     "free_tier_exists": true,
-    "free_tier_limits": "Self-hosted is completely free and open source. Hasura Cloud free tier: 60 requests/minute, 100MB storage, 1GB data passthrough/month",
-    "paid_tiers": "Hasura Cloud Professional: ~$99/month baseline + usage; Enterprise: custom pricing with SSO, compliance, dedicated support",
+    "free_tier_limits": "Self-hosted: free (OSS). Hasura Cloud free: 60 req/min, 100MB data passthrough/month",
+    "paid_tiers": "Cloud Professional: $99/month; Enterprise: custom with SLA, VPC, caching",
     "requires_credit_card": false,
-    "notes": "Self-hosted EE features require a license key (some features are EE-only). Cloud free tier is limited but usable for development. Most serious production use cases use self-hosted or Cloud Professional."
+    "notes": "Self-hosted community edition is fully featured and free. Hasura Cloud adds caching, monitoring, and managed infrastructure."
   },
   "performance": {
-    "latency_p50_ms": 10,
-    "latency_p99_ms": 80,
+    "latency_p50_ms": 15,
+    "latency_p99_ms": 100,
     "uptime_sla_percent": 99.9,
-    "rate_limits": "Self-hosted: no built-in rate limits (configure at reverse proxy). Cloud free: 60 req/min. Cloud Pro: configurable higher limits.",
+    "rate_limits": "Free Cloud: 60 RPM; paid: scales with plan",
     "data_source": "llm_estimated"
   },
   "requirements": {
     "requires_signup": false,
     "requires_credit_card": false,
     "domain_verification": false,
-    "data_residency": ["US", "EU", "AP"],
-    "compliance": ["SOC2", "GDPR", "HIPAA"],
+    "data_residency": ["self_hosted", "US_cloud", "EU_cloud"],
+    "compliance": ["SOC2_cloud", "HIPAA_enterprise"],
     "min_contract": "none"
   },
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
     "documentation_accuracy": 85,
-    "error_message_quality": 78,
-    "error_message_notes": "GraphQL errors follow the spec with extensions containing code and path fields. Query validation errors are precise. Permission-denied errors may reveal schema shape — worth considering for security.",
+    "error_message_quality": 83,
+    "error_message_notes": "GraphQL errors in errors[] array with extensions.code; permission errors clearly indicate which field/table is restricted",
     "idempotency_support": "partial",
-    "idempotency_notes": "Mutations that use insert_on_conflict with on_conflict clause support upsert semantics. Pure inserts are not idempotent. Updates are idempotent if same data.",
+    "idempotency_notes": "Upsert via on_conflict clause; standard mutations are not idempotent",
     "pagination_style": "cursor",
     "retry_guidance_documented": true,
     "known_agent_gotchas": [
-      "Agents must learn Hasura's GraphQL query syntax including where clauses and _eq/_like operators",
-      "Large result sets require explicit limit/offset or cursor-based pagination — no automatic pagination",
-      "Subscription-based features require WebSocket connections — not usable in simple HTTP polling patterns",
-      "Schema changes require metadata reload — live schema changes can disrupt running agents",
-      "N+1 query problems possible if agents generate many small queries — use nested queries instead",
-      "Admin secret must be rotated carefully — it grants full database access",
-      "REST endpoints are custom-configured, not auto-generated — GraphQL is the primary interface"
+      "JWT claims must include x-hasura-default-role and x-hasura-allowed-roles — missing claims cause unhelpful 'Could not verify JWT' errors",
+      "N+1 query problem is automatically solved by Hasura's DataLoader batching — but complex nested queries can still be expensive",
+      "Admin secret should never be used in client-side code — always use JWT auth for agent access to maintain row-level security",
+      "Hasura metadata (permissions, relationships) is separate from database schema — migrations don't automatically update metadata",
+      "Subscription invalidation: every database write to a subscribed table re-executes subscription query — high write tables cause high CPU"
     ]
   },
   "af_score_components": {
     "mcp_score": 0,
     "api_doc_score": 85,
-    "error_handling_score": 78,
-    "auth_complexity_score": 75,
-    "rate_limit_clarity_score": 68
+    "error_handling_score": 83,
+    "auth_complexity_score": 80,
+    "rate_limit_clarity_score": 80
   },
   "security_score_components": {
     "tls_enforcement": 100,
-    "auth_strength": 80,
-    "scope_granularity": 88,
-    "dependency_hygiene": 80,
-    "secret_handling": 78,
-    "security_notes": "Row-level security enforced via role-based permission rules in Hasura metadata. Admin secret should be treated as database root access. JWT validation is robust with configurable claim paths. Open source codebase is auditable."
+    "auth_strength": 85,
+    "scope_granularity": 90,
+    "dependency_hygiene": 83,
+    "secret_handling": 83,
+    "security_notes": "Row-level security enforced via Hasura permissions rules. Admin secret must be rotated and kept server-side. JWT with role claims is the recommended pattern."
   },
   "reliability_score_components": {
-    "uptime_documented": 82,
+    "uptime_documented": 85,
     "version_stability": 82,
-    "breaking_changes_history": 75,
-    "error_recovery": 78
+    "breaking_changes_history": 80,
+    "error_recovery": 83
   }
 }
