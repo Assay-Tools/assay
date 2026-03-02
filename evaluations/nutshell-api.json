@@ -1,0 +1,105 @@
+{
+  "id": "nutshell-api",
+  "name": "Nutshell CRM API",
+  "version_evaluated": "current",
+  "homepage": "https://developers.nutshell.com/",
+  "repo_url": null,
+  "category": "developer-tools",
+  "subcategories": ["crm", "sales"],
+  "tags": ["nutshell", "crm", "sales", "contacts", "leads", "pipeline", "smb"],
+  "what_it_does": "JSON-RPC and REST API for managing sales CRM data in Nutshell including contacts, companies, leads, activities, and pipeline stages for small to mid-sized sales teams.",
+  "use_cases": [
+    "Create and update leads from inbound form submissions or external lead sources",
+    "Sync contact and company records bidirectionally with marketing automation tools",
+    "Query pipeline data by stage and owner to generate weekly sales reports",
+    "Automate activity logging for calls and emails from communication platforms",
+    "Move leads through pipeline stages based on external triggers such as contract signatures or payments"
+  ],
+  "not_for": [
+    "Enterprise-scale CRM with complex approval workflows, territory management, or multi-org hierarchies",
+    "Marketing campaign management or email automation at scale",
+    "Customer support ticketing — Nutshell is sales-focused only"
+  ],
+  "best_when": "You need a simple, approachable CRM API for automating sales workflows for small to mid-sized teams already on Nutshell.",
+  "avoid_when": "You need enterprise CRM features like complex role-based access control, advanced reporting, or deep ERP integration.",
+  "alternatives": ["zendesk-sell-api", "hubspot-api", "pipedrive-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": false,
+    "sdk_languages": [],
+    "openapi_spec_url": null,
+    "webhooks": true
+  },
+  "auth": {
+    "methods": ["basic_auth", "api_key"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Uses HTTP Basic Authentication with the user's email address and an API key as the password. API keys are generated per user from the Nutshell account settings. No OAuth support — all API access is tied to a specific user account. For automated agent use, a dedicated service user account with an API key is the recommended pattern. Lack of OAuth and scopes means API keys grant full account access with no granularity."
+  },
+  "pricing": {
+    "model": "subscription",
+    "free_tier_exists": false,
+    "free_tier_limits": "No free tier; 14-day trial available",
+    "paid_tiers": "Foundation ($16/user/month), Growth ($42/user/month), Pro ($52/user/month). API access included in all plans.",
+    "requires_credit_card": false,
+    "notes": "API access is included with all Nutshell paid plans. No credit card required for the 14-day trial. Pricing is per user per month billed annually or monthly."
+  },
+  "performance": {
+    "latency_p50_ms": 250,
+    "latency_p99_ms": 1200,
+    "uptime_sla_percent": 99.5,
+    "rate_limits": "Rate limits are not precisely published by Nutshell. In practice, aggressive polling or bulk operations can trigger throttling. The API returns 429 responses when limits are hit. Agents should implement conservative retry logic with exponential backoff. Batch operations via the JSON-RPC multi-call pattern help reduce call volume.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["US"],
+    "compliance": ["GDPR", "SOC2"],
+    "min_contract": "monthly"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 70,
+    "error_message_quality": 68,
+    "error_message_notes": "Nutshell uses JSON-RPC 2.0 which returns errors as structured error objects with a code and message. Error messages are generally descriptive but documentation on specific error codes is sparse. Validation errors do not always identify the specific field that failed. The mix of JSON-RPC and REST endpoints means error formats are inconsistent across the API.",
+    "idempotency_support": "none",
+    "idempotency_notes": "No idempotency key support. The JSON-RPC interface does not provide transaction guarantees. Agents must implement search-before-create patterns to avoid duplicate records. The newLead and newContact methods do not deduplicate on email — identical calls create duplicate entries.",
+    "pagination_style": "offset",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "The API is primarily JSON-RPC 2.0, not REST — requests are POST calls to a single endpoint with method names like 'findLeads' and 'newLead' rather than standard HTTP verbs and resource paths; agents expecting REST patterns must adapt to this paradigm",
+      "API keys are scoped to a user account with no granularity — a compromised API key gives full account access to all contacts, leads, and company data; agents should use a dedicated service user account and rotate keys regularly",
+      "Rate limits are undocumented and vary based on account tier and usage patterns — agents should implement conservative rate limiting (no more than 2-3 requests per second) and treat 429 responses as a signal to back off significantly",
+      "Webhook payloads do not include a signature or secret token for verification — agents receiving Nutshell webhooks cannot cryptographically verify that the payload came from Nutshell, requiring IP allowlisting or other validation approaches",
+      "Lead and contact deduplication is not enforced by the API — creating a contact or lead with an existing email address creates a duplicate rather than returning the existing record; agents must query by email before creating to prevent duplicate proliferation"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 70,
+    "error_handling_score": 68,
+    "auth_complexity_score": 72,
+    "rate_limit_clarity_score": 55
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 65,
+    "scope_granularity": 45,
+    "dependency_hygiene": 72,
+    "secret_handling": 62,
+    "security_notes": "All traffic over TLS. Basic Auth with API keys is a weaker auth pattern compared to OAuth 2.0 — keys are long-lived, have no expiry by default, and grant full account access. No scope granularity means integrations cannot be least-privileged. Webhooks lack signature verification. SOC 2 certification provides some assurance at the platform level."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 75,
+    "version_stability": 78,
+    "breaking_changes_history": 76,
+    "error_recovery": 70
+  }
+}
