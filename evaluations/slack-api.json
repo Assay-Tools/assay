@@ -3,86 +3,103 @@
   "name": "Slack API",
   "version_evaluated": "current",
   "homepage": "https://api.slack.com",
-  "repo_url": "https://github.com/slackapi/python-slack-sdk",
-  "category": "productivity",
-  "subcategories": ["team-messaging", "notifications", "workflow-automation"],
-  "tags": ["slack", "messaging", "team-communication", "notifications", "bots", "oauth", "mcp-server", "rest-api", "sdk", "webhooks"],
-  "what_it_does": "Slack's platform API for sending messages, managing channels, building bots, and automating team workflows, with multiple official MCP servers for agent integration.",
+  "repo_url": null,
+  "category": "communications",
+  "subcategories": ["messaging", "team-collaboration", "notifications"],
+  "tags": ["slack", "messaging", "bot", "webhooks", "oauth", "workspace"],
+  "what_it_does": "Platform for building Slack apps, bots, and integrations that can send messages, respond to events, create channels, and manage workspace resources.",
   "use_cases": [
-    "Sending notifications and alerts to Slack channels from agents",
-    "Building interactive bots and slash commands",
-    "Searching message history and channel data from agents",
-    "Automating team workflows with Slack's Workflow Builder API",
-    "Reading and managing channels, users, and workspace data"
+    "Post rich formatted messages with Block Kit UI to Slack channels from CI/CD pipelines",
+    "Build Slack bot that responds to slash commands and interactive button clicks in DMs",
+    "Listen to message events via Socket Mode or Event Subscriptions for real-time processing",
+    "Search workspace messages and list channel members for data export via REST API",
+    "Send ephemeral messages visible only to triggering user in response to app_mention events"
   ],
   "not_for": [
-    "External customer communication (use Intercom or Zendesk)",
-    "High-volume transactional messaging (use email or SMS APIs)",
-    "Teams not using Slack"
+    "Cross-platform messaging outside Slack workspace — users must have Slack accounts",
+    "Long-term message storage or archival — Slack's API access to history is limited by plan",
+    "Real-time video or voice integration — Slack Huddles API is not public"
   ],
-  "best_when": "Your agents need to communicate with human teams, send alerts, receive commands, or integrate into existing Slack-based team workflows.",
-  "avoid_when": "Your notification audience is end-customers rather than internal team members, or you need non-Slack messaging.",
-  "alternatives": ["discord-api"],
+  "best_when": "Building internal automation and notification tools for teams already using Slack.",
+  "avoid_when": "Your notification audience may not have Slack — use email or SMS instead.",
+  "alternatives": ["discord-webhook", "teams-api", "slack-bolt"],
   "interface": {
     "has_rest_api": true,
     "has_graphql": false,
     "has_grpc": false,
-    "has_mcp_server": true,
-    "mcp_server_url": "https://github.com/modelcontextprotocol/servers/tree/main/src/slack",
+    "has_mcp_server": false,
+    "mcp_server_url": null,
     "has_sdk": true,
-    "sdk_languages": ["python", "node", "java", "dotnet"],
-    "openapi_spec_url": "https://raw.githubusercontent.com/slackapi/slack-api-specs/master/web-api/slack_web_openapi_v2.json",
+    "sdk_languages": ["python", "node", "java"],
+    "openapi_spec_url": "https://api.slack.com/web",
     "webhooks": true
   },
   "auth": {
-    "methods": ["oauth2", "api_key"],
+    "methods": ["oauth2", "bearer_token"],
     "oauth": true,
     "scopes": true,
-    "notes": "Bot tokens (xoxb-) for bot app access. User tokens (xoxp-) for user context. Incoming webhooks for simple one-way messaging. OAuth 2.0 for app installations."
+    "notes": "Bot token (xoxb-) for app; user token (xoxp-) for user-context; Incoming Webhooks for simple posting"
   },
   "pricing": {
     "model": "freemium",
     "free_tier_exists": true,
-    "free_tier_limits": "Free workspace: 90-day message history, 10 app integrations",
-    "paid_tiers": "Pro $7.25/user/mo, Business+ $12.50/user/mo, Enterprise Grid custom",
+    "free_tier_limits": "Free workspace: 90-day message history; API access included",
+    "paid_tiers": "Pro from $7.25/user/month with full history; Business+ for enterprise features",
     "requires_credit_card": false,
-    "notes": "API access is free. Bot token creation is free. Slack workspace plan affects features available to apps."
+    "notes": "API access is free for all tiers; workspace message history affects data retrieval"
   },
   "performance": {
     "latency_p50_ms": 150,
-    "latency_p99_ms": 600,
+    "latency_p99_ms": 500,
     "uptime_sla_percent": 99.99,
-    "rate_limits": "Tier 1: 1 req/min, Tier 2: 20 req/min, Tier 3: 50 req/min, Tier 4: 100 req/min (per method)",
+    "rate_limits": "Tier 1: 1 req/min; Tier 2: 20 req/min; Tier 3: 50 req/min; Tier 4: 100 req/min; chat.postMessage: 1 msg/sec",
     "data_source": "llm_estimated"
   },
   "requirements": {
     "requires_signup": true,
     "requires_credit_card": false,
     "domain_verification": false,
-    "data_residency": ["US", "EU"],
-    "compliance": ["SOC2", "SOC3", "GDPR", "HIPAA", "ISO27001", "FedRAMP"],
+    "data_residency": ["US", "EU", "JP", "AU"],
+    "compliance": ["SOC2", "ISO27001", "HIPAA", "FedRAMP"],
     "min_contract": "none"
   },
   "agent_readiness": {
-    "mcp_server_quality": 80,
-    "mcp_security_score": 82,
-    "documentation_accuracy": 92,
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 90,
     "error_message_quality": 88,
-    "error_message_notes": "Slack errors are returned as JSON with ok: false and error field. Error strings are well-documented and human-readable.",
+    "error_message_notes": "All API methods return {ok: true/false} + error string; error codes are well-documented",
     "idempotency_support": "none",
-    "idempotency_notes": "No idempotency keys. chat.postMessage calls are not idempotent - retries create duplicate messages.",
+    "idempotency_notes": "chat.postMessage always creates a new message; no idempotency keys",
     "pagination_style": "cursor",
     "retry_guidance_documented": true,
     "known_agent_gotchas": [
-      "Rate limits vary per method tier - agents must implement per-method rate tracking",
-      "Bot tokens require specific OAuth scopes - missing scopes give cryptic 'missing_scope' errors",
-      "Messages cannot be deleted by bots unless the bot sent them (requires chat:write scope)",
-      "Slack's Block Kit message format is powerful but verbose - keep message construction logic separate",
-      "Free workspace 90-day history limit affects message search for older data"
-    ],
-    "error_message_score": 88,
-    "auth_complexity_score": 78,
-    "rate_limit_score": 75,
-    "security_score": 88
+      "Rate limits are per-method per-workspace — burst posting to multiple channels still hits per-channel limits",
+      "Block Kit rendering varies by Slack client version — test on desktop and mobile; some blocks not supported on older clients",
+      "Event subscriptions require responding with HTTP 200 within 3 seconds — offload processing to async queue",
+      "Ephemeral messages cannot be updated or deleted after sending — only regular messages support chat.update",
+      "Bot tokens cannot read messages in channels where the bot is not a member — must be invited first"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 90,
+    "error_handling_score": 88,
+    "auth_complexity_score": 80,
+    "rate_limit_clarity_score": 85
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 88,
+    "scope_granularity": 90,
+    "dependency_hygiene": 90,
+    "secret_handling": 85,
+    "security_notes": "Granular OAuth scopes; bot tokens are narrow by design; signing secret validates webhook payloads"
+  },
+  "reliability_score_components": {
+    "uptime_documented": 92,
+    "version_stability": 88,
+    "breaking_changes_history": 85,
+    "error_recovery": 88
   }
 }
