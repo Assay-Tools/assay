@@ -1,0 +1,105 @@
+{
+  "id": "aws-fargate-api",
+  "name": "AWS Fargate (Serverless Container Compute)",
+  "version_evaluated": "current",
+  "homepage": "https://aws.amazon.com/fargate/",
+  "repo_url": "https://github.com/boto/boto3",
+  "category": "infrastructure",
+  "subcategories": ["containers", "compute", "serverless"],
+  "tags": ["aws", "fargate", "containers", "serverless", "ecs", "eks", "devops", "compute"],
+  "what_it_does": "Run containers on AWS without managing servers or clusters — Fargate is a serverless compute engine for ECS and EKS that provisions, scales, and manages the underlying infrastructure automatically.",
+  "use_cases": [
+    "Launch containerized batch jobs on-demand without provisioning EC2 instances, paying only for the vCPU and memory consumed during task execution",
+    "Run ephemeral AI agent tasks as isolated Fargate containers, each with scoped IAM roles and no shared host surface",
+    "Scale a web API backend by deploying ECS services on Fargate with Application Load Balancer and auto-scaling policies based on CPU or custom metrics",
+    "Execute scheduled data pipeline jobs using EventBridge + Fargate ECS tasks to process S3 data on a cron schedule without persistent infrastructure",
+    "Isolate multi-tenant workloads by running each tenant's job in a separate Fargate task with per-task IAM execution roles and VPC security groups"
+  ],
+  "not_for": [
+    "Workloads requiring GPU acceleration — Fargate does not support GPU instances; use EC2 launch type or SageMaker instead",
+    "Long-running stateful services that need persistent local disk beyond ephemeral storage — Fargate tasks have a 200GB ephemeral limit and no persistent block storage",
+    "Cost-sensitive high-throughput compute where EC2 Spot instances would be significantly cheaper for sustained workloads"
+  ],
+  "best_when": "You want fully managed container execution with zero cluster administration, strong IAM-based isolation, and seamless ECS/EKS integration on AWS.",
+  "avoid_when": "Your workload requires GPUs, persistent local storage, or extreme cost optimization via Spot EC2 capacity at scale.",
+  "alternatives": ["aws-ecs-api", "aws-eks-api", "aws-lambda-api", "google-cloud-run-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "node", "java", "go", "dotnet", "ruby", "php"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["aws_iam"],
+    "oauth": false,
+    "scopes": true,
+    "notes": "AWS SigV4 signing via IAM roles or access key credentials. Two IAM roles matter: the task execution role (allows Fargate to pull images and write logs) and the task role (grants the container application its own scoped AWS permissions). Fine-grained actions include ecs:RunTask, ecs:DescribeTasks, iam:PassRole."
+  },
+  "pricing": {
+    "model": "pay-as-you-go",
+    "free_tier_exists": false,
+    "free_tier_limits": null,
+    "paid_tiers": "Linux/x86: $0.04048/vCPU/hour and $0.004445/GB/hour. Linux/ARM64 (Graviton): ~20% cheaper. Windows containers carry a higher per-hour rate. Minimum billing is 1 minute; billed per second thereafter.",
+    "requires_credit_card": true,
+    "notes": "No upfront cost or idle charge — you only pay while tasks are running. Data transfer and load balancer hours billed separately. Spot Fargate tasks available at ~70% discount with interruption risk."
+  },
+  "performance": {
+    "latency_p50_ms": 300,
+    "latency_p99_ms": 3000,
+    "uptime_sla_percent": 99.99,
+    "rate_limits": "Fargate inherits ECS API rate limits: RunTask ~1 TPS per account (burstable), DescribeTasks ~40 TPS. Task launch cold start typically 10-30 seconds for image pull + initialization. Limits adjustable via AWS Support.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": true,
+    "domain_verification": false,
+    "data_residency": ["US", "EU", "APAC", "SA", "AF", "ME"],
+    "compliance": ["SOC1", "SOC2", "ISO27001", "HIPAA", "PCI-DSS", "FedRAMP"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 87,
+    "error_message_quality": 79,
+    "error_message_notes": "ECS/Fargate API errors surface typed exceptions (e.g., InvalidParameterException, ClusterNotFoundException) with descriptive messages. However, task launch failures appear in a 'failures' array in a 200 response body rather than as HTTP errors, which agents frequently miss.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "RunTask is not idempotent by default — calling it twice launches two tasks. Pass the clientToken parameter (UUID) to make RunTask idempotent within a 10-minute window. Task definition registration is effectively idempotent (creates new revision if content differs).",
+    "pagination_style": "page_token",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "RunTask returns HTTP 200 even when the task fails to launch — always inspect the 'failures' array in the response, not just the HTTP status code",
+      "Fargate tasks take 10-60 seconds to reach RUNNING state after RunTask returns; agents must poll DescribeTasks with exponential backoff rather than assuming immediate availability",
+      "The task execution IAM role and the task IAM role are different — missing the task execution role causes silent image pull failures; missing the task role causes permission errors inside the container",
+      "Fargate ephemeral storage defaults to 20GB per task; if your container writes large files it will silently fail at 20GB unless you explicitly configure storageConfiguration up to 200GB",
+      "Container stdout/stderr is not accessible through the ECS API — logs go to CloudWatch Logs via the awslogs driver and must be queried separately using the logGroup and logStream from the task definition"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 87,
+    "error_handling_score": 75,
+    "auth_complexity_score": 68,
+    "rate_limit_clarity_score": 76
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 93,
+    "scope_granularity": 92,
+    "dependency_hygiene": 88,
+    "secret_handling": 90,
+    "security_notes": "Per-task IAM roles provide strong isolation between workloads. Secrets Manager and SSM Parameter Store integrations inject secrets at container startup without embedding credentials in task definitions. VPC-native networking with security groups at the task level. ECR image scanning and immutable image tags recommended. No shared kernel with other tenants — each task runs on isolated infrastructure."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 92,
+    "version_stability": 88,
+    "breaking_changes_history": 87,
+    "error_recovery": 80
+  }
+}
