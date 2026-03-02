@@ -1,0 +1,105 @@
+{
+  "id": "permit-io-api",
+  "name": "Permit.io",
+  "version_evaluated": "current",
+  "homepage": "https://www.permit.io",
+  "repo_url": "https://github.com/permitio",
+  "category": "developer-tools",
+  "subcategories": ["authorization", "policy-management", "auth"],
+  "tags": ["authorization", "RBAC", "ABAC", "ReBAC", "policy", "access-control", "OPA", "cloud"],
+  "what_it_does": "Authorization-as-a-service platform that lets developers implement and manage fine-grained RBAC, ABAC, and ReBAC access control policies without building policy infrastructure from scratch.",
+  "use_cases": [
+    "Check whether a user or agent identity is permitted to perform an action on a resource before executing it",
+    "Dynamically assign and revoke roles or permissions for users across multi-tenant SaaS applications",
+    "Sync user directory and role data from external identity providers to keep authorization state consistent",
+    "Enforce attribute-based policies (e.g., department, clearance level) on sensitive API operations",
+    "Build an admin UI or audit dashboard that reads who has access to what resources in real time"
+  ],
+  "not_for": [
+    "Authentication or identity token issuance — Permit.io only handles authorization, not login flows",
+    "Storing or querying application business data outside of policy and permission contexts",
+    "Teams that need a fully self-hosted solution with no cloud dependency (use Cerbos or OPA instead)"
+  ],
+  "best_when": "You need production-grade, multi-model authorization (RBAC/ABAC/ReBAC) without spending months building policy infrastructure, especially in multi-tenant SaaS architectures.",
+  "avoid_when": "Your authorization rules are trivially simple (a single role flag) or your compliance requirements prohibit any cloud-side policy evaluation.",
+  "alternatives": ["cerbos-api", "oso-api", "warrant-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "node", "java", "go", "dotnet", "ruby"],
+    "openapi_spec_url": "https://api.permit.io/openapi.json",
+    "webhooks": true
+  },
+  "auth": {
+    "methods": ["api_key"],
+    "oauth": false,
+    "scopes": true,
+    "notes": "API key passed as Bearer token. Separate keys per environment (development, staging, production). Keys are scoped to a project and environment."
+  },
+  "pricing": {
+    "model": "freemium",
+    "free_tier_exists": true,
+    "free_tier_limits": "Up to 1,000 monthly active users, unlimited policy checks, 2 environments",
+    "paid_tiers": "Starter ~$149/mo, Pro ~$649/mo, Enterprise custom; scales on MAU and environments",
+    "requires_credit_card": false,
+    "notes": "Free tier is generous for prototyping. Production multi-tenant workloads will typically require paid tier due to MAU limits."
+  },
+  "performance": {
+    "latency_p50_ms": 5,
+    "latency_p99_ms": 30,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "No published hard rate limits for check calls; bulk check endpoints available; local PDP sidecar eliminates network latency",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["US", "EU"],
+    "compliance": ["SOC2"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 87,
+    "error_message_quality": 83,
+    "error_message_notes": "SDK errors are descriptive with reason codes; raw REST errors are standard HTTP with JSON bodies but occasionally lack actionable detail on policy misconfigurations.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Permission check calls are read-only and naturally idempotent. Mutating calls (role assignment, resource creation) are idempotent by resource identity.",
+    "pagination_style": "offset",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Policy changes propagate to the local PDP sidecar with a short delay (~1-2s); agents relying on immediate consistency after a role change may see stale decisions if checking too quickly",
+      "The `user` parameter in check calls must exactly match the user key used when syncing the user — mismatches silently return DENY rather than an error",
+      "Tenant scoping is required in multi-tenant setups; omitting the tenant key defaults to the default tenant, which can cause incorrect ALLOW decisions in cross-tenant checks",
+      "Bulk `check_many` endpoint has an undocumented limit of 150 checks per request; exceeding it returns a 400 with a generic message",
+      "SDK auto-retries on 5xx but not on 429; agents must implement their own backoff when rate limits are encountered in high-throughput scenarios"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 87,
+    "error_handling_score": 83,
+    "auth_complexity_score": 88,
+    "rate_limit_clarity_score": 72
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 85,
+    "scope_granularity": 85,
+    "dependency_hygiene": 84,
+    "secret_handling": 86,
+    "security_notes": "Cloud-hosted policy evaluation; data sent to Permit.io servers for each check unless the local PDP sidecar is deployed. SOC2 Type II certified. Secrets never leave client when using local PDP."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 85,
+    "breaking_changes_history": 82,
+    "error_recovery": 84
+  }
+}
