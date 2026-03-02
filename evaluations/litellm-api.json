@@ -1,0 +1,105 @@
+{
+  "id": "litellm-api",
+  "name": "LiteLLM",
+  "version_evaluated": "current",
+  "homepage": "https://litellm.ai",
+  "repo_url": "https://github.com/BerriAI/litellm",
+  "category": "ai-ml",
+  "subcategories": ["llm-routing", "llm-proxy"],
+  "tags": ["llm", "python", "proxy", "openai-compatible", "routing", "cost-tracking"],
+  "what_it_does": "Universal LLM routing library and proxy server that provides a single OpenAI-compatible interface to 100+ LLM providers with cost tracking, fallbacks, and load balancing.",
+  "use_cases": [
+    "Route agent LLM calls across multiple providers (OpenAI, Anthropic, Bedrock, Vertex) with a single unified API surface",
+    "Implement automatic fallback chains so agents continue operating when a primary LLM provider is unavailable",
+    "Track per-agent token usage and cost across providers without instrumenting each provider SDK separately",
+    "Deploy a shared LiteLLM proxy server so multiple agents share rate limit budgets and a single set of API keys",
+    "Load-balance inference across multiple deployments of the same model to increase throughput for high-QPS agents"
+  ],
+  "not_for": [
+    "Fine-tuning or training models — LiteLLM is inference routing only",
+    "Storing or retrieving conversation history — no built-in memory or persistence layer",
+    "Applications requiring vendor-specific features not exposed through the OpenAI-compatible interface"
+  ],
+  "best_when": "You need a single call site that can target any of 100+ LLM providers and want automatic fallback, retries, and cost logging without rewriting agent code per provider.",
+  "avoid_when": "You rely on provider-specific streaming events, function-call schemas, or response fields that LiteLLM's translation layer does not yet map correctly.",
+  "alternatives": ["openai-api", "anthropic-api", "ollama-api", "langchain-core-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["api_key", "none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth required when used as a local Python library. Proxy server mode supports a LITELLM_MASTER_KEY or per-virtual-key auth for team use. Upstream provider keys are passed via environment variables or config."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Unlimited, open source (MIT license)",
+    "paid_tiers": "LiteLLM Enterprise adds SSO, audit logs, and team management; pricing on request",
+    "requires_credit_card": false,
+    "notes": "The core library and proxy are free and open source. Enterprise tier is optional for large team deployments."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "None (library/local proxy — limits come from upstream providers)",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self_hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 82,
+    "error_message_quality": 78,
+    "error_message_notes": "Errors from upstream providers are surfaced with provider context, but translation layer occasionally swallows granular status codes; test your fallback paths explicitly.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Each completion() call is stateless; retries are safe.",
+    "pagination_style": "none",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Provider-specific parameters (e.g. Anthropic top_k, Bedrock guardrail IDs) must be passed via extra_body or provider-prefixed kwargs; they are silently ignored otherwise",
+      "Streaming response chunks differ subtly between providers even through the adapter — agents parsing raw chunks may break on provider switch",
+      "Router fallback order is defined in config, not inferred; if no fallback list is set, a provider outage raises immediately rather than trying alternatives",
+      "Cost tracking requires setting up a cost database (Redis or Postgres); without it, usage() returns None silently",
+      "Virtual key rate limits in proxy mode are enforced in-memory per pod — horizontal scaling without shared Redis will allow each pod its own full quota"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 82,
+    "error_handling_score": 78,
+    "auth_complexity_score": 95,
+    "rate_limit_clarity_score": 90
+  },
+  "security_score_components": {
+    "tls_enforcement": 0,
+    "auth_strength": 70,
+    "scope_granularity": 60,
+    "dependency_hygiene": 75,
+    "secret_handling": 80,
+    "security_notes": "API keys for upstream providers are passed as environment variables or YAML config; ensure config files are not committed to version control. Proxy master key provides coarse access control only. No built-in secret rotation."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 0,
+    "version_stability": 75,
+    "breaking_changes_history": 70,
+    "error_recovery": 82
+  }
+}
