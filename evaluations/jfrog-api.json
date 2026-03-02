@@ -1,0 +1,105 @@
+{
+  "id": "jfrog-api",
+  "name": "JFrog Platform REST API",
+  "version_evaluated": "current",
+  "homepage": "https://jfrog.com/artifactory/",
+  "repo_url": null,
+  "category": "developer-tools",
+  "subcategories": ["artifact-management", "package-registry", "security-scanning", "devops"],
+  "tags": ["artifactory", "jfrog", "artifacts", "packages", "xray", "security", "devops", "repository", "enterprise"],
+  "what_it_does": "JFrog Platform REST API enables agents to upload, download, and manage build artifacts across any package format, query Xray security scan results, manage repository configurations, and automate release promotion workflows in enterprise artifact management pipelines.",
+  "use_cases": [
+    "Upload build artifacts to a specific repository path after a CI build completes and attach build metadata",
+    "Query Xray security scan results for a released artifact to gate deployment based on vulnerability severity",
+    "Promote a build artifact from a staging repository to a production repository after all quality gates pass",
+    "Search for artifacts by property, checksum, or path pattern to identify all affected packages when a CVE is disclosed",
+    "Manage repository configuration (create, update, replicate) as part of infrastructure-as-code automation"
+  ],
+  "not_for": [
+    "Simple public package consumption that is adequately served by the public npm/PyPI/Maven registries directly",
+    "Small teams without a need for private artifact hosting or internal package proxy caching",
+    "Use cases that only need source code management (not artifact/binary management)"
+  ],
+  "best_when": "Best when your enterprise needs a universal artifact repository that proxies public registries, hosts private packages, enforces security scanning gates, and integrates with existing CI/CD across multiple package formats.",
+  "avoid_when": "Avoid when artifact management complexity and cost are disproportionate to the team size or when a simpler package registry (GitHub Packages, AWS CodeArtifact) meets the requirements.",
+  "alternatives": ["nexus-api", "github-packages-api", "aws-codeartifact-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "go", "java"],
+    "openapi_spec_url": "https://jfrog.com/help/r/jfrog-rest-apis",
+    "webhooks": true
+  },
+  "auth": {
+    "methods": ["api_key", "bearer_token", "basic"],
+    "oauth": false,
+    "scopes": true,
+    "notes": "Supports API keys (deprecated in newer versions in favor of access tokens), Bearer access tokens (generated via JFrog Access API), and HTTP Basic auth. Access tokens can be scoped to specific repositories and permission targets. Service accounts with reference tokens are the recommended pattern for agent automation."
+  },
+  "pricing": {
+    "model": "freemium",
+    "free_tier_exists": true,
+    "free_tier_limits": "JFrog Free Cloud: 2GB storage, 10GB data transfer per month for a single developer.",
+    "paid_tiers": "Team plan starts around $150/month; Enterprise+ pricing is custom. Self-hosted OSS edition is free with limited features.",
+    "requires_credit_card": false,
+    "notes": "Enterprise features including Xray security scanning, advanced replication, and Mission Control are only available on paid tiers. The self-hosted OSS version lacks Xray integration."
+  },
+  "performance": {
+    "latency_p50_ms": 300,
+    "latency_p99_ms": 2000,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "Rate limits vary by plan and endpoint; artifact upload/download throughput is limited by plan tier. API management calls are throttled at the platform level with undocumented per-token limits.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["US", "EU", "self-hosted"],
+    "compliance": ["SOC2", "ISO27001", "FedRAMP"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 80,
+    "error_message_quality": 76,
+    "error_message_notes": "Error responses return JSON with status and message fields; Xray scan result errors are verbose but inconsistently structured across API versions. Artifactory vs. Xray vs. Access API have separate error formats.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Artifact upload to the same path will overwrite by default if the repository allows it, making it effectively idempotent for content but not for metadata. Repository creation is not idempotent — it errors if the repo already exists.",
+    "pagination_style": "offset",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "JFrog Platform has three separate REST API surfaces (Artifactory, Xray, Access/Platform) with different base URLs, versioning, and auth behaviors — agents must select the correct base path for each operation",
+      "AQL (Artifactory Query Language) is powerful for artifact search but has its own query syntax that must be sent as a POST body with specific Content-Type headers",
+      "Artifact checksums (SHA256) are returned in headers on upload response but the field names are non-standard (X-Checksum-Sha256) and easy to miss",
+      "Build info submission (for build promotion tracking) requires a separate POST to the /api/build endpoint with a structured JSON payload that is distinct from artifact upload",
+      "Xray scan results are asynchronous — triggering a scan returns immediately but results must be polled until the scan completes, with no webhook option in all deployment configurations"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 80,
+    "error_handling_score": 76,
+    "auth_complexity_score": 78,
+    "rate_limit_clarity_score": 62
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 85,
+    "scope_granularity": 82,
+    "dependency_hygiene": 82,
+    "secret_handling": 83,
+    "security_notes": "Access tokens support fine-grained permission targets scoped to specific repositories and operations. API keys are legacy and being phased out. Xray provides integrated vulnerability scanning of hosted artifacts. FedRAMP authorization available for government use cases."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 80,
+    "breaking_changes_history": 78,
+    "error_recovery": 80
+  }
+}

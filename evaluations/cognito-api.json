@@ -2,27 +2,27 @@
   "id": "cognito-api",
   "name": "AWS Cognito API",
   "version_evaluated": "current",
-  "homepage": "https://aws.amazon.com/cognito/",
+  "homepage": "https://docs.aws.amazon.com/cognito/latest/developerguide/cognito-user-identity-pools.html",
   "repo_url": null,
-  "category": "auth",
-  "subcategories": ["authentication", "user-management", "identity", "aws", "oauth"],
-  "tags": ["aws", "cognito", "auth", "user-pools", "identity", "oauth", "oidc", "saml", "mfa"],
-  "what_it_does": "AWS Cognito REST and SDK API — managed user directory and authentication service providing user pools (signup/signin/MFA) and identity pools (federated identity for AWS resource access), enabling agents to manage user accounts, authentication flows, and AWS federated access at scale.",
+  "category": "identity",
+  "subcategories": ["auth", "user-management", "identity-pools"],
+  "tags": ["aws", "cognito", "auth", "user-pools", "identity-pools", "jwt", "oauth2", "mfa", "srp"],
+  "what_it_does": "AWS Cognito provides user pool management and authentication APIs enabling agents to create and manage users, groups, and app clients, trigger authentication flows, manage MFA, and federate identities for AWS service access via identity pools.",
   "use_cases": [
-    "Agents managing user account lifecycle — creating, confirming, updating, and disabling users in Cognito user pools via admin API",
-    "Token management — agents using Cognito to issue JWT tokens for application authentication and validating tokens in API gateways",
-    "MFA administration — agents enabling/disabling MFA for specific users and managing TOTP device associations",
-    "Group management — agents assigning users to Cognito groups for role-based access control in downstream services",
-    "Custom auth flows — agents implementing custom challenge responses (CAPTCHA, risk-based auth) via Cognito Lambda triggers"
+    "Programmatically create user pool accounts and add users to groups as part of an automated onboarding workflow",
+    "Initiate admin authentication flows to generate tokens for downstream service calls in a backend automation pipeline",
+    "List or disable user accounts based on policy rules (e.g., disable inactive users after 90 days)",
+    "Update user attributes (email, custom attributes) in bulk when synchronizing with an authoritative user directory",
+    "Configure and manage app clients and their OAuth2 scopes when onboarding new application integrations to the user pool"
   ],
   "not_for": [
-    "B2B enterprise SSO — Cognito handles consumer identity well but is limited for complex enterprise SSO; use Okta or Auth0 for enterprise SAML/OIDC federation",
-    "Non-AWS architectures — Cognito is tightly coupled to AWS ecosystem; use Auth0 or Firebase Auth for cloud-agnostic auth",
-    "Simple projects — Cognito setup complexity is high for small applications; use Supabase Auth or Firebase Auth for simpler use cases"
+    "Custom authentication UI — Cognito's hosted UI is limited; building rich custom login flows requires significant workaround effort",
+    "Complex enterprise identity federation (on-premises AD, SAML) at scale — Cognito SAML federation has significant limitations versus dedicated IAM products",
+    "Multi-tenant SaaS identity management with per-tenant customization — Cognito user pools are not designed for tenant isolation at scale"
   ],
-  "best_when": "You're building an AWS-native application and need managed user authentication with tight integration with API Gateway, Lambda authorizers, and IAM roles.",
-  "avoid_when": "You need enterprise SSO, advanced B2B features, or want to avoid AWS vendor lock-in — Auth0 or Okta are more flexible for complex identity scenarios.",
-  "alternatives": ["auth0-api", "okta-api", "firebase-auth-api", "supabase-auth-api"],
+  "best_when": "An agent manages user authentication and identity for applications already built on AWS, where tight IAM integration and SDK availability outweigh the feature limitations of Cognito versus dedicated IAM platforms.",
+  "avoid_when": "You need advanced enterprise IAM features like fine-grained delegated administration, complex SAML SP-initiated flows, or per-tenant branding — dedicated identity platforms handle these far better.",
+  "alternatives": ["auth0-api", "onelogin-api", "okta-api"],
   "interface": {
     "has_rest_api": true,
     "has_graphql": false,
@@ -30,37 +30,37 @@
     "has_mcp_server": false,
     "mcp_server_url": null,
     "has_sdk": true,
-    "sdk_languages": ["python", "javascript", "java", "dotnet", "go", "ruby", "php"],
-    "openapi_spec_url": "https://docs.aws.amazon.com/cognito-user-identity-pools/latest/APIReference/",
+    "sdk_languages": ["python", "javascript", "java", "go", "ruby", "csharp", "php"],
+    "openapi_spec_url": null,
     "webhooks": false
   },
   "auth": {
-    "methods": ["iam", "api_key"],
+    "methods": ["aws-iam", "unauthenticated-user-facing"],
     "oauth": true,
     "scopes": true,
-    "notes": "Admin API requires AWS IAM credentials (SigV4 signing) with appropriate IAM policies. User-facing operations (InitiateAuth, etc.) use Client ID + optional Client Secret — no IAM required. OAuth2/OIDC token endpoints for JWT issuance. Lambda triggers for custom auth flows. No traditional API key — AWS access key/secret key via SDK."
+    "notes": "Admin API operations require AWS IAM credentials (SigV4 signed requests) with appropriate Cognito IAM policies. User-facing auth endpoints (InitiateAuth, RespondToAuthChallenge) do not require IAM auth but require a client ID. The admin API (AdminInitiateAuth, AdminCreateUser) uses IAM auth. SRP (Secure Remote Password) protocol is used for password-based flows."
   },
   "pricing": {
-    "model": "usage_based",
+    "model": "usage-based",
     "free_tier_exists": true,
-    "free_tier_limits": "50,000 monthly active users free for user pools; always free for first 50,000 MAU",
-    "paid_tiers": "User pools: $0.0055 per MAU beyond 50K; Advanced security: additional cost; Identity pools: $0 for most use cases",
-    "requires_credit_card": false,
-    "notes": "Very affordable for moderate scale. Advanced security features (anomaly detection, compromised credential check) cost extra. Identity pools are effectively free. Pricing per monthly active user, not per API call."
+    "free_tier_limits": "50,000 monthly active users (MAUs) free per user pool; identity pools are free for the first 50K authentications/month",
+    "paid_tiers": "$0.0055 per MAU for 50K–100K users; tiered pricing decreasing at higher volumes; SAML/OIDC federation costs extra at $0.015 per MAU",
+    "requires_credit_card": true,
+    "notes": "Costs scale with MAUs rather than total users, making it cost-effective for apps with large registered but less active user bases. SAML federation significantly increases per-MAU cost."
   },
   "performance": {
     "latency_p50_ms": 100,
     "latency_p99_ms": 500,
     "uptime_sla_percent": 99.9,
-    "rate_limits": "AdminCreateUser: 50 req/s; AdminGetUser: 120 req/s; InitiateAuth: 100 req/s (per user pool); limits vary by operation",
+    "rate_limits": "Admin API: 10–50 requests/second depending on operation (AdminGetUser: 25/s, AdminCreateUser: 10/s); user-facing auth: 120 requests/second per user pool; limits can be raised via AWS support",
     "data_source": "llm_estimated"
   },
   "requirements": {
     "requires_signup": true,
-    "requires_credit_card": false,
+    "requires_credit_card": true,
     "domain_verification": false,
-    "data_residency": ["US", "EU", "APAC", "CA", "AU"],
-    "compliance": ["SOC2", "HIPAA", "PCI-DSS", "ISO27001", "GDPR", "FedRAMP"],
+    "data_residency": ["US", "EU", "APAC", "CA", "SA"],
+    "compliance": ["SOC2", "ISO-27001", "HIPAA", "PCI-DSS", "FedRAMP"],
     "min_contract": "none"
   },
   "agent_readiness": {
@@ -68,38 +68,38 @@
     "mcp_security_score": null,
     "documentation_accuracy": 85,
     "error_message_quality": 80,
-    "error_message_notes": "AWS-standard API with detailed documentation. Error messages include error code and message. Some Cognito-specific errors (NotAuthorizedException, UserNotFoundException) require specific handling. SigV4 signing is automatic via AWS SDK.",
+    "error_message_notes": "Cognito returns typed exceptions (UserNotFoundException, NotAuthorizedException, etc.) via the AWS SDK, which are descriptive and easy to handle programmatically. Raw HTTP responses are less informative; SDK usage is strongly preferred.",
     "idempotency_support": "partial",
-    "idempotency_notes": "AdminCreateUser is idempotent if user already exists (returns existing user). AdminUpdateUserAttributes is idempotent. Token operations are non-idempotent — new tokens issued each call.",
-    "pagination_style": "cursor",
+    "idempotency_notes": "AdminCreateUser is not idempotent — creating a user who already exists throws UsernameExistsException. AdminUpdateUserAttributes is idempotent. Auth flows are stateful and not idempotent by design.",
+    "pagination_style": "token",
     "retry_guidance_documented": true,
     "known_agent_gotchas": [
-      "AdminCreateUser requires IAM permissions — agents using user-pool-level operations need separate IAM policy from app-level operations",
-      "Per-user-pool rate limits are separate from global account limits — agents managing multiple user pools must track limits per pool",
-      "Temporary password from AdminCreateUser requires user to change on first login — agents initiating flows should handle FORCE_CHANGE_PASSWORD challenge",
-      "Token validation requires fetching JWKS from Cognito endpoint — agents should cache the JWKS and refresh periodically, not on every request",
-      "User pool ID format (region_poolId) must match region — agents with multi-region deployments must route to correct regional endpoint"
+      "Admin API and user-facing API have different rate limits — mixing admin operations with user-facing flows in one agent can cause unexpected throttling on different limit pools",
+      "SRP authentication requires a multi-step challenge-response flow — agents must implement multiple round trips (InitiateAuth → RespondToAuthChallenge) rather than a single credential submission",
+      "Custom attributes must be declared at user pool creation and cannot be removed later — schema changes require creating a new user pool and migrating users",
+      "Cognito tokens (access, ID, refresh) have different scopes and lifetimes; agents using tokens for downstream AWS services must use ID tokens, not access tokens, for user attribute claims",
+      "User pool triggers (Lambda pre/post auth, pre sign-up) can silently block operations if the Lambda throws an unhandled error — debugging requires CloudWatch log correlation"
     ]
   },
   "af_score_components": {
     "mcp_score": 0,
     "api_doc_score": 85,
-    "error_handling_score": 80,
+    "error_handling_score": 82,
     "auth_complexity_score": 72,
     "rate_limit_clarity_score": 80
   },
   "security_score_components": {
     "tls_enforcement": 100,
-    "auth_strength": 92,
-    "scope_granularity": 88,
+    "auth_strength": 88,
+    "scope_granularity": 82,
     "dependency_hygiene": 90,
-    "secret_handling": 88,
-    "security_notes": "AWS IAM with fine-grained policies. HIPAA BAA, FedRAMP authorized, PCI-DSS, SOC2 Type II. Advanced security features include compromised credential detection and adaptive authentication. GDPR compliant with EU data residency."
+    "secret_handling": 85,
+    "security_notes": "Admin API protected by AWS IAM SigV4 signing provides strong auth. Cognito supports MFA (TOTP, SMS), advanced security mode for risk-based auth, and token revocation. User pool passwords are never exposed via API."
   },
   "reliability_score_components": {
-    "uptime_documented": 92,
-    "version_stability": 90,
-    "breaking_changes_history": 88,
-    "error_recovery": 88
+    "uptime_documented": 90,
+    "version_stability": 85,
+    "breaking_changes_history": 82,
+    "error_recovery": 85
   }
 }

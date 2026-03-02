@@ -1,0 +1,105 @@
+{
+  "id": "meta-ads-api",
+  "name": "Meta Ads API",
+  "version_evaluated": "current",
+  "homepage": "https://developers.facebook.com/docs/marketing-apis",
+  "repo_url": null,
+  "category": "developer-tools",
+  "subcategories": ["advertising", "marketing", "social-media"],
+  "tags": ["meta", "facebook", "instagram", "ads", "campaigns", "audiences", "retargeting", "pixel", "catalog"],
+  "what_it_does": "Comprehensive programmatic interface to Meta's advertising platform for creating and managing ad campaigns, audiences, creatives, catalogs, and conversion tracking across Facebook, Instagram, Messenger, and Audience Network.",
+  "use_cases": [
+    "Automatically pause or scale ad sets based on real-time ROAS and frequency thresholds without manual intervention",
+    "Sync product catalog updates from an e-commerce backend to Meta for dynamic product ads on a scheduled basis",
+    "Build and refresh Custom Audiences and Lookalike Audiences from CRM contact lists for audience-based targeting",
+    "Pull granular ad delivery insights broken down by placement, device, and demographic for automated reporting dashboards",
+    "Create A/B test ad variants programmatically and monitor performance to auto-select winners after a defined window"
+  ],
+  "not_for": [
+    "Organic social content publishing or page management — use the Meta Pages API for non-ad content",
+    "WhatsApp Business messaging campaigns — use the WhatsApp Business Cloud API instead",
+    "Real-time bidding control at the impression level — Meta's auction is fully automated and not externally accessible"
+  ],
+  "best_when": "You need to automate complex, high-volume campaign management, audience lifecycle operations, or catalog synchronization across Facebook and Instagram at scale.",
+  "avoid_when": "Your use case cannot pass Meta's app review and business verification process, or you need deterministic idempotency guarantees since Meta does not support idempotency keys.",
+  "alternatives": ["facebook-ads-api", "google-ads-api", "linkedin-ads-api", "snapchat-ads-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "php", "ruby", "java", "javascript"],
+    "openapi_spec_url": null,
+    "webhooks": true
+  },
+  "auth": {
+    "methods": ["oauth2"],
+    "oauth": true,
+    "scopes": true,
+    "notes": "OAuth 2.0 with system user access tokens issued within a Meta Business Manager. Requires app review and approval for ads_management and ads_read permissions. System users (service accounts) are the recommended pattern for automated agents. Long-lived user tokens expire in 60 days; system user tokens do not expire but can lose permissions if business verification lapses. App secret is required for server-side token validation and webhook signature verification."
+  },
+  "pricing": {
+    "model": "free",
+    "free_tier_exists": true,
+    "free_tier_limits": "API access is free; costs are ad spend billed to the ad account",
+    "paid_tiers": "No API fees; ad spend is billed to the linked Meta ad account at auction rates",
+    "requires_credit_card": false,
+    "notes": "API calls are free. A valid payment method on the Meta ad account is required to serve ads. Some advanced features (e.g., Offline Conversions API, Conversions API) may require additional business eligibility."
+  },
+  "performance": {
+    "latency_p50_ms": 350,
+    "latency_p99_ms": 1800,
+    "uptime_sla_percent": 99.5,
+    "rate_limits": "Points-based rate limiting per ad account per app. Default is 200 score units per hour. Each API call costs variable points based on complexity. Batch requests (up to 50 calls per batch) help reduce overhead. Insights API uses separate async job rate limits. Rate limit headers are included in responses.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": false,
+    "domain_verification": true,
+    "data_residency": ["US", "EU"],
+    "compliance": ["GDPR", "CCPA"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 75,
+    "error_message_quality": 70,
+    "error_message_notes": "Errors use a nested error object with code, subcode, and message. Subcodes are inconsistently documented and often require consulting a separate error code reference. OAuth errors and permission errors can look similar. Error messages are sometimes generic and do not identify the specific field causing failure. Batch API returns per-item errors that must be parsed individually.",
+    "idempotency_support": "none",
+    "idempotency_notes": "No idempotency keys supported. Duplicate POST requests create duplicate objects. Agents must check for existing campaigns, ad sets, or creatives before creating to avoid duplication. Batch requests have no rollback — partial successes leave the account in a mixed state.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "App review and business verification can take days to weeks and may be revoked — agents cannot be deployed until Meta approves the app for ads_management, and approval can be lost if usage patterns change or business verification lapses",
+      "The ad object hierarchy (Business Manager → Ad Account → Campaign → Ad Set → Ad → Creative) must be navigated correctly; system user tokens are scoped to the Business Manager but not all ad accounts are automatically accessible",
+      "Policy violations trigger ad disapprovals asynchronously — an ad creation call returns HTTP 200 but the ad may be disapproved minutes later; agents must poll ad status or use webhooks to detect post-creation rejections",
+      "Insights API data is fully asynchronous for large queries — agents must create a report job, poll until status is 'Job Completed', then download results; synchronous insights are only available for small date ranges with limited metrics",
+      "The Marketing API version policy deprecates older versions on a rolling basis — agents hardcoding a version URL (e.g., /v16.0/) will break when that version sunsets, requiring proactive version migration"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 75,
+    "error_handling_score": 70,
+    "auth_complexity_score": 55,
+    "rate_limit_clarity_score": 68
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 82,
+    "scope_granularity": 75,
+    "dependency_hygiene": 78,
+    "secret_handling": 78,
+    "security_notes": "All traffic over TLS. OAuth 2.0 with system user tokens is the recommended pattern for agents. Scopes are permission-based but coarse — ads_management grants broad write access with no field-level granularity. App secret must be kept server-side and is used for appsecret_proof generation and webhook HMAC-SHA256 signature verification. Conversions API supports hashed PII transmission."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 78,
+    "version_stability": 72,
+    "breaking_changes_history": 68,
+    "error_recovery": 74
+  }
+}
