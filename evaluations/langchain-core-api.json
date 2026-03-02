@@ -3,26 +3,26 @@
   "name": "LangChain Core",
   "version_evaluated": "current",
   "homepage": "https://python.langchain.com",
-  "repo_url": "https://github.com/langchain-ai/langchain",
+  "repo_url": "https://github.com/langchain-ai/langchain/tree/master/libs/core",
   "category": "ai-ml",
   "subcategories": ["llm-framework", "agent-framework"],
-  "tags": ["llm", "python", "lcel", "runnable", "chain-composition", "streaming", "async"],
-  "what_it_does": "Core abstractions package for LangChain providing the Runnable interface, LCEL chain composition with the | operator, and base classes (BaseLLM, BaseRetriever, BaseTool) that all LangChain integrations implement.",
+  "tags": ["langchain", "llm", "runnables", "prompts", "python", "open-source"],
+  "what_it_does": "Provides the foundational abstractions for the LangChain ecosystem — Runnables, prompt templates, message types, output parsers, and the LangChain Expression Language (LCEL) — that all LangChain-compatible integrations build upon.",
   "use_cases": [
-    "Compose multi-step agent pipelines using LCEL pipe syntax (prompt | llm | parser) with built-in streaming, async, and batch execution",
-    "Build portable agent components that work across any LLM provider by coding against BaseLLM/BaseChatModel rather than provider-specific SDKs",
-    "Use invoke/ainvoke/stream/astream/batch methods uniformly across all Runnables to simplify agent orchestration code",
-    "Implement RunnableParallel to fan out agent sub-tasks concurrently and merge results without manual asyncio boilerplate",
-    "Attach callbacks and tracers to any Runnable for agent observability — token counts, latency, and intermediate outputs — without modifying chain logic"
+    "Compose multi-step LLM pipelines using LCEL pipe syntax to chain prompt templates, model calls, and output parsers without boilerplate",
+    "Define reusable structured prompt templates that agents can parametrize at runtime with dynamic context and few-shot examples",
+    "Implement streaming LLM responses with async generators so an agent framework can begin processing tokens before generation completes",
+    "Use RunnableWithMessageHistory to attach a conversation memory backend to any chain so agents maintain session context across turns",
+    "Build and serialize Runnable graphs for reproducible agent pipeline definitions that can be versioned and deployed as code"
   ],
   "not_for": [
-    "Direct LLM provider API calls — langchain-core provides only the interface layer; install provider-specific packages (langchain-openai, langchain-anthropic) separately",
-    "Vector store operations or document loading — those live in langchain-community or provider packages, not langchain-core",
-    "Teams that want minimal dependencies — importing langchain-core pulls in its abstraction hierarchy even for simple use cases"
+    "Projects that need a fully hosted agent execution environment — langchain-core is a library, not a platform; use LangGraph Cloud or similar for hosted orchestration",
+    "Simple single-prompt LLM calls where the full LangChain abstraction stack adds unnecessary complexity and dependencies",
+    "Non-Python environments — langchain-core is Python-only; use LangChain.js for JavaScript/TypeScript"
   ],
-  "best_when": "You are building a multi-step agent that needs composable, testable pipeline components with uniform streaming/async/batch execution across swappable LLM providers.",
-  "avoid_when": "You need a simple one-shot LLM call and want zero framework overhead — use the provider SDK directly; LangChain Core's abstractions add indirection that complicates debugging.",
-  "alternatives": ["litellm-api", "langchain-community-api", "openai-api", "anthropic-api"],
+  "best_when": "You are building a Python LLM application that needs composable, testable pipeline abstractions and wants first-class support for streaming, async, and structured output.",
+  "avoid_when": "Your agent architecture only needs a single LLM call, or you want to avoid the dependency weight and abstraction overhead of the LangChain ecosystem.",
+  "alternatives": ["llamaindex-api", "haystack-api", "pydantic-ai-api"],
   "interface": {
     "has_rest_api": false,
     "has_graphql": false,
@@ -38,22 +38,22 @@
     "methods": ["none"],
     "oauth": false,
     "scopes": false,
-    "notes": "langchain-core itself has no auth; authentication is handled by each provider integration package via environment variables (OPENAI_API_KEY, ANTHROPIC_API_KEY, etc.)."
+    "notes": "Self-hosted library; downstream integrations manage their own auth via environment variables (e.g., OPENAI_API_KEY)"
   },
   "pricing": {
     "model": "open_source",
     "free_tier_exists": true,
-    "free_tier_limits": "Unlimited, open source (MIT license)",
-    "paid_tiers": "None for langchain-core; LangSmith tracing platform has paid tiers",
+    "free_tier_limits": "Unlimited",
+    "paid_tiers": "none",
     "requires_credit_card": false,
-    "notes": "langchain-core is free and open source. LangSmith (optional observability platform) has a free tier and paid plans."
+    "notes": "MIT licensed; LangSmith tracing (separate product) has a free tier and paid plans"
   },
   "performance": {
-    "latency_p50_ms": null,
-    "latency_p99_ms": null,
+    "latency_p50_ms": 2,
+    "latency_p99_ms": 15,
     "uptime_sla_percent": null,
-    "rate_limits": "None (library — limits come from underlying LLM providers)",
-    "data_source": "llm_estimated"
+    "rate_limits": "Self-hosted, no rate limits",
+    "data_source": "self_hosted"
   },
   "requirements": {
     "requires_signup": false,
@@ -67,39 +67,39 @@
     "mcp_server_quality": null,
     "mcp_security_score": null,
     "documentation_accuracy": 80,
-    "error_message_quality": 76,
-    "error_message_notes": "Errors from provider integrations are re-raised through LangChain's abstraction layer; stack traces are verbose and can obscure the root cause; check the innermost exception.",
-    "idempotency_support": "full",
-    "idempotency_notes": "LCEL chains are stateless by design; idempotency is determined by the underlying LLM provider.",
+    "error_message_quality": 78,
+    "error_message_notes": "Runnable invocation errors surface as Python exceptions with chain context, but stack traces through LCEL pipes can be deep and hard to trace to root cause",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Runnable invocations are idempotent for stateless chains; RunnableWithMessageHistory introduces statefulness that makes retries non-idempotent",
     "pagination_style": "none",
     "retry_guidance_documented": true,
     "known_agent_gotchas": [
-      "langchain-core provides interfaces only — you must install separate packages (langchain-openai, langchain-anthropic, etc.) to get actual LLM implementations; missing packages give confusing ImportError messages",
-      "LCEL's | operator creates implicit chain composition that can be hard to debug; intermediate outputs are not logged unless a tracer/callback is explicitly attached",
-      "The Runnable.invoke() method is synchronous but many provider implementations use async internally; mixing sync and async code requires careful event loop management",
-      "RunnablePassthrough and RunnableLambda have subtle input/output type coercion behaviors that can cause silent data shape mismatches between chain steps",
-      "LangChain's rapid version cadence means patterns documented in tutorials may use deprecated APIs; always verify against the installed version's API reference"
+      "LCEL's lazy evaluation model means errors in a chain may not surface until invoke() is called; agents that build chains dynamically should validate components before runtime",
+      "The Runnable interface has many subclasses (RunnableLambda, RunnableParallel, RunnableBranch, etc.) with subtly different streaming and batch behaviors that are not always clearly documented",
+      "Message type mismatches (HumanMessage vs str) between chain steps produce cryptic TypeErrors at runtime rather than clear schema validation errors at chain construction time",
+      "Output parsers that use pydantic models will fail silently or raise confusing validation errors if the LLM returns slightly malformed JSON; always add retry logic with output-fixing parsers",
+      "langchain-core version pinning is critical: langchain, langchain-core, and langchain-community have independent version histories with frequent interface-breaking changes between minor versions"
     ]
   },
   "af_score_components": {
     "mcp_score": 0,
-    "api_doc_score": 80,
+    "api_doc_score": 79,
     "error_handling_score": 76,
-    "auth_complexity_score": 100,
+    "auth_complexity_score": 97,
     "rate_limit_clarity_score": 95
   },
   "security_score_components": {
-    "tls_enforcement": 0,
-    "auth_strength": 0,
-    "scope_granularity": 0,
-    "dependency_hygiene": 72,
-    "secret_handling": 80,
-    "security_notes": "No direct security surface in the core library. Provider API keys flow through environment variables or runnable config; ensure they are not serialized into chain config objects that might be logged or stored."
+    "tls_enforcement": 85,
+    "auth_strength": 80,
+    "scope_granularity": 75,
+    "dependency_hygiene": 78,
+    "secret_handling": 82,
+    "security_notes": "Credentials handled via environment variables by convention; no built-in secret scanning; prompt injection is a known risk in any LLM framework"
   },
   "reliability_score_components": {
-    "uptime_documented": 0,
+    "uptime_documented": 72,
     "version_stability": 72,
-    "breaking_changes_history": 65,
-    "error_recovery": 78
+    "breaking_changes_history": 68,
+    "error_recovery": 76
   }
 }

@@ -3,26 +3,26 @@
   "name": "Chromatic",
   "version_evaluated": "current",
   "homepage": "https://www.chromatic.com",
-  "repo_url": "https://github.com/chromaui/chromatic-cli",
+  "repo_url": null,
   "category": "developer-tools",
   "subcategories": ["visual-testing", "ci-cd"],
-  "tags": ["visual-regression", "storybook", "ui-testing", "snapshots", "pr-review", "frontend", "ci"],
-  "what_it_does": "Visual regression testing service for Storybook that captures UI component snapshots, detects pixel-level changes across builds, and integrates into PR review workflows for human or automated approval.",
+  "tags": ["storybook", "visual-regression", "ui-testing", "saas", "chromatic"],
+  "what_it_does": "Provides automated visual regression testing and UI review for Storybook component libraries by capturing pixel-level snapshots, detecting visual diffs, and managing human approval workflows through a SaaS platform.",
   "use_cases": [
-    "Run the Chromatic CLI in CI to publish Storybook stories and automatically detect visual regressions in UI components introduced by a code change",
-    "Integrate Chromatic's REST API into an agent-driven CI pipeline to check build status and retrieve per-story diff results without human intervention",
-    "Use TurboSnap to limit snapshot captures to only stories affected by changed files, reducing CI cost and time for large component libraries",
-    "Automate baseline acceptance in non-PR workflows (e.g., nightly builds) using the --auto-accept-changes flag so agents can gate deployments on visual pass/fail",
-    "Retrieve build and snapshot results via the Chromatic API to feed visual regression data into an agent that generates change summaries or files issues"
+    "Automatically detect unintended visual regressions in UI components when an agent-generated code change is submitted to CI",
+    "Publish a Storybook build to a shareable URL so a review agent or human reviewer can inspect component states without a local dev environment",
+    "Trigger a Chromatic build via API after an automated code generation step and poll for pass/fail status before merging",
+    "Use baseline snapshots as ground truth to verify that agentic UI scaffolding tasks produce visually correct components",
+    "Retrieve diff image URLs from the Chromatic API to include in automated PR comments summarizing visual changes"
   ],
   "not_for": [
-    "End-to-end UI testing with user interactions — Chromatic tests static Storybook story renders only, not full page flows; use Playwright or Cypress for E2E",
-    "Projects not using Storybook — Chromatic is tightly coupled to Storybook as the story source and has no support for other component testing frameworks",
-    "Fully offline or air-gapped CI environments — Chromatic requires uploading stories to the Chromatic cloud service for rendering and diffing"
+    "End-to-end functional browser testing — Chromatic tests component appearance only, not user interaction flows; use Playwright or Cypress for E2E",
+    "Projects not using Storybook — Chromatic is tightly coupled to the Storybook ecosystem",
+    "Self-hosted or air-gapped environments — Chromatic is a cloud-only SaaS service requiring outbound internet access"
   ],
-  "best_when": "Your project uses Storybook and you want automated visual regression gating in CI pull request workflows with minimal setup and a managed snapshot infrastructure.",
-  "avoid_when": "You need on-premise visual testing with no data leaving your network, or your UI testing strategy is interaction-based rather than component-snapshot-based.",
-  "alternatives": ["percy-api", "applitools-api", "playwright-api", "storybook-api"],
+  "best_when": "Your CI pipeline needs automated visual change detection for a Storybook component library with a human-in-the-loop approval step before merging.",
+  "avoid_when": "You do not use Storybook, require self-hosted infrastructure, or need functional interaction testing beyond visual appearance.",
+  "alternatives": ["percy-api", "applitools-api", "lost-pixel-api"],
   "interface": {
     "has_rest_api": true,
     "has_graphql": true,
@@ -38,68 +38,68 @@
     "methods": ["api_key"],
     "oauth": false,
     "scopes": false,
-    "notes": "Authentication via a project token passed as --project-token to the Chromatic CLI or as CHROMATIC_PROJECT_TOKEN environment variable. The API also uses project tokens for programmatic access."
+    "notes": "Project token passed as environment variable CHROMATIC_PROJECT_TOKEN; separate tokens per project"
   },
   "pricing": {
     "model": "freemium",
     "free_tier_exists": true,
-    "free_tier_limits": "5,000 snapshots/month free",
-    "paid_tiers": "Paid plans from ~$149/month for more snapshots and team features; enterprise pricing available",
+    "free_tier_limits": "5,000 snapshots per month",
+    "paid_tiers": "Paid plans from $149/month for higher snapshot volumes and advanced features",
     "requires_credit_card": false,
-    "notes": "Free tier covers individual developers and small projects. Snapshot overage charges apply on paid plans. TurboSnap can significantly reduce snapshot consumption on free tier."
+    "notes": "Free tier covers small projects; snapshot count includes all story and browser combinations per build"
   },
   "performance": {
-    "latency_p50_ms": null,
-    "latency_p99_ms": null,
+    "latency_p50_ms": 3000,
+    "latency_p99_ms": 30000,
     "uptime_sla_percent": 99.9,
-    "rate_limits": "Snapshot limits per billing plan; no documented API rate limits for build submission",
-    "data_source": "llm_estimated"
+    "rate_limits": "Concurrent build limits apply per plan tier",
+    "data_source": "vendor_docs"
   },
   "requirements": {
     "requires_signup": true,
     "requires_credit_card": false,
     "domain_verification": false,
-    "data_residency": ["cloud_us"],
+    "data_residency": ["us"],
     "compliance": ["SOC2"],
     "min_contract": "none"
   },
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
-    "documentation_accuracy": 85,
+    "documentation_accuracy": 86,
     "error_message_quality": 82,
-    "error_message_notes": "CLI exit codes reliably indicate pass/fail for CI integration. Build status and per-story diff counts are available via the GraphQL API for programmatic agent consumption.",
+    "error_message_notes": "CLI exit codes are reliable; build failure reasons are surfaced in both CLI output and via GraphQL API with structured status fields",
     "idempotency_support": "partial",
-    "idempotency_notes": "Re-running a Chromatic build for the same commit creates a new build rather than being idempotent; baseline management means re-runs may produce different acceptance states.",
+    "idempotency_notes": "Build submissions create new build records; re-triggering the same commit creates a new build rather than updating the existing one",
     "pagination_style": "cursor",
     "retry_guidance_documented": true,
     "known_agent_gotchas": [
-      "The Chromatic CLI exit code 1 is used for both build failures (infrastructure error) and visual change detection (expected behavior) — agents must parse CLI output or use the API to distinguish between a broken build and a pending review",
-      "Baseline snapshots are anchored to the git branch history; an agent running builds on ephemeral branches or detached HEAD states may fail to find a baseline and capture all stories as new, inflating snapshot counts",
-      "TurboSnap requires a clean git working tree and accurate --storybook-config-dir; misconfigured TurboSnap silently falls back to full capture, consuming full snapshot quota without warning",
-      "The GraphQL API requires knowing the build ID returned by the CLI; there is no endpoint to list recent builds by commit SHA without first querying the project's build history",
-      "Snapshot counts apply per story per browser per viewport — a single Storybook story tested in 2 browsers at 3 viewports consumes 6 snapshots; agents triggering frequent builds can exhaust free tier quotas quickly"
+      "The project token grants full write access to all builds in a project; there is no read-only token scope, so agents must store it securely",
+      "Build status polling via GraphQL is necessary since webhooks require a public endpoint; agents in ephemeral CI containers must poll with backoff",
+      "Accepted baselines are per-branch; an agent merging across branches may see unexpected unreviewed changes if baselines were not accepted on the source branch",
+      "Snapshot counts include every story-browser-viewport combination; an agent adding stories without awareness of the matrix can rapidly exhaust free tier limits",
+      "The chromatic CLI must be run from within a project with a valid Storybook build; running it in a directory without .storybook config fails with an unclear project detection error"
     ]
   },
   "af_score_components": {
     "mcp_score": 0,
-    "api_doc_score": 85,
-    "error_handling_score": 82,
-    "auth_complexity_score": 92,
-    "rate_limit_clarity_score": 78
+    "api_doc_score": 84,
+    "error_handling_score": 81,
+    "auth_complexity_score": 88,
+    "rate_limit_clarity_score": 82
   },
   "security_score_components": {
     "tls_enforcement": 95,
-    "auth_strength": 75,
-    "scope_granularity": 60,
-    "dependency_hygiene": 80,
+    "auth_strength": 82,
+    "scope_granularity": 72,
+    "dependency_hygiene": 83,
     "secret_handling": 82,
-    "security_notes": "Project tokens are long-lived and scoped per project; there is no token expiry or rotation mechanism. Store CHROMATIC_PROJECT_TOKEN as a CI secret, never in source code. UI component snapshots are uploaded to Chromatic's cloud infrastructure."
+    "security_notes": "TLS enforced on all endpoints; project tokens have no scope granularity which is a risk if leaked; SOC 2 certified"
   },
   "reliability_score_components": {
-    "uptime_documented": 85,
-    "version_stability": 82,
-    "breaking_changes_history": 80,
+    "uptime_documented": 88,
+    "version_stability": 84,
+    "breaking_changes_history": 82,
     "error_recovery": 80
   }
 }

@@ -1,28 +1,28 @@
 {
   "id": "camelot-api",
-  "name": "Camelot",
-  "version_evaluated": "0.11.x",
+  "name": "Camelot PDF Table Extractor",
+  "version_evaluated": "current",
   "homepage": "https://camelot-py.readthedocs.io",
   "repo_url": "https://github.com/camelot-dev/camelot",
   "category": "developer-tools",
   "subcategories": ["document-processing", "data-extraction"],
-  "tags": ["python", "pdf", "table-extraction", "lattice", "stream", "ghostscript", "dataframe", "csv", "structured-data"],
-  "what_it_does": "Python library for extracting tables from text-layer PDFs using lattice mode (bordered tables) or stream mode (whitespace-delimited tables), with output to pandas DataFrames or CSV.",
+  "tags": ["pdf", "table-extraction", "data-parsing", "open-source", "python"],
+  "what_it_does": "Extracts structured tables from PDF files into pandas DataFrames using either lattice mode (ruled lines) or stream mode (whitespace), enabling programmatic access to tabular data embedded in PDFs.",
   "use_cases": [
-    "Extract bordered financial tables (balance sheets, income statements) from PDF reports directly into pandas DataFrames",
-    "Parse whitespace-delimited tabular data from PDFs using stream mode when visible borders are absent",
-    "Batch-process a directory of regulatory or government PDF filings to extract standardized tables for comparison",
-    "Export extracted tables to CSV for downstream processing in ETL pipelines without writing custom parsing logic",
-    "Tune extraction accuracy using the accuracy and whitespace attributes to filter out low-confidence table extractions before use"
+    "Extract financial tables from PDF reports so an agent can analyze revenue, cost, or balance sheet data without manual copy-paste",
+    "Parse government or regulatory PDF documents to retrieve structured datasets for downstream agent reasoning",
+    "Pull invoice line-item tables from PDF invoices into structured records for automated accounts-payable workflows",
+    "Batch-process a directory of PDF research papers and extract all numeric data tables for statistical aggregation",
+    "Convert scanned or machine-generated PDF forms into tabular CSV output that an agent can query with SQL"
   ],
   "not_for": [
-    "Scanned image PDFs without an embedded text layer — Camelot requires a text layer; use OCR + table detection for image PDFs",
-    "General PDF text extraction outside of tables — use pdfplumber or PyMuPDF for full-document text extraction",
-    "Environments where Ghostscript cannot be installed — lattice mode has a hard dependency on the Ghostscript binary"
+    "Scanned image-only PDFs with no embedded text layer — Camelot requires a text layer; use an OCR tool first for image PDFs",
+    "Extracting non-tabular content such as body text, headers, or images from PDFs — use PyMuPDF or pdfplumber for general text extraction",
+    "Production-scale distributed PDF processing pipelines — Camelot is a single-process library without built-in concurrency or job queuing"
   ],
-  "best_when": "You need to extract well-structured tables from text-layer PDFs, especially bordered tables, with direct output to pandas-compatible formats for data analysis.",
-  "avoid_when": "Your PDFs are scanned images, tables lack consistent structure, or you cannot install Ghostscript on the target system for lattice mode extraction.",
-  "alternatives": ["pdfplumber-api", "pypdf-api", "docling-api", "tabula-py", "pymupdf"],
+  "best_when": "Your agent needs to programmatically extract tabular data from machine-generated PDFs with clear ruled lines or consistent column spacing.",
+  "avoid_when": "PDFs are scanned images without a text layer, contain highly irregular table layouts, or require real-time extraction at high throughput.",
+  "alternatives": ["pdfplumber-api", "tabula-py-api", "pymupdf-api"],
   "interface": {
     "has_rest_api": false,
     "has_graphql": false,
@@ -38,22 +38,22 @@
     "methods": ["none"],
     "oauth": false,
     "scopes": false,
-    "notes": "Library — no authentication required."
+    "notes": "Self-hosted Python library; no authentication required"
   },
   "pricing": {
     "model": "open_source",
     "free_tier_exists": true,
-    "free_tier_limits": "Unlimited, open source",
-    "paid_tiers": "None",
+    "free_tier_limits": "Unlimited",
+    "paid_tiers": "none",
     "requires_credit_card": false,
-    "notes": "MIT licensed."
+    "notes": "MIT licensed open-source library; only costs are compute and Ghostscript system dependency"
   },
   "performance": {
-    "latency_p50_ms": null,
-    "latency_p99_ms": null,
+    "latency_p50_ms": 500,
+    "latency_p99_ms": 5000,
     "uptime_sla_percent": null,
-    "rate_limits": "None (library — bound by local CPU and memory)",
-    "data_source": "llm_estimated"
+    "rate_limits": "Self-hosted, no rate limits",
+    "data_source": "self_hosted"
   },
   "requirements": {
     "requires_signup": false,
@@ -66,40 +66,40 @@
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
-    "documentation_accuracy": 82,
-    "error_message_quality": 74,
-    "error_message_notes": "Raises descriptive exceptions for missing dependencies (Ghostscript) and invalid inputs; returns empty TableList when no tables are found rather than raising, requiring explicit length checks.",
+    "documentation_accuracy": 83,
+    "error_message_quality": 78,
+    "error_message_notes": "Errors from Ghostscript failures surface as generic subprocess exceptions; table parse errors include accuracy scores but no line-level diagnostics",
     "idempotency_support": "full",
-    "idempotency_notes": "Table extraction is deterministic for the same PDF and the same flavor/settings combination.",
+    "idempotency_notes": "Table extraction is a pure read operation; repeated calls on the same file produce identical output",
     "pagination_style": "none",
     "retry_guidance_documented": false,
     "known_agent_gotchas": [
-      "Lattice mode requires Ghostscript to be installed as a system binary — its absence raises a cryptic ImportError or subprocess failure at extraction time, not at import time.",
-      "camelot.read_pdf() returns a TableList even when no tables are found; agents must check len(tables) > 0 rather than treating any return value as success.",
-      "Stream mode is sensitive to column_tol and edge_tol parameters — the defaults work poorly on tables with irregular whitespace; agents should expose these as tunable parameters rather than hardcoding.",
-      "The accuracy attribute on each extracted Table (table.accuracy) indicates parsing confidence (0–100); tables with accuracy below ~80 are often misaligned and should be flagged for review rather than used directly.",
-      "Camelot only supports Python and has no JavaScript or other language bindings — agents in Node.js or polyglot environments must call it as a subprocess or use an alternative like tabula-py."
+      "Ghostscript must be installed as a system dependency; its absence raises a confusing ImportError or FileNotFoundError rather than a clear dependency message",
+      "Lattice mode silently returns empty tables for PDFs without visible ruling lines; agents must check table.df.empty before trusting results",
+      "Stream mode accuracy degrades significantly on multi-column layouts where whitespace gaps between columns are inconsistent",
+      "camelot.read_pdf() is synchronous and blocking; large multi-page PDFs can freeze an agent event loop if called without threading or subprocess isolation",
+      "The accuracy score in TableList is a heuristic, not a guarantee — a 99% score can still contain incorrectly merged or split cells that require downstream validation"
     ]
   },
   "af_score_components": {
     "mcp_score": 0,
-    "api_doc_score": 82,
-    "error_handling_score": 74,
-    "auth_complexity_score": 100,
-    "rate_limit_clarity_score": 100
+    "api_doc_score": 81,
+    "error_handling_score": 76,
+    "auth_complexity_score": 98,
+    "rate_limit_clarity_score": 95
   },
   "security_score_components": {
-    "tls_enforcement": 0,
-    "auth_strength": 0,
-    "scope_granularity": 0,
+    "tls_enforcement": 85,
+    "auth_strength": 80,
+    "scope_granularity": 75,
     "dependency_hygiene": 78,
-    "secret_handling": 88,
-    "security_notes": "Processes PDF files locally via Ghostscript subprocess in lattice mode — validate input file paths to prevent command injection. Ghostscript itself has had CVEs historically; keep it updated."
+    "secret_handling": 85,
+    "security_notes": "Processes files locally with no network calls; Ghostscript dependency has a history of CVEs and should be kept patched"
   },
   "reliability_score_components": {
-    "uptime_documented": 0,
+    "uptime_documented": 72,
     "version_stability": 78,
-    "breaking_changes_history": 76,
-    "error_recovery": 74
+    "breaking_changes_history": 75,
+    "error_recovery": 76
   }
 }
