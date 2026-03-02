@@ -1,0 +1,105 @@
+{
+  "id": "aws-pinpoint-api",
+  "name": "AWS Pinpoint",
+  "version_evaluated": "current",
+  "homepage": "https://aws.amazon.com/pinpoint/",
+  "repo_url": null,
+  "category": "communications",
+  "subcategories": ["sms", "push-notifications", "email", "messaging"],
+  "tags": ["sms", "push-notifications", "email", "aws", "multi-channel", "analytics", "mobile"],
+  "what_it_does": "AWS Pinpoint is a multi-channel messaging and customer engagement platform that sends SMS, push notifications, email, and voice messages with built-in delivery analytics and audience segmentation.",
+  "use_cases": [
+    "Orchestrate multi-channel alert delivery (SMS + push + email) from AI agent pipelines based on user preferences and escalation logic",
+    "Send transactional SMS OTPs and verification codes with carrier-grade delivery via AWS infrastructure",
+    "Trigger personalized push notifications to mobile app users from event-driven Lambda-based agents",
+    "Deliver high-volume automated email campaigns with open/click analytics feeding back into agent decision loops",
+    "Implement programmatic A/B testing of notification content and channels with outcome tracking for agent optimization"
+  ],
+  "not_for": [
+    "Simple single-channel SMS needs where a dedicated SMS provider (Twilio, Vonage) offers simpler integration",
+    "Teams not already in the AWS ecosystem — setup complexity and IAM requirements make it overkill outside AWS",
+    "Real-time two-way conversational SMS where dedicated CPaaS platforms have better tooling"
+  ],
+  "best_when": "You are already running workloads on AWS and need a unified multi-channel messaging service with analytics that integrates natively with Lambda, SNS, and IAM.",
+  "avoid_when": "Your team lacks AWS expertise or you need rapid setup — Pinpoint's IAM/resource configuration overhead is high compared to dedicated SMS/push APIs.",
+  "alternatives": ["twilio-api", "vonage-api", "firebase-fcm-api", "aws-sns-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "node", "java", "go", "ruby", "dotnet", "php"],
+    "openapi_spec_url": null,
+    "webhooks": true
+  },
+  "auth": {
+    "methods": ["aws_iam", "api_key"],
+    "oauth": false,
+    "scopes": true,
+    "notes": "Uses standard AWS IAM (access key + secret, or instance roles, or assumed roles). Fine-grained IAM policies control which Pinpoint resources agents can access. Best practice for agents is IAM roles with least-privilege policies."
+  },
+  "pricing": {
+    "model": "usage_based",
+    "free_tier_exists": true,
+    "free_tier_limits": "Free tier: 5,000 targeted users/month, 1 million push notifications/month, 5,000 emails/month. SMS is not included in free tier.",
+    "paid_tiers": "SMS: $0.00645/message outbound US; Push: $1/million messages; Email: $0.0001/message. Dedicated long codes, short codes, and 10DLC registration incur additional fees.",
+    "requires_credit_card": true,
+    "notes": "Pricing varies significantly by channel, country, and message type. 10DLC registration required for US A2P SMS — adds setup time and per-campaign fees. Dedicated short codes are $500-$1000/month."
+  },
+  "performance": {
+    "latency_p50_ms": 400,
+    "latency_p99_ms": 3000,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "SMS: varies by origination number type; 10DLC ~75 msg/sec, short codes up to 500 msg/sec. Push: 25,000 requests/second. API calls: varies by endpoint, generally 300 TPS for send-messages.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": true,
+    "domain_verification": true,
+    "data_residency": ["US", "EU", "AP"],
+    "compliance": ["SOC1", "SOC2", "SOC3", "ISO27001", "HIPAA", "GDPR", "FedRAMP"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 83,
+    "error_message_quality": 82,
+    "error_message_notes": "AWS SDK exceptions are well-structured with error codes and messages. Pinpoint-specific errors include delivery failure reasons per message. However, async delivery failures (carrier rejections) come via event streams, not synchronous API responses.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "send-messages API accepts a client token for deduplication within a short window. Bulk campaign sends do not have per-message idempotency. Agents should track MessageId returned per send.",
+    "pagination_style": "token",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "US A2P SMS requires 10DLC registration (brand + campaign) before sending — this takes days to weeks and blocks agent deployment; plan ahead or use toll-free numbers for faster setup",
+      "Delivery receipts for SMS are only available via Kinesis Data Streams or SNS event streaming — agents cannot poll for delivery status synchronously from the send-messages response",
+      "Pinpoint has two distinct APIs: the Pinpoint API (campaigns, segments, analytics) and the Pinpoint SMS and Voice V2 API — they have different endpoints, SDKs, and IAM permissions; easy to confuse",
+      "IAM permissions for Pinpoint are granular but poorly documented; agents frequently hit AccessDenied errors when missing mobiletargeting:* or sms-voice:* actions that are non-obvious from error messages",
+      "Sending SMS requires an originating identity (long code, toll-free, or short code) that must be provisioned separately; a newly created Pinpoint project cannot send SMS until an origination number is configured and (for US) registered"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 83,
+    "error_handling_score": 82,
+    "auth_complexity_score": 75,
+    "rate_limit_clarity_score": 78
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 92,
+    "scope_granularity": 88,
+    "dependency_hygiene": 90,
+    "secret_handling": 88,
+    "security_notes": "IAM roles with least-privilege are the gold standard here; instance/execution roles avoid long-lived credentials entirely. Supports VPC endpoints for private network sends. HIPAA-eligible service with BAA available."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 85,
+    "breaking_changes_history": 82,
+    "error_recovery": 85
+  }
+}
