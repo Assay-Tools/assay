@@ -1,28 +1,28 @@
 {
   "id": "momento-api",
-  "name": "Momento Cache and Topics",
+  "name": "Momento Cache",
   "version_evaluated": "current",
-  "homepage": "https://www.gomomento.com",
-  "repo_url": "https://github.com/momentohq",
-  "category": "database",
-  "subcategories": ["cache", "pub-sub", "serverless"],
-  "tags": ["cache", "serverless", "pub-sub", "topics", "zero-infrastructure", "key-value", "real-time"],
-  "what_it_does": "Serverless cache and pub/sub platform requiring zero infrastructure setup, offering instant cache and real-time messaging APIs with per-use pricing.",
+  "homepage": "https://www.gomomento.com/",
+  "repo_url": null,
+  "category": "infrastructure",
+  "subcategories": ["caching", "pub-sub"],
+  "tags": ["cache", "serverless", "redis-alternative", "pub-sub", "python", "node", "java", "go", "rust", "zero-ops"],
+  "what_it_does": "Serverless cache and pub/sub cloud service that provides Redis-compatible caching and real-time messaging with zero infrastructure management, automatic scaling, and per-request billing.",
   "use_cases": [
-    "Cache embeddings or retrieved document chunks in agent RAG pipelines to avoid redundant vector DB queries",
-    "Broadcast real-time agent status updates to subscribed frontend clients using Momento Topics pub/sub",
-    "Store short-lived agent context windows between invocations without provisioning Redis or Memcached clusters",
-    "Coordinate multi-agent workflows by publishing task completion events to shared topics that other agents subscribe to",
-    "Implement shared rate-limit counters across distributed agent instances using atomic cache increment operations"
+    "Caching LLM API responses keyed by prompt hash to avoid redundant API calls and reduce latency in agent workflows",
+    "Sharing ephemeral agent state across distributed agent workers without managing a Redis cluster",
+    "Pub/sub messaging between agent components for event-driven coordination without operating message broker infrastructure",
+    "Session and context caching for stateless agent API endpoints where TTL-based expiry matches session lifetime",
+    "Rate limit counters and idempotency keys for agent tool calls using atomic increment operations with TTL"
   ],
   "not_for": [
-    "Primary persistent database — Momento is a cache with TTL-based eviction, not a durable store",
-    "Workloads needing complex query patterns — it is a key-value and pub/sub store with no query language",
-    "Applications requiring a self-hosted or VPC-isolated cache for strict network security compliance"
+    "Persistent data storage — Momento is a cache with TTL-based eviction, not a durable database; data loss is expected on expiry",
+    "Complex data structures or Redis commands beyond basic get/set/list/sorted-set — Momento's API surface is intentionally limited compared to full Redis",
+    "On-premises or air-gapped deployments where data cannot leave a private network — Momento is a cloud-only managed service"
   ],
-  "best_when": "You want a fully managed, zero-configuration cache or pub/sub layer that scales instantly without any infrastructure provisioning or maintenance overhead.",
-  "avoid_when": "Your caching needs exceed the free tier and cost efficiency is critical at high scale — dedicated Redis clusters may be more economical at sustained high throughput.",
-  "alternatives": ["upstash-redis-api", "redis-cloud-api", "vercel-kv-api"],
+  "best_when": "You need Redis-compatible caching or pub/sub in a serverless or auto-scaling agent deployment without the operational overhead of managing a Redis cluster.",
+  "avoid_when": "You need full Redis command compatibility, on-premises deployment, or require data persistence guarantees beyond TTL-based caching.",
+  "alternatives": ["redis", "upstash-redis", "dragonfly-api"],
   "interface": {
     "has_rest_api": true,
     "has_graphql": false,
@@ -30,7 +30,7 @@
     "has_mcp_server": false,
     "mcp_server_url": null,
     "has_sdk": true,
-    "sdk_languages": ["python", "node", "typescript", "go", "java", "dotnet", "rust", "php", "swift", "kotlin"],
+    "sdk_languages": ["python", "node", "java", "go", "rust", "php", ".net"],
     "openapi_spec_url": null,
     "webhooks": true
   },
@@ -38,21 +38,21 @@
     "methods": ["api_key"],
     "oauth": false,
     "scopes": true,
-    "notes": "Fine-grained auth tokens can be scoped to specific caches, topics, and operations (read/write/publish/subscribe). Token vending machine pattern supported for generating short-lived tokens per agent session."
+    "notes": "API tokens are scoped to specific caches and permissions (read-only, read-write). Fine-grained tokens can be generated for individual agents to limit blast radius."
   },
   "pricing": {
-    "model": "usage-based",
+    "model": "freemium",
     "free_tier_exists": true,
-    "free_tier_limits": "50 GB transfer/month, 5 GB storage, unlimited caches and topics",
-    "paid_tiers": "Pay-as-you-go at $0.50/GB transfer; no minimum spend requirement",
+    "free_tier_limits": "5 GB storage, 5 GB transfer per month, no credit card required",
+    "paid_tiers": "Pay-per-use: $0.15/GB transfer, $0.15/GB storage beyond free tier",
     "requires_credit_card": false,
-    "notes": "No idle cost — pricing is based on data transfer, not allocated capacity. Topics pub/sub is included in the same pricing model."
+    "notes": "No reserved capacity or minimum commitment; scales to zero; generous free tier suitable for development and small production workloads"
   },
   "performance": {
-    "latency_p50_ms": 3,
-    "latency_p99_ms": 20,
-    "uptime_sla_percent": 99.99,
-    "rate_limits": "No hard rate limits documented for standard usage; bursting is supported; enterprise limits available on request",
+    "latency_p50_ms": 1,
+    "latency_p99_ms": 5,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "Soft limits apply per account; contact support for increases; no hard per-request rate limits documented",
     "data_source": "llm_estimated"
   },
   "requirements": {
@@ -60,46 +60,46 @@
     "requires_credit_card": false,
     "domain_verification": false,
     "data_residency": ["US", "EU", "AP"],
-    "compliance": ["SOC2", "HIPAA"],
+    "compliance": ["SOC2"],
     "min_contract": "none"
   },
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
-    "documentation_accuracy": 87,
-    "error_message_quality": 83,
-    "error_message_notes": "SDK surfaces typed error classes distinguishing cache misses, auth failures, and server errors. HTTP API returns standard status codes. Error messages are descriptive and actionable.",
-    "idempotency_support": "partial",
-    "idempotency_notes": "SET operations are idempotent by nature; publish-to-topic has at-most-once semantics. Agents should not assume message delivery guarantees for Topics.",
+    "documentation_accuracy": 86,
+    "error_message_quality": 84,
+    "error_message_notes": "SDK errors include error codes and messages distinguishing cache miss, auth failure, and network error; gRPC status codes are exposed for programmatic handling",
+    "idempotency_support": "full",
+    "idempotency_notes": "SET and GET operations are idempotent; SET with TTL is safe to retry; increment operations are atomic",
     "pagination_style": "none",
     "retry_guidance_documented": true,
     "known_agent_gotchas": [
-      "Topics use at-most-once delivery — messages published while no subscriber is connected are dropped; agents must handle missed messages gracefully",
-      "Cache items require an explicit TTL on write — there is no default infinite TTL, which differs from standard Redis behavior and can cause unexpected misses",
-      "The REST API is simpler but lacks some SDK features like sorted sets; agents using REST should verify feature parity for their use case",
-      "Token vending machine for short-lived scoped tokens requires a backend service — agents cannot safely self-vend tokens without a trusted intermediary",
-      "Momento does not support complex data types like Redis sorted sets or streams natively — agents needing these must encode data manually in cache values"
+      "Cache misses return a CacheMiss response object, not null or an exception — agents must check response type explicitly rather than checking for None",
+      "API tokens have no refresh mechanism — if a scoped token expires or is rotated, all agents using it will fail simultaneously until reconfigured",
+      "Momento does not support Redis SCAN or key enumeration — agents that need to list or iterate cache keys must maintain their own key registry",
+      "TTL must be set on every SET operation; there is no global default TTL configured at the cache level — missing TTL causes items to use the cache's default which may not match intent",
+      "Pub/sub topics require the subscriber to be connected before messages are published — agents that subscribe after a publish event will miss messages with no replay capability"
     ]
   },
   "af_score_components": {
     "mcp_score": 0,
-    "api_doc_score": 87,
-    "error_handling_score": 83,
-    "auth_complexity_score": 90,
-    "rate_limit_clarity_score": 80
+    "api_doc_score": 86,
+    "error_handling_score": 84,
+    "auth_complexity_score": 88,
+    "rate_limit_clarity_score": 82
   },
   "security_score_components": {
     "tls_enforcement": 100,
     "auth_strength": 88,
-    "scope_granularity": 90,
+    "scope_granularity": 85,
     "dependency_hygiene": 85,
-    "secret_handling": 88,
-    "security_notes": "Fine-grained token scoping per cache/topic/operation is a standout security feature. Short-lived tokens via token vending machine reduce credential exposure. SOC2 and HIPAA compliant."
+    "secret_handling": 85,
+    "security_notes": "All connections are TLS-encrypted. Fine-grained API tokens support least-privilege access per agent. SOC2 certified."
   },
   "reliability_score_components": {
     "uptime_documented": 88,
     "version_stability": 85,
     "breaking_changes_history": 82,
-    "error_recovery": 84
+    "error_recovery": 86
   }
 }
