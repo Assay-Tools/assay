@@ -1,0 +1,105 @@
+{
+  "id": "amazon-sns-api",
+  "name": "Amazon SNS API",
+  "version_evaluated": "current",
+  "homepage": "https://aws.amazon.com/sns/",
+  "repo_url": null,
+  "category": "messaging",
+  "subcategories": ["pub-sub", "notifications", "cloud-infrastructure"],
+  "tags": ["aws", "sns", "pubsub", "notifications", "fanout", "sms", "email", "push"],
+  "what_it_does": "Amazon Simple Notification Service (SNS) is a fully managed pub/sub messaging service that enables fan-out delivery to multiple subscribers including SQS queues, Lambda, HTTP endpoints, email, and SMS.",
+  "use_cases": [
+    "Fanning out agent-published events to multiple downstream consumers (SQS, Lambda, HTTP) simultaneously",
+    "Sending SMS or email alerts from agent workflows when critical thresholds or conditions are triggered",
+    "Decoupling microservices in AWS-native agent architectures using topic-based publish-subscribe",
+    "Triggering Lambda functions from agent events for serverless task execution",
+    "Broadcasting infrastructure events (CloudWatch alarms, CodePipeline state changes) to agent subscribers"
+  ],
+  "not_for": [
+    "Message queuing or buffering where consumers need to pull at their own pace (use SQS instead)",
+    "Message replay or retention beyond the delivery window",
+    "Exactly-once delivery guarantees without additional consumer-side deduplication logic"
+  ],
+  "best_when": "An agent needs to broadcast a single event to multiple heterogeneous destinations simultaneously within an AWS-native architecture.",
+  "avoid_when": "You need durable message storage or the ability to replay messages; SNS delivers and discards without persistence.",
+  "alternatives": ["amazon-sqs-api", "google-cloud-pubsub-api", "azure-service-bus-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "javascript", "java", "go", "ruby", "php", "csharp", "rust"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["aws_iam", "aws_signature_v4"],
+    "oauth": false,
+    "scopes": true,
+    "notes": "AWS IAM authentication via Signature Version 4 signing. IAM policies control access to specific SNS actions (sns:Publish, sns:Subscribe, etc.) at the topic ARN level. Supports IAM roles for EC2/Lambda without credential management."
+  },
+  "pricing": {
+    "model": "usage_based",
+    "free_tier_exists": true,
+    "free_tier_limits": "1 million SNS requests free per month; 1000 email notifications free; 100 HTTP/S deliveries free",
+    "paid_tiers": "$0.50 per million publish requests after free tier; SMS charges vary by country starting at $0.00645/message in US; email $2 per 100,000",
+    "requires_credit_card": true,
+    "notes": "AWS account required with billing enabled. Costs are very low for typical agent workloads. SMS costs can accumulate quickly in high-volume notification scenarios."
+  },
+  "performance": {
+    "latency_p50_ms": 30,
+    "latency_p99_ms": 150,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "Default publish throughput of 30,000 messages/second per topic; 3,000 SMS/second per account; limits can be increased via service quota requests",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": true,
+    "domain_verification": false,
+    "data_residency": ["US", "EU", "APAC", "global"],
+    "compliance": ["SOC2", "ISO27001", "HIPAA", "PCI-DSS", "FedRAMP"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 92,
+    "error_message_quality": 85,
+    "error_message_notes": "AWS error responses follow a consistent XML or JSON format with error codes (e.g., InvalidParameter, AuthorizationError) and request IDs. Well-documented enough for automated retry and error classification.",
+    "idempotency_support": "none",
+    "idempotency_notes": "Publish calls are not idempotent; network retries can produce duplicate messages. Downstream consumers (SQS FIFO, Lambda) should implement deduplication.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "HTTP/HTTPS subscription endpoints must confirm the subscription by visiting a confirmation URL sent via POST before messages are delivered",
+      "SNS message size limit is 256KB; agents publishing larger payloads must use the SNS Extended Client Library with S3 offloading",
+      "Fan-out to more than 12.5 million subscribers per topic requires a service limit increase request",
+      "SNS does not guarantee message ordering; use SNS FIFO topics with SQS FIFO subscriptions when ordering is required",
+      "IAM policy conditions for topic-level access control require careful ARN pattern matching; overly permissive policies are a common misconfiguration"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 92,
+    "error_handling_score": 85,
+    "auth_complexity_score": 75,
+    "rate_limit_clarity_score": 88
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 92,
+    "scope_granularity": 88,
+    "dependency_hygiene": 90,
+    "secret_handling": 90,
+    "security_notes": "IAM-based fine-grained access control. Server-side encryption (SSE) with AWS KMS available. VPC endpoint support for private connectivity. Resource-based policies enable cross-account access. HTTPS enforcement configurable per subscription."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 90,
+    "version_stability": 95,
+    "breaking_changes_history": 93,
+    "error_recovery": 88
+  }
+}

@@ -1,0 +1,105 @@
+{
+  "id": "gamelift-api",
+  "name": "AWS GameLift",
+  "version_evaluated": "current",
+  "homepage": "https://aws.amazon.com/gamelift/",
+  "repo_url": null,
+  "category": "gaming",
+  "subcategories": ["game-server-hosting", "matchmaking", "cloud-infrastructure"],
+  "tags": ["gaming", "aws", "game-server", "matchmaking", "dedicated-server", "autoscaling", "multiplayer"],
+  "what_it_does": "AWS managed service for deploying, operating, and scaling dedicated game servers globally, including FlexMatch matchmaking, session placement, and real-time server fleets.",
+  "use_cases": [
+    "Automatically scale game server fleet capacity up or down based on active session count and time-of-day traffic patterns",
+    "Trigger FlexMatch matchmaking rule updates when game balance data indicates current rules produce unfair matches",
+    "Monitor game session health metrics and programmatically terminate and replace unhealthy server instances",
+    "Create new game builds and fleet deployments in a CI/CD pipeline when a new server binary is produced",
+    "Query active game sessions across regions and route players to the lowest-latency available server"
+  ],
+  "not_for": [
+    "Small indie games — GameLift's complexity and AWS pricing model are overkill for titles under 10K concurrent users",
+    "Browser-based or casual games that don't require dedicated server infrastructure — serverless or BaaS solutions are simpler",
+    "Teams without AWS expertise — GameLift requires deep understanding of EC2 instance types, VPCs, IAM, and CloudWatch"
+  ],
+  "best_when": "A AAA or large-scale multiplayer game needs globally distributed dedicated server hosting with precise autoscaling and AWS ecosystem integration.",
+  "avoid_when": "Your team lacks AWS operations experience or your game doesn't justify the infrastructure complexity and cost of dedicated server fleets.",
+  "alternatives": ["playfab-api", "nakama-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "javascript", "java", "csharp", "go", "ruby", "php", "cpp"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["aws_iam", "aws_sigv4"],
+    "oauth": false,
+    "scopes": true,
+    "notes": "All API calls are authenticated via AWS SigV4 signed requests using IAM credentials (access key + secret key or instance role). Fine-grained IAM policies control which GameLift resources and actions are permitted. Server processes use a distinct server SDK auth flow with a fleet-scoped auth token."
+  },
+  "pricing": {
+    "model": "usage_based",
+    "free_tier_exists": false,
+    "free_tier_limits": "No free tier — EC2 instance hours billed from first use. New AWS accounts get $200 promotional credit.",
+    "paid_tiers": "Priced per EC2 instance-hour based on instance type and region. On-demand and Spot fleets available. Spot can reduce costs 70-90% with interruption risk. Data transfer fees apply separately.",
+    "requires_credit_card": true,
+    "notes": "Total cost includes EC2 compute, data transfer, CloudWatch metrics, and GameLift service fees. A single c5.xlarge fleet running 24/7 costs ~$150/month. Spot fleets significantly reduce cost with interruption handling requirements."
+  },
+  "performance": {
+    "latency_p50_ms": 50,
+    "latency_p99_ms": 300,
+    "uptime_sla_percent": 99.99,
+    "rate_limits": "AWS API rate limits apply per-region per-account. CreateGameSession: 500 TPS, DescribeGameSessions: 100 TPS. SDK calls from game servers are not rate-limited. CloudWatch detailed monitoring adds 1-minute granularity.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": true,
+    "domain_verification": false,
+    "data_residency": ["US", "EU", "APAC", "SA", "CA", "ME"],
+    "compliance": ["SOC1", "SOC2", "SOC3", "ISO27001", "PCI-DSS", "HIPAA", "FedRAMP"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 88,
+    "error_message_quality": 82,
+    "error_message_notes": "AWS SDK throws typed exceptions (e.g., InvalidRequestException, NotFoundException) with detailed messages. Error codes are consistent with AWS conventions. CloudWatch logs provide server-side detail but require separate querying.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Fleet and build creation operations are not idempotent — retry on failure can create duplicate resources. Use describe operations to check existence before creating. GameSession creation supports IdempotencyToken parameter.",
+    "pagination_style": "token",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "GameLift SDK used by game servers (server SDK) is completely separate from the AWS SDK used by backend services — confusion between the two is a common integration error",
+      "Fleet creation takes 20-60 minutes to complete — agents must poll fleet status and cannot proceed immediately after CreateFleet returns",
+      "FlexMatch matchmaking rules are JSON with a complex DSL — invalid rules fail silently at configuration time and only surface during matchmaking",
+      "IAM roles for EC2 game server instances must explicitly include GameLift permissions or server health reporting will fail without clear error messages",
+      "Spot fleet interruptions require implementing FleetIQ interruption handling in game server code — ignoring interruptions causes abrupt player disconnects"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 88,
+    "error_handling_score": 82,
+    "auth_complexity_score": 62,
+    "rate_limit_clarity_score": 80
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 95,
+    "scope_granularity": 95,
+    "dependency_hygiene": 90,
+    "secret_handling": 90,
+    "security_notes": "IAM provides industry-leading granular access control with condition keys, resource-level permissions, and SCPs. SigV4 signing prevents replay attacks. Game server credentials are rotated automatically via instance roles. VPC integration provides network isolation."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 95,
+    "version_stability": 90,
+    "breaking_changes_history": 88,
+    "error_recovery": 88
+  }
+}

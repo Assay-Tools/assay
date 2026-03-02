@@ -1,0 +1,105 @@
+{
+  "id": "amazon-sqs-api",
+  "name": "Amazon SQS API",
+  "version_evaluated": "current",
+  "homepage": "https://aws.amazon.com/sqs/",
+  "repo_url": null,
+  "category": "messaging",
+  "subcategories": ["message-queue", "cloud-infrastructure", "async-processing"],
+  "tags": ["aws", "sqs", "queue", "async", "fifo", "dlq", "worker"],
+  "what_it_does": "Amazon Simple Queue Service (SQS) is a fully managed message queuing service offering standard (at-least-once) and FIFO (exactly-once, ordered) queues with dead-letter queue support for reliable async task processing.",
+  "use_cases": [
+    "Queuing agent tasks for asynchronous processing with automatic retry and backoff via visibility timeout",
+    "Implementing FIFO task queues to ensure ordered, exactly-once processing in multi-agent pipelines",
+    "Routing failed agent tasks to dead-letter queues for inspection, reprocessing, or alerting",
+    "Decoupling producer agents from consumer agents to allow independent scaling and failure isolation",
+    "Buffering bursts of work from upstream agents so downstream processors can consume at a sustainable rate"
+  ],
+  "not_for": [
+    "Pub/sub fan-out to multiple consumers simultaneously (use SNS for that pattern)",
+    "Message retention longer than 14 days without external archival",
+    "Real-time streaming where consumers need sub-millisecond latency"
+  ],
+  "best_when": "An agent needs reliable, durable task queuing with built-in retry semantics, dead-letter handling, and the ability to control processing rate within AWS infrastructure.",
+  "avoid_when": "You need broadcast semantics where the same message must be consumed by multiple independent subscribers without explicit routing.",
+  "alternatives": ["amazon-sns-api", "azure-service-bus-api", "google-cloud-pubsub-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "javascript", "java", "go", "ruby", "php", "csharp", "rust"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["aws_iam", "aws_signature_v4"],
+    "oauth": false,
+    "scopes": true,
+    "notes": "AWS Signature Version 4 authentication via IAM. Fine-grained IAM policies control actions per queue ARN (sqs:SendMessage, sqs:ReceiveMessage, sqs:DeleteMessage). IAM roles eliminate credential management for EC2/ECS/Lambda agents."
+  },
+  "pricing": {
+    "model": "usage_based",
+    "free_tier_exists": true,
+    "free_tier_limits": "1 million requests free per month (standard and FIFO queues combined)",
+    "paid_tiers": "Standard queues: $0.40 per million requests after free tier. FIFO queues: $0.50 per million requests. Data transfer costs apply for cross-region use.",
+    "requires_credit_card": true,
+    "notes": "Costs are very low for most agent workloads. A single 64KB payload counts as one request; larger payloads (up to 256KB) are billed in 64KB chunks."
+  },
+  "performance": {
+    "latency_p50_ms": 20,
+    "latency_p99_ms": 100,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "Standard queues: nearly unlimited throughput. FIFO queues: 3,000 messages/second with batching (300 without). Long polling reduces empty receive costs.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": true,
+    "domain_verification": false,
+    "data_residency": ["US", "EU", "APAC", "global"],
+    "compliance": ["SOC2", "ISO27001", "HIPAA", "PCI-DSS", "FedRAMP"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 93,
+    "error_message_quality": 86,
+    "error_message_notes": "Consistent XML/JSON error structure with specific error codes (QueueDoesNotExist, InvalidMessageContents, etc.) and unique request IDs. Error taxonomy is well-documented for automated handling.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "FIFO queues support exactly-once processing via message deduplication IDs (5-minute deduplication window). Standard queues are at-least-once only. Message group IDs enable per-group ordering in FIFO.",
+    "pagination_style": "none",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Visibility timeout must be set longer than the maximum expected processing time; expiring before deletion causes redelivery and duplicate processing",
+      "ReceiveMessage returns at most 10 messages per call; agents must loop to drain a queue, adding latency for high-volume scenarios",
+      "Long polling (WaitTimeSeconds > 0) is strongly recommended to reduce empty receives and costs, but requires client-side timeout handling",
+      "FIFO queue throughput limits (300-3000 TPS) can bottleneck high-throughput agents; horizontal scaling requires multiple message group IDs",
+      "Message attribute type system is limited (String, Number, Binary); complex structured payloads should be serialized to String and parsed by consumers"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 93,
+    "error_handling_score": 86,
+    "auth_complexity_score": 75,
+    "rate_limit_clarity_score": 90
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 92,
+    "scope_granularity": 90,
+    "dependency_hygiene": 90,
+    "secret_handling": 90,
+    "security_notes": "IAM fine-grained access control per queue and per action. SSE with AWS KMS for encryption at rest. VPC endpoints available for private connectivity without internet traversal. Resource-based queue policies for cross-account access."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 90,
+    "version_stability": 96,
+    "breaking_changes_history": 95,
+    "error_recovery": 90
+  }
+}

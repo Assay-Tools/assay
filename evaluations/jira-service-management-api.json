@@ -1,0 +1,105 @@
+{
+  "id": "jira-service-management-api",
+  "name": "Jira Service Management",
+  "version_evaluated": "current",
+  "homepage": "https://www.atlassian.com/software/jira/service-management",
+  "repo_url": null,
+  "category": "itsm",
+  "subcategories": ["service-desk", "incident-management", "change-management"],
+  "tags": ["itsm", "service-desk", "incidents", "change-management", "atlassian", "helpdesk", "sla", "cmdb"],
+  "what_it_does": "Atlassian's ITSM platform built on Jira providing service request management, incident tracking, change management, and SLA enforcement with REST API and OAuth2 access.",
+  "use_cases": [
+    "Automatically create and route incident tickets when monitoring alerts fire, setting priority and assignee based on alert severity",
+    "Query open service requests by SLA breach risk and escalate tickets approaching breach to on-call engineers",
+    "Update change request status and add approval comments programmatically as CI/CD pipeline stages complete",
+    "Sync asset and configuration item data from a CMDB into JSM Assets via API to maintain an up-to-date inventory",
+    "Generate weekly SLA compliance reports by querying ticket resolution times via the REST API and exporting to a dashboard"
+  ],
+  "not_for": [
+    "Simple internal ticketing for teams of fewer than 10 — the licensing cost and complexity exceed the benefit at small scale",
+    "Real-time alerting or event streaming — JSM is a ticketing system, not an event broker; use PagerDuty or Opsgenie for alerting",
+    "External customer support chat — JSM is designed for IT service management workflows, not live chat customer support"
+  ],
+  "best_when": "An IT or DevOps team using the Atlassian ecosystem needs structured ITSM workflows (incident, change, problem, request) with Jira integration.",
+  "avoid_when": "Your team is not already invested in the Atlassian ecosystem and ServiceNow or Freshservice would provide a less complex setup.",
+  "alternatives": ["servicenow-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": false,
+    "sdk_languages": [],
+    "openapi_spec_url": "https://developer.atlassian.com/cloud/jira/service-desk/swagger.v3.json",
+    "webhooks": true
+  },
+  "auth": {
+    "methods": ["api_key", "oauth2", "basic_auth"],
+    "oauth": true,
+    "scopes": true,
+    "notes": "Cloud: OAuth 2.0 (3-legged for user context, 2-legged for service accounts) or API token with Basic Auth (token replaces password). Scopes include read:servicedesk-request, write:servicedesk-request, manage:servicedesk-customer. Data Center/Server uses basic auth or personal access tokens. OAuth 2.0 recommended for production agent integrations."
+  },
+  "pricing": {
+    "model": "subscription",
+    "free_tier_exists": true,
+    "free_tier_limits": "Free for up to 3 agents with unlimited customers, basic ITSM features, and 2GB storage.",
+    "paid_tiers": "Standard at $21/agent/month (unlimited agents), Premium at $47/agent/month (advanced SLAs, approvals, AI features). Enterprise by custom quote.",
+    "requires_credit_card": false,
+    "notes": "Pricing is per-agent (licensed user who manages requests), not per customer. The free tier is functional for small teams but lacks advanced SLA and automation features needed for enterprise ITSM."
+  },
+  "performance": {
+    "latency_p50_ms": 200,
+    "latency_p99_ms": 1000,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "Atlassian Cloud REST API: 10,000 requests per hour per OAuth app per cloud site (soft limit). Per-user rate limits also apply. Exceeding returns 429 with Retry-After header. Data Center has no enforced rate limits by default.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["US", "EU", "APAC", "AU"],
+    "compliance": ["SOC2", "ISO27001", "GDPR", "FedRAMP"],
+    "min_contract": "monthly"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 80,
+    "error_message_notes": "REST API returns JSON error objects with 'errorMessages' array and 'errors' map for field-level issues. HTTP status codes are accurate. Error messages are generally descriptive but permission errors often lack specifics about which scope is missing.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Issue creation is not idempotent — duplicate submissions create duplicate tickets. Agents should search for existing issues by summary or external ID before creating new ones.",
+    "pagination_style": "offset",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "JSM Service Desk API and Jira Software API are partially overlapping — some operations must use the Jira core API (/rest/api/3) while others use the JSM endpoint (/rest/servicedeskapi); confusion causes 404s",
+      "Customer vs agent API permissions differ — an OAuth token with customer scope cannot create internal comments or transition issues through agent-only statuses",
+      "Custom field IDs (e.g., customfield_10020) must be discovered via API for each Jira instance — they are not portable across organizations",
+      "SLA field data is returned as a complex nested object with multiple time representations — parsing requires understanding Atlassian's SLA data model",
+      "OAuth 2.0 scopes must be configured in the Atlassian developer console before the token can access those resources — adding scopes after app creation requires re-authorization by each user"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 80,
+    "auth_complexity_score": 72,
+    "rate_limit_clarity_score": 78
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 88,
+    "scope_granularity": 85,
+    "dependency_hygiene": 85,
+    "secret_handling": 85,
+    "security_notes": "OAuth 2.0 with granular scopes is the recommended auth pattern and represents a strong security posture. API tokens are long-lived but scoped to the user's permissions. Atlassian Access (SSO/SCIM) available for enterprise identity governance. FedRAMP High authorization available for government use cases."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 90,
+    "version_stability": 85,
+    "breaking_changes_history": 82,
+    "error_recovery": 85
+  }
+}

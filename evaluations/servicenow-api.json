@@ -1,0 +1,105 @@
+{
+  "id": "servicenow-api",
+  "name": "ServiceNow",
+  "version_evaluated": "current",
+  "homepage": "https://www.servicenow.com",
+  "repo_url": null,
+  "category": "itsm",
+  "subcategories": ["enterprise-itsm", "workflow-automation", "cmdb", "itom"],
+  "tags": ["itsm", "enterprise", "incidents", "change-management", "cmdb", "workflow", "itom", "table-api", "soap", "rest"],
+  "what_it_does": "Enterprise ITSM and workflow automation platform providing incident, change, problem, and request management via a flexible Table API (REST), with deep CMDB, ITOM, and AI capabilities.",
+  "use_cases": [
+    "Create and update incident records via Table API when monitoring systems detect outages, auto-populating CI relationships from the CMDB",
+    "Query the change management calendar via API to check for active change freeze windows before allowing automated deployments",
+    "Automate CI/CD pipeline failure tickets by creating Problem records linked to the affected application CI in the CMDB",
+    "Use the Scripted REST API to build custom endpoints that expose complex ServiceNow workflow triggers to external agents",
+    "Pull SLA compliance metrics and MTTR data from the Incident table to feed operational dashboards and SRE reporting"
+  ],
+  "not_for": [
+    "Small or mid-market companies — ServiceNow licensing is enterprise-priced and operationally complex at a level that is rarely justified below ~500 employees",
+    "Simple ticket tracking — the platform's power comes with significant configuration overhead that is wasteful for basic helpdesk needs",
+    "Direct database-style queries at scale — the Table API is rate-limited and not designed for bulk data extraction; use IntegrationHub or export features instead"
+  ],
+  "best_when": "A large enterprise with an existing ServiceNow instance needs to integrate external automation and monitoring tools with their ITSM workflows via API.",
+  "avoid_when": "You are evaluating ITSM tools from scratch and do not have existing ServiceNow investment — the procurement and implementation cost is prohibitive without existing org commitment.",
+  "alternatives": ["jira-service-management-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": false,
+    "sdk_languages": [],
+    "openapi_spec_url": null,
+    "webhooks": true
+  },
+  "auth": {
+    "methods": ["basic_auth", "oauth2", "api_key"],
+    "oauth": true,
+    "scopes": true,
+    "notes": "Basic Auth (username + password) is the simplest method but not recommended for production. OAuth 2.0 with client credentials or authorization code flow is preferred. API keys available as an alternative to OAuth for service account integrations. Mutual TLS available for high-security environments. All auth methods are instance-scoped — each ServiceNow instance has its own OAuth server."
+  },
+  "pricing": {
+    "model": "subscription",
+    "free_tier_exists": false,
+    "free_tier_limits": "Developer instances are free for ServiceNow developers (PDI program) but are not for production use.",
+    "paid_tiers": "Enterprise licensing is custom-quoted based on user count, products (ITSM, ITOM, HRSD, etc.), and contract length. Typical enterprise deals start in the six-figure annual range.",
+    "requires_credit_card": false,
+    "notes": "ServiceNow is among the most expensive SaaS platforms per seat. Pricing is never publicly listed and requires direct sales engagement. Developer Personal Developer Instances (PDIs) are freely available for API integration development and testing."
+  },
+  "performance": {
+    "latency_p50_ms": 300,
+    "latency_p99_ms": 2000,
+    "uptime_sla_percent": 99.8,
+    "rate_limits": "Table API default: 50,000 requests per hour per instance (configurable by admin). Individual query results limited to 10,000 records without pagination. Aggregate API limits vary. Scripted REST APIs inherit instance-level rate limit configuration.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["US", "EU", "APAC", "AU", "CA", "UK"],
+    "compliance": ["SOC1", "SOC2", "ISO27001", "FedRAMP", "HIPAA", "PCI-DSS", "GDPR"],
+    "min_contract": "annual"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 82,
+    "error_message_quality": 72,
+    "error_message_notes": "Table API returns JSON with an 'error' object containing 'message' and 'detail' fields. Error quality varies — permission errors are often generic ('User Not Authenticated' even when auth is correct but role is missing). Field validation errors are more descriptive.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Record creation is not idempotent — each POST to the Table API creates a new record. Agents must use GET with a query filter to check for existing records before creating to prevent duplicates.",
+    "pagination_style": "offset",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "ServiceNow instances have instance-specific URLs (e.g., company.service-now.com) — there is no shared API gateway, and agents must be configured per-instance",
+      "Table API field names use internal names (e.g., 'caller_id' not 'Caller') that differ from the UI labels — discovering internal names requires Schema Map inspection or meta API calls",
+      "Role-based access control (ACLs) in ServiceNow is extremely granular — an agent with valid credentials may silently receive empty results or null fields due to ACL restrictions without an error",
+      "Encoded queries (sysparm_query parameter) use a proprietary URL-encoded syntax that is not standard SQL — complex queries require learning ServiceNow query syntax",
+      "ServiceNow instance versions (Xanadu, Washington, etc.) can have API breaking changes — agents must be tested against the specific version of the target instance"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 82,
+    "error_handling_score": 72,
+    "auth_complexity_score": 65,
+    "rate_limit_clarity_score": 70
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 88,
+    "scope_granularity": 90,
+    "dependency_hygiene": 85,
+    "secret_handling": 85,
+    "security_notes": "ServiceNow's ACL system provides exceptionally fine-grained authorization at the table, field, and record level. OAuth 2.0 is well-implemented with per-application credential isolation. FedRAMP High authorization makes it suitable for US government workloads. mTLS available for zero-trust network architectures."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 80,
+    "breaking_changes_history": 75,
+    "error_recovery": 80
+  }
+}
