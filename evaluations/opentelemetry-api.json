@@ -1,30 +1,28 @@
 {
   "id": "opentelemetry-api",
-  "name": "OpenTelemetry",
-  "version_evaluated": "current",
+  "name": "OpenTelemetry (OTel)",
+  "version_evaluated": "1.x stable",
   "homepage": "https://opentelemetry.io",
   "repo_url": "https://github.com/open-telemetry/opentelemetry-specification",
-  "category": "monitoring",
-  "subcategories": ["observability", "tracing", "metrics", "logging", "instrumentation"],
-  "tags": ["opentelemetry", "otel", "tracing", "metrics", "logs", "otlp", "cncf", "open-source", "distributed-tracing", "instrumentation", "apache2", "vendor-neutral"],
-  "what_it_does": "OpenTelemetry is a CNCF standard for collecting distributed traces, metrics, and logs from applications. It provides language-specific SDKs (Python, Node, Go, Java, etc.), the OTLP wire protocol for telemetry export, and the OpenTelemetry Collector for routing telemetry to any backend (Jaeger, Prometheus, Datadog, Grafana, etc.).",
+  "category": "developer-tools",
+  "subcategories": ["observability", "tracing", "metrics", "logging"],
+  "tags": ["opentelemetry", "otel", "tracing", "observability", "vendor-neutral", "cncf"],
+  "what_it_does": "CNCF standard instrumentation framework for generating traces, metrics, and logs with vendor-neutral SDKs that export to any observability backend.",
   "use_cases": [
-    "Instrumenting agent code to emit traces showing each reasoning step, tool call, and LLM invocation with timing",
-    "Collecting latency metrics from agent tool calls to identify bottlenecks in the reasoning loop",
-    "Propagating distributed trace context across multi-agent systems so traces show the full call graph",
-    "Exporting agent telemetry to any observability backend without vendor lock-in (Grafana, Datadog, New Relic, etc.)",
-    "Measuring LLM token usage and cost per agent run using OTel metrics",
-    "Debugging flaky agent behavior by replaying structured trace data from past runs"
+    "Instrumenting agent workflows to trace tool calls, LLM requests, and external API calls across distributed systems",
+    "Collecting metrics from AI agents (token usage, latency, error rates) and exporting to any backend",
+    "Adding distributed tracing to microservices without vendor lock-in",
+    "Auto-instrumenting existing frameworks (FastAPI, Django, Express) with zero code changes",
+    "Correlating logs, traces, and metrics across services with propagated trace context"
   ],
   "not_for": [
-    "Teams that just need a simple hosted dashboard without any instrumentation code — OTel requires code changes",
-    "Consuming observability data — OTel is for producing telemetry, not querying it (use your backend for querying)",
-    "Non-technical teams without engineering resources to add instrumentation",
-    "Real-time alerting — OTel is the collection layer; alerting lives in the backend (Grafana, Datadog, etc.)"
+    "Direct alerting or dashboarding — OTel generates data, requires separate backend (Jaeger, Grafana, etc.)",
+    "Teams wanting managed SaaS observability without infrastructure setup",
+    "Simple monolithic apps where basic logging suffices"
   ],
-  "best_when": "You are building agent infrastructure that needs vendor-neutral observability. OTel lets you instrument once and switch observability backends without re-instrumenting. Essential for production agentic systems.",
-  "avoid_when": "You need a complete turnkey observability solution including storage and dashboards — OTel is only the instrumentation and collection layer. Pair it with a backend like Grafana, Jaeger, or a managed service.",
-  "alternatives": ["logfire-api", "datadog-api", "honeycomb-api"],
+  "best_when": "You need vendor-neutral observability that can switch backends, or need deep trace correlation across complex agent workflows.",
+  "avoid_when": "You want a turnkey managed solution — use Datadog, New Relic, or Honeycomb instead; OTel requires backend infrastructure.",
+  "alternatives": ["datadog-api", "new-relic-api", "honeycomb-api", "grafana-loki-api"],
   "interface": {
     "has_rest_api": false,
     "has_graphql": false,
@@ -32,36 +30,36 @@
     "has_mcp_server": false,
     "mcp_server_url": null,
     "has_sdk": true,
-    "sdk_languages": ["python", "javascript", "typescript", "go", "java", "dotnet", "ruby", "php", "rust", "swift", "erlang", "cpp"],
+    "sdk_languages": ["python", "node", "java", "go", "dotnet", "rust", "cpp", "php", "ruby"],
     "openapi_spec_url": null,
     "webhooks": false
   },
   "auth": {
-    "methods": ["api_key"],
+    "methods": ["none"],
     "oauth": false,
     "scopes": false,
-    "notes": "OTel itself has no auth — it is an SDK and protocol standard. Authentication is handled by your OTLP exporter configuration pointing to a backend. Typically involves setting an API key header in the OTLP exporter config. Auth requirements depend entirely on the receiving backend."
+    "notes": "OTel itself has no auth — authentication handled by OTLP exporter configuration to target backend. Headers/mTLS configured per exporter."
   },
   "pricing": {
     "model": "open_source",
     "free_tier_exists": true,
-    "free_tier_limits": "Completely free — Apache 2.0 licensed. No limits, no cloud service required.",
-    "paid_tiers": "None — OTel is entirely open source. Backend storage costs depend on chosen observability platform.",
+    "free_tier_limits": "Free and open source — backend costs depend on chosen observability platform",
+    "paid_tiers": "Backend ingestion costs vary: Jaeger (self-hosted free), Grafana Cloud (free tier), Honeycomb (paid)",
     "requires_credit_card": false,
-    "notes": "OTel SDKs and Collector are free forever. The cost of observability comes from the storage backend you choose (Grafana Cloud, Datadog, etc.). Self-hosted Jaeger + Prometheus is a fully free end-to-end stack."
+    "notes": "OTel SDK and Collector are free/open source. Costs come from the observability backend receiving OTel data."
   },
   "performance": {
     "latency_p50_ms": 1,
     "latency_p99_ms": 10,
     "uptime_sla_percent": null,
-    "rate_limits": "No rate limits — it is a local SDK. Export throughput limited by network and backend ingestion capacity.",
+    "rate_limits": "None — client-side library with async export",
     "data_source": "llm_estimated"
   },
   "requirements": {
     "requires_signup": false,
     "requires_credit_card": false,
     "domain_verification": false,
-    "data_residency": [],
+    "data_residency": ["self_hosted"],
     "compliance": [],
     "min_contract": "none"
   },
@@ -69,41 +67,39 @@
     "mcp_server_quality": null,
     "mcp_security_score": null,
     "documentation_accuracy": 82,
-    "error_message_quality": 70,
-    "error_message_notes": "SDK-level errors are surfaced as Python/Node/etc. exceptions. OTLP export failures are typically logged but do not crash the application by default (fail-open design). Error messages can be cryptic when OTLP endpoint is misconfigured.",
+    "error_message_quality": 78,
+    "error_message_notes": "SDK emits warnings to stderr on export failure; no structured error events for agent consumption",
     "idempotency_support": "none",
-    "idempotency_notes": "Telemetry is fire-and-forget. OTel does not deduplicate spans. Duplicate spans can appear if exporters retry on network failure.",
+    "idempotency_notes": "Fire-and-forget telemetry export",
     "pagination_style": "none",
     "retry_guidance_documented": true,
     "known_agent_gotchas": [
-      "Trace context propagation must be explicitly configured — automatic propagation only works within a single process",
-      "LLM API calls are not auto-instrumented — you must manually create spans or use a framework like opentelemetry-instrumentation-openai",
-      "OTel Collector adds operational complexity — for simple cases, export directly to backend using OTLP/HTTP",
-      "Semantic conventions for GenAI (LLM) spans are still stabilizing as of 2024-2025 — attribute names may change",
-      "Sampling must be configured deliberately — default is no sampling (record everything), which can be expensive at scale",
-      "SDK initialization must happen before any instrumented code imports — import order matters in Python especially",
-      "OTLP/gRPC and OTLP/HTTP have different port defaults (4317 vs 4318) — easy to mix up"
+      "Span context must be propagated manually in async code — use context.attach() and ensure spans are ended even on exception",
+      "Batch exporter has flush timeout — in short-lived Lambda/serverless, call sdk.shutdown() before process exits or data is lost",
+      "Auto-instrumentation patches may conflict with some frameworks or ORMs; test carefully in production-like env",
+      "Collector vs direct export: OTLP to Collector adds hop but allows fan-out to multiple backends and sampling",
+      "Semantic conventions for LLM/GenAI spans are draft (gen_ai.*) — not yet stable, may change across minor versions"
     ]
   },
   "af_score_components": {
     "mcp_score": 0,
     "api_doc_score": 82,
-    "error_handling_score": 70,
-    "auth_complexity_score": 90,
-    "rate_limit_clarity_score": 95
+    "error_handling_score": 75,
+    "auth_complexity_score": 95,
+    "rate_limit_clarity_score": 88
   },
   "security_score_components": {
-    "tls_enforcement": 85,
-    "auth_strength": 75,
-    "scope_granularity": 60,
-    "dependency_hygiene": 88,
-    "secret_handling": 80,
-    "security_notes": "TLS for OTLP export is strongly recommended but optional. SDK itself has no secrets. OTLP exporter credentials are typically set via environment variables. CNCF governance provides strong supply chain security for official SDK releases."
+    "tls_enforcement": 90,
+    "auth_strength": 85,
+    "scope_granularity": 85,
+    "dependency_hygiene": 90,
+    "secret_handling": 88,
+    "security_notes": "OTLP supports mTLS and auth headers for exporter security. Data stays within your infrastructure by default."
   },
   "reliability_score_components": {
-    "uptime_documented": 90,
-    "version_stability": 78,
-    "breaking_changes_history": 72,
+    "uptime_documented": 95,
+    "version_stability": 88,
+    "breaking_changes_history": 82,
     "error_recovery": 80
   }
 }
