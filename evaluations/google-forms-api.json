@@ -1,0 +1,105 @@
+{
+  "id": "google-forms-api",
+  "name": "Google Forms API",
+  "version_evaluated": "current",
+  "homepage": "https://developers.google.com/forms/api",
+  "repo_url": null,
+  "category": "developer-tools",
+  "subcategories": ["forms", "surveys", "data-collection", "google-workspace"],
+  "tags": ["google", "forms", "surveys", "responses", "google-workspace", "data-collection", "questionnaire"],
+  "what_it_does": "REST API for programmatically reading Google Forms structure and responses, and creating or modifying forms, enabling automated survey data collection, response processing, and form management within Google Workspace.",
+  "use_cases": [
+    "Automatically retrieve new form responses on a schedule and write them to a database or spreadsheet for downstream processing",
+    "Read form structure (questions, options, settings) to validate form configuration against a schema or detect unauthorized changes",
+    "Create new Google Forms programmatically from a template definition for survey campaigns that require many similar forms",
+    "Watch for new form submissions using Google Cloud Pub/Sub push notifications to trigger real-time downstream workflows",
+    "Sync form response data to a CRM or ticketing system when a support intake or lead generation form is submitted"
+  ],
+  "not_for": [
+    "Complex conditional logic forms or advanced survey branching — Google Forms has limited branching support via the API and advanced survey features require dedicated tools like SurveyMonkey or Typeform",
+    "Embedding forms in native mobile or desktop apps — Google Forms renders in a web browser and the API does not provide a headless form rendering interface",
+    "High-volume anonymous data collection with strict response anonymization — Google Forms ties responses to Google accounts when sign-in is required, and anonymization options are limited"
+  ],
+  "best_when": "Your team uses Google Workspace and you need to programmatically retrieve form responses for processing, automate form creation from templates, or integrate Google Forms submissions into downstream workflows.",
+  "avoid_when": "You need advanced survey logic, custom branding, complex answer piping, or offline form capabilities — Google Forms is a simple form tool and the API does not extend its feature set beyond what the UI offers.",
+  "alternatives": ["typeform-api", "surveymonkey-api", "jotform-api", "airtable-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "node", "java", "php", "ruby", "go", "dotnet"],
+    "openapi_spec_url": "https://forms.googleapis.com/$discovery/rest?version=v1",
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["oauth2", "service_account"],
+    "oauth": true,
+    "scopes": true,
+    "notes": "Google OAuth 2.0 with granular scopes. Two primary scopes: https://www.googleapis.com/auth/forms.body (read/write form structure) and https://www.googleapis.com/auth/forms.responses.readonly (read responses only). Service accounts are supported for server-to-server automation but must be granted access to specific forms via domain-wide delegation or explicit sharing. OAuth 2.0 authorization code flow is used for user-delegated access. Access tokens expire in 1 hour and must be refreshed using a refresh token."
+  },
+  "pricing": {
+    "model": "free",
+    "free_tier_exists": true,
+    "free_tier_limits": "Free for all Google accounts; Google Forms API is part of Google Workspace APIs with standard quota",
+    "paid_tiers": "No API fees; included in Google Workspace subscriptions (Business Starter from $6/user/month) or free with personal Google accounts",
+    "requires_credit_card": false,
+    "notes": "The Google Forms API is free to use. API quota is shared with other Google Workspace APIs under the project's quota limits. Default quota is 300 requests per minute per project. Quota increases can be requested via the Google Cloud Console."
+  },
+  "performance": {
+    "latency_p50_ms": 200,
+    "latency_p99_ms": 800,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "300 requests per minute per project by default. Separate quotas for read and write operations. Quota is shared across all users of the same Google Cloud project. Rate limit errors return HTTP 429 with a Retry-After header. Quota increases can be requested for projects with demonstrated need.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["US", "EU"],
+    "compliance": ["SOC2", "ISO27001", "GDPR", "HIPAA"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 82,
+    "error_message_notes": "Error responses follow the Google API standard format with status, message, and errors array. HTTP status codes are used correctly. Error messages are generally descriptive and include the specific resource or permission issue. Quota exceeded errors include the quota metric name. The Google API error documentation is comprehensive and well-maintained.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "GET and read operations are naturally idempotent. Form creation (POST) is not idempotent — duplicate calls will create duplicate forms. Form updates using batchUpdate are idempotent if the same operations are applied to the same form ID. No idempotency key mechanism is provided for create operations.",
+    "pagination_style": "token",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "The API uses push notifications via Google Cloud Pub/Sub for real-time response events rather than traditional webhooks — agents must provision a Pub/Sub topic and subscription, configure the watch endpoint, and handle watch expiration (watches expire after 7 days and must be renewed)",
+      "Service accounts cannot access forms owned by a Google Workspace user without either domain-wide delegation or explicit sharing of the form with the service account's email — agents using service accounts must ensure forms are shared before attempting access",
+      "The API only supports reading responses for forms owned by or shared with the authenticated user — agents cannot access forms from arbitrary users even with a valid OAuth token scoped to forms.responses.readonly",
+      "Form item IDs are internal Google identifiers that are not stable across form recreations — agents that store item IDs for later reference must handle the case where a form is deleted and recreated, as new item IDs will be assigned",
+      "Response data does not include respondent email addresses by default unless the form is configured to collect emails — agents that need to attribute responses to specific users must ensure form settings are configured correctly before deployment"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 82,
+    "auth_complexity_score": 72,
+    "rate_limit_clarity_score": 80
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 88,
+    "scope_granularity": 82,
+    "dependency_hygiene": 85,
+    "secret_handling": 85,
+    "security_notes": "All traffic over TLS. OAuth 2.0 with granular, least-privilege scopes (read-only response scope vs full body scope) is a strong security model. Service account keys must be stored securely and rotated regularly. Domain-wide delegation grants broad impersonation capability and should be used with caution. Google Cloud project IAM provides additional access control layers. Google holds SOC2, ISO 27001, and HIPAA certifications."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 92,
+    "version_stability": 88,
+    "breaking_changes_history": 85,
+    "error_recovery": 85
+  }
+}

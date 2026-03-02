@@ -1,0 +1,105 @@
+{
+  "id": "bunny-stream-api",
+  "name": "Bunny.net Stream",
+  "version_evaluated": "current",
+  "homepage": "https://bunny.net/stream",
+  "repo_url": null,
+  "category": "infrastructure",
+  "subcategories": ["video-hosting", "cdn", "encoding", "streaming"],
+  "tags": ["bunny", "video", "streaming", "cdn", "hls", "encoding", "media", "transcoding"],
+  "what_it_does": "Bunny.net Stream is a video hosting and delivery API that provides upload, automatic transcoding to HLS (multiple resolutions), global CDN delivery, and player embedding, enabling agents to programmatically upload and serve video content without managing encoding infrastructure.",
+  "use_cases": [
+    "Programmatically upload recorded video files and trigger automatic multi-bitrate HLS transcoding for adaptive streaming",
+    "Retrieve video metadata and playback URLs after encoding completes to embed or link in content management workflows",
+    "List, search, and delete videos in a library via API to automate video content lifecycle management",
+    "Fetch per-video analytics (views, bandwidth, engagement) to feed into reporting or content optimization agents",
+    "Create and manage video collections or libraries programmatically to organize content by campaign, course, or category"
+  ],
+  "not_for": [
+    "Live streaming — Bunny.net Stream is focused on on-demand video; use Mux or Wowza for live RTMP ingest",
+    "Advanced DRM and enterprise content protection beyond basic token authentication — use Mux or Bitmovin for studio-grade DRM",
+    "Real-time video processing or AI video analysis — Bunny.net provides encoding only, not video intelligence"
+  ],
+  "best_when": "An agent needs to upload and deliver encoded video at low per-GB cost with global CDN performance and minimal operational overhead.",
+  "avoid_when": "You need live streaming, advanced DRM, or video AI features (transcription, scene detection) — Bunny.net Stream is a delivery-focused service, not a full video intelligence platform.",
+  "alternatives": ["mux-api", "cloudflare-stream-api", "aws-mediaconvert-api", "api-video-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["javascript", "php", "python", "csharp"],
+    "openapi_spec_url": "https://docs.bunny.net/openapi",
+    "webhooks": true
+  },
+  "auth": {
+    "methods": ["api_key"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "API key authentication via AccessKey header. Separate keys exist for account-level (billing, library management) and library-level (video CRUD) operations. Video playback token signing uses a separate HMAC-based token for access restriction."
+  },
+  "pricing": {
+    "model": "usage_based",
+    "free_tier_exists": false,
+    "free_tier_limits": "No free tier; pay-as-you-go from the first byte.",
+    "paid_tiers": "Storage: $0.005/GB/month. Encoding: included. CDN delivery: from $0.005/GB depending on zone. No monthly minimum.",
+    "requires_credit_card": true,
+    "notes": "Very competitive per-GB pricing compared to AWS or GCP video services. No upfront commitment. Costs scale directly with storage and delivery volume."
+  },
+  "performance": {
+    "latency_p50_ms": 150,
+    "latency_p99_ms": 600,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "API: 1000 requests/minute per library key. Video uploads via tus resumable protocol support large files. CDN latency depends on viewer geography and PoP proximity.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": true,
+    "domain_verification": false,
+    "data_residency": ["US", "EU", "Asia"],
+    "compliance": ["GDPR"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 82,
+    "error_message_quality": 78,
+    "error_message_notes": "API errors return JSON with StatusCode and Message fields. Error messages are generally informative for auth and validation errors. Encoding failure details are available via video status polling but require a separate GET request to retrieve error reason.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Video upload via tus protocol supports resumable uploads natively (idempotent for the same upload URL). Creating video objects (POST) generates new GUIDs each call — agents should check for existing video by title before creating to avoid duplicates.",
+    "pagination_style": "page",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Transcoding is asynchronous — polling the video status endpoint is required; agents must wait for status 4 (Finished) before playback URLs are valid",
+      "Upload requires a two-step process: first create a video object (POST) to get a GUID, then upload the binary to a separate URL using tus protocol",
+      "Video GUID is assigned at creation but the HLS manifest URL is only available after transcoding completes — do not cache the URL before status is Finished",
+      "Rate limit of 1000 req/min applies per library key — bulk operations across many videos can hit this quickly; implement backoff and batching",
+      "Webhook delivery is not guaranteed for transient server errors — agents should periodically poll video status rather than relying solely on webhooks for encoding completion"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 82,
+    "error_handling_score": 78,
+    "auth_complexity_score": 85,
+    "rate_limit_clarity_score": 80
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 80,
+    "scope_granularity": 72,
+    "dependency_hygiene": 78,
+    "secret_handling": 80,
+    "security_notes": "Separate account-level and library-level API keys reduce blast radius if a key is compromised. Token authentication for video playback supports time-limited access and IP restriction. TLS enforced on all API and CDN endpoints."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 85,
+    "version_stability": 82,
+    "breaking_changes_history": 80,
+    "error_recovery": 78
+  }
+}

@@ -1,0 +1,105 @@
+{
+  "id": "zscaler-api",
+  "name": "Zscaler API",
+  "version_evaluated": "current",
+  "homepage": "https://help.zscaler.com/zia/api",
+  "repo_url": null,
+  "category": "developer-tools",
+  "subcategories": ["security", "zero-trust", "network-security", "cloud-security", "sase"],
+  "tags": ["zscaler", "zero-trust", "ztna", "sase", "network-security", "cloud-proxy", "dlp", "firewall"],
+  "what_it_does": "Zscaler provides REST APIs for its Zero Trust security platform (ZIA and ZPA), enabling programmatic management of security policies, URL filtering, firewall rules, user provisioning, and access control for cloud-native network security.",
+  "use_cases": [
+    "Automate URL category policy updates to block or allow new domains identified by threat intelligence feeds",
+    "Provision and deprovision user access in Zscaler Private Access (ZPA) as part of employee onboarding/offboarding workflows",
+    "Query web traffic logs and security event data from ZIA to feed a SIEM for centralized security monitoring",
+    "Manage location-based firewall rules and bandwidth policies programmatically for branch office deployments",
+    "Sync user and group data from an identity provider into Zscaler via SCIM provisioning API to maintain access policies"
+  ],
+  "not_for": [
+    "Endpoint detection and response — Zscaler focuses on network-layer security, not endpoint agent telemetry",
+    "Application performance monitoring or network observability beyond security-relevant traffic metadata",
+    "Organizations not using Zscaler's cloud proxy infrastructure — the API only manages Zscaler-deployed controls"
+  ],
+  "best_when": "Best when your organization has deployed Zscaler ZIA or ZPA and needs to automate policy management, integrate with ITSM workflows, or build security automation on top of the existing Zscaler investment.",
+  "avoid_when": "Avoid when you need a vendor-agnostic network security API — Zscaler's API is tightly coupled to its own cloud proxy infrastructure and does not expose general network security primitives.",
+  "alternatives": ["palo-alto-panorama-api", "cloudflare-api", "cisco-umbrella-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": false,
+    "sdk_languages": [],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["oauth2", "api_key"],
+    "oauth": true,
+    "scopes": true,
+    "notes": "ZIA API uses a session-based authentication flow — must call /authenticatedSession to obtain a JSESSIONID cookie, then use that cookie for subsequent requests. Newer partner/integration APIs use OAuth 2.0 client credentials. Authentication is complex with separate auth flows for ZIA (internet access) and ZPA (private access) products. Multi-tenant environments require additional tenant context headers."
+  },
+  "pricing": {
+    "model": "enterprise",
+    "free_tier_exists": false,
+    "free_tier_limits": null,
+    "paid_tiers": "Enterprise licensing negotiated with Zscaler sales. ZIA (internet access) and ZPA (private access) are licensed separately. API access included with platform licenses.",
+    "requires_credit_card": false,
+    "notes": "No self-serve pricing or developer tier. Requires enterprise contract. Pricing is based on number of users and selected security modules."
+  },
+  "performance": {
+    "latency_p50_ms": 300,
+    "latency_p99_ms": 1500,
+    "uptime_sla_percent": 99.999,
+    "rate_limits": "Rate limits vary by API endpoint and tenant configuration. Bulk configuration changes are rate-limited more aggressively. The /activateChanges endpoint must be called after policy changes — forgetting this is a common source of apparent API failures.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["US", "EU", "APAC"],
+    "compliance": ["SOC2", "ISO27001", "FedRAMP", "HIPAA", "PCI-DSS"],
+    "min_contract": "annual"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 68,
+    "error_message_quality": 62,
+    "error_message_notes": "Error messages are inconsistent across ZIA and ZPA APIs. Some endpoints return HTTP 200 with error payload rather than proper HTTP error codes. Authentication errors can be particularly cryptic, especially around session expiry.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Configuration operations are generally not idempotent — creating the same rule twice creates duplicates. Agents must query existing state before making changes and use update operations rather than create when records exist.",
+    "pagination_style": "offset",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "ZIA API requires calling /activateChanges after any policy modification — changes are staged and not live until this call is made, causing confusion when testing",
+      "Session-based auth in ZIA uses cookies that expire after 30 minutes of inactivity — agents in long-running workflows must re-authenticate",
+      "ZIA and ZPA are separate products with different API base URLs, authentication flows, and data models despite being from the same vendor",
+      "Tenant cloud name (e.g., zsapi.zscaler.net vs zsapi.zscalertwo.net) varies per customer deployment and must be looked up from the admin console",
+      "Bulk configuration imports can silently truncate or reject items exceeding undocumented size limits without clear error indication"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 68,
+    "error_handling_score": 62,
+    "auth_complexity_score": 45,
+    "rate_limit_clarity_score": 55
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 78,
+    "scope_granularity": 70,
+    "dependency_hygiene": 80,
+    "secret_handling": 75,
+    "security_notes": "Security is ironically a weak point in the API design — session cookie auth is fragile and the staged activation model creates opportunity for misconfiguration. OAuth 2.0 on newer APIs is better. The platform itself has strong compliance certifications."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 90,
+    "version_stability": 72,
+    "breaking_changes_history": 68,
+    "error_recovery": 65
+  }
+}
