@@ -1,0 +1,105 @@
+{
+  "id": "duo-api",
+  "name": "Duo Security API",
+  "version_evaluated": "current",
+  "homepage": "https://duo.com/docs/api",
+  "repo_url": null,
+  "category": "developer-tools",
+  "subcategories": ["identity", "security", "mfa"],
+  "tags": ["mfa", "2fa", "device-trust", "access-policy", "authentication", "security", "enterprise"],
+  "what_it_does": "Provides programmatic access to Duo Security's MFA, device trust, and access policy enforcement for verifying user authentications, managing users and devices, and retrieving authentication logs.",
+  "use_cases": [
+    "Trigger MFA push notifications to users and await approval/denial responses for step-up authentication workflows",
+    "Query authentication logs and activity history to detect anomalous login patterns or policy violations",
+    "Manage users, groups, and enrolled devices as part of identity lifecycle automation",
+    "Evaluate device trust posture (OS version, encryption status) before granting access to sensitive resources",
+    "Sync users and groups from directory services and assign them to Duo-protected applications"
+  ],
+  "not_for": [
+    "Primary user authentication (Duo is a second factor, not a password replacement)",
+    "Real-time high-volume event streaming — authentication log polling has inherent latency",
+    "Consumer or small-scale use cases — Duo is priced and designed for enterprise deployments"
+  ],
+  "best_when": "Best for enterprise workflows that need to programmatically enforce or audit MFA policies, retrieve authentication logs for security analysis, or manage device enrollment at scale.",
+  "avoid_when": "Avoid when you need a simple API key auth system — Duo's HMAC-SHA1 signed request scheme adds significant implementation complexity for basic use cases.",
+  "alternatives": ["okta-api", "auth0-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "javascript", "java", "ruby", "go", "php", "csharp"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["hmac_signed_request"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "All requests are signed using HMAC-SHA1 with an Integration Key (ikey), Secret Key (skey), and API Hostname — all three are required. The canonical request string includes timestamp, method, host, path, and sorted parameters. Timestamp must be within ±5 minutes of Duo's servers (NTP sync critical). Separate integration credentials exist for Auth API vs Admin API vs Accounts API, so agents must manage multiple credential sets if using multiple APIs."
+  },
+  "pricing": {
+    "model": "subscription",
+    "free_tier_exists": true,
+    "free_tier_limits": "Free tier ('Duo Free') supports up to 10 users with basic MFA",
+    "paid_tiers": "Duo Essentials, Advantage, and Premier tiers with per-user monthly pricing; enterprise volume discounts available",
+    "requires_credit_card": false,
+    "notes": "Admin API and Accounts API access typically require paid tiers. Auth API is available on all plans. Pricing is not publicly listed for higher tiers — requires sales contact."
+  },
+  "performance": {
+    "latency_p50_ms": 300,
+    "latency_p99_ms": 2000,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "Rate limits vary by API product. Auth API: ~100 req/s per integration. Admin API: lower limits, often 100-300 req/min depending on endpoint. Push auth calls may block for up to 60 seconds awaiting user response.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["US", "EU", "AU", "CA"],
+    "compliance": ["SOC2", "ISO-27001", "FedRAMP"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 82,
+    "error_message_quality": 78,
+    "error_message_notes": "Error responses include a stat field ('FAIL') and a message string, but error codes are numeric and require cross-referencing documentation. Push timeout vs denial vs failure are distinct states that must be handled separately.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Auth API async transactions use a txid for correlation, providing some idempotency for push flows. Admin API write operations are not idempotent and may create duplicates if retried naively.",
+    "pagination_style": "offset",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "HMAC-SHA1 request signing requires precise canonical form — parameter sorting, URL encoding, and newline handling must be exact or requests silently fail with 401",
+      "Timestamp validation is strict (±5 minutes): agents running in environments with NTP drift will see intermittent 401 errors that are hard to diagnose",
+      "Auth API and Admin API use separate integration credentials with different hostnames — an agent must maintain multiple credential sets and route requests correctly",
+      "Push authentication is asynchronous and can take up to 60 seconds; agents must implement polling or timeout logic and handle 'waiting', 'allow', 'deny', and 'timeout' states",
+      "The Admin API returns paginated results using offset/limit but does not provide total count, so agents cannot determine completion without receiving an empty page"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 82,
+    "error_handling_score": 78,
+    "auth_complexity_score": 45,
+    "rate_limit_clarity_score": 68
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 92,
+    "scope_granularity": 70,
+    "dependency_hygiene": 88,
+    "secret_handling": 80,
+    "security_notes": "HMAC-SHA1 signing provides strong request integrity but SHA1 is considered weak by modern standards; Duo has not migrated to HMAC-SHA256. Secret key must be stored securely by the agent — exposure compromises the integration entirely. No OAuth scopes mean all Admin API operations use the same credential with no least-privilege granularity beyond choosing Auth API vs Admin API."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 85,
+    "breaking_changes_history": 83,
+    "error_recovery": 78
+  }
+}
