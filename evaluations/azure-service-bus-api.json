@@ -2,27 +2,27 @@
   "id": "azure-service-bus-api",
   "name": "Azure Service Bus API",
   "version_evaluated": "current",
-  "homepage": "https://learn.microsoft.com/en-us/azure/service-bus-messaging/",
-  "repo_url": "https://github.com/Azure/azure-sdk-for-python",
+  "homepage": "https://azure.microsoft.com/en-us/products/service-bus/",
+  "repo_url": null,
   "category": "messaging",
-  "subcategories": ["message-queue", "enterprise-messaging", "azure", "pub-sub"],
-  "tags": ["azure", "service-bus", "messaging", "queue", "topics", "enterprise-messaging"],
-  "what_it_does": "Azure Service Bus is an enterprise message broker with queues and pub/sub topics — supports sessions, dead-lettering, scheduled messages, transactions, and AMQP protocol for reliable message delivery.",
+  "subcategories": ["message-queue", "pub-sub", "enterprise-messaging"],
+  "tags": ["messaging", "queues", "topics", "pub-sub", "amqp", "enterprise", "azure", "microsoft", "service-bus", "async"],
+  "what_it_does": "Provides enterprise-grade cloud messaging via queues and publish/subscribe topics using AMQP 1.0 and REST, supporting reliable ordered delivery, dead-lettering, and transactions for decoupled distributed systems on Microsoft Azure.",
   "use_cases": [
-    "Reliable task queuing for agent workflows requiring guaranteed exactly-once processing",
-    "Event fan-out via Service Bus Topics with multiple competing-consumer subscriptions",
-    "Ordered message processing via Service Bus Sessions for customer-specific workflows",
-    "Scheduled message delivery for time-delayed agent tasks",
-    "Dead-letter queue handling for failed agent message processing with poison message isolation"
+    "Decouple an agent's task dispatch from execution by posting work items to a Service Bus queue and having worker agents pull and process messages independently",
+    "Implement a pub/sub fan-out where a single event (order_placed) is published to a topic and multiple subscriber agents (inventory, billing, notifications) receive it via independent subscriptions",
+    "Use dead-letter queues to capture and inspect messages that failed processing in an agent pipeline for debugging and reprocessing workflows",
+    "Coordinate long-running multi-step agent workflows using message sessions to group related messages and ensure ordered, stateful processing by a single consumer",
+    "Bridge on-premises systems with cloud agents using Service Bus's relay and hybrid connection features for secure cross-boundary message passing"
   ],
   "not_for": [
-    "High-throughput real-time streaming (Azure Event Hubs is better for millions of events/sec)",
-    "Teams not on Azure (use SQS/SNS for AWS, Pub/Sub for GCP, or Kafka for cloud-agnostic)",
-    "Simple queue workloads where Azure Storage Queues would suffice"
+    "Ultra-high-throughput real-time event streaming at millions of events per second (use Azure Event Hubs for Kafka-compatible streaming instead)",
+    "Simple fire-and-forget webhook delivery to external HTTP endpoints (use Azure Event Grid for HTTP-based event push)",
+    "Non-Microsoft-cloud deployments where a cloud-agnostic messaging layer (RabbitMQ, AWS SQS) would reduce vendor lock-in"
   ],
-  "best_when": "Your Azure-based agent architecture needs enterprise-grade messaging with ordered delivery, transactions, dead-lettering, and competing consumers.",
-  "avoid_when": "You need streaming analytics or are not on Azure — Service Bus is for point-to-point and pub/sub messaging, not high-throughput event streams.",
-  "alternatives": ["aws-sqs-api", "rabbitmq-api", "kafka-api", "google-pubsub-api"],
+  "best_when": "You are building Azure-native distributed agent workflows that require enterprise messaging guarantees — ordered delivery, dead-lettering, duplicate detection, and transactional message processing.",
+  "avoid_when": "Your workload is primarily high-throughput event streaming rather than reliable message queueing, or you need cloud-agnostic infrastructure that can move between cloud providers.",
+  "alternatives": ["aws-sqs-api", "google-cloud-pubsub-api", "rabbitmq-api", "azure-event-hubs-api", "azure-event-grid-api"],
   "interface": {
     "has_rest_api": true,
     "has_graphql": false,
@@ -30,76 +30,76 @@
     "has_mcp_server": false,
     "mcp_server_url": null,
     "has_sdk": true,
-    "sdk_languages": ["python", "node", "java", "dotnet", "go"],
+    "sdk_languages": ["dotnet", "java", "python", "javascript", "go"],
     "openapi_spec_url": null,
     "webhooks": false
   },
   "auth": {
-    "methods": ["bearer_token", "shared_access_signature"],
+    "methods": ["sas_token", "azure_ad"],
     "oauth": true,
     "scopes": true,
-    "notes": "Azure AD (managed identity recommended) or Shared Access Signature (SAS) tokens. RBAC roles: Service Bus Data Sender, Data Receiver, Data Owner. Managed Identity for Azure-hosted agents eliminates credentials."
+    "notes": "Supports Shared Access Signatures (SAS) with configurable send/listen/manage permissions per entity, and Azure Active Directory OAuth2 with RBAC roles for more granular control. SAS is simpler; Azure AD is recommended for production agent deployments."
   },
   "pricing": {
-    "model": "pay-as-you-go",
+    "model": "usage_based",
     "free_tier_exists": false,
-    "free_tier_limits": "No free tier; Basic tier starts at $0.05 per million operations",
-    "paid_tiers": "Basic: $0.05/M ops; Standard: $9.81/month + $0.01/M ops; Premium: $677/month per messaging unit",
+    "free_tier_limits": null,
+    "paid_tiers": "Basic tier from ~$0.05 per million operations; Standard tier ~$10/month base + per-operation; Premium tier from ~$668/month with dedicated capacity and VNet integration",
     "requires_credit_card": true,
-    "notes": "Basic tier lacks topics (queues only). Standard has topics, sessions. Premium required for geo-redundancy and VNet integration."
+    "notes": "Basic tier lacks topics/subscriptions and advanced features; most agent use cases require Standard or Premium. Premium is recommended for enterprise SLA requirements."
   },
   "performance": {
-    "latency_p50_ms": 50,
-    "latency_p99_ms": 500,
+    "latency_p50_ms": 10,
+    "latency_p99_ms": 100,
     "uptime_sla_percent": 99.9,
-    "rate_limits": "1,000 concurrent connections per namespace (Standard); Premium: configurable",
+    "rate_limits": "Standard: up to 1,000 concurrent connections and 256 KB message size; Premium: up to 1 MB message size and higher throughput per messaging unit",
     "data_source": "llm_estimated"
   },
   "requirements": {
     "requires_signup": true,
     "requires_credit_card": true,
     "domain_verification": false,
-    "data_residency": ["US", "EU", "APAC"],
-    "compliance": ["SOC1", "SOC2", "ISO27001", "HIPAA", "PCI-DSS"],
+    "data_residency": ["US", "EU", "APAC", "government-cloud"],
+    "compliance": ["SOC1", "SOC2", "ISO27001", "HIPAA", "GDPR", "FedRAMP"],
     "min_contract": "none"
   },
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
     "documentation_accuracy": 88,
-    "error_message_quality": 85,
-    "error_message_notes": "Azure SDK provides typed exceptions with clear message and ErrorCode. Dead-letter reason codes are standardized. AMQP error conditions map to specific exception types. Connection errors include retry guidance in exception properties.",
+    "error_message_quality": 84,
+    "error_message_notes": "Azure Service Bus returns structured AMQP error conditions and HTTP error codes with detailed messages; SDK exceptions map clearly to service-level errors.",
     "idempotency_support": "full",
-    "idempotency_notes": "Sessions enable ordered, exactly-once semantics. Message deduplication window (default 10 minutes) prevents duplicate sends. MessageId-based dedup at namespace level.",
+    "idempotency_notes": "Built-in duplicate detection (configurable window) prevents duplicate message processing. Message IDs can be set by producers to enable exactly-once semantics.",
     "pagination_style": "none",
     "retry_guidance_documented": true,
     "known_agent_gotchas": [
-      "Message lock expiration causes message to reappear if not completed within lock duration — agents must complete or renew lock before processing timeout",
-      "Topics require Standard or Premium tier — Basic tier only has queues; wrong tier causes feature-not-available errors",
-      "Sessions are exclusive — only one consumer can process a session at a time; agents must release sessions explicitly",
-      "Service Bus namespaces have global DNS — namespace names must be globally unique, not just regionally",
-      "Peek vs Receive are different — PeekMessage does not lock; ReceiveAndDelete/PeekLock changes message availability"
+      "Messages must be explicitly completed (acknowledged) after processing; failure to complete within the lock duration causes the message to reappear and be redelivered, which can cause agents to process the same message multiple times",
+      "Message lock renewal must be handled by long-running agents — if processing exceeds the lock duration without renewal, the lock is released and the message becomes available to other consumers",
+      "SAS tokens have an expiry and must be refreshed by agents on long-running connections; Azure AD tokens (preferred) also expire and require refresh token management",
+      "The REST API is fully functional but AMQP (via SDK) is strongly preferred for high-throughput scenarios — REST polling adds significant overhead versus AMQP push delivery",
+      "Topic subscriptions must be pre-created with their filter rules; agents cannot dynamically create subscriptions at runtime without Manage permissions, which is a broader permission than typically granted"
     ]
   },
   "af_score_components": {
     "mcp_score": 0,
     "api_doc_score": 88,
-    "error_handling_score": 85,
-    "auth_complexity_score": 75,
-    "rate_limit_clarity_score": 80
+    "error_handling_score": 84,
+    "auth_complexity_score": 78,
+    "rate_limit_clarity_score": 82
   },
   "security_score_components": {
     "tls_enforcement": 100,
     "auth_strength": 90,
-    "scope_granularity": 85,
-    "dependency_hygiene": 90,
-    "secret_handling": 88,
-    "security_notes": "Azure RBAC with managed identity (no credentials). SAS token scoped to specific queues/topics. Message encryption at rest. Private endpoints for network isolation. HIPAA, ISO 27001, SOC 2."
+    "scope_granularity": 88,
+    "dependency_hygiene": 88,
+    "secret_handling": 85,
+    "security_notes": "Azure AD RBAC with least-privilege roles (Data Sender, Data Receiver) is the recommended auth approach. SAS tokens can be scoped to individual queues/topics with send-only or listen-only rights. VNet integration available on Premium tier. Strong enterprise security posture overall."
   },
   "reliability_score_components": {
     "uptime_documented": 92,
     "version_stability": 90,
-    "breaking_changes_history": 90,
+    "breaking_changes_history": 88,
     "error_recovery": 90
   }
 }

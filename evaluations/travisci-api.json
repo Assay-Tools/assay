@@ -1,0 +1,105 @@
+{
+  "id": "travisci-api",
+  "name": "Travis CI API",
+  "version_evaluated": "v3",
+  "homepage": "https://www.travis-ci.com",
+  "repo_url": null,
+  "category": "developer-tools",
+  "subcategories": ["ci-cd", "build-automation"],
+  "tags": ["ci", "cd", "build", "pipeline", "github", "testing", "automation"],
+  "what_it_does": "Travis CI API v3 allows agents to trigger builds, inspect build status and logs, manage repository settings, and query job results for GitHub-connected CI/CD pipelines.",
+  "use_cases": [
+    "Trigger a build on a specific branch or pull request after code changes are merged",
+    "Poll build status and surface failures with log excerpts in a developer notification workflow",
+    "Restart failed builds automatically when transient infrastructure errors are detected",
+    "Query build history to generate weekly CI health reports across multiple repositories",
+    "Enable or disable Travis CI for a repository as part of an onboarding or offboarding automation"
+  ],
+  "not_for": [
+    "Arbitrary compute or script execution outside of a git-connected repository context",
+    "Container registry management or artifact storage (use JFrog or Nexus instead)",
+    "Teams that have fully migrated to GitHub Actions and no longer use Travis CI"
+  ],
+  "best_when": "Best when your team uses Travis CI as the primary CI/CD platform and needs agents to automate build triggering, monitoring, and reporting across GitHub repositories.",
+  "avoid_when": "Avoid when your organization has standardized on a different CI platform or when you need on-premises CI with no external cloud dependency.",
+  "alternatives": ["github-actions-api", "circleci-api", "drone-api", "teamcity-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["ruby", "python", "javascript"],
+    "openapi_spec_url": "https://developer.travis-ci.com/",
+    "webhooks": true
+  },
+  "auth": {
+    "methods": ["bearer_token"],
+    "oauth": true,
+    "scopes": false,
+    "notes": "Authentication uses a Travis CI API token passed as a Bearer token in the Authorization header. Tokens can be obtained via the Travis CI dashboard or by exchanging a GitHub token using the /auth/github endpoint. GitHub OAuth is required to initially connect repositories."
+  },
+  "pricing": {
+    "model": "freemium",
+    "free_tier_exists": true,
+    "free_tier_limits": "Free for open-source public repositories; limited concurrent jobs.",
+    "paid_tiers": "Paid plans start around $69/month for private repositories with configurable concurrent job limits.",
+    "requires_credit_card": false,
+    "notes": "Open-source projects on travis-ci.com receive limited free credits. travis-ci.org (legacy) has been shut down. Credit-based model for private repos."
+  },
+  "performance": {
+    "latency_p50_ms": 300,
+    "latency_p99_ms": 1500,
+    "uptime_sla_percent": 99.5,
+    "rate_limits": "Rate limits are not heavily publicized; in practice API calls are throttled per token at roughly a few hundred requests per minute.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["US"],
+    "compliance": ["SOC2"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 75,
+    "error_message_quality": 70,
+    "error_message_notes": "Error responses return JSON with a message field but often lack actionable detail; HTTP 403 errors do not distinguish between missing token and insufficient permissions.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Build trigger endpoints are not idempotent — repeated calls create duplicate builds. Read endpoints (GET) are safe to retry.",
+    "pagination_style": "offset",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Triggering a build on a branch that has no .travis.yml returns a 200 with a build that immediately errors — agents must check build state, not just HTTP status",
+      "The API token is scoped globally; there are no fine-grained permission scopes, so any leaked token exposes all repos",
+      "Build log retrieval requires a separate endpoint (/build/{id}/log) and logs may be paginated or truncated for large outputs",
+      "Rate limiting is undocumented and enforced opaquely — agents may receive 429 responses without Retry-After headers",
+      "Repository slug format uses %2F-encoded slashes (owner%2Frepo) which must be URL-encoded correctly in path segments"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 75,
+    "error_handling_score": 70,
+    "auth_complexity_score": 78,
+    "rate_limit_clarity_score": 55
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 75,
+    "scope_granularity": 50,
+    "dependency_hygiene": 72,
+    "secret_handling": 75,
+    "security_notes": "No fine-grained token scopes — a single token grants full API access to all connected repositories. Environment variable secrets in builds are masked in logs but the masking has had historical bypass issues."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 80,
+    "version_stability": 75,
+    "breaking_changes_history": 70,
+    "error_recovery": 72
+  }
+}
