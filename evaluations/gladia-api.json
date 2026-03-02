@@ -1,0 +1,106 @@
+{
+  "id": "gladia-api",
+  "name": "Gladia API",
+  "version_evaluated": "current",
+  "homepage": "https://www.gladia.io/",
+  "repo_url": "https://github.com/gladiaio/gladia-sdk-js",
+  "category": "AI/ML",
+  "subcategories": ["Speech-to-Text", "Real-Time Transcription", "Audio Intelligence"],
+  "tags": ["speech-to-text", "transcription", "real-time", "word-timestamps", "diarization", "audio-intelligence", "gladia"],
+  "what_it_does": "Gladia provides real-time and asynchronous speech-to-text transcription with word-level timestamps, speaker diarization, translation, and audio intelligence features. Built on Whisper with custom optimizations for speed and accuracy. Offers both a batch API and a WebSocket-based live transcription API.",
+  "use_cases": [
+    "Real-time meeting transcription with per-word timestamps for synchronized subtitles or captions",
+    "Agent voice pipeline transcription where sub-second latency is required for turn detection",
+    "Multilingual transcription with automatic language detection and translation to English",
+    "Speaker-attributed transcript generation for podcast or interview processing pipelines",
+    "Audio file batch processing with detailed metadata (confidence scores, word timing) for downstream NLP"
+  ],
+  "not_for": [
+    "LLM-over-audio workflows (no LeMUR equivalent — use AssemblyAI or build your own pipeline)",
+    "Telephony-grade 8kHz audio without pre-processing (optimized for 16kHz+ audio quality)",
+    "Teams needing detailed compliance certifications beyond SOC2 for regulated industries"
+  ],
+  "best_when": "You need fast, accurate transcription with word-level timestamps and speaker diarization, especially for real-time use cases where latency matters more than deep audio intelligence features.",
+  "avoid_when": "Your pipeline needs integrated LLM analysis over transcripts, structured data extraction from audio, or you need HIPAA compliance out of the box.",
+  "alternatives": ["assemblyai-api", "deepgram-api", "openai-whisper-api", "google-speech-to-text-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["JavaScript/TypeScript", "Python"],
+    "openapi_spec_url": "https://docs.gladia.io/api-reference",
+    "webhooks": true
+  },
+  "auth": {
+    "methods": ["api_key"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Single API key per account passed as x-gladia-key header. No OAuth or scope model. Key management via dashboard only. No fine-grained access control — one key has full account access. Key rotation requires dashboard interaction."
+  },
+  "pricing": {
+    "model": "usage_based",
+    "free_tier_exists": true,
+    "free_tier_limits": "10 hours free on signup (no credit card required)",
+    "paid_tiers": "Pay-as-you-go from $0.36/hour for pre-recorded audio, $0.54/hour for live transcription. Volume discounts negotiable. Enterprise custom pricing.",
+    "requires_credit_card": false,
+    "notes": "Generous free tier for development. Pricing competitive with AssemblyAI and Deepgram. Live transcription priced higher than async. Word-level timestamps and diarization included in base price — no add-on fees for these features."
+  },
+  "performance": {
+    "latency_p50_ms": 300,
+    "latency_p99_ms": 1200,
+    "uptime_sla_percent": 99.5,
+    "rate_limits": "No published hard rate limits for async API. Live WebSocket: concurrent session limits apply per plan. High-throughput batch processing should use async API with webhook callbacks rather than polling.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["US", "EU"],
+    "compliance": ["SOC2", "GDPR"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 82,
+    "error_message_quality": 78,
+    "error_message_notes": "REST API returns structured JSON errors with message and detail fields. HTTP status codes used correctly. Live WebSocket errors arrive as JSON error frames. Documentation examples cover common error scenarios. Error codes not formally enumerated but messages are descriptive.",
+    "idempotency_support": "none",
+    "idempotency_notes": "No idempotency keys for async transcription submissions. Duplicate submissions create new jobs. Agents must persist job IDs to avoid resubmission. Completed results retrievable by job ID. No automatic deduplication based on audio content or URL.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Async transcription uses a callback/webhook pattern — the POST /transcription endpoint returns a job ID immediately; agents must poll /transcription/{id} or configure a callback URL; blocking on the submission response will never get results",
+      "Word-level timestamps are in milliseconds from audio start — agents must account for audio offset if transcribing segments of longer recordings, as timestamps will not align with wall clock time",
+      "Language detection is automatic but can be overridden; if not specified and audio contains code-switching (multiple languages), accuracy degrades; always set language explicitly when known",
+      "Live WebSocket API requires audio to be sent in specific chunk sizes and formats (16kHz, 16-bit PCM or specific codecs); sending arbitrary audio chunks causes silent transcription degradation",
+      "Speaker diarization labels are ordinal (speaker_0, speaker_1) within a session — they reset per transcription job; agents correlating speakers across multiple files must implement their own speaker identity mapping",
+      "Callback URLs for async results must be publicly accessible at processing time — ngrok or tunnel URLs used in development often expire before Gladia sends the callback, causing agents to miss results silently"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 82,
+    "error_handling_score": 78,
+    "auth_complexity_score": 82,
+    "rate_limit_clarity_score": 72
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 75,
+    "scope_granularity": 62,
+    "dependency_hygiene": 78,
+    "secret_handling": 78,
+    "security_notes": "Single API key model with no scope granularity. No OAuth delegated access. Audio data retention policy should be reviewed before processing sensitive content. SOC2 certified. EU data residency available for GDPR workloads. No HIPAA BAA currently available."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 78,
+    "version_stability": 78,
+    "breaking_changes_history": 75,
+    "error_recovery": 75
+  }
+}
