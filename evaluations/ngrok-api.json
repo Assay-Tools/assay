@@ -1,0 +1,105 @@
+{
+  "id": "ngrok-api",
+  "name": "Ngrok",
+  "version_evaluated": "current",
+  "homepage": "https://ngrok.com",
+  "repo_url": null,
+  "category": "developer-tools",
+  "subcategories": ["tunneling", "api-gateway", "networking"],
+  "tags": ["tunnel", "localhost", "webhook", "reverse-proxy", "ingress", "api-gateway"],
+  "what_it_does": "Ngrok provides secure tunnels and an API gateway that expose local or private services to the internet with built-in traffic inspection, authentication, and routing.",
+  "use_cases": [
+    "Expose a locally running agent or service endpoint to receive inbound webhooks during development",
+    "Create temporary public URLs for testing OAuth redirect flows and callback endpoints",
+    "Inspect and replay HTTP traffic to debug integration failures between agent and external services",
+    "Programmatically provision named tunnels with custom domains for ephemeral agent deployments",
+    "Use Ngrok's traffic policy engine to enforce authentication (OAuth, OIDC, API key) in front of agent APIs without modifying service code"
+  ],
+  "not_for": [
+    "Production-grade high-availability API gateway requiring SLA-backed uptime without an Ngrok paid plan",
+    "Persistent long-lived tunnels for services that should use a proper reverse proxy or cloud load balancer",
+    "Scenarios requiring data residency guarantees, as tunnel traffic transits Ngrok's cloud infrastructure"
+  ],
+  "best_when": "An agent or development service needs a quick, reliable public URL with traffic inspection and optional auth enforcement in front of a local or private endpoint.",
+  "avoid_when": "The deployment target is a public cloud environment with a stable routable IP — use a native ingress controller or load balancer instead.",
+  "alternatives": ["hookdeck-api", "cloudflare-workers-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "node", "go", "rust", "java"],
+    "openapi_spec_url": "https://ngrok.com/docs/api/",
+    "webhooks": true
+  },
+  "auth": {
+    "methods": ["api_key", "bearer_token"],
+    "oauth": false,
+    "scopes": true,
+    "notes": "Tunnels authenticate via an authtoken issued to the account. The Ngrok API uses API keys passed as Bearer tokens. Ngrok also supports enforcing OAuth, OIDC, SAML, and webhook verification as traffic policies on tunnels themselves."
+  },
+  "pricing": {
+    "model": "freemium",
+    "free_tier_exists": true,
+    "free_tier_limits": "1 online ngrok process, 1 tunnel, ephemeral random subdomains, 40 connections/minute, no custom domains",
+    "paid_tiers": "Personal ($8/mo): custom subdomains, 3 tunnels. Pro ($20/mo): multiple agents, reserved domains, team features. Enterprise: custom pricing, SSO, dedicated infrastructure",
+    "requires_credit_card": false,
+    "notes": "Free tier is sufficient for basic webhook testing. Named reserved domains require a paid plan. API access is available on all tiers."
+  },
+  "performance": {
+    "latency_p50_ms": 35,
+    "latency_p99_ms": 200,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "Free: 40 connections/minute per tunnel. Paid tiers have higher limits; enterprise plans offer custom rate limits. API management endpoints are rate-limited at 60 req/min.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["US", "EU"],
+    "compliance": ["SOC2"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 88,
+    "error_message_quality": 84,
+    "error_message_notes": "HTTP error responses include structured JSON with error code and message. Tunnel connection errors are surfaced in the agent process logs and via the traffic inspection UI, but can be verbose and require parsing.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Tunnel creation is idempotent when using named tunnels with a fixed name; anonymous tunnels create new endpoints on each start. API resource creation (reserved domains, edges) is idempotent via name.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Free-tier tunnel URLs are ephemeral and change on each process restart, breaking any hardcoded callback URLs stored by external systems",
+      "The ngrok agent process must remain running for the tunnel to stay alive — there is no serverless or always-on tunnel without a persistent process or paid cloud endpoint",
+      "Tunnel traffic inspection (the web UI on port 4040) is only available on the local machine and not accessible to remote agents debugging live traffic",
+      "Rate limit errors on free tier (429) are returned at the tunnel edge and may not include a Retry-After header, requiring exponential backoff logic in the caller",
+      "When using the Ngrok API to provision tunnels programmatically, the agent authtoken and API key are separate credentials and must both be configured correctly"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 88,
+    "error_handling_score": 84,
+    "auth_complexity_score": 85,
+    "rate_limit_clarity_score": 80
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 85,
+    "scope_granularity": 80,
+    "dependency_hygiene": 82,
+    "secret_handling": 83,
+    "security_notes": "All tunnel traffic is TLS-encrypted end-to-end. Authtokens and API keys should be stored as secrets; Ngrok docs recommend environment variables. Traffic policy engine supports IP restrictions, JWT validation, and OAuth enforcement at the edge."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 85,
+    "breaking_changes_history": 82,
+    "error_recovery": 83
+  }
+}
