@@ -1,0 +1,105 @@
+{
+  "id": "census-api",
+  "name": "Census Reverse ETL API",
+  "version_evaluated": "current",
+  "homepage": "https://getcensus.com",
+  "repo_url": null,
+  "category": "data-pipeline",
+  "subcategories": ["reverse-etl", "data-sync", "data-activation"],
+  "tags": ["reverse-etl", "data-sync", "warehouse", "activation", "crm", "marketing", "census"],
+  "what_it_does": "Provides programmatic control over Census Reverse ETL syncs, enabling agents to trigger syncs, monitor run status, and manage the pipelines that push data warehouse records into CRMs, ad platforms, and other business destinations.",
+  "use_cases": [
+    "Trigger a Census sync after a dbt model refresh completes to ensure Salesforce lead scores reflect the latest warehouse data",
+    "Poll sync run status and surface failures to a Slack alerting pipeline when audience exports to Google Ads fall behind",
+    "List all configured syncs with their last-run status to generate a daily data freshness audit for the data team",
+    "Pause all syncs targeting a specific destination before a credential rotation and resume them after validation",
+    "Programmatically create or update sync configurations as part of an Infrastructure-as-Code data activation workflow"
+  ],
+  "not_for": [
+    "Ingesting data into a warehouse — Census is reverse ETL (warehouse to business tools), not forward ETL; use Airbyte or Fivetran to load data into the warehouse",
+    "Real-time streaming data pipelines — Census operates on scheduled or triggered batch syncs, not sub-second event streams",
+    "Direct SQL execution against your warehouse — Census orchestrates syncs but does not expose a query interface; connect directly to the warehouse for ad-hoc queries"
+  ],
+  "best_when": "Best when an agent needs to orchestrate data activation from a warehouse to downstream business tools, especially when tight integration with dbt models and CI/CD pipelines is required.",
+  "avoid_when": "Avoid when you need to load data into a warehouse rather than out of it, or when real-time event delivery to destinations is required rather than periodic batch syncs.",
+  "alternatives": ["hightouch-api", "airbyte-api", "fivetran-api", "segment-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": false,
+    "sdk_languages": [],
+    "openapi_spec_url": "https://docs.getcensus.com/api-reference",
+    "webhooks": true
+  },
+  "auth": {
+    "methods": ["api_key"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "API key authentication via Bearer token in the Authorization header. Keys are generated per workspace in the Census UI. No granular scopes — a key grants full access to the workspace."
+  },
+  "pricing": {
+    "model": "subscription",
+    "free_tier_exists": true,
+    "free_tier_limits": "Free tier available with limited syncs and destination connectors for evaluation purposes.",
+    "paid_tiers": "Core, Platform, and Enterprise tiers priced based on number of syncs, destinations, and data volume. Enterprise includes SLA, SSO, and audit logs.",
+    "requires_credit_card": false,
+    "notes": "Pricing details require contacting Census for Business and Enterprise tiers. Free tier available for initial evaluation."
+  },
+  "performance": {
+    "latency_p50_ms": 300,
+    "latency_p99_ms": 1500,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "Rate limits not prominently published; standard fair-use limits apply to the management API. Sync throughput depends on destination connector limits.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["US", "EU"],
+    "compliance": ["SOC2", "GDPR", "HIPAA"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 80,
+    "error_message_quality": 75,
+    "error_message_notes": "HTTP errors follow standard conventions with JSON bodies; sync failure details are available in run objects but require parsing error message strings to distinguish failure types.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "GET operations are fully idempotent. Sync trigger (POST) operations may queue duplicate runs if retried — agents should verify no run is in-flight before triggering.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Triggering a sync while a run is already active may queue a second run depending on sync configuration — agents must check current run state before triggering to avoid duplicate data pushes to destinations",
+      "Sync failures caused by destination credential expiration (e.g., expired OAuth token for Salesforce) look identical to data errors in the API response; root cause requires inspecting error message text",
+      "The management API controls sync orchestration but does not expose the underlying warehouse query or model logic — debugging data quality issues requires separate access to the warehouse",
+      "Webhook payloads for sync completion events may arrive before the run status is fully updated in the REST API, causing a race condition if agents query status immediately after receiving a webhook",
+      "API keys are workspace-scoped without granular permissions, meaning a single key can trigger, pause, or delete any sync — agents should use dedicated keys with documented access scope"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 80,
+    "error_handling_score": 74,
+    "auth_complexity_score": 85,
+    "rate_limit_clarity_score": 60
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 75,
+    "scope_granularity": 50,
+    "dependency_hygiene": 80,
+    "secret_handling": 75,
+    "security_notes": "API keys lack granular scopes, granting full workspace control. Destination OAuth tokens and credentials are managed by Census and not exposed via the API. TLS enforced on all endpoints."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 82,
+    "version_stability": 82,
+    "breaking_changes_history": 80,
+    "error_recovery": 76
+  }
+}

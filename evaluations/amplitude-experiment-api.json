@@ -1,0 +1,105 @@
+{
+  "id": "amplitude-experiment-api",
+  "name": "Amplitude Experiment API",
+  "version_evaluated": "current",
+  "homepage": "https://www.docs.developers.amplitude.com/experiment/",
+  "repo_url": "https://github.com/amplitude/experiment-python-server",
+  "category": "analytics",
+  "subcategories": ["feature-flags", "a-b-testing", "experimentation"],
+  "tags": ["feature-flags", "a-b-testing", "experimentation", "amplitude", "feature-management", "rollouts"],
+  "what_it_does": "Provides programmatic control over Amplitude Experiment's feature flags and A/B tests — evaluating flag variants for users, managing experiment configurations, and retrieving experiment results integrated with Amplitude Analytics.",
+  "use_cases": [
+    "Evaluate feature flag variants for a specific user at request time to gate feature access in a backend service without round-tripping to the Amplitude SDK",
+    "Fetch experiment assignment results for a cohort of users to analyze conversion lift and statistical significance in a data pipeline",
+    "Create or update feature flag configurations programmatically as part of a CI/CD deployment workflow with gradual rollout logic",
+    "List all active experiments and their current allocation percentages to generate a flag hygiene audit and identify stale experiments",
+    "Retrieve raw experiment exposure events to feed into a custom analysis pipeline alongside other behavioral data in the warehouse"
+  ],
+  "not_for": [
+    "General product analytics (events, funnels, retention) — use the Amplitude Analytics API for behavioral queries; Amplitude Experiment is specifically for flag evaluation and A/B testing",
+    "Multi-armed bandit or adaptive experimentation at scale — Amplitude Experiment supports basic A/B and feature flags but is not a specialized Bayesian optimization platform",
+    "Cross-platform experiments independent of Amplitude Analytics — Amplitude Experiment is tightly coupled to the Amplitude ecosystem; LaunchDarkly or Statsig are better choices if you need standalone flag management"
+  ],
+  "best_when": "Best when an agent is already working within the Amplitude ecosystem and needs to manage feature flags or retrieve experiment results that are natively integrated with Amplitude Analytics behavioral data.",
+  "avoid_when": "Avoid when you need sophisticated multi-variate experimentation with advanced statistical methods, or when your analytics stack does not include Amplitude and you want flag management independent of a specific analytics vendor.",
+  "alternatives": ["amplitude-api", "launchdarkly-api", "statsig-api", "split-api", "optimizely-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "node", "java", "go", "ruby"],
+    "openapi_spec_url": "https://www.docs.developers.amplitude.com/experiment/apis/management-api/",
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["api_key"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Two separate key types: Deployment keys (for client/server-side flag evaluation) and Management API keys (for creating and managing experiments). Management API keys are generated per project in the Amplitude settings."
+  },
+  "pricing": {
+    "model": "freemium",
+    "free_tier_exists": true,
+    "free_tier_limits": "Amplitude Experiment is included in Amplitude's free Starter plan with limited experiment slots and monthly tracked users.",
+    "paid_tiers": "Plus, Growth, and Enterprise tiers include more experiment capacity, advanced targeting, and mutual exclusion groups. Pricing is bundled with Amplitude Analytics.",
+    "requires_credit_card": false,
+    "notes": "Amplitude Experiment pricing is bundled with Amplitude Analytics plans — you cannot purchase Experiment standalone without an Amplitude account."
+  },
+  "performance": {
+    "latency_p50_ms": 150,
+    "latency_p99_ms": 800,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "Evaluation API: up to 600 requests per second for remote evaluation. Management API has lower limits for CRUD operations. Exact limits documented per endpoint.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["US", "EU"],
+    "compliance": ["SOC2", "GDPR", "HIPAA"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 82,
+    "error_message_quality": 78,
+    "error_message_notes": "Error responses are well-structured with HTTP status codes and JSON bodies. Flag evaluation errors (e.g., unknown user, missing flag key) return default variants silently rather than erroring, which can mask misconfiguration.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Flag evaluation calls are idempotent. Management API create operations are not idempotent by default — creating the same flag twice creates duplicates.",
+    "pagination_style": "offset",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Remote evaluation silently returns the fallback/default variant when a flag key does not exist or the user does not match any targeting rules — agents cannot distinguish 'flag not found' from 'user in control group' without checking the variant reason field",
+      "Management API keys and Deployment keys are completely separate credentials with different base URLs — agents that confuse the two get authentication errors that can be hard to diagnose",
+      "Experiment results and analytics data have a processing lag of up to 24 hours; agents querying recent experiment exposures may see incomplete data",
+      "Mutual exclusion groups and holdout groups can cause users to be excluded from experiments silently — agents auditing assignment rates need to account for this and check exclusion group configurations",
+      "Flag evaluation caches variants client-side in the SDK; server-side remote evaluation avoids this but adds per-request latency — agents choosing between local and remote evaluation need to understand this trade-off explicitly"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 82,
+    "error_handling_score": 76,
+    "auth_complexity_score": 72,
+    "rate_limit_clarity_score": 78
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 80,
+    "scope_granularity": 65,
+    "dependency_hygiene": 82,
+    "secret_handling": 80,
+    "security_notes": "Two separate key types (deployment vs management) provide some separation of privilege. Neither key type has fine-grained permission scopes. TLS enforced. Deployment keys should be treated as sensitive as they control feature exposure."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 85,
+    "version_stability": 82,
+    "breaking_changes_history": 80,
+    "error_recovery": 78
+  }
+}

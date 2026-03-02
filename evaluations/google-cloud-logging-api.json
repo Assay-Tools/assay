@@ -1,0 +1,105 @@
+{
+  "id": "google-cloud-logging-api",
+  "name": "Google Cloud Logging API",
+  "version_evaluated": "current",
+  "homepage": "https://cloud.google.com/logging",
+  "repo_url": null,
+  "category": "monitoring",
+  "subcategories": ["logging", "observability", "audit", "infrastructure"],
+  "tags": ["google", "gcp", "logging", "cloud-logging", "stackdriver", "observability", "audit-logs", "structured-logging"],
+  "what_it_does": "Google Cloud's fully-managed log ingestion, storage, and querying service for structured and unstructured logs from GCP services, applications, and external sources via a REST/gRPC API.",
+  "use_cases": [
+    "Agents writing structured application logs to Cloud Logging for centralized observability alongside GCP service logs",
+    "Security and audit pipelines querying Cloud Audit Logs to detect anomalous API calls, IAM changes, or data access events",
+    "Agent-driven log analysis workflows using the Logging Query Language to filter and extract specific events for downstream processing",
+    "Exporting log sinks to BigQuery, GCS, or Pub/Sub for long-term retention, analytics, or real-time alerting on log patterns",
+    "Multi-project log aggregation where agents read logs from an organization-level log bucket spanning all GCP projects"
+  ],
+  "not_for": [
+    "High-frequency metric ingestion — Cloud Monitoring is the right tool for time-series metrics; logging is for events",
+    "Full-text search across unstructured logs at scale — consider Elasticsearch or OpenSearch for complex text search requirements",
+    "Long-term archival beyond 30 days at default retention — configure log sinks to GCS or BigQuery for extended retention"
+  ],
+  "best_when": "You are running workloads on GCP and want zero-config log aggregation across services — GCP services log to Cloud Logging automatically, making it the natural choice for GCP-native observability.",
+  "avoid_when": "You need multi-cloud log aggregation, complex full-text search, or are already standardized on Datadog, Splunk, or another observability platform.",
+  "alternatives": ["datadog-api", "splunk-api", "aws-cloudwatch-api", "elastic-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": true,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "node", "java", "go", "dotnet", "ruby", "php"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["oauth2", "service_account"],
+    "oauth": true,
+    "scopes": true,
+    "notes": "Service accounts with Application Default Credentials (ADC) are recommended for agents. IAM roles: roles/logging.logWriter for write-only, roles/logging.viewer for read-only, roles/logging.admin for full access. Workload Identity is preferred in GKE to eliminate key file management."
+  },
+  "pricing": {
+    "model": "pay-as-you-go",
+    "free_tier_exists": true,
+    "free_tier_limits": "First 50 GiB of log ingestion per project per month is free. _Required logs (Cloud Audit, Access Transparency, System Event logs) are always free.",
+    "paid_tiers": "$0.01/GiB ingested beyond the free tier for user-defined and data access audit logs. Storage: $0.01/GiB/month for logs retained beyond the default 30-day window in custom buckets.",
+    "requires_credit_card": true,
+    "notes": "Verbose application debug logging can accumulate significant cost at scale — agents should log at appropriate severity levels and use log exclusion filters to control ingestion cost. Default retention is 30 days for admin activity logs and 1 day for data access logs unless configured otherwise."
+  },
+  "performance": {
+    "latency_p50_ms": 200,
+    "latency_p99_ms": 1000,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "Write: 60 MB/s per project; 120,000 log entries/minute per project. Read (list/query): 10 requests/second per project. Tail (streaming): 10 concurrent sessions per project.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": true,
+    "domain_verification": false,
+    "data_residency": ["US", "EU", "APAC"],
+    "compliance": ["SOC1", "SOC2", "SOC3", "ISO27001", "ISO27017", "ISO27018", "HIPAA", "GDPR", "FedRAMP-High", "PCI-DSS"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 88,
+    "error_message_quality": 83,
+    "error_message_notes": "API errors follow standard Google Status proto format with clear reason codes. Quota exceeded errors include the specific limit and retry-after information. The Python client library surfaces well-typed exceptions. Logging Query Language syntax errors include line-level detail.",
+    "idempotency_support": "none",
+    "idempotency_notes": "Log write operations are not idempotent — retrying a write call creates duplicate log entries. Agents must implement client-side deduplication using insertId field, which Cloud Logging uses for best-effort deduplication within a 24-hour window.",
+    "pagination_style": "page_token",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Log writes are best-effort by design — Cloud Logging may drop entries under extreme load without returning an error to the caller; critical business events should be written to a durable store in addition to logs",
+      "The Logging Query Language (LQL) syntax is specific to Cloud Logging and not SQL — agents that construct queries programmatically must escape string values correctly to prevent injection-like issues in query construction",
+      "Data access audit logs (DATA_READ, DATA_WRITE) are disabled by default per resource — agents querying for data access events will see nothing until the log type is explicitly enabled in IAM audit config",
+      "Log entries returned by entries.list have eventually-consistent ordering — very recent entries may not appear immediately; use log tailing for near-real-time streaming",
+      "Log-based metrics count only new log entries after metric creation — agents cannot backfill metric values from historical logs already in Cloud Logging"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 88,
+    "error_handling_score": 83,
+    "auth_complexity_score": 78,
+    "rate_limit_clarity_score": 82
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 92,
+    "scope_granularity": 90,
+    "dependency_hygiene": 90,
+    "secret_handling": 90,
+    "security_notes": "Cloud Logging is a primary security telemetry source — Cloud Audit Logs capture all GCP API calls for compliance and threat detection. Log sinks to Pub/Sub enable real-time SIEM integration. Access Transparency logs provide visibility into Google engineer access to customer data. CMEK (customer-managed encryption keys) supported for log bucket encryption. FedRAMP High authorized."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 90,
+    "version_stability": 92,
+    "breaking_changes_history": 90,
+    "error_recovery": 82
+  }
+}

@@ -1,0 +1,105 @@
+{
+  "id": "google-cloud-tasks-api",
+  "name": "Google Cloud Tasks API",
+  "version_evaluated": "current",
+  "homepage": "https://cloud.google.com/tasks",
+  "repo_url": "https://github.com/googleapis/python-tasks",
+  "category": "infrastructure",
+  "subcategories": ["task-queue", "async-processing", "serverless", "cloud-platform"],
+  "tags": ["google-cloud", "gcp", "cloud-tasks", "task-queue", "async", "retry", "scheduling"],
+  "what_it_does": "Google Cloud Tasks managed async task queue — enqueue HTTP tasks or App Engine tasks with configurable retry, rate limiting, deduplication, and scheduled dispatch.",
+  "use_cases": [
+    "Queueing agent-generated work items for async processing by Cloud Run or App Engine workers",
+    "Rate-limited fan-out — agents creating thousands of tasks that dispatch at controlled rate",
+    "Scheduled tasks with future dispatch time — agents scheduling follow-up work at specific times",
+    "Retry-with-backoff for unreliable downstream APIs — Cloud Tasks handles retry automatically",
+    "Deduplicating task submission — agents preventing duplicate task creation with task name deduplication"
+  ],
+  "not_for": [
+    "Pub/sub fan-out to multiple consumers — use Pub/Sub for multiple subscribers",
+    "Long-running streaming tasks — use Cloud Run Jobs or Dataflow for batch/streaming pipelines",
+    "Simple cron scheduling without task queuing — use Cloud Scheduler for time-based triggers alone"
+  ],
+  "best_when": "Your GCP agents need to enqueue HTTP tasks with reliable retry, rate limiting, and deduplication without building a queue from scratch.",
+  "avoid_when": "You need pub/sub fan-out, message persistence beyond 30 days, or are not on GCP.",
+  "alternatives": ["aws-sqs-api", "azure-service-bus-api", "google-pubsub-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": true,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "node", "java", "go", "dotnet"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["oauth2", "service_account"],
+    "oauth": true,
+    "scopes": true,
+    "notes": "Google service account or ADC. cloudtasks.tasks.create permission for enqueuing; separate permissions for queue management. OIDC tokens can be included in HTTP tasks for auth at the worker."
+  },
+  "pricing": {
+    "model": "pay-as-you-go",
+    "free_tier_exists": true,
+    "free_tier_limits": "1 million Cloud Tasks operations/month free",
+    "paid_tiers": "$0.40 per million task operations after free tier",
+    "requires_credit_card": true,
+    "notes": "Operations include: create task, delete task, list tasks, dispatch. Each task dispatch counts as one operation."
+  },
+  "performance": {
+    "latency_p50_ms": 30,
+    "latency_p99_ms": 200,
+    "uptime_sla_percent": 99.99,
+    "rate_limits": "Per-queue configurable rate: up to 500 tasks/second dispatch rate; max 5,000 tasks queued per second",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": true,
+    "domain_verification": false,
+    "data_residency": ["US", "EU", "APAC"],
+    "compliance": ["SOC1", "SOC2", "ISO27001", "GDPR", "FedRAMP"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 82,
+    "error_message_notes": "Standard Google API error format with status and details. Task dispatch failures (worker returning non-2xx) are retried according to queue config — errors logged to Cloud Logging.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Named tasks provide deduplication — tasks with the same name within a queue are deduplicated for 1 hour after completion. Always name tasks for idempotent enqueue.",
+    "pagination_style": "page_token",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Task name deduplication window is only 1 hour after task completion — tasks with same name can be re-created after that",
+      "Maximum task size is 100 KB — large payloads must be stored in GCS and referenced by URL in the task",
+      "Worker must return HTTP 2xx within the task timeout (10-30 minutes) — longer work needs Cloud Run Jobs",
+      "OIDC token for worker auth must be requested with the worker's service account audience URL exactly",
+      "Queue dispatch rate limit is enforced — agents enqueueing faster than queue rate will get 429 errors"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 82,
+    "auth_complexity_score": 72,
+    "rate_limit_clarity_score": 85
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 90,
+    "scope_granularity": 88,
+    "dependency_hygiene": 90,
+    "secret_handling": 88,
+    "security_notes": "OIDC token injection for worker authentication. IAM-controlled queue access. VPC Service Controls compatible. All data encrypted in transit and at rest. FedRAMP authorized."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 92,
+    "version_stability": 90,
+    "breaking_changes_history": 88,
+    "error_recovery": 90
+  }
+}

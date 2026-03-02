@@ -1,0 +1,105 @@
+{
+  "id": "hightouch-api",
+  "name": "Hightouch Reverse ETL API",
+  "version_evaluated": "current",
+  "homepage": "https://hightouch.com",
+  "repo_url": null,
+  "category": "data-pipeline",
+  "subcategories": ["reverse-etl", "data-sync", "cdp"],
+  "tags": ["reverse-etl", "data-sync", "warehouse", "crm", "marketing", "activation", "hightouch"],
+  "what_it_does": "Provides programmatic control over Hightouch Reverse ETL syncs — triggering syncs, checking run status, and managing sources and destinations that push data warehouse records into business tools like Salesforce, HubSpot, and ad platforms.",
+  "use_cases": [
+    "Trigger a Hightouch sync after a dbt Cloud job completes to ensure CRM contact records reflect the latest warehouse transformations",
+    "Poll sync run status to detect failures and alert on-call teams when audience pushes to an ad platform fall behind schedule",
+    "List all active syncs and their last-run timestamps to generate a data freshness audit report for stakeholders",
+    "Programmatically pause syncs before a major schema migration and resume them after validation completes",
+    "Create or update sync configurations via API as part of an Infrastructure-as-Code workflow for data activation pipelines"
+  ],
+  "not_for": [
+    "Ingesting data into a warehouse — Hightouch is reverse ETL (warehouse out to tools), not forward ETL; use Fivetran or Airbyte for that",
+    "Real-time event streaming — Hightouch syncs run on schedules or triggers, not sub-second streaming pipelines",
+    "Raw SQL query execution against your warehouse — Hightouch manages syncs but does not expose a query interface; use your warehouse client directly"
+  ],
+  "best_when": "Best when an agent needs to orchestrate data activation workflows — triggering syncs at the right moment in a pipeline and monitoring their completion before downstream steps proceed.",
+  "avoid_when": "Avoid when you need to move data into a warehouse rather than out of one, or when you require real-time streaming data delivery rather than scheduled batch syncs.",
+  "alternatives": ["census-api", "airbyte-api", "fivetran-api", "segment-api", "rudderstack-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "node"],
+    "openapi_spec_url": "https://hightouch.com/docs/developers/api-reference",
+    "webhooks": true
+  },
+  "auth": {
+    "methods": ["api_key"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "API key authentication via Authorization Bearer token header. Keys are workspace-scoped and generated in the Hightouch UI. No fine-grained scopes — each key has full workspace access."
+  },
+  "pricing": {
+    "model": "freemium",
+    "free_tier_exists": true,
+    "free_tier_limits": "Free tier allows limited syncs and rows; suitable for small teams or evaluation. Exact limits depend on current plan offerings.",
+    "paid_tiers": "Business and Enterprise tiers priced based on number of syncs, destinations, and rows synced per month. Enterprise includes SSO, audit logs, and SLA guarantees.",
+    "requires_credit_card": false,
+    "notes": "Pricing is not publicly listed for Business/Enterprise; requires contacting sales. Free tier available without credit card."
+  },
+  "performance": {
+    "latency_p50_ms": 300,
+    "latency_p99_ms": 1500,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "Rate limits not prominently documented publicly; enterprise plans include SLA guarantees. Sync trigger endpoints are the primary concern for agents.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["US", "EU"],
+    "compliance": ["SOC2", "GDPR", "HIPAA"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 78,
+    "error_message_quality": 75,
+    "error_message_notes": "API errors follow standard HTTP conventions with JSON error bodies, but sync failure details are more accessible via the UI than the API response.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "GET endpoints are fully idempotent. Trigger endpoints (POST) may create duplicate sync runs if retried without checking current run state first.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Triggering a sync while another run is already in progress may queue a second run or return an error depending on sync configuration — agents should check current run status before triggering",
+      "Sync run status transitions can take minutes to reflect in the API after trigger; agents that poll immediately after triggering may see stale 'pending' state",
+      "Warehouse query errors (e.g., bad SQL in the model) surface as sync failures, not API errors — agents must parse sync run error details rather than relying solely on HTTP status codes",
+      "API keys are workspace-scoped with no granular permissions — a compromised key grants full control over all syncs and configurations in the workspace",
+      "Destination credential errors (e.g., expired Salesforce OAuth token) cause sync failures that look identical to data errors in the API response; the distinction requires inspecting error message strings"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 78,
+    "error_handling_score": 72,
+    "auth_complexity_score": 85,
+    "rate_limit_clarity_score": 60
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 75,
+    "scope_granularity": 50,
+    "dependency_hygiene": 80,
+    "secret_handling": 75,
+    "security_notes": "API keys lack granular scopes, granting full workspace access. Destination credentials (OAuth tokens, API keys for Salesforce, HubSpot, etc.) are stored by Hightouch and not exposed via API. TLS enforced on all endpoints."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 80,
+    "version_stability": 82,
+    "breaking_changes_history": 80,
+    "error_recovery": 75
+  }
+}

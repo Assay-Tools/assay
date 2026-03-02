@@ -1,0 +1,105 @@
+{
+  "id": "stitch-api",
+  "name": "Stitch Data API (Talend)",
+  "version_evaluated": "current",
+  "homepage": "https://www.stitchdata.com",
+  "repo_url": null,
+  "category": "data-pipeline",
+  "subcategories": ["etl", "data-integration", "data-pipeline"],
+  "tags": ["etl", "data-integration", "pipeline", "stitch", "talend", "connectors", "warehouse"],
+  "what_it_does": "Provides programmatic management of Stitch Data ETL pipelines — controlling sources, destinations, replication jobs, and import API endpoints that load data into cloud data warehouses like Snowflake, BigQuery, and Redshift.",
+  "use_cases": [
+    "Trigger a full replication for a specific Stitch source after a schema change to ensure the warehouse reflects the latest structure before downstream dbt models run",
+    "List all configured sources and their last-sync timestamps to generate a data freshness audit report for the data engineering team",
+    "Use the Stitch Import API to push custom event or entity data from internal systems directly into a warehouse without configuring a full connector",
+    "Pause all replication for a destination warehouse during a maintenance window and resume programmatically after completion",
+    "Create or update source configurations as part of an Infrastructure-as-Code pipeline to manage Stitch setup across environments"
+  ],
+  "not_for": [
+    "Reverse ETL (pushing warehouse data back to business tools) — Stitch is forward ETL only; use Census or Hightouch for reverse ETL",
+    "Real-time streaming pipelines with sub-second latency — Stitch operates on scheduled batch replication intervals, not continuous streaming",
+    "Complex event transformation logic during ingestion — Stitch focuses on raw data replication; transformation belongs in dbt or your warehouse query layer"
+  ],
+  "best_when": "Best when an agent needs to orchestrate forward ETL pipeline management — triggering replications on demand, monitoring sync health, or using the Import API to push custom data into a warehouse without a dedicated connector.",
+  "avoid_when": "Avoid when you need reverse ETL (warehouse to business tools), real-time streaming, or when Stitch does not have a native connector for your source and building a custom connector would exceed the Import API's capabilities.",
+  "alternatives": ["airbyte-api", "fivetran-api", "hightouch-api", "census-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": false,
+    "sdk_languages": [],
+    "openapi_spec_url": "https://www.stitchdata.com/docs/developers/stitch-connect/api",
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["api_key"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "API key authentication via Partner credentials (Client ID and Secret) for the Connect API, and a separate Import API access token for the Import API. Keys are managed in the Stitch account and via the Connect API itself."
+  },
+  "pricing": {
+    "model": "subscription",
+    "free_tier_exists": true,
+    "free_tier_limits": "Free tier available with limited data volume (rows per month) and a subset of connectors.",
+    "paid_tiers": "Standard and Advanced plans scale with monthly row volume and number of sources. Enterprise plans available with SLA and custom connectors. Stitch is now part of Talend (acquired by Qlik).",
+    "requires_credit_card": true,
+    "notes": "Stitch was acquired by Talend, which was then acquired by Qlik. Pricing and product direction may evolve; verify current plans. Credit card may be required for paid tiers."
+  },
+  "performance": {
+    "latency_p50_ms": 400,
+    "latency_p99_ms": 2500,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "Connect API: rate limits apply per partner client; Import API: limits on batch size (up to 4MB per request) and message throughput. Exact limits documented in Stitch developer docs.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": true,
+    "domain_verification": false,
+    "data_residency": ["US", "EU"],
+    "compliance": ["SOC2", "GDPR", "HIPAA"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 75,
+    "error_message_quality": 72,
+    "error_message_notes": "REST API errors follow HTTP conventions with JSON bodies. Import API errors can be delayed — push errors surface asynchronously in the Stitch UI rather than synchronously in the API response.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "GET operations are idempotent. Import API pushes are append-only and not idempotent — duplicate pushes result in duplicate rows in the warehouse unless deduplication is handled downstream.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Import API errors are asynchronous — a successful 200 response from the Import API means the data was accepted, not that it was successfully loaded to the warehouse; agents must monitor delivery status separately",
+      "Stitch has been through multiple acquisitions (Talend → Qlik) which has affected product investment and documentation freshness — verify that specific connectors and API features are still actively maintained",
+      "Schema evolution can cause replication to pause if the source schema changes in ways Stitch cannot handle automatically; agents monitoring pipeline health must check for schema-related pause states",
+      "The Connect API (source/destination management) and Import API (data ingestion) use completely separate authentication mechanisms — agents must manage both credential types independently",
+      "Row volume counting for billing purposes may not align with what agents expect — Stitch counts replicated rows including updates, which can exceed the source table size significantly for high-churn tables"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 75,
+    "error_handling_score": 70,
+    "auth_complexity_score": 72,
+    "rate_limit_clarity_score": 68
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 75,
+    "scope_granularity": 55,
+    "dependency_hygiene": 72,
+    "secret_handling": 75,
+    "security_notes": "Two separate credential types (Connect API partner credentials, Import API tokens) provide basic separation of privilege between management and data ingestion. No granular scopes within each credential type. TLS enforced."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 78,
+    "version_stability": 68,
+    "breaking_changes_history": 65,
+    "error_recovery": 72
+  }
+}

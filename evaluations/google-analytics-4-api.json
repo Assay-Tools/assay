@@ -1,0 +1,105 @@
+{
+  "id": "google-analytics-4-api",
+  "name": "Google Analytics 4 Measurement Protocol",
+  "version_evaluated": "current",
+  "homepage": "https://developers.google.com/analytics/devguides/collection/protocol/ga4",
+  "repo_url": null,
+  "category": "analytics",
+  "subcategories": ["event-tracking", "server-side-analytics", "user-behavior"],
+  "tags": ["google", "analytics", "ga4", "measurement-protocol", "event-tracking", "server-side", "telemetry", "user-behavior"],
+  "what_it_does": "Google Analytics 4's server-side event ingestion API for sending user interaction and conversion events directly from backend services, bypassing browser-based tracking limitations like ad blockers.",
+  "use_cases": [
+    "Agents tracking server-side conversion events (purchases, subscriptions, activations) that must not be blocked by browser ad blockers",
+    "Backend pipelines attributing revenue events to marketing campaigns by forwarding transaction data with GA4 client IDs from cookie values",
+    "Agent workflows emitting custom business events (document_processed, report_generated) for product analytics dashboards",
+    "Offline conversion tracking — sending events for actions that occurred outside the browser (email link clicks, app store installs processed on backend)",
+    "Validating event payloads before production submission using GA4's debug endpoint to verify event structure without polluting real data"
+  ],
+  "not_for": [
+    "Real-time data analysis — GA4 reports have a 24–48 hour processing delay; use BigQuery streaming for real-time queries",
+    "Replacing client-side tracking entirely — Measurement Protocol cannot capture browser-generated data like page views, scroll depth, or session attribution without client-side coordination",
+    "High-precision analytics requiring exact counts — GA4 applies sampling and thresholding for privacy compliance"
+  ],
+  "best_when": "You need to send server-side events to GA4 to supplement client-side tracking, especially for conversions, purchases, or events that happen outside the browser.",
+  "avoid_when": "You need real-time queryable data, exact event counts, or are building a standalone analytics pipeline — use BigQuery or a purpose-built event store instead.",
+  "alternatives": ["segment-api", "amplitude-api", "mixpanel-api", "rudderstack-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": false,
+    "sdk_languages": [],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["api_key"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Requires a Measurement ID (G-XXXXXXXXXX) and an API secret generated in the GA4 UI. No OAuth — simple query parameter authentication. The API secret is not highly sensitive (only allows sending events, not reading data) but should still be kept server-side."
+  },
+  "pricing": {
+    "model": "free",
+    "free_tier_exists": true,
+    "free_tier_limits": "Free for standard GA4 properties. GA4 360 (enterprise) has separate pricing.",
+    "paid_tiers": "GA4 360 starts at approximately $50,000/year for higher event limits, SLA, and advanced features",
+    "requires_credit_card": false,
+    "notes": "Standard GA4 Measurement Protocol is completely free with no per-event cost. Limits include 25 events per request and up to 500 distinct event names per property. GA4 360 raises limits and adds SLA guarantees."
+  },
+  "performance": {
+    "latency_p50_ms": 100,
+    "latency_p99_ms": 400,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "25 events per request; no documented per-second rate limit for standard properties. Google recommends batching events and avoiding high-frequency individual calls.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["US", "EU"],
+    "compliance": ["GDPR", "CCPA"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 78,
+    "error_message_quality": 62,
+    "error_message_notes": "The API always returns HTTP 204 No Content for production endpoint regardless of payload validity — invalid events are silently dropped. Only the debug endpoint (/debug/mp/collect) returns validation errors. This makes production debugging very difficult.",
+    "idempotency_support": "none",
+    "idempotency_notes": "No idempotency keys — duplicate POST requests send duplicate events. Agents must implement deduplication logic using event_id parameter where GA4 will attempt to deduplicate within a 24-hour window, but this is best-effort.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Production endpoint always returns 204 even for malformed events — always validate with the debug endpoint first before shipping agent integrations",
+      "client_id is required and must be a valid GA4 client ID — sending a random UUID without coordinating with the client-side gtag.js will break session stitching and attribution",
+      "Events are processed with a 24–48 hour delay — do not use GA4 as a real-time data source; use BigQuery export for near-real-time analysis",
+      "GA4 applies data thresholding and sampling for privacy — event counts in the UI may not match exact numbers sent, especially for small segments",
+      "Event parameter values have strict limits: 100 characters for string values, 40 characters for parameter names, 25 parameters per event — exceeding these silently truncates data"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 78,
+    "error_handling_score": 45,
+    "auth_complexity_score": 90,
+    "rate_limit_clarity_score": 65
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 60,
+    "scope_granularity": 40,
+    "dependency_hygiene": 85,
+    "secret_handling": 70,
+    "security_notes": "API secret provides write-only access — cannot be used to read analytics data. However, a leaked API secret allows spam event injection into your property. GA4 data is subject to Google's data processing terms; EU data residency available via data stream settings. No PII should be sent in event parameters per Google's terms of service."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 85,
+    "version_stability": 82,
+    "breaking_changes_history": 75,
+    "error_recovery": 60
+  }
+}
