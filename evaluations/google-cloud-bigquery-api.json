@@ -1,0 +1,105 @@
+{
+  "id": "google-cloud-bigquery-api",
+  "name": "Google BigQuery REST API",
+  "version_evaluated": "current",
+  "homepage": "https://cloud.google.com/bigquery",
+  "repo_url": null,
+  "category": "infrastructure",
+  "subcategories": ["analytics", "data-warehouse", "databases"],
+  "tags": ["google-cloud", "analytics", "sql", "data-warehouse", "big-data", "olap"],
+  "what_it_does": "Provides a serverless, fully managed analytics data warehouse via REST API, enabling AI agents to run SQL queries, manage datasets and tables, and ingest streaming data at petabyte scale.",
+  "use_cases": [
+    "Execute analytical SQL queries against large datasets to generate reports or feed downstream AI decision-making",
+    "Stream real-time events into BigQuery via tabledata.insertAll for low-latency data ingestion pipelines",
+    "Create and manage datasets and tables programmatically to set up new analytics environments",
+    "Submit and poll async query jobs for long-running analyses that exceed synchronous timeout limits",
+    "Export query results to Google Cloud Storage for downstream processing or ML training data preparation"
+  ],
+  "not_for": [
+    "Transactional OLTP workloads requiring row-level updates with millisecond latency — use Cloud Spanner or Cloud SQL instead",
+    "Key-value lookups or document storage where Firestore or Bigtable is purpose-built",
+    "Real-time streaming joins where a dedicated stream processor like Dataflow is more appropriate"
+  ],
+  "best_when": "Agents need to run complex analytical SQL over large datasets or aggregate logs/events data without managing any database infrastructure.",
+  "avoid_when": "Queries touch small datasets or require frequent small row updates, as BigQuery's columnar scan pricing and latency make it cost-inefficient for OLTP patterns.",
+  "alternatives": ["aws-redshift-api", "snowflake-api", "databricks-api", "azure-synapse-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": true,
+    "mcp_server_url": "https://github.com/googleapis/mcp-toolbox-for-databases",
+    "has_sdk": true,
+    "sdk_languages": ["python", "javascript", "java", "go", "ruby", "csharp", "php"],
+    "openapi_spec_url": "https://bigquery.googleapis.com/$discovery/rest?version=v2",
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["oauth2", "service-account"],
+    "oauth": true,
+    "scopes": true,
+    "notes": "Service account JSON key or Workload Identity Federation for production. OAuth2 user credentials for interactive use. Scopes: bigquery.readonly for queries, bigquery for write operations. ADC (Application Default Credentials) simplifies SDK auth. IAM roles control dataset/table/project-level access."
+  },
+  "pricing": {
+    "model": "usage-based",
+    "free_tier_exists": true,
+    "free_tier_limits": "1 TB of query processing per month free; 10 GB of storage per month free; streaming inserts charged separately (no free tier)",
+    "paid_tiers": "On-demand queries: $6.25/TB processed after free tier. Storage: $0.02/GB/month active, $0.01/GB/month long-term. BigQuery Editions (slot-based) available for predictable workloads at flat rate.",
+    "requires_credit_card": true,
+    "notes": "Query costs are based on bytes scanned, not rows returned — use column selection and partition filters to control costs. Streaming inserts billed per row ($0.01/200MB). Cached query results are free. BigQuery ML model training billed separately."
+  },
+  "performance": {
+    "latency_p50_ms": 1500,
+    "latency_p99_ms": 10000,
+    "uptime_sla_percent": 99.99,
+    "rate_limits": "Jobs.query (synchronous): 10s timeout default, max 10 min. Concurrent interactive queries: 100 per project. Streaming inserts: 1 GB/s per project, 10MB per row, 50,000 rows per request. API requests: 300 per minute per user for most methods.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": true,
+    "domain_verification": false,
+    "data_residency": ["US", "EU", "APAC", "CA", "SA", "ME"],
+    "compliance": ["SOC2", "ISO-27001", "HIPAA", "PCI-DSS", "FedRAMP"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": 72,
+    "mcp_security_score": 78,
+    "documentation_accuracy": 90,
+    "error_message_quality": 85,
+    "error_message_notes": "Error messages are generally informative with reason codes (e.g., 'accessDenied', 'notFound', 'quotaExceeded'). Job failure reasons include SQL syntax errors with line/column positions. IAM errors clearly indicate which permission is required. Rate limit responses include retry headers.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Jobs.insert supports jobId for idempotent job submission — resubmitting same jobId returns existing job. tabledata.insertAll supports insertId per row for deduplication within a 1-minute window. Dataset and table creation are not idempotent (returns error if already exists); use 'already exists' error handling.",
+    "pagination_style": "token",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Query costs are based on bytes scanned, not rows returned — an agent that SELECTs * on a multi-TB table can incur significant unexpected charges; always use column projection and partition filters",
+      "Jobs.query has a 10-second synchronous timeout by default; long-running queries require async Jobs.insert + polling Jobs.get, which adds significant orchestration complexity",
+      "Streaming inserts (tabledata.insertAll) have at-least-once delivery semantics — insertId deduplication only works within a ~1-minute window, making exactly-once ingestion difficult",
+      "Service account key files are long-lived credentials; if an agent logs or caches these, they become a significant security risk — prefer Workload Identity Federation or short-lived tokens",
+      "Table schema must be defined before insert; schemaless or schema-on-read patterns require using autodetect=true during load jobs, which can misdetect types and cause downstream query failures"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 55,
+    "api_doc_score": 90,
+    "error_handling_score": 85,
+    "auth_complexity_score": 68,
+    "rate_limit_clarity_score": 82
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 92,
+    "scope_granularity": 90,
+    "dependency_hygiene": 88,
+    "secret_handling": 85,
+    "security_notes": "OAuth2 and service account auth with fine-grained IAM roles at project/dataset/table level. Column-level security via policy tags. VPC Service Controls to restrict data exfiltration. CMEK (Customer-Managed Encryption Keys) with Cloud KMS. Data masking available for sensitive columns. All API calls logged to Cloud Audit Logs. FedRAMP authorized."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 95,
+    "version_stability": 90,
+    "breaking_changes_history": 88,
+    "error_recovery": 87
+  }
+}

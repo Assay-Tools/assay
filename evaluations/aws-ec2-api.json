@@ -1,0 +1,105 @@
+{
+  "id": "aws-ec2-api",
+  "name": "Amazon EC2 API",
+  "version_evaluated": "current",
+  "homepage": "https://aws.amazon.com/ec2/",
+  "repo_url": null,
+  "category": "infrastructure",
+  "subcategories": ["compute", "networking", "security"],
+  "tags": ["aws", "cloud", "compute", "virtual-machines", "networking", "infrastructure"],
+  "what_it_does": "Provides programmatic control over Amazon EC2 virtual machines, networking, security groups, AMIs, and VPC infrastructure for cloud compute workloads.",
+  "use_cases": [
+    "Launch and terminate EC2 instances dynamically to scale compute capacity for batch jobs",
+    "Manage security group rules to open/close network ports in response to security events",
+    "Provision and configure VPCs, subnets, and routing tables for new application environments",
+    "Describe running instances and their metadata to feed into orchestration or monitoring workflows",
+    "Request and manage Spot instances to optimize costs for fault-tolerant workloads"
+  ],
+  "not_for": [
+    "Serverless workloads where Lambda or Fargate is more appropriate",
+    "Simple static file hosting where S3 is sufficient",
+    "Managed database needs where RDS or Aurora avoids OS-level management overhead"
+  ],
+  "best_when": "Agents need full OS-level control, custom networking, or must manage long-running compute infrastructure programmatically.",
+  "avoid_when": "Tasks are short-lived or event-driven, as Lambda or Fargate eliminates instance lifecycle complexity and cold start costs.",
+  "alternatives": ["aws-lambda-api", "google-cloud-compute-api", "azure-vm-api", "digitalocean-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "javascript", "java", "go", "ruby", "csharp", "php", "rust"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["aws-iam"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "AWS IAM SigV4 signing required for all requests. IAM policies control granular access to EC2 resources including per-instance-type and tag-based conditions. Instance profiles allow EC2 instances themselves to call the API without embedded credentials."
+  },
+  "pricing": {
+    "model": "usage-based",
+    "free_tier_exists": true,
+    "free_tier_limits": "750 hours/month of t2.micro or t3.micro instances for 12 months; free tier also covers some EBS storage and data transfer",
+    "paid_tiers": "On-Demand pricing per second (minimum 60s); Reserved Instances up to 72% savings; Spot Instances up to 90% savings; Savings Plans for committed usage",
+    "requires_credit_card": true,
+    "notes": "EC2 API calls themselves have no charge; costs come from instances, EBS volumes, Elastic IPs, data transfer, and other associated resources. Spot instance pricing fluctuates by market demand."
+  },
+  "performance": {
+    "latency_p50_ms": 80,
+    "latency_p99_ms": 400,
+    "uptime_sla_percent": 99.99,
+    "rate_limits": "EC2 API uses token bucket throttling; default limits vary by operation and account (e.g., RunInstances has per-account vCPU limits, DescribeInstances ~100 req/s). Service Quotas dashboard shows current limits.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": true,
+    "domain_verification": false,
+    "data_residency": ["US", "EU", "APAC", "CA", "SA", "ME"],
+    "compliance": ["SOC2", "ISO-27001", "HIPAA", "PCI-DSS", "FedRAMP"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 88,
+    "error_message_quality": 80,
+    "error_message_notes": "SDK provides typed exceptions (e.g., ClientError with error codes). IAM permission errors are notoriously opaque — 'UnauthorizedOperation' doesn't specify which permission is missing. EC2-specific errors like 'InsufficientInstanceCapacity' or 'InvalidAMIID.NotFound' are descriptive.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "RunInstances supports ClientToken for idempotent launch requests (valid 24h). DescribeInstances and most read operations are naturally idempotent. TerminateInstances is safe to retry on already-terminated instances. CreateSecurityGroup, AllocateAddress not idempotent without ClientToken.",
+    "pagination_style": "token",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "The EC2 API has 1000+ operations — agents must restrict IAM policies tightly or risk unintended actions on production infrastructure",
+      "Instance state changes (pending→running→stopping→stopped) are eventually consistent; DescribeInstances may lag behind actual state by seconds, requiring polling loops",
+      "IAM 'UnauthorizedOperation' errors don't indicate which specific permission is missing, making automated permission debugging difficult",
+      "Spot instance interruptions can terminate instances with 2-minute notice — agents managing Spot must handle InterruptionNotice via instance metadata service",
+      "RunInstances default quotas are per-region per-account vCPU limits; agents that attempt to scale aggressively may hit 'InsufficientInstanceCapacity' or quota errors without warning"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 88,
+    "error_handling_score": 80,
+    "auth_complexity_score": 70,
+    "rate_limit_clarity_score": 72
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 95,
+    "scope_granularity": 95,
+    "dependency_hygiene": 90,
+    "secret_handling": 92,
+    "security_notes": "IAM SigV4 with resource-level and condition-based policies. VPC endpoints eliminate public internet exposure. Security groups as stateful firewalls. IAM instance profiles avoid embedding credentials. CloudTrail logs all EC2 API calls. KMS integration for EBS encryption. FedRAMP authorized for US government workloads."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 95,
+    "version_stability": 88,
+    "breaking_changes_history": 90,
+    "error_recovery": 85
+  }
+}
