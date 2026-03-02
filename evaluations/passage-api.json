@@ -1,0 +1,105 @@
+{
+  "id": "passage-api",
+  "name": "Passage by 1Password",
+  "version_evaluated": "current",
+  "homepage": "https://passage.1password.com",
+  "repo_url": null,
+  "category": "identity",
+  "subcategories": ["auth", "passkeys", "passwordless", "biometric"],
+  "tags": ["passkeys", "fido2", "webauthn", "passwordless", "1password", "biometric"],
+  "what_it_does": "Passage by 1Password provides a passkey-first authentication API that lets agents register and authenticate users via FIDO2 WebAuthn biometrics with optional magic link fallback, backed by 1Password's security infrastructure.",
+  "use_cases": [
+    "Adding passkey-based biometric login to an agent-powered web or mobile application without building WebAuthn logic from scratch",
+    "Issuing short-lived JWTs after passkey authentication for agents to authorize downstream API calls on behalf of users",
+    "Replacing password reset flows in an existing app with magic link fallback, orchestrated by an agent when a passkey is unavailable",
+    "Integrating user authentication into a React or Next.js agent frontend using Passage's pre-built UI components",
+    "Validating Passage JWTs server-side to gate access to agent-driven workflows that require verified human identity"
+  ],
+  "not_for": [
+    "Environments where end-user devices do not support WebAuthn (e.g., legacy browsers or kiosk terminals without biometric hardware)",
+    "Machine-to-machine or service account authentication where there is no human user enrolling a passkey",
+    "Applications requiring complex RBAC or fine-grained permission scopes beyond simple authenticated/unauthenticated"
+  ],
+  "best_when": "Best when an agent application targets modern browsers and mobile devices and wants enterprise-grade passkey auth without building WebAuthn ceremony logic.",
+  "avoid_when": "Avoid when your user base skews toward older devices or browsers that lack WebAuthn support and a fallback-only experience would be unacceptable.",
+  "alternatives": ["hanko-api", "stytch-api", "clerk-api", "magic-link-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["javascript", "typescript", "python", "go", "ruby"],
+    "openapi_spec_url": "https://docs.passage.id/openapi",
+    "webhooks": true
+  },
+  "auth": {
+    "methods": ["api_key", "jwt"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "API key is used for Management API calls (user management, app config); Passage issues JWKS-signed JWTs after passkey authentication which agents validate server-side using the public JWKS endpoint."
+  },
+  "pricing": {
+    "model": "freemium",
+    "free_tier_exists": true,
+    "free_tier_limits": "100 monthly active users free; unlimited passkey registrations on free tier",
+    "paid_tiers": "Starter at $99/month; Growth at $299/month; Enterprise by negotiation",
+    "requires_credit_card": false,
+    "notes": "1Password acquired Passage in 2023; enterprise deals may be bundled with 1Password Business subscriptions."
+  },
+  "performance": {
+    "latency_p50_ms": 200,
+    "latency_p99_ms": 800,
+    "uptime_sla_percent": 99.99,
+    "rate_limits": "Management API rate limited to 100 requests/minute per app; authentication endpoints have higher unpublished limits",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": false,
+    "domain_verification": true,
+    "data_residency": ["US"],
+    "compliance": ["SOC2", "GDPR"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 84,
+    "error_message_quality": 80,
+    "error_message_notes": "REST API returns structured JSON error bodies with a code field and human-readable message; SDK errors bubble up as typed exceptions, making programmatic handling straightforward.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "User creation via Management API is idempotent by email; passkey registration ceremonies are not — each ceremony generates a new credential. Duplicate creation returns a 409 with existing user data.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Passkey registration and authentication require a browser with WebAuthn support; agents cannot complete these ceremonies server-side — a human must interact with the device authenticator",
+      "Passage JWTs have a default 1-hour TTL; agents running multi-step workflows must check token expiry and trigger re-authentication before token expiry or downstream calls will fail with 401",
+      "The allowed origins list must include every domain (including localhost ports) where the agent frontend runs; a missing origin causes WebAuthn ceremony failures with a cryptic RP ID mismatch error",
+      "Magic link fallback emails have a 10-minute TTL and are single-use; agents that retry the same magic link URL after it has been consumed will receive a 410 Gone error",
+      "Passage's JWKS endpoint must be fetched to validate tokens; agents that cache JWKS without a rotation strategy will fail if 1Password rotates keys, so implement a cache-bust on 401 responses"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 84,
+    "error_handling_score": 80,
+    "auth_complexity_score": 82,
+    "rate_limit_clarity_score": 72
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 95,
+    "scope_granularity": 68,
+    "dependency_hygiene": 88,
+    "secret_handling": 90,
+    "security_notes": "Passkeys eliminate phishable credentials entirely; backed by 1Password security infrastructure with strong key management. No password storage on Passage servers reduces breach risk significantly."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 82,
+    "breaking_changes_history": 80,
+    "error_recovery": 82
+  }
+}
