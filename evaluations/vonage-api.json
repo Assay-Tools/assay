@@ -1,28 +1,28 @@
 {
   "id": "vonage-api",
-  "name": "Vonage API (Nexmo)",
+  "name": "Vonage Communications APIs",
   "version_evaluated": "current",
   "homepage": "https://developer.vonage.com",
   "repo_url": "https://github.com/Vonage/vonage-python-sdk",
   "category": "communication",
-  "subcategories": ["sms", "voice", "messaging", "video"],
-  "tags": ["vonage", "nexmo", "sms", "voice", "video", "messaging", "rest-api", "sdk"],
-  "what_it_does": "Communications API platform (formerly Nexmo) offering SMS, voice, video, and messaging APIs for building communication features into applications.",
+  "subcategories": ["sms", "voice", "video", "verify", "messaging"],
+  "tags": ["vonage", "nexmo", "sms", "voice", "video", "messaging", "verify", "2fa", "rest-api", "sdk", "pay-as-you-go"],
+  "what_it_does": "Vonage (formerly Nexmo) is a cloud communications platform offering SMS, voice, video, verify (2FA), and multi-channel messaging APIs. Enables agents to send SMS, place or receive calls, verify phone numbers, and send messages across WhatsApp, Viber, and other channels via a unified REST API.",
   "use_cases": [
-    "Sending SMS notifications from agent workflows",
-    "Voice call automation and IVR systems",
-    "Video calling and conferencing integration",
-    "Two-factor authentication via SMS or voice",
-    "Multi-channel messaging (SMS, WhatsApp, Viber)"
+    "Sending SMS notifications and alerts from agent workflows",
+    "Voice call automation and IVR system construction",
+    "Phone number verification and two-factor authentication workflows",
+    "Multi-channel messaging to users across SMS, WhatsApp, and Viber from a single API",
+    "Video calling and conferencing integration for agent-initiated communications"
   ],
   "not_for": [
-    "Teams already committed to Twilio (switching cost is high)",
-    "Email delivery (use dedicated email API)",
-    "High-volume free messaging"
+    "Teams already deeply committed to Twilio (high switching cost, similar pricing)",
+    "Email delivery (dedicated email APIs are more appropriate)",
+    "High-volume free messaging at scale"
   ],
-  "best_when": "An agent needs multi-channel communications (SMS + voice + video) from a single provider with competitive global pricing.",
-  "avoid_when": "You only need email, or you need a simpler pricing model than Vonage's complex rate cards.",
-  "alternatives": ["twilio-api", "messagebird-api"],
+  "best_when": "An agent needs multi-channel communications (SMS, voice, video, verify) from a single provider with competitive global pricing, particularly for international messaging.",
+  "avoid_when": "You only need email, or you need a simpler unified auth model — Vonage's split between API key/secret and JWT depending on the API adds cognitive overhead.",
+  "alternatives": ["twilio-voice-api", "messagebird-api", "sinch-api"],
   "interface": {
     "has_rest_api": true,
     "has_graphql": false,
@@ -30,29 +30,29 @@
     "has_mcp_server": false,
     "mcp_server_url": null,
     "has_sdk": true,
-    "sdk_languages": ["python", "node", "ruby", "java", "csharp", "php"],
+    "sdk_languages": ["python", "node", "ruby", "java", "csharp", "php", "go"],
     "openapi_spec_url": "https://github.com/Vonage/vonage-api-specification",
     "webhooks": true
   },
   "auth": {
-    "methods": ["api_key", "jwt"],
+    "methods": ["api_key_secret", "jwt"],
     "oauth": false,
     "scopes": false,
-    "notes": "SMS API uses API key + secret. Voice and other APIs use JWT. Two different auth methods depending on which API you use - adds complexity for agents."
+    "notes": "Two distinct auth mechanisms depending on the API: SMS API uses API key + secret; Voice, Video, and Messages APIs use JWT signed with an application private key. This split creates configuration complexity for agents that use multiple Vonage APIs. No OAuth or fine-grained scopes available."
   },
   "pricing": {
     "model": "pay-as-you-go",
     "free_tier_exists": true,
-    "free_tier_limits": "2 EUR trial credit on signup",
-    "paid_tiers": "SMS from ~$0.0062/message US, voice from ~$0.013/min",
+    "free_tier_limits": "Trial credit on signup (approximately 2 EUR equivalent); no credit card required for trial",
+    "paid_tiers": "SMS ~$0.0079/message (US); Voice from ~$0.013/min; Verify ~$0.05/verification; top-up required after trial credit exhausted",
     "requires_credit_card": false,
-    "notes": "Trial credit available without credit card. After exhaustion, requires top-up. Generally competitive pricing vs Twilio for international."
+    "notes": "Trial credit available without a credit card. After exhaustion, account top-up is required. Generally competitive pricing versus Twilio for international destinations. No monthly subscription — pure pay-as-you-go."
   },
   "performance": {
     "latency_p50_ms": 250,
     "latency_p99_ms": 1200,
     "uptime_sla_percent": 99.9,
-    "rate_limits": "30 messages/second by default",
+    "rate_limits": "30 SMS messages/second by default (increasable); Voice API limits vary by application",
     "data_source": "llm_estimated"
   },
   "requirements": {
@@ -64,25 +64,49 @@
     "min_contract": "none"
   },
   "agent_readiness": {
-    "mcp_server_quality": 0,
-    "mcp_security_score": 72,
-    "documentation_accuracy": 75,
-    "error_message_quality": 68,
-    "error_message_notes": "Error messages are functional but less polished than Twilio. Some legacy Nexmo terminology persists in error codes.",
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 74,
+    "error_message_quality": 66,
+    "error_message_notes": "Error messages are functional but less polished than Twilio. Some legacy Nexmo terminology persists in error codes and response fields. The two different auth systems mean different error patterns for different APIs. Documentation has improved but still lags Twilio.",
     "idempotency_support": "none",
-    "idempotency_notes": "No idempotency support. Track message-uuid from responses.",
+    "idempotency_notes": "No idempotency support across any Vonage API. Track message UUIDs from responses to correlate delivery events. Agents must implement their own deduplication.",
     "pagination_style": "offset",
     "retry_guidance_documented": false,
     "known_agent_gotchas": [
-      "Two different auth systems (API key vs JWT) depending on which API - confusing for agents",
-      "Legacy Nexmo and modern Vonage APIs coexist with different base URLs",
-      "No MCP server available",
-      "Dashboard is less intuitive than Twilio for debugging",
-      "International number availability varies significantly by country"
-    ],
-    "error_message_score": 68,
-    "auth_complexity_score": 65,
-    "rate_limit_score": 65,
-    "security_score": 72
-  }
+      "Two different auth systems (API key+secret vs JWT) depending on which Vonage API is used — agents must configure both if using SMS and Voice",
+      "Legacy Nexmo base URLs (api.nexmo.com) and modern Vonage URLs (api.vonage.com) coexist — use the correct URL per API",
+      "JWT must be signed with the application's private key and include correct claims — incorrectly formed JWTs return opaque 401 errors",
+      "Webhook delivery status callbacks must be publicly accessible; agents on private networks require an ingress setup",
+      "International number availability varies significantly by country and may require local address verification",
+      "Dashboard debugging tools are less intuitive than Twilio's for tracing failed messages"
+    ]
+  },
+  "af_score_components": {
+    "api_doc_score": 74,
+    "error_handling_score": 66,
+    "auth_complexity_score": 58,
+    "rate_limit_clarity_score": 65
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 78,
+    "scope_granularity": 55,
+    "dependency_hygiene": 75,
+    "secret_handling": 75,
+    "security_notes": "JWT-based auth for Voice/Messages APIs uses asymmetric keys (private key stays local), which is a good security posture. SMS API key+secret is symmetric and must be kept secure. No fine-grained scopes. Webhook signature verification available."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 82,
+    "version_stability": 72,
+    "breaking_changes_history": 70,
+    "error_recovery": 68
+  },
+  "af_score": 55,
+  "fq_score": 65,
+  "score_rationale": "Vonage Communications APIs provide solid multi-channel coverage (SMS, voice, video, verify) but agent readiness is hampered by the dual auth system (API key vs JWT across different products), less polished error messages than Twilio, no idempotency support, and sparse retry documentation. Competitive for international SMS pricing. Best suited for teams that need multi-channel communications and want a Twilio alternative, particularly for global deployments.",
+  "score_version": "1.0",
+  "evaluated_at": "2026-03-02",
+  "evaluator": "claude-sonnet-4-6",
+  "confidence": "medium"
 }

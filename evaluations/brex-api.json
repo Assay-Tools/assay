@@ -2,27 +2,29 @@
   "id": "brex-api",
   "name": "Brex API",
   "version_evaluated": "current",
-  "homepage": "https://developer.brex.com",
-  "repo_url": null,
-  "category": "fintech",
-  "subcategories": ["corporate-cards", "expense-management", "finance-automation", "banking"],
-  "tags": ["brex", "corporate-cards", "expense-management", "fintech", "banking", "spend-management"],
-  "what_it_does": "Brex's REST API gives programmatic access to corporate cards, budgets, expenses, reimbursements, and vendor payments — designed for finance automation in tech startups and growth companies.",
+  "homepage": "https://developer.brex.com/",
+  "repo_url": "https://github.com/brexhq/brex-python",
+  "category": "finance",
+  "subcategories": ["corporate-cards", "spend-management", "expense-management", "business-banking"],
+  "tags": ["brex", "corporate-cards", "spend-management", "expense-management", "rest-api", "oauth2", "sdk", "startup-banking"],
+  "what_it_does": "Brex is a financial platform for startups and growing companies offering corporate cards, expense management, business accounts, and vendor payments. Its API provides programmatic access to card management, transactions, expense submissions, vendor payments, and spend limit controls.",
   "use_cases": [
-    "Issuing virtual cards with custom limits and restrictions for autonomous agent procurement",
-    "Syncing Brex transactions and receipts to accounting systems (QuickBooks, NetSuite, Xero)",
-    "Automating expense approval workflows from policy-based agent evaluation",
-    "Managing team budgets programmatically — create, update, and monitor spend limits",
-    "Triggering vendor payments and ACH transfers from financial automation workflows"
+    "Automated expense categorization and receipt matching",
+    "Corporate card issuance and limit management for employees",
+    "Vendor payment automation (ACH, wires, checks)",
+    "Budget and spend limit enforcement",
+    "Real-time transaction monitoring and alerting",
+    "Expense report generation and accounting sync"
   ],
   "not_for": [
-    "Non-US companies (Brex is primarily US market)",
-    "Consumer personal finance (B2B corporate cards only)",
-    "Companies needing physical cards before credit underwriting approval"
+    "Personal banking (Brex is business-only)",
+    "Small businesses below Brex's eligibility requirements",
+    "International payments in unsupported currencies",
+    "High-volume consumer payments (use Stripe)"
   ],
-  "best_when": "Your startup or growth company uses Brex and needs agents to issue cards, track spend, or sync financial data automatically without manual finance team intervention.",
-  "avoid_when": "You're outside the US or need mature enterprise expense features — Concur or Coupa are more established for large enterprise.",
-  "alternatives": ["ramp-api", "stripe-issuing-api", "expensify-api", "navan-api"],
+  "best_when": "An agent needs to manage corporate card spend, automate expense workflows, or issue/manage cards programmatically for a startup or growing company on Brex.",
+  "avoid_when": "The company uses Ramp, Divvy, or another expense platform, or is not eligible for Brex (typically requires VC backing or significant revenue).",
+  "alternatives": ["ramp-api", "mercury-api", "divvy-api", "expensify-api"],
   "interface": {
     "has_rest_api": true,
     "has_graphql": false,
@@ -30,76 +32,64 @@
     "has_mcp_server": false,
     "mcp_server_url": null,
     "has_sdk": true,
-    "sdk_languages": ["node", "python"],
+    "sdk_languages": ["python", "node", "go"],
     "openapi_spec_url": "https://developer.brex.com/openapi/team_api.yaml",
     "webhooks": true
   },
   "auth": {
-    "methods": ["oauth2"],
+    "methods": ["oauth2", "api_key"],
     "oauth": true,
     "scopes": true,
-    "notes": "OAuth 2.0 with client credentials for server-to-server. User-level OAuth for acting on behalf of employees. Scopes: transactions.readonly, cards, expenses, budgets, payments. Token expiry with refresh flow."
+    "notes": "OAuth2 for user-authorized access with granular scopes (transactions.readonly, cards.write, payments.write, etc.). Machine-to-machine auth available via client credentials grant for internal integrations. API tokens can be generated directly in the Brex dashboard for simpler use cases."
   },
   "pricing": {
     "model": "free",
     "free_tier_exists": true,
-    "free_tier_limits": "Brex platform is free for businesses — earns on interchange",
-    "paid_tiers": "Brex Premium and Enterprise for advanced features; no API fees",
+    "free_tier_limits": "No monthly fee for Brex cards or API access. API is free for Brex customers.",
+    "paid_tiers": "Brex Premium $12/user/mo for enhanced features. No API-specific pricing.",
     "requires_credit_card": false,
-    "notes": "Like Ramp, Brex is free because they earn interchange. API access included. Must apply for a Brex business account with credit approval."
+    "notes": "Brex makes money on interchange fees from card transactions. API access is included free for all Brex customers. No usage-based API pricing."
   },
   "performance": {
     "latency_p50_ms": 200,
-    "latency_p99_ms": 1000,
+    "latency_p99_ms": 800,
     "uptime_sla_percent": 99.9,
-    "rate_limits": "Not publicly documented; fair-use limits apply",
+    "rate_limits": "Specific rate limits not publicly documented; standard RESTful throttling with 429 responses applies.",
     "data_source": "llm_estimated"
   },
   "requirements": {
     "requires_signup": true,
     "requires_credit_card": false,
-    "domain_verification": true,
+    "domain_verification": false,
     "data_residency": ["US"],
-    "compliance": ["SOC2", "PCI-DSS"],
+    "compliance": ["SOC2", "PCI-DSS", "FDIC-insured"],
     "min_contract": "none"
   },
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
-    "documentation_accuracy": 83,
-    "error_message_quality": 80,
-    "error_message_notes": "Standard REST errors with error_code and message. OpenAPI spec available for SDK generation. Webhook events for spend require HMAC signature validation. Paginated lists use cursor-based approach.",
+    "documentation_accuracy": 80,
+    "error_message_quality": 75,
+    "error_message_notes": "Errors returned as standard HTTP status codes with JSON body containing error and message fields. Error descriptions are generally clear for validation failures. Some edge cases return generic messages. OpenAPI spec is available which helps agents validate requests before sending.",
     "idempotency_support": "partial",
-    "idempotency_notes": "Idempotency-Key header supported on payment and card creation endpoints. Agents should always use idempotency keys for financial mutations.",
+    "idempotency_notes": "Idempotency-Key header supported on payment and card creation endpoints. Not universally available across all write endpoints. Recommended for payment initiation to prevent duplicate disbursements.",
     "pagination_style": "cursor",
     "retry_guidance_documented": true,
     "known_agent_gotchas": [
-      "OAuth token scopes must be requested at auth time — no dynamic scope escalation without re-authorization",
-      "Card budget association is required — agents must create a budget before issuing cards against it",
-      "Real-time transaction webhooks may have 2-5 minute delay from card swipe to webhook delivery",
-      "Brex does credit checks — API access and card limits depend on Brex's credit decision, not just API credentials",
-      "Expense policies and approval workflows are configured in Brex UI, not API — agents must respect pre-configured policy IDs"
+      "Brex eligibility requirements mean not all businesses can access the platform — API is only useful if the company is already a Brex customer",
+      "Card limits and spend controls may need human approval for changes above certain thresholds",
+      "Payment status is asynchronous — ACH and wire transfers are not immediate; agents must poll or use webhooks",
+      "Transaction data for card purchases may have a delay before appearing in API",
+      "OAuth token scopes must be carefully configured — overly broad scopes are a security risk on corporate finance APIs",
+      "Webhook payload verification is required — HMAC signing must be validated",
+      "Some operations (issuing new cards) may trigger compliance checks that delay or reject the operation"
     ]
   },
-  "af_score_components": {
-    "mcp_score": 0,
-    "api_doc_score": 83,
-    "error_handling_score": 80,
-    "auth_complexity_score": 75,
-    "rate_limit_clarity_score": 68
-  },
-  "security_score_components": {
-    "tls_enforcement": 100,
-    "auth_strength": 88,
-    "scope_granularity": 85,
-    "dependency_hygiene": 88,
-    "secret_handling": 88,
-    "security_notes": "OAuth 2.0 with scoped access. PCI-DSS Level 1 compliant. SOC 2 Type II certified. Webhook HMAC for payload validation. Card PAN masked in API responses — never returned in full."
-  },
-  "reliability_score_components": {
-    "uptime_documented": 88,
-    "version_stability": 82,
-    "breaking_changes_history": 80,
-    "error_recovery": 82
-  }
+  "af_score": 73,
+  "fq_score": 78,
+  "score_rationale": "Brex API is developer-friendly with a published OpenAPI spec, OAuth2 with granular scopes, cursor pagination, and idempotency on key payment endpoints. The free API access for Brex customers removes pricing friction. The main limitations are US-only coverage, eligibility requirements restricting who can use Brex, asynchronous payment processing, and some compliance-triggered delays on card operations. A solid choice for startup spend management automation when the company is already on Brex.",
+  "score_version": "1.0",
+  "evaluated_at": "2026-03-02",
+  "evaluator": "claude-sonnet-4-6",
+  "confidence": "medium"
 }

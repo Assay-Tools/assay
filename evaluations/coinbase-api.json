@@ -5,25 +5,25 @@
   "homepage": "https://docs.cdp.coinbase.com/advanced-trade/docs/welcome",
   "repo_url": "https://github.com/coinbase/coinbase-advanced-py",
   "category": "finance",
-  "subcategories": ["crypto", "trading", "exchange", "portfolio-management"],
-  "tags": ["coinbase", "crypto", "trading", "exchange", "websocket", "rest-api", "sdk", "us-regulated", "bitcoin", "ethereum"],
-  "what_it_does": "REST and WebSocket API for executing cryptocurrency trades, streaming real-time prices, and managing portfolios on Coinbase's regulated US exchange.",
+  "subcategories": ["crypto-trading", "cryptocurrency-exchange", "market-data", "portfolio-management"],
+  "tags": ["coinbase", "crypto", "bitcoin", "ethereum", "trading", "rest-api", "websocket", "sdk", "exchange"],
+  "what_it_does": "Coinbase Advanced Trade API is the professional-grade API for Coinbase's cryptocurrency exchange, enabling programmatic trading of hundreds of crypto assets, real-time market data streaming, portfolio management, and order book access. Replaces the legacy Coinbase Pro API.",
   "use_cases": [
-    "Agents executing cryptocurrency buy/sell orders on a regulated US exchange",
-    "Portfolio monitoring agents tracking balances and open positions",
-    "Real-time price streaming via WebSocket for trading signal agents",
-    "Automated DCA (dollar-cost averaging) bots placing recurring market orders",
-    "Tax reporting agents pulling historical trade history and fills"
+    "Automated cryptocurrency trading and DCA strategies",
+    "Real-time crypto price monitoring and alerting",
+    "Portfolio rebalancing across crypto assets",
+    "Arbitrage strategy execution",
+    "Order book analysis and market making",
+    "Crypto transaction history retrieval for tax reporting"
   ],
   "not_for": [
-    "Non-US users who need broader market access (many international markets restricted)",
-    "High-frequency trading requiring sub-millisecond execution",
-    "Users who need access to altcoins not listed on Coinbase (limited asset selection vs Binance)",
-    "Purely data/analytics use cases — market data APIs are cheaper"
+    "Equity or traditional asset trading (crypto only)",
+    "On-chain DeFi operations (use Coinbase Wallet SDK or web3 libraries)",
+    "Users in regions where Coinbase is not licensed to operate"
   ],
-  "best_when": "An agent needs to execute real cryptocurrency trades on a regulated, reputable US exchange with strong compliance posture and decent liquidity for major assets.",
-  "avoid_when": "You need access to a wide range of altcoins, are outside the US and face regulatory restrictions, or need the lowest possible trading fees (Binance is cheaper).",
-  "alternatives": ["binance-api", "alpaca-trading-api", "coinmarketcap-api"],
+  "best_when": "An agent needs to trade or manage a cryptocurrency portfolio on a regulated US exchange with high liquidity and broad asset coverage.",
+  "avoid_when": "You need equities, DeFi access, or require the lowest possible trading fees (DEXes or other CEXes may be cheaper).",
+  "alternatives": ["alpaca-api", "binance-api", "kraken-api", "gemini-api"],
   "interface": {
     "has_rest_api": true,
     "has_graphql": false,
@@ -31,77 +31,65 @@
     "has_mcp_server": false,
     "mcp_server_url": null,
     "has_sdk": true,
-    "sdk_languages": ["python", "node"],
-    "openapi_spec_url": "https://docs.cdp.coinbase.com/advanced-trade/docs/rest-api-overview",
-    "webhooks": true
+    "sdk_languages": ["python", "node", "go"],
+    "openapi_spec_url": null,
+    "webhooks": false
   },
   "auth": {
     "methods": ["api_key", "jwt"],
     "oauth": false,
     "scopes": true,
-    "notes": "Coinbase Developer Platform (CDP) API keys use Ed25519 key pairs with JWT signing. Legacy HMAC-based keys still supported but CDP keys are the modern approach. Scopes control trading vs read-only access. Requires a Coinbase account with identity verification (KYC)."
+    "notes": "API Key (name) and private key (EC private key for JWT signing) generated in Coinbase Developer Platform. Keys have granular permission scopes: view, trade, transfer. JWT-based auth is the current standard (legacy HMAC deprecated). Keys are tied to a specific portfolio. CDP API keys are distinct from legacy Coinbase Pro keys."
   },
   "pricing": {
-    "model": "usage_based",
+    "model": "pay-per-use",
     "free_tier_exists": true,
-    "free_tier_limits": "API access is free; trading fees apply per transaction",
-    "paid_tiers": "Trading fees: 0.05%-0.60% per trade depending on volume tier; market makers get lower rates; no subscription fee for API access",
+    "free_tier_limits": "No monthly fee; API access is free. Fees are per trade only.",
+    "paid_tiers": "Maker fees: 0.00-0.40%; Taker fees: 0.05-0.60% depending on 30-day volume. Volume discounts apply at higher tiers.",
     "requires_credit_card": false,
-    "notes": "No monthly API subscription cost — you pay trading fees on actual transactions. Fee structure is competitive for retail but more expensive than Binance at lower volumes. Must pass KYC identity verification to trade."
+    "notes": "Straightforward pay-per-trade model with no API subscription cost. Advanced traders with high volume get significantly reduced fees. Fees are competitive for a regulated US exchange."
   },
   "performance": {
-    "latency_p50_ms": 100,
-    "latency_p99_ms": 400,
+    "latency_p50_ms": 120,
+    "latency_p99_ms": 600,
     "uptime_sla_percent": 99.9,
-    "rate_limits": "10 requests/second per endpoint; WebSocket supports multiple subscriptions per connection",
+    "rate_limits": "10 requests/second for private endpoints; 10 requests/second for public endpoints. WebSocket: no explicit call rate limit but connection limits apply.",
     "data_source": "llm_estimated"
   },
   "requirements": {
     "requires_signup": true,
     "requires_credit_card": false,
     "domain_verification": false,
-    "data_residency": ["US"],
-    "compliance": ["FinCEN", "NY-BitLicense", "MSB"],
+    "data_residency": ["US", "EU"],
+    "compliance": ["FinCEN", "BitLicense", "SOC2", "GDPR"],
     "min_contract": "none"
   },
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
-    "documentation_accuracy": 82,
-    "error_message_quality": 80,
-    "error_message_notes": "REST responses include preview_failure_reason and error fields. WebSocket order updates carry status and reject_reason fields. HTTP status codes are semantically correct. Adequate for agent error handling.",
+    "documentation_accuracy": 78,
+    "error_message_quality": 72,
+    "error_message_notes": "Error responses include preview_failure_reason, error, and message fields. Error codes are documented but inconsistently structured across endpoints. Some errors are human-readable strings rather than machine-readable codes, making programmatic handling less reliable.",
     "idempotency_support": "partial",
-    "idempotency_notes": "Order creation supports client_order_id for idempotency — submitting the same client_order_id twice returns the original order rather than creating a duplicate. Agents must generate and track client_order_id to safely retry failed requests.",
+    "idempotency_notes": "client_order_id field available on order creation for idempotency. Agents should always set this to prevent duplicate orders on retry. Not available on all endpoint types.",
     "pagination_style": "cursor",
-    "retry_guidance_documented": true,
+    "retry_guidance_documented": false,
     "known_agent_gotchas": [
-      "Advanced Trade API replaced the old Coinbase Pro API — old Pro SDK is deprecated and will stop working; agents built on it must migrate",
-      "KYC identity verification is required before any trading API calls succeed — agents cannot be deployed for new users without manual onboarding",
-      "CDP API keys use JWT with Ed25519 — key generation is more complex than simple API key issuance and requires careful secret storage",
-      "US-only regulatory restrictions may block certain asset pairs or user types depending on state",
-      "Order fills are asynchronous — agents must poll or use WebSocket to confirm fill status, not just order submission success",
-      "Rate limits are per-endpoint (10 req/sec) — agents hitting multiple endpoints simultaneously can still be throttled"
+      "JWT authentication uses EC private key signing — more complex to implement than simple HMAC; SDK handles this but raw HTTP requires crypto library",
+      "Legacy Coinbase Pro API keys do not work with Advanced Trade API — must generate new CDP API keys",
+      "Order fills are asynchronous — must poll /get_order or use WebSocket for fill notifications",
+      "Market orders are not available for all pairs — some pairs only support limit orders",
+      "Rate limits (10 req/s) are tight for agents polling multiple positions simultaneously",
+      "Portfolio isolation: API keys are scoped to a specific portfolio, not the entire account",
+      "Crypto markets are 24/7 but maintenance windows can cause brief outages",
+      "Documentation quality declined during the migration from Coinbase Pro to Advanced Trade API — some sections are incomplete"
     ]
   },
-  "af_score_components": {
-    "mcp_score": 0,
-    "api_doc_score": 82,
-    "error_handling_score": 80,
-    "auth_complexity_score": 70,
-    "rate_limit_clarity_score": 75
-  },
-  "security_score_components": {
-    "tls_enforcement": 100,
-    "auth_strength": 90,
-    "scope_granularity": 82,
-    "dependency_hygiene": 85,
-    "secret_handling": 88,
-    "security_notes": "Ed25519 JWT-based auth is strong. Scoped API keys allow read-only vs trading permissions. Coinbase is a regulated entity with strong compliance posture. KYC requirement adds identity assurance."
-  },
-  "reliability_score_components": {
-    "uptime_documented": 85,
-    "version_stability": 72,
-    "breaking_changes_history": 65,
-    "error_recovery": 80
-  }
+  "af_score": 70,
+  "fq_score": 75,
+  "score_rationale": "Coinbase Advanced Trade API is a solid choice for crypto trading agents on a regulated US exchange. The JWT-based auth with scoped permissions is good for security, and client_order_id provides some idempotency safety. The main friction points are the relatively tight rate limits (10 req/s), inconsistent error code structure, and documentation that has been in flux since the migration from Coinbase Pro. The lack of a paper trading environment (unlike Alpaca) means agent testing must happen with real funds or in a sandboxed external simulation.",
+  "score_version": "1.0",
+  "evaluated_at": "2026-03-02",
+  "evaluator": "claude-sonnet-4-6",
+  "confidence": "medium"
 }

@@ -1,0 +1,96 @@
+{
+  "id": "cassandra-api",
+  "name": "Apache Cassandra / DataStax Astra",
+  "version_evaluated": "current",
+  "homepage": "https://cassandra.apache.org",
+  "repo_url": "https://github.com/apache/cassandra",
+  "category": "database",
+  "subcategories": ["nosql", "distributed-database", "wide-column", "high-availability"],
+  "tags": ["cassandra", "datastax", "astra", "nosql", "wide-column", "distributed", "cql", "high-write-throughput", "open-source"],
+  "what_it_does": "A distributed, wide-column NoSQL database designed for high write throughput, linear scalability, and multi-region active-active replication with no single point of failure. Uses Cassandra Query Language (CQL), which resembles SQL. DataStax Astra is the managed cloud service built on Cassandra, offering a REST API, GraphQL API, and JSON API (Document API) via Stargate — enabling agent access without CQL driver setup.",
+  "use_cases": [
+    "High write throughput agent logging and event storage at massive scale",
+    "Time-series style data partitioned by entity (user activity, IoT, telemetry) where writes dominate",
+    "Multi-region active-active deployments where agents must write locally with global replication",
+    "Agent-generated event streams requiring linear horizontal write scalability",
+    "DataStax Astra REST/JSON API for agent access without requiring CQL driver infrastructure"
+  ],
+  "not_for": [
+    "Complex analytical queries with arbitrary filters, joins, or aggregations",
+    "Agents needing ACID transactions across multiple partitions (Cassandra provides only partition-level atomicity)",
+    "Small datasets or simple CRUD applications (operational overhead is not justified)",
+    "Workloads with unpredictable or ad-hoc query patterns — Cassandra data modeling must match query patterns"
+  ],
+  "best_when": "An agent operates at massive write scale across multiple regions, writes heavily outweigh reads, and data access patterns are well-defined and partition-key driven.",
+  "avoid_when": "You need complex queries, multi-row transactions, or have small-to-medium data volumes where the operational complexity of Cassandra is not justified.",
+  "alternatives": ["mongodb-api", "dynamodb-api", "scylladb-api", "postgresql-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": true,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "java", "node", "go", "csharp", "ruby", "cpp"],
+    "openapi_spec_url": "https://docs.datastax.com/en/astra/astra-db-vector/api-reference/",
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["password", "ssl_cert", "api_key"],
+    "oauth": false,
+    "scopes": true,
+    "notes": "Self-hosted Cassandra uses username/password authentication with role-based access control (RBAC) via CQL GRANT statements. DataStax Astra uses application tokens (API keys) for REST/GraphQL/Document APIs and provides both admin and read-only token scopes. TLS enforced on Astra; optional on self-hosted. Astra tokens are passed via X-Cassandra-Token header for REST API calls."
+  },
+  "pricing": {
+    "model": "open-source-plus-hosted",
+    "free_tier_exists": true,
+    "free_tier_limits": "Apache Cassandra is free to self-host. DataStax Astra: 25GB storage free, 30M read operations/month free, 5M write operations/month free.",
+    "paid_tiers": "Astra pay-as-you-go: $0.10/GB storage/month, $0.10/million read ops, $0.20/million write ops. Serverless Vector DB pricing for AstraDB Vector.",
+    "requires_credit_card": false,
+    "notes": "Apache Cassandra is free under Apache 2.0 license. DataStax Astra has a generous free tier that covers significant agent workloads. DataStax also offers AstraDB (vector-optimized Cassandra) with a separate free tier. Self-hosting Cassandra requires significant infrastructure (minimum 3-node cluster for production, each needing 4+ CPU cores and 8-32GB RAM)."
+  },
+  "performance": {
+    "latency_p50_ms": 3,
+    "latency_p99_ms": 30,
+    "uptime_sla_percent": 99.99,
+    "rate_limits": "No protocol-level rate limits for self-hosted. Astra: throttling based on tier. Cassandra is designed for millions of writes/second across a cluster — throughput scales linearly with nodes added.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted-anywhere", "US", "EU", "APAC"],
+    "compliance": ["SOC2-astra", "HIPAA-astra", "GDPR-capable", "PCI-DSS-astra"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 75,
+    "error_message_quality": 65,
+    "error_message_notes": "CQL driver errors are typed (NoHostAvailable, WriteTimeout, ReadTimeout, InvalidRequest) but messages are often terse and require Cassandra operational knowledge to interpret. 'Unavailable exception' errors encode replication factor and alive replicas but are opaque without context. Astra REST API errors return JSON with error fields that are more readable. WriteTimeout vs WriteFailure distinction is important for agent retry logic but subtle. Documentation on error handling is sparse.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "CQL INSERT operations are idempotent by nature (upsert semantics — INSERT overwrites existing rows). Lightweight transactions (IF NOT EXISTS, IF column = value) provide conditional upserts but are expensive (Paxos consensus). Batch statements are logged (idempotent) or unlogged (faster but not idempotent). Agents should use logged batches or single-partition operations for safety. USING TIMESTAMP allows out-of-order writes with last-write-wins semantics.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Cassandra data modeling must match query patterns — you cannot add ad-hoc WHERE clauses on non-indexed columns; an agent that tries will get errors or full table scans",
+      "WriteTimeout does not mean the write failed — Cassandra's eventual consistency means the write may have succeeded on some replicas; agents must not simply retry without idempotency consideration",
+      "ALLOW FILTERING is a red flag — never use it in agent queries; it forces full table scans and will not scale",
+      "TTL is set per-row at write time — cannot be updated retroactively without rewriting the row",
+      "Cassandra has no native joins — all data relationships must be denormalized into the appropriate tables for each query pattern",
+      "Self-hosted Cassandra requires a minimum 3-node cluster for production; single-node is development only",
+      "The Stargate REST/GraphQL/JSON APIs add significant latency overhead compared to direct CQL driver access",
+      "No MCP server — agents must use CQL drivers or DataStax Astra REST API directly",
+      "LWT (lightweight transactions) use Paxos and are 4-10x slower than normal writes — avoid in hot paths"
+    ]
+  },
+  "af_score": 52,
+  "fq_score": 76,
+  "score_rationale": "Apache Cassandra is a technical marvel for write-heavy, globally distributed workloads but has very low agent-friendliness out of the box. The data modeling discipline required (query-first design, no ad-hoc filtering, no joins), cryptic timeout errors, no MCP server, and significant operational complexity all drag the af_score down. DataStax Astra's REST and GraphQL APIs (via Stargate) improve agent access considerably. fq_score reflects Cassandra's genuine strengths — proven at planetary scale, multi-region active-active replication, linear write scalability, and strong community. Best suited for specialized high-scale write workloads where the operational investment is justified.",
+  "score_version": "1.0",
+  "evaluated_at": "2026-03-02",
+  "evaluator": "claude-sonnet-4-6",
+  "confidence": "medium"
+}

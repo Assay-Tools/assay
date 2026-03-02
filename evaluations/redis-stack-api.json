@@ -1,0 +1,95 @@
+{
+  "id": "redis-stack-api",
+  "name": "Redis Stack",
+  "version_evaluated": "current",
+  "homepage": "https://redis.io/docs/about/about-stack/",
+  "repo_url": "https://github.com/redis/redis",
+  "category": "database",
+  "subcategories": ["cache", "document-store", "vector-database", "search", "time-series"],
+  "tags": ["redis", "redis-stack", "redisjson", "redisearch", "vector-search", "cache", "pub-sub", "open-source", "in-memory"],
+  "what_it_does": "Redis Stack extends Redis with JSON document storage (RedisJSON), full-text and vector search (RediSearch), time-series data (RedisTimeSeries), and probabilistic data structures. Builds on Redis's in-memory key-value store with sub-millisecond latency. Accessible via the Redis protocol (RESP) using standard Redis clients, plus a REST API via Redis Stack Server. Available as Redis OSS + Stack modules, or Redis Cloud.",
+  "use_cases": [
+    "Agent session state and context caching with automatic TTL expiration",
+    "Vector similarity search for agent RAG and semantic memory via RediSearch",
+    "Real-time pub/sub messaging between agent components",
+    "JSON document storage for agent-generated structured data with querying",
+    "Rate limiting, distributed locking, and leaderboards in multi-agent systems"
+  ],
+  "not_for": [
+    "Primary persistent database (Redis is in-memory first; persistence requires configuration)",
+    "Large dataset storage exceeding available RAM (all data must fit in memory by default)",
+    "Complex SQL joins or relational queries",
+    "Long-term analytics over large historical datasets"
+  ],
+  "best_when": "An agent needs ultra-low latency caching, session state, real-time pub/sub, or vector search with JSON document capability, and data volumes fit within available memory.",
+  "avoid_when": "Your dataset exceeds available RAM, you need persistent ACID transactions across complex relational data, or you require long-term durable storage as the primary database.",
+  "alternatives": ["memcached-api", "chromadb-api", "qdrant-api", "postgresql-api", "dragonflydb-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": true,
+    "mcp_server_url": "https://github.com/redis/mcp-redis",
+    "has_sdk": true,
+    "sdk_languages": ["python", "node", "java", "go", "csharp", "ruby", "php", "rust"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["password", "acl", "tls_cert"],
+    "oauth": false,
+    "scopes": true,
+    "notes": "Redis 6+ ACL system provides user-level access control with command-level and key-pattern permissions — excellent for least-privilege agent access. Authentication via AUTH command or connection string password. Redis Cloud uses username/password. TLS available and recommended for production. Default Redis has no auth — must be configured explicitly. ACL rules can restrict agents to specific key namespaces and command subsets."
+  },
+  "pricing": {
+    "model": "open-source-plus-hosted",
+    "free_tier_exists": true,
+    "free_tier_limits": "Redis OSS is free to self-host. Redis Cloud free tier: 30MB database (suitable for development).",
+    "paid_tiers": "Redis Cloud Essentials: from $7/mo (250MB). Pro: from $0.881/hr for production clusters. Enterprise: custom pricing.",
+    "requires_credit_card": false,
+    "notes": "Redis OSS is BSD licensed and free. Redis Stack modules (RedisJSON, RediSearch, etc.) are available under RSAL license (non-permissive for competing products). Redis Cloud free tier (30MB) is very limited but sufficient for agent prototyping. Upstash offers serverless Redis with per-request pricing and a generous free tier — often better for agents."
+  },
+  "performance": {
+    "latency_p50_ms": 0.5,
+    "latency_p99_ms": 5,
+    "uptime_sla_percent": 99.99,
+    "rate_limits": "No protocol-level rate limits. Throughput constrained by single-threaded command processing (though pipelining and Redis 7 I/O threads help). Typical: 100,000-1,000,000 ops/sec depending on command and hardware.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted-anywhere", "US", "EU", "APAC"],
+    "compliance": ["SOC2-via-cloud", "HIPAA-via-cloud", "GDPR-capable", "PCI-DSS-via-cloud"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": 75,
+    "mcp_security_score": 72,
+    "documentation_accuracy": 88,
+    "error_message_quality": 72,
+    "error_message_notes": "Redis error responses are terse RESP protocol errors (e.g., 'ERR wrong number of arguments for HSET command', 'WRONGTYPE Operation against a key holding the wrong kind of value'). Error messages are concise and accurate but require Redis protocol knowledge to interpret. RediSearch errors are more descriptive. Python redis-py raises typed exceptions (ResponseError, ConnectionError, TimeoutError) which helps. No structured JSON error bodies in the base protocol.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "SET with NX flag (SET key value NX) provides get-or-create idempotency. SETNX and HSETNX for conditional sets. JSON.SET with XX/NX flags for JSON documents. Redis transactions (MULTI/EXEC) provide atomicity but not idempotency. Lua scripts enable custom atomic idempotent operations. Agents should use NX/XX flags for safe concurrent operations.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Default Redis has no persistence — data is lost on restart unless RDB snapshots or AOF is configured",
+      "Redis Stack modules (RedisJSON, RediSearch) use RSAL license — not suitable for products that compete with Redis",
+      "WRONGTYPE errors occur silently if an agent uses the wrong data structure command for a key — always check key types",
+      "Redis 30MB Cloud free tier is quickly exhausted by vector embeddings — each 1536-dim float32 vector is ~6KB",
+      "RediSearch vector index must be created before data is loaded — cannot add index retroactively without reindexing",
+      "TTL is per-key and not inherited — agents setting TTLs on parent hashes must also set TTLs on nested structures manually",
+      "Pub/Sub messages are not persisted — if an agent subscriber is offline, messages are lost; use Streams for durability",
+      "The mcp-redis MCP server is newer and less battle-tested than Redis itself — evaluate for production use carefully"
+    ]
+  },
+  "af_score": 76,
+  "fq_score": 82,
+  "score_rationale": "Redis Stack is one of the fastest and most versatile databases for agent workloads — sub-millisecond latency, built-in vector search, pub/sub, and JSON documents cover a wide range of agent primitives. The official MCP server and excellent ACL system boost agent-friendliness. af_score is held back by terse RESP error messages, the absence of persistence by default (a footgun for agents expecting durability), vector index setup complexity, and RSAL license concerns. fq_score reflects Redis's legendary reliability, performance, and the breadth of data structures available in Redis Stack. An excellent choice for agent caching, session state, and semantic memory.",
+  "score_version": "1.0",
+  "evaluated_at": "2026-03-02",
+  "evaluator": "claude-sonnet-4-6",
+  "confidence": "high"
+}

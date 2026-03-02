@@ -1,0 +1,114 @@
+{
+  "id": "pypi-warehouse-api",
+  "name": "PyPI Warehouse API",
+  "version_evaluated": "current",
+  "homepage": "https://pypi.org",
+  "repo_url": "https://github.com/pypi/warehouse",
+  "category": "developer-tools",
+  "subcategories": ["package-registry", "dependency-management", "python"],
+  "tags": ["python", "pypi", "pip", "packages", "dependencies", "rest-api", "open-source", "warehouse"],
+  "what_it_does": "The PyPI (Python Package Index) Warehouse API provides JSON-based access to Python package metadata including version listings, release files, dependency requirements, classifiers, and download statistics. The primary interface is per-package JSON endpoints (pypi.org/pypi/{package}/json and pypi.org/pypi/{package}/{version}/json). A separate XML-RPC API exists for legacy use and the Simple Index (PEP 503/691) is used by pip for package resolution.",
+  "use_cases": [
+    "Fetching Python package metadata and available versions for dependency analysis or Dependabot-style update tools",
+    "Resolving the latest stable version of a package for automated requirements.txt or pyproject.toml updates",
+    "Inspecting package classifiers, license, and maintainer info for compliance and due-diligence workflows",
+    "Retrieving release file hashes for reproducible environment builds and supply chain verification",
+    "Checking download statistics to assess package popularity and community health"
+  ],
+  "not_for": [
+    "Actually installing Python packages (use pip, uv, or poetry)",
+    "Private package hosting (use PyPI's paid plans, Gemfury, or a self-hosted DevPI instance)",
+    "High-volume bulk metadata crawling (use the BigQuery public dataset or the RSS feed instead)"
+  ],
+  "best_when": "An agent needs to look up Python package metadata, resolve version information, or verify package integrity as part of dependency management or security analysis.",
+  "avoid_when": "You need to install packages, host private packages, or do bulk analysis (use BigQuery dataset).",
+  "alternatives": ["github-packages-api", "jfrog-artifactory-api", "devpi"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": false,
+    "sdk_languages": [],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["api_key"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "All read operations (package JSON endpoints, Simple Index) require no authentication. Package upload (via twine or the upload API) requires an API token (replaces username+password as of 2023). API tokens are generated from pypi.org account settings and can be scoped to a specific project or all projects. Tokens are passed as HTTP Basic auth with username `__token__`. No OAuth flow."
+  },
+  "pricing": {
+    "model": "free",
+    "free_tier_exists": true,
+    "free_tier_limits": "All reads are free and unauthenticated. Publishing public packages is free.",
+    "paid_tiers": "None. PyPI is operated by the Python Software Foundation.",
+    "requires_credit_card": false,
+    "notes": "PyPI is a free community service. There are no paid tiers. CDN costs are covered by sponsorship. Rate limits exist but are not aggressively enforced for well-behaved clients."
+  },
+  "performance": {
+    "latency_p50_ms": 80,
+    "latency_p99_ms": 350,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "No hard published rate limits for the JSON API. The Simple Index and package downloads are CDN-backed (Fastly). Aggressive crawling may trigger IP-based throttling.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["US"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 70,
+    "error_message_quality": 62,
+    "error_message_notes": "The JSON package endpoint returns 404 with a minimal HTML error for unknown packages (not JSON), which breaks naive JSON parsers. The upload API returns XML-RPC-style errors. Errors are not consistently structured across different PyPI endpoints. Rate limit responses are generic HTTP 429s without detailed guidance.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "GET operations on package endpoints are fully idempotent and highly cacheable. Package uploads are not idempotent — uploading the same filename with different content is rejected; uploading the same file is a no-op on newer PyPI. Version deletion (via the website) cannot be done via API; only yanking is supported via twine/API.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "The 404 response for unknown packages returns HTML, not JSON — agents must handle Content-Type checking before JSON parsing",
+      "Package names are normalized by PyPI (hyphens and underscores are interchangeable, case-insensitive) — store the canonical name from the metadata, not user input",
+      "The `info.requires_dist` field uses PEP 508 dependency specifiers which require a parser to interpret properly",
+      "The `releases` key in the JSON response is a dict keyed by version string — iteration order is not guaranteed to be version-sorted",
+      "PyPI's yanking mechanism (not deletion) means yanked releases still appear in the JSON but with `yanked: true` — agents must filter for dependency resolution",
+      "The XML-RPC API is legacy and deprecated; agents should use only the JSON endpoints and the Simple Index (PEP 691 JSON format)",
+      "Download statistics are NOT included in the package JSON; they require a separate call to pypistats.org (unofficial but widely used)"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": null,
+    "api_doc_score": 70,
+    "error_handling_score": 62,
+    "auth_complexity_score": 78,
+    "rate_limit_clarity_score": 52
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 72,
+    "scope_granularity": 60,
+    "dependency_hygiene": 75,
+    "secret_handling": 68,
+    "security_notes": "HTTPS enforced. API tokens can be scoped to a specific project (recommended for publish workflows). Mandatory 2FA for critical projects (top 1% of downloads) is enforced. Trusted publishing (OIDC from GitHub Actions) is now supported as a keyless alternative to tokens. PyPI has faced supply chain attacks (typosquatting) — agents should normalize and verify package names carefully."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 80,
+    "version_stability": 85,
+    "breaking_changes_history": 85,
+    "error_recovery": 60
+  },
+  "af_score": 61,
+  "fq_score": 72,
+  "score_rationale": "The PyPI JSON API is clean and fast for the happy path — fetching package metadata for known packages requires just a single unauthenticated GET. However, 404 responses returning HTML (not JSON) is a significant agent gotcha, dependency resolution requires understanding PEP 508 specifiers, and download stats are entirely external. The project-scoped API tokens and trusted publishing support are welcome improvements. Strong for read-only metadata lookups; workable for publish workflows with proper error handling.",
+  "score_version": "1.0",
+  "evaluated_at": "2026-03-02",
+  "evaluator": "claude-sonnet-4-6",
+  "confidence": "medium"
+}

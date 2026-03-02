@@ -3,35 +3,34 @@
   "name": "Freshdesk API",
   "version_evaluated": "current",
   "homepage": "https://developers.freshdesk.com/api/",
-  "repo_url": null,
-  "category": "developer-tools",
-  "subcategories": ["customer-support", "helpdesk", "ticketing", "crm"],
-  "tags": ["freshdesk", "customer-support", "helpdesk", "ticketing", "rest-api", "sdk", "freshworks"],
-  "what_it_does": "Customer support and helpdesk platform API for managing tickets, contacts, agents, knowledge bases, and automation rules. Part of Freshworks suite, competing with Zendesk.",
+  "repo_url": "https://github.com/freshdesk/freshdesk-ruby",
+  "category": "communication",
+  "subcategories": ["customer-support", "helpdesk", "ticketing", "customer-service"],
+  "tags": ["freshdesk", "helpdesk", "ticketing", "customer-support", "rest-api", "webhooks", "crm"],
+  "what_it_does": "Freshdesk is a customer support and helpdesk platform. Its REST API enables agents to create and manage support tickets, add notes and replies, manage contacts and companies, update ticket properties, and automate support workflows with webhooks.",
   "use_cases": [
-    "Automating ticket creation from monitoring alerts and incident systems",
-    "AI-powered ticket classification, routing, and prioritization",
-    "Syncing customer data between CRM and support platform",
-    "Building agent-assisted support with automated response suggestions",
-    "SLA monitoring and escalation automation"
+    "Automatically creating tickets from monitored channels (email, logs, alerts)",
+    "Triaging and routing tickets based on content analysis",
+    "Adding automated notes or suggested resolutions to tickets",
+    "Escalating or updating ticket priority based on SLA rules",
+    "Syncing customer data between Freshdesk and CRM systems"
   ],
   "not_for": [
-    "Live chat and messaging-first support (use Intercom instead)",
-    "Enterprise-grade complex workflows at very large scale",
-    "Non-customer-support use cases",
-    "Real-time call center operations (limited voice integration)"
+    "High-volume event streaming (webhooks are push-only, not guaranteed delivery at scale)",
+    "Complex internal IT service management (consider Freshservice instead)",
+    "Real-time chat or live support workflows"
   ],
-  "best_when": "An agent needs to create, manage, or automate helpdesk tickets in Freshdesk, especially for incident management or customer support workflow automation.",
-  "avoid_when": "Your team uses Zendesk (different API) or needs messaging-first customer engagement.",
-  "alternatives": ["zendesk-api", "intercom-api", "helpscout-api"],
+  "best_when": "An agent monitors a system or channel and needs to create or update support tickets based on detected events or customer communications.",
+  "avoid_when": "Your support volume is very high (millions of tickets/mo) and you need guaranteed-delivery event processing — Freshdesk webhooks can miss events.",
+  "alternatives": ["zendesk-api", "intercom-api", "hubspot-service-api", "servicenow-api"],
   "interface": {
     "has_rest_api": true,
     "has_graphql": false,
     "has_grpc": false,
     "has_mcp_server": false,
     "mcp_server_url": null,
-    "has_sdk": false,
-    "sdk_languages": [],
+    "has_sdk": true,
+    "sdk_languages": ["ruby", "python", "node", "php"],
     "openapi_spec_url": null,
     "webhooks": true
   },
@@ -39,21 +38,21 @@
     "methods": ["api_key", "basic_auth"],
     "oauth": false,
     "scopes": false,
-    "notes": "API key used as username in HTTP Basic Auth with any password (typically 'X'). Or pass API key directly in header. Simple and straightforward for agent use — no OAuth flow needed."
+    "notes": "API key-based auth using HTTP Basic Auth with the key as username and 'X' as password. Simple and consistent. No OAuth2 for agent-to-agent flows. No granular scopes — key grants full API access for the associated agent's role."
   },
   "pricing": {
     "model": "freemium",
     "free_tier_exists": true,
-    "free_tier_limits": "Free plan: unlimited agents, basic ticketing, email support only",
-    "paid_tiers": "Growth $18/agent/month, Pro $59/agent/month, Enterprise $95/agent/month",
+    "free_tier_limits": "Free for up to 10 agents; basic ticketing features only",
+    "paid_tiers": "Growth $15/agent/mo; Pro $49/agent/mo; Enterprise $79/agent/mo",
     "requires_credit_card": false,
-    "notes": "Generous free tier for small teams. API access available on all plans. Per-agent pricing can be expensive for large support teams. Competitive with Zendesk on features per dollar."
+    "notes": "Free tier has API access but limited features (no automations, limited reporting). Growth tier unlocks automations and advanced workflows needed for most agent integrations."
   },
   "performance": {
-    "latency_p50_ms": 300,
-    "latency_p99_ms": 1200,
+    "latency_p50_ms": 200,
+    "latency_p99_ms": 700,
     "uptime_sla_percent": 99.9,
-    "rate_limits": "400-500 requests per minute depending on plan",
+    "rate_limits": "1000 requests/minute on most plans; varies by endpoint and plan tier",
     "data_source": "llm_estimated"
   },
   "requirements": {
@@ -67,25 +66,28 @@
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
-    "documentation_accuracy": 82,
-    "error_message_quality": 75,
-    "error_message_notes": "Error responses include 'errors' array with field, message, and code. HTTP status codes are standard. Documentation is comprehensive. Some API behaviors are underdocumented.",
+    "documentation_accuracy": 80,
+    "error_message_quality": 72,
+    "error_message_notes": "Errors return JSON with a description field and sometimes a nested errors object. HTTP status codes are used correctly. Error detail is moderate — enough to debug common issues but sometimes lacks specificity on validation failures.",
     "idempotency_support": "none",
-    "idempotency_notes": "No idempotency keys. Duplicate ticket creation is possible. Agents should search for existing tickets before creating to avoid duplicates.",
-    "pagination_style": "offset",
-    "retry_guidance_documented": true,
+    "idempotency_notes": "No idempotency key support. Ticket creation is not idempotent. Agents should check for existing tickets (by source/subject) before creating to avoid duplicates.",
+    "pagination_style": "page",
+    "retry_guidance_documented": false,
     "known_agent_gotchas": [
-      "Rate limits vary by plan — Free plan has much lower limits than paid",
-      "Freshdesk subdomain is part of API URL (yourcompany.freshdesk.com) — must be configured per account",
-      "Ticket status codes are numeric (1=Open, 2=Pending, 3=Resolved, 4=Closed) — not human-readable in requests",
-      "Custom fields must be pre-created in Freshdesk before they can be set via API",
-      "Bulk operations have separate endpoints with different rate limits",
-      "API v2 is current — v1 is deprecated but some examples in the wild still use it"
-    ],
-    "error_message_score": 75,
-    "auth_complexity_score": 90,
-    "rate_limit_score": 72,
-    "security_score": 80
+      "No idempotency — duplicate ticket creation is easy on retry; implement deduplication by source ID",
+      "Rate limits vary by plan; agents on free tier get very low limits (unlikely to be documented per-endpoint)",
+      "Webhook delivery is not guaranteed — Freshdesk may drop events under load; use polling as fallback",
+      "API key has full access for that agent's permission level — use a dedicated low-privilege agent account",
+      "Pagination uses page-based (not cursor), so concurrent modifications can cause items to be missed",
+      "Custom fields require knowing the field ID in advance; fetch field metadata before bulk operations",
+      "Attachment uploads require multipart form-data, not JSON — different from most other endpoints"
+    ]
   },
-  "last_evaluated": "2026-02-28"
+  "af_score": 62,
+  "fq_score": 65,
+  "score_rationale": "Freshdesk API is functional for basic agent ticket management with reasonable documentation and webhooks. However, no idempotency, no OAuth, no granular scopes, page-based pagination, and non-guaranteed webhook delivery limit its reliability for agents. Sufficient for medium-complexity helpdesk automation but not a best-in-class developer experience.",
+  "score_version": "1.0",
+  "evaluated_at": "2026-03-02",
+  "evaluator": "claude-sonnet-4-6",
+  "confidence": "medium"
 }

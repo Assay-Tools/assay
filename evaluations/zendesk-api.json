@@ -1,29 +1,29 @@
 {
   "id": "zendesk-api",
-  "name": "Zendesk API",
+  "name": "Zendesk Support API",
   "version_evaluated": "current",
-  "homepage": "https://developer.zendesk.com",
+  "homepage": "https://developer.zendesk.com/api-reference/",
   "repo_url": "https://github.com/zendesk/zendesk_api_client_python",
   "category": "communication",
-  "subcategories": ["support", "helpdesk", "ticketing", "customer-service"],
-  "tags": ["zendesk", "support", "helpdesk", "ticketing", "customer-service", "rest-api", "sdk", "webhooks", "omnichannel"],
-  "what_it_does": "Zendesk's REST API for managing support tickets, customers, agents, organizations, and knowledge base articles in Zendesk's customer service platform.",
+  "subcategories": ["customer-support", "helpdesk", "ticketing", "omnichannel"],
+  "tags": ["zendesk", "support", "helpdesk", "ticketing", "customer-service", "rest-api", "sdk", "webhooks", "omnichannel", "sunshine"],
+  "what_it_does": "Zendesk's REST API for managing support tickets, customers, agents, organizations, and knowledge base articles. Exposes the full Zendesk Support platform including ticket management, SLA tracking, macros, triggers, automations, and the Sunshine custom objects platform for extended data models.",
   "use_cases": [
-    "Creating and updating support tickets from agent workflows",
-    "Automatically routing and assigning tickets based on content",
-    "Reading ticket data for SLA monitoring and escalation agents",
-    "Managing knowledge base articles for AI-powered self-service",
-    "Building AI copilots for agent support using ticket context"
+    "Creating and updating support tickets from automated agent workflows",
+    "Automatically routing and assigning tickets based on content analysis",
+    "Reading ticket data for SLA monitoring, escalation, and compliance agents",
+    "Managing knowledge base articles for AI-powered self-service and RAG pipelines",
+    "Building AI copilots for support agents using full ticket conversation context"
   ],
   "not_for": [
-    "Teams not using Zendesk",
-    "Real-time in-app chat-first support (Intercom may be better)",
-    "Very small teams where cost is prohibitive",
-    "Simple internal IT ticketing (JIRA Service Desk may be better)"
+    "Teams not using Zendesk (no value without the platform)",
+    "Real-time chat-first customer support where Intercom or Crisp are more appropriate",
+    "Very small teams where per-seat cost is prohibitive",
+    "Simple internal IT ticketing where Jira Service Management may be better suited"
   ],
-  "best_when": "An agent needs to manage customer support tickets in Zendesk as part of an automated support or AIOps workflow.",
-  "avoid_when": "You're not on Zendesk or need chat-first customer communication.",
-  "alternatives": ["intercom-api", "discord-api"],
+  "best_when": "An agent needs to manage, route, or analyze customer support tickets in Zendesk as part of an automated support or AIOps workflow.",
+  "avoid_when": "You are not on Zendesk or need a chat-first customer communication platform.",
+  "alternatives": ["intercom-api", "freshdesk-api", "crisp-api"],
   "interface": {
     "has_rest_api": true,
     "has_graphql": false,
@@ -36,24 +36,24 @@
     "webhooks": true
   },
   "auth": {
-    "methods": ["api_key", "basic_auth", "oauth2"],
+    "methods": ["api_token", "basic_auth", "oauth2"],
     "oauth": true,
     "scopes": true,
-    "notes": "API tokens with email/token Basic Auth (agent@domain.com/token:API_TOKEN). OAuth2 for multi-account apps. API tokens are simplest for agents — no OAuth flow needed."
+    "notes": "API tokens used via HTTP Basic Auth with email/token format (agent@domain.com/token:API_TOKEN). OAuth 2.0 available for multi-account integrations. API tokens are simplest for agent use — no OAuth flow required. OAuth scopes are available but the token approach is more common for backend agents."
   },
   "pricing": {
     "model": "paid",
-    "free_tier_exists": true,
-    "free_tier_limits": "Free trial for 14 days",
-    "paid_tiers": "Suite Team $55/agent/month, Suite Growth $89/agent/month, Suite Professional $115/agent/month",
+    "free_tier_exists": false,
+    "free_tier_limits": "14-day free trial only",
+    "paid_tiers": "Suite Team $55/agent/mo; Suite Growth $89/agent/mo; Suite Professional $115/agent/mo; Support only from $19/agent/mo",
     "requires_credit_card": false,
-    "notes": "Relatively expensive per-seat pricing. No permanent free tier. Startup program available. API access included on all plans."
+    "notes": "Relatively expensive per-seat pricing with no permanent free tier. API access is included on all paid plans. Startup program available for qualifying companies. Zendesk Sunshine (custom objects/relationships) requires Suite plans."
   },
   "performance": {
     "latency_p50_ms": 200,
     "latency_p99_ms": 800,
     "uptime_sla_percent": 99.9,
-    "rate_limits": "700 requests/minute (Suite), 200 requests/minute (Support)",
+    "rate_limits": "700 requests/minute on Suite plans; 200 requests/minute on Support-only plans; bulk endpoints have separate limits",
     "data_source": "llm_estimated"
   },
   "requirements": {
@@ -66,25 +66,49 @@
   },
   "agent_readiness": {
     "mcp_server_quality": null,
-    "mcp_security_score": 80,
+    "mcp_security_score": null,
     "documentation_accuracy": 85,
     "error_message_quality": 82,
-    "error_message_notes": "Well-structured error responses with description and error fields. Field validation errors are specific. Rate limit errors include rate limit headers. One of the better-documented APIs.",
+    "error_message_notes": "Well-structured error responses with description and error fields. Field validation errors identify the specific field and reason. Rate limit responses include X-RateLimit-Limit and Retry-After headers. One of the more consistently documented APIs in the support category.",
     "idempotency_support": "partial",
-    "idempotency_notes": "External ID field on tickets enables idempotent creation checks. Ticket updates by ID are idempotent.",
+    "idempotency_notes": "External ID field on tickets enables idempotent creation — agents can set external_id to their own identifier and check for existing tickets with that ID before creating. Ticket updates by Zendesk ticket ID are idempotent.",
     "pagination_style": "cursor",
     "retry_guidance_documented": true,
     "known_agent_gotchas": [
-      "Basic Auth format is unusual: agent_email@domain/token:API_TOKEN — easy to misconfigure",
-      "Subdomain-based URLs (company.zendesk.com) require knowing the Zendesk subdomain",
-      "Bulk ticket operations use side-loading and job status polling — complex for agents",
-      "Webhook registration requires SSL endpoint with valid certificate",
-      "Custom fields require knowing their IDs which are numeric and account-specific",
-      "Rate limits apply per Zendesk account, not per token — shared with other integrations"
-    ],
-    "error_message_score": 82,
+      "Basic Auth format is unusual: the password field must be 'token:API_TOKEN' (literal string 'token:' prefix) — easy to misconfigure",
+      "Subdomain-based URLs (company.zendesk.com) require knowing the Zendesk subdomain at configuration time",
+      "Bulk ticket operations use a job status polling pattern — agents must poll the job status endpoint rather than getting synchronous results",
+      "Webhook registration requires an SSL endpoint with a valid certificate — self-signed certs are rejected",
+      "Custom field IDs are numeric and account-specific — agents cannot hardcode them across environments",
+      "Rate limits apply per Zendesk account, not per API token — shared with all other integrations on the account",
+      "The Sunshine platform (custom objects) uses a different API base path and auth model than core Support API"
+    ]
+  },
+  "af_score_components": {
+    "api_doc_score": 85,
+    "error_handling_score": 82,
     "auth_complexity_score": 72,
-    "rate_limit_score": 78,
-    "security_score": 80
-  }
+    "rate_limit_clarity_score": 78
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 82,
+    "scope_granularity": 75,
+    "dependency_hygiene": 80,
+    "secret_handling": 80,
+    "security_notes": "API tokens are stable and easy to rotate. OAuth 2.0 available with scope control for multi-tenant use. HTTPS enforced. Enterprise compliance posture (FedRAMP, HIPAA) is strong. Token format (email/token) is a slight security anti-pattern but widely used."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 90,
+    "version_stability": 85,
+    "breaking_changes_history": 82,
+    "error_recovery": 80
+  },
+  "af_score": 67,
+  "fq_score": 76,
+  "score_rationale": "Zendesk Support API is one of the more agent-friendly helpdesk APIs with accurate documentation, good error messages with rate limit headers, cursor pagination, and partial idempotency via external_id. The main friction points are the unusual Basic Auth format, subdomain-based URL configuration, and bulk operation polling patterns. Strong compliance posture makes it suitable for enterprise deployments. Best choice for ticket management automation when the organization is already on Zendesk.",
+  "score_version": "1.0",
+  "evaluated_at": "2026-03-02",
+  "evaluator": "claude-sonnet-4-6",
+  "confidence": "medium"
 }

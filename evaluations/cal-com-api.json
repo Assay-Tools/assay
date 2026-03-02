@@ -6,85 +6,88 @@
   "repo_url": "https://github.com/calcom/cal.com",
   "category": "productivity",
   "subcategories": ["scheduling", "calendar", "booking", "open-source"],
-  "tags": ["cal.com", "scheduling", "calendar", "booking", "open-source", "rest-api", "mcp", "typescript", "self-hosted"],
-  "what_it_does": "Open-source scheduling infrastructure API for booking meetings, checking availability, and managing calendars — a developer-first alternative to Calendly with MCP server support.",
+  "tags": ["cal.com", "scheduling", "calendar", "booking", "open-source", "rest-api", "webhooks", "self-hosted"],
+  "what_it_does": "Cal.com is an open-source scheduling infrastructure for booking appointments and meetings. Its REST API allows agents to manage event types, create and cancel bookings, check availability, manage users and teams, and receive webhook events on booking state changes.",
   "use_cases": [
-    "Booking meetings on behalf of users via agent workflows",
-    "Checking real-time availability across connected calendars before proposing times",
-    "Managing event types, durations, and scheduling constraints programmatically",
-    "Embedding customizable booking flows into products via API + webhooks",
-    "Self-hosting scheduling infrastructure to keep calendar data in-house"
+    "Booking meetings or appointments on behalf of users from an agent",
+    "Checking availability and suggesting time slots in automated workflows",
+    "Canceling or rescheduling bookings based on agent-detected conditions",
+    "Creating event types programmatically for different appointment categories",
+    "Syncing booking data with CRMs or downstream scheduling systems"
   ],
   "not_for": [
-    "Enterprise meeting-room and resource scheduling at scale (use Microsoft Bookings or Robin)",
-    "Complex multi-party negotiation scheduling (Doodle-style)",
-    "Businesses needing phone/SMS appointment reminders without custom setup"
+    "Enterprise room booking or resource management at large scale",
+    "Complex multi-location scheduling with physical resource constraints",
+    "Agents needing sub-second booking confirmation"
   ],
-  "best_when": "Agents or developers need programmatic scheduling with full control — especially when self-hosting or MCP integration is a requirement.",
-  "avoid_when": "You need a no-code scheduling tool for non-technical teams; Cal.com's self-hosted setup and API-first approach adds operational overhead.",
-  "alternatives": ["acuity-scheduling-api", "calendly-api", "nylas-api"],
+  "best_when": "An agent needs to automate scheduling for a human — especially in a sales, recruiting, or support context where meeting booking is a core workflow step.",
+  "avoid_when": "You need enterprise-grade SLAs and support, or complex scheduling logic that requires custom calendar system integration.",
+  "alternatives": ["calendly-api", "acuity-api", "microsoft-bookings-api", "google-calendar-api"],
   "interface": {
     "has_rest_api": true,
     "has_graphql": false,
     "has_grpc": false,
-    "has_mcp_server": true,
-    "mcp_server_url": "https://github.com/calcom/mcp",
-    "has_sdk": true,
-    "sdk_languages": ["typescript"],
-    "openapi_spec_url": "https://cal.com/docs/api-reference",
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": false,
+    "sdk_languages": [],
+    "openapi_spec_url": "https://api.cal.com/docs/openapi",
     "webhooks": true
   },
   "auth": {
     "methods": ["api_key", "oauth2"],
     "oauth": true,
     "scopes": true,
-    "notes": "Cal.com Cloud uses API keys (per-user) and OAuth2 for third-party app access. Self-hosted instances use API keys. OAuth2 supports granular scopes for reading availability, booking, and managing event types. API v2 uses Bearer tokens."
+    "notes": "API key for personal/agent use; OAuth 2.0 for building apps on top of Cal.com. For self-hosted deployments, the API key is generated in instance settings. Cloud API uses api.cal.com with apiKey query param or Authorization header."
   },
   "pricing": {
     "model": "freemium",
     "free_tier_exists": true,
-    "free_tier_limits": "Free for individuals on Cal.com Cloud (unlimited bookings, core features); self-hosted is free under AGPL-3.0",
-    "paid_tiers": "Teams from $12/user/month; Enterprise custom pricing; self-hosted Enterprise license available",
+    "free_tier_limits": "Cal.com Cloud free tier: unlimited bookings, 1 active event type, no team features",
+    "paid_tiers": "Teams $12/user/mo; Organization custom; self-hosted is free",
     "requires_credit_card": false,
-    "notes": "Self-hosted is free and fully featured under AGPL. Cal.com Cloud free tier is generous for individuals. Teams and org features require paid plans. API access included at all tiers."
+    "notes": "Self-hosted is fully free including all features. Cloud free tier limits event types which is restrictive for agents. The open-source nature means agents can run against a local instance with full control."
   },
   "performance": {
-    "latency_p50_ms": 150,
-    "latency_p99_ms": 600,
+    "latency_p50_ms": 200,
+    "latency_p99_ms": 700,
     "uptime_sla_percent": 99.9,
-    "rate_limits": "Not publicly documented; generous for typical scheduling workloads",
+    "rate_limits": "Not officially documented for cloud; self-hosted has no enforced limits",
     "data_source": "llm_estimated"
   },
   "requirements": {
     "requires_signup": true,
     "requires_credit_card": false,
     "domain_verification": false,
-    "data_residency": ["US", "EU"],
+    "data_residency": ["US", "EU", "self-hosted"],
     "compliance": ["GDPR", "SOC2"],
     "min_contract": "none"
   },
   "agent_readiness": {
-    "mcp_server_quality": 82,
-    "mcp_security_score": 78,
-    "documentation_accuracy": 80,
-    "error_message_quality": 76,
-    "error_message_notes": "REST API errors are generally well-structured with HTTP status codes and descriptive messages. MCP server surfaces clear tool descriptions. Some edge cases in availability queries return undocumented 4xx responses.",
-    "idempotency_support": "partial",
-    "idempotency_notes": "Bookings are not idempotent by default — duplicate booking attempts create duplicate entries. Agents must check existing bookings before creating new ones. Cancellation and rescheduling are safe to retry.",
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 72,
+    "error_message_quality": 65,
+    "error_message_notes": "OpenAPI spec is available but sometimes lags behind actual API behavior. Error responses are JSON with message field but inconsistent structure across v1 and v2 endpoints. Self-hosted error verbosity depends on deployment configuration.",
+    "idempotency_support": "none",
+    "idempotency_notes": "No idempotency key support. Booking creation calls are not idempotent. Agents should check existing bookings before creating to avoid doubles.",
     "pagination_style": "cursor",
     "retry_guidance_documented": false,
     "known_agent_gotchas": [
-      "MCP server requires a running Cal.com instance (cloud or self-hosted) — not a standalone service",
-      "Time zone handling is critical — all times should be passed in UTC or explicit tz offset; slot availability is tz-sensitive",
-      "OAuth tokens for third-party apps have short expiry — implement refresh token rotation",
-      "Event type IDs must be fetched dynamically — hardcoding them breaks across environments",
-      "Webhook signature verification required to confirm booking events are authentic",
-      "Self-hosted API v1 and Cal.com Cloud API v2 have diverging endpoint structures"
-    ],
-    "error_message_score": 76,
-    "auth_complexity_score": 78,
-    "rate_limit_score": 70,
-    "security_score": 78
+      "API v1 and v2 co-exist with different endpoint paths and response formats — check which version each endpoint uses",
+      "No idempotency keys — duplicate bookings possible on retry; check before creating",
+      "Cloud rate limits undocumented; self-hosted deployments have no enforced limits (good for local agents)",
+      "Timezone handling requires explicit timezone parameter; default behavior can create booking time confusion",
+      "Webhook signature verification uses HMAC-SHA256 — validate to prevent spoofing",
+      "Self-hosted API sometimes diverges from cloud API in feature availability",
+      "Available time slot calculation depends on calendar integrations being properly configured on the target account"
+    ]
   },
-  "last_evaluated": "2026-03-01"
+  "af_score": 60,
+  "fq_score": 70,
+  "score_rationale": "Cal.com's open-source nature is its biggest advantage for agents — self-hosted deployments give full control with no rate limits, no cost, and complete data residency. The cloud API is functional but has documentation gaps, undocumented rate limits, and no idempotency. API maturity is improving rapidly given the active open-source development. Best for agents that can self-host or tolerate some integration rough edges.",
+  "score_version": "1.0",
+  "evaluated_at": "2026-03-02",
+  "evaluator": "claude-sonnet-4-6",
+  "confidence": "medium"
 }

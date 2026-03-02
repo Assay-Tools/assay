@@ -1,58 +1,59 @@
 {
   "id": "mailchimp-api",
-  "name": "Mailchimp",
+  "name": "Mailchimp Marketing API",
   "version_evaluated": "current",
-  "homepage": "https://mailchimp.com",
-  "repo_url": null,
-  "category": "email",
+  "homepage": "https://mailchimp.com/developer/marketing/",
+  "repo_url": "https://github.com/mailchimp/mailchimp-marketing-python",
+  "category": "communication",
   "subcategories": ["email-marketing", "marketing-automation", "audience-management"],
-  "tags": ["mailchimp", "email-marketing", "newsletters", "marketing-automation", "audience", "campaigns"],
-  "what_it_does": "Email marketing platform with audience management, campaign creation, and marketing automation, offering a REST API for programmatic list management, campaign sending, and analytics retrieval.",
+  "tags": ["mailchimp", "email-marketing", "newsletters", "marketing-automation", "audience", "campaigns", "rest-api", "sdk"],
+  "what_it_does": "Mailchimp's REST API for email marketing, audience management, and marketing automation. Enables programmatic subscriber list management, campaign creation and scheduling, automation trigger management, and analytics retrieval.",
   "use_cases": [
     "Subscribing and unsubscribing users from mailing lists based on application events",
-    "Triggering transactional and marketing emails as part of automated user journeys",
-    "Syncing contact data and tags from CRM systems to keep audiences up to date",
+    "Triggering marketing automations and drip sequences from agent-detected user behavior",
+    "Syncing contact data and tags from CRM systems to keep audiences current",
     "Retrieving campaign performance metrics (open rates, clicks) for reporting agents",
     "Creating and scheduling email campaigns programmatically from template libraries"
   ],
   "not_for": [
-    "High-volume transactional email (use Mandrill/Mailchimp Transactional, Postmark, or SendGrid)",
+    "High-volume transactional email (use Mailchimp Transactional/Mandrill, Postmark, or SendGrid instead)",
     "Real-time event-driven messaging requiring sub-second delivery",
     "SMS or push notification channels (email only)",
-    "Organizations requiring HIPAA-compliant email (not covered under standard plan)"
+    "Organizations requiring HIPAA-compliant email (not covered under standard plans)"
   ],
-  "best_when": "You're building marketing automation workflows, managing newsletter audiences, or syncing subscriber lists from your application and want a widely-adopted platform with a mature API.",
+  "best_when": "An agent is managing newsletter audiences, syncing subscribers from an application, or orchestrating marketing automation workflows within Mailchimp.",
   "avoid_when": "You need primarily transactional email, very high send volumes, or advanced behavioral automation — dedicated transactional email or CDP platforms are more appropriate.",
-  "alternatives": ["sendgrid-api", "brevo-api", "klaviyo-api", "customerio-api"],
+  "alternatives": ["sendgrid-email-api", "brevo-api", "klaviyo-api", "customerio-api"],
   "interface": {
     "has_rest_api": true,
     "has_graphql": false,
     "has_grpc": false,
     "has_mcp_server": false,
+    "mcp_server_url": null,
     "has_sdk": true,
     "sdk_languages": ["python", "php", "ruby", "node", "java"],
     "openapi_spec_url": "https://mailchimp.com/developer/marketing/api/",
     "webhooks": true
   },
   "auth": {
-    "methods": ["api_key", "oauth"],
+    "methods": ["api_key", "oauth2"],
     "oauth": true,
     "scopes": false,
-    "notes": "API keys provide full account access — no scope restriction per key. OAuth 2.0 is available for third-party app integrations. For agent workflows, use a dedicated API key and store it securely."
+    "notes": "API keys provide full account access with no scope restriction per key. OAuth 2.0 is available for third-party app integrations. For agent workflows, use a dedicated API key stored securely. The lack of scope restrictions means a compromised key exposes full account access."
   },
   "pricing": {
     "model": "freemium",
     "free_tier_exists": true,
-    "free_tier_limits": "Free: up to 500 contacts, 1,000 emails/month",
-    "paid_tiers": "Essentials from ~$13/month; Standard from ~$20/month; Premium from ~$350/month — scales with contact count",
+    "free_tier_limits": "Free: up to 500 contacts, 1,000 sends/month",
+    "paid_tiers": "Essentials from ~$13/mo; Standard from ~$20/mo; Premium from ~$350/mo — all scale with contact count",
     "requires_credit_card": false,
-    "notes": "Free tier is quite limited. Pricing scales significantly with list size. Mandrill (transactional) is separate and add-on only on paid plans."
+    "notes": "Free tier is quite limited. Pricing scales significantly with list size. Mandrill/Mailchimp Transactional is a separate add-on product available only on paid plans."
   },
   "performance": {
     "latency_p50_ms": 150,
     "latency_p99_ms": 600,
     "uptime_sla_percent": 99.9,
-    "rate_limits": "10 simultaneous connections per API key; no documented per-minute limit but throttling occurs",
+    "rate_limits": "10 simultaneous connections per API key; no documented per-minute limit but rate throttling occurs on burst requests",
     "data_source": "llm_estimated"
   },
   "requirements": {
@@ -66,24 +67,47 @@
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
-    "documentation_accuracy": 82,
-    "error_message_quality": 75,
-    "error_message_notes": "API returns standard HTTP status codes with detail field in JSON. Member already-subscribed errors return 400 with a specific title field that agents should check.",
+    "documentation_accuracy": 80,
+    "error_message_quality": 72,
+    "error_message_notes": "API returns standard HTTP status codes with a detail field in the JSON body. Member already-subscribed errors return 400 with a specific title field that agents should check. Some errors require cross-referencing the full error doc. Error format is reasonably consistent.",
     "idempotency_support": "partial",
-    "idempotency_notes": "Subscriber add/update via PUT is idempotent using email hash as key. Campaign creation is not idempotent — check before creating.",
+    "idempotency_notes": "Subscriber add/update via PUT is idempotent using the MD5 hash of the lowercased email address as the resource key. Campaign creation is not idempotent — agents should check for existing campaigns before creating.",
     "pagination_style": "offset",
     "retry_guidance_documented": false,
     "known_agent_gotchas": [
       "List members are addressed by MD5 hash of lowercased email address — agents must hash emails before API calls",
       "API keys have no scope restriction — treat as high-privilege credentials and never expose in client-side code",
-      "Audience IDs (list IDs) are required for almost every operation and differ per account/environment",
-      "Mailchimp silently deduplicates subscribers — adding existing subscriber updates rather than errors (usually desirable but can mask logic bugs)",
-      "Unsubscribing via API still keeps the contact in the audience as 'unsubscribed' — deletion is a separate operation"
-    ],
-    "error_message_score": 75,
-    "auth_complexity_score": 80,
-    "rate_limit_score": 65,
-    "security_score": 72
+      "Audience IDs (list IDs) are required for almost every operation and differ per account and environment",
+      "Mailchimp silently deduplicates subscribers — adding an existing subscriber updates rather than errors (usually desirable but can mask logic bugs)",
+      "Unsubscribing via API keeps the contact in the audience as 'unsubscribed' — deletion is a separate explicit operation",
+      "The data center suffix in the API base URL (us1, us6, etc.) must match the account's data center or requests will fail with a redirect"
+    ]
   },
-  "last_evaluated": "2026-02-28"
+  "af_score_components": {
+    "api_doc_score": 80,
+    "error_handling_score": 72,
+    "auth_complexity_score": 75,
+    "rate_limit_clarity_score": 65
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 72,
+    "scope_granularity": 40,
+    "dependency_hygiene": 75,
+    "secret_handling": 72,
+    "security_notes": "No API key scopes — all keys have full account access. OAuth 2.0 available for multi-account apps but not scoped either. Data stored in US only. GDPR compliance managed through Mailchimp's DPA process."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 85,
+    "version_stability": 82,
+    "breaking_changes_history": 80,
+    "error_recovery": 70
+  },
+  "af_score": 60,
+  "fq_score": 68,
+  "score_rationale": "Mailchimp API is solid for audience management and campaign automation, but agent readiness is limited by the absence of API key scopes (any key has full account access), unclear rate limits, and weak retry guidance. The idempotent PUT pattern for subscriber updates is a bright spot. Best used when the organization is already on Mailchimp and agents need list sync or campaign scheduling; not the right choice for pure transactional email delivery.",
+  "score_version": "1.0",
+  "evaluated_at": "2026-03-02",
+  "evaluator": "claude-sonnet-4-6",
+  "confidence": "medium"
 }

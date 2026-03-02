@@ -2,28 +2,28 @@
   "id": "quickbooks-api",
   "name": "QuickBooks Online API",
   "version_evaluated": "current",
-  "homepage": "https://developer.intuit.com/app/developer/qbo/docs/api/accounting/most-commonly-used/account",
-  "repo_url": "https://github.com/intuit/QuickBooks-V3-PHP-SDK",
-  "category": "accounting",
-  "subcategories": ["accounting", "invoicing", "bookkeeping", "small-business"],
-  "tags": ["quickbooks", "intuit", "accounting", "invoicing", "small-business", "rest-api", "oauth2", "sdk"],
-  "what_it_does": "Intuit's QuickBooks Online REST API for managing accounts, invoices, customers, vendors, expenses, and financial reports for small businesses. The dominant small business accounting API in North America.",
+  "homepage": "https://developer.intuit.com/app/developer/qbo/docs/get-started",
+  "repo_url": "https://github.com/intuit/QuickBooks-V3-Java-SDK",
+  "category": "finance",
+  "subcategories": ["accounting", "invoicing", "payroll", "small-business", "financial-reporting"],
+  "tags": ["quickbooks", "intuit", "accounting", "invoicing", "payroll", "rest-api", "oauth2", "sdk", "small-business"],
+  "what_it_does": "QuickBooks Online API (by Intuit) provides programmatic access to the most widely used small-business accounting platform in the US. Enables management of invoices, customers, vendors, expenses, payroll, bank feeds, and financial reports.",
   "use_cases": [
-    "Automating invoice creation and payment tracking from agent workflows",
-    "Syncing customer and vendor data between CRM and accounting systems",
-    "Pulling financial reports (P&L, balance sheet) for AI-driven analysis",
-    "Automating expense categorization and journal entries",
-    "Building accounting automation for small business owners"
+    "Automated invoice creation and accounts receivable management",
+    "Expense categorization and bill payment automation",
+    "Customer and vendor record synchronization",
+    "Financial report generation (P&L, balance sheet, cash flow)",
+    "Payroll data access and automation",
+    "Bank transaction import and reconciliation"
   ],
   "not_for": [
-    "Enterprise accounting (SAP, Oracle — not QuickBooks scale)",
-    "International businesses needing multi-entity consolidation",
-    "Real-time financial data streaming",
-    "Payroll-heavy workflows (limited payroll API)"
+    "Enterprise ERP (QuickBooks targets small to mid-market businesses)",
+    "Non-US accounting practices without proper localization",
+    "Real-time payment processing (separate Intuit Payments API)"
   ],
-  "best_when": "An agent needs to automate accounting tasks for small to mid-size businesses already using QuickBooks Online, especially invoice and expense management.",
-  "avoid_when": "Your customers use enterprise ERP systems, non-Intuit accounting software, or are outside North America where QBO adoption is low.",
-  "alternatives": ["xero-api", "freshbooks-api", "wave-accounting-api"],
+  "best_when": "An agent needs to automate accounting tasks for a US small business already using QuickBooks Online.",
+  "avoid_when": "The business uses Xero, Sage, or other accounting software, or when enterprise-scale accounting features are required.",
+  "alternatives": ["xero-api", "freshbooks-api", "sage-api", "wave-api"],
   "interface": {
     "has_rest_api": true,
     "has_graphql": false,
@@ -31,7 +31,7 @@
     "has_mcp_server": false,
     "mcp_server_url": null,
     "has_sdk": true,
-    "sdk_languages": ["java", "php", "python", "ruby", "dotnet"],
+    "sdk_languages": ["python", "node", "java", "php", "ruby"],
     "openapi_spec_url": null,
     "webhooks": true
   },
@@ -39,54 +39,57 @@
     "methods": ["oauth2"],
     "oauth": true,
     "scopes": true,
-    "notes": "OAuth2 only — no API keys. Requires full OAuth2 code flow with user authorization. Access tokens expire in 1 hour, refresh tokens in 100 days. Must redirect users through Intuit OAuth. Scopes: com.intuit.quickbooks.accounting, com.intuit.quickbooks.payment."
+    "notes": "OAuth2 with authorization code flow. Scopes: com.intuit.quickbooks.accounting and com.intuit.quickbooks.payment. Access tokens expire after 1 hour; refresh tokens valid for 100 days. realmId (company ID) required on every API call, similar to Xero's tenantId pattern."
   },
   "pricing": {
-    "model": "included",
+    "model": "subscription",
     "free_tier_exists": false,
-    "free_tier_limits": "Sandbox environment free for developers",
-    "paid_tiers": "QuickBooks Online Simple Start $35/month, Plus $65/month, Advanced $100/month",
+    "free_tier_limits": "Sandbox company provided free for development. No production free tier.",
+    "paid_tiers": "Simple Start $30/mo; Essentials $60/mo; Plus $90/mo; Advanced $200/mo. API access included on all plans.",
     "requires_credit_card": true,
-    "notes": "API access requires active QuickBooks Online subscription for the business being accessed. Developer sandbox is free. No separate API billing — QBO subscription covers it."
+    "notes": "30-day free trial. Third-party apps built on the API require the merchant to have an active QuickBooks subscription. Intuit has a formal app marketplace with approval process for public apps."
   },
   "performance": {
-    "latency_p50_ms": 400,
+    "latency_p50_ms": 350,
     "latency_p99_ms": 2000,
     "uptime_sla_percent": 99.9,
-    "rate_limits": "500 requests per minute per OAuth token, throttled during peak hours",
+    "rate_limits": "500 requests/minute per access token. Throttling uses 429 status with Retry-After header. Minor entities have higher limits than major entities (Invoice, Customer).",
     "data_source": "llm_estimated"
   },
   "requirements": {
     "requires_signup": true,
     "requires_credit_card": true,
-    "domain_verification": true,
-    "data_residency": ["US", "CA", "UK", "AU"],
-    "compliance": ["SOC2", "PCI-DSS", "GDPR"],
-    "min_contract": "none"
+    "domain_verification": false,
+    "data_residency": ["US", "CA", "AU", "UK"],
+    "compliance": ["SOC2", "SOC1", "ISO27001", "GDPR"],
+    "min_contract": "monthly"
   },
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
     "documentation_accuracy": 75,
-    "error_message_quality": 65,
-    "error_message_notes": "Error responses include fault code and detail message. Messages are often technical and not agent-friendly. Validation errors sometimes reference internal field names. Documentation and errors don't always align.",
-    "idempotency_support": "partial",
-    "idempotency_notes": "No formal idempotency keys. Some objects can be created with SyncToken for conflict detection. Agents must check for existing records before creating to avoid duplicates.",
+    "error_message_quality": 68,
+    "error_message_notes": "Errors returned in Fault.Error array with code, Detail, and Message fields. Error codes are numeric and documented in reference guide. Messages are sometimes clear, sometimes boilerplate. Validation errors often require cross-referencing with data model documentation. Sandbox error behavior can differ from production.",
+    "idempotency_support": "none",
+    "idempotency_notes": "No idempotency key mechanism. Duplicate detection requires querying existing records before creation. DocNumber field on invoices can serve as a quasi-idempotency check if agents set unique values.",
     "pagination_style": "offset",
-    "retry_guidance_documented": false,
+    "retry_guidance_documented": true,
     "known_agent_gotchas": [
-      "OAuth2 is mandatory — no API keys — requires user authorization flow which is hard for autonomous agents",
-      "SyncToken is required on all updates — must fetch current SyncToken before any write",
-      "Minor versions (minorversion query param) unlock features but break compatibility — pin to specific version",
-      "Sandbox and production use different company IDs — easy to mix up",
-      "Rate limit throttling is aggressive during tax season and business hours",
-      "DELETE is not supported — use void or archive operations instead",
-      "Query language is custom SQL-like but has significant limitations"
-    ],
-    "error_message_score": 65,
-    "auth_complexity_score": 45,
-    "rate_limit_score": 60,
-    "security_score": 78
+      "realmId (company ID) required on every API call — must be captured and stored during OAuth flow",
+      "Access tokens expire after 1 hour — shorter than most APIs; agents need aggressive token refresh logic",
+      "Minor vs major entity distinction affects rate limits — agents hammering Invoice endpoints hit limits faster",
+      "Query Language (IDS Query) is SQL-like but not standard SQL — requires learning QBO-specific syntax",
+      "Sparse update vs full update distinction: PATCH-like updates require SyncToken for optimistic locking",
+      "SyncToken must be current on every update — stale SyncToken causes 400 errors; agents must re-fetch before updating",
+      "App must go through Intuit's app review for production OAuth — sandbox apps cannot exceed 25 test users",
+      "Webhook subscriptions require HTTPS endpoint verification and support limited event types"
+    ]
   },
-  "last_evaluated": "2026-02-28"
+  "af_score": 60,
+  "fq_score": 68,
+  "score_rationale": "QuickBooks Online API covers the most-used US small business accounting platform but is notably more friction-heavy than Xero for agents: 1-hour access token expiry, mandatory SyncToken for updates (optimistic locking requiring re-fetch before every write), SQL-like query language, and no idempotency keys. Offset-based pagination is less efficient. Documentation quality is functional but the error codes require significant cross-referencing. The app review process for production OAuth adds a governance overhead that agents must plan around.",
+  "score_version": "1.0",
+  "evaluated_at": "2026-03-02",
+  "evaluator": "claude-sonnet-4-6",
+  "confidence": "medium"
 }

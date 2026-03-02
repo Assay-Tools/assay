@@ -5,25 +5,25 @@
   "homepage": "https://developers.intercom.com",
   "repo_url": "https://github.com/intercom/intercom-python",
   "category": "communication",
-  "subcategories": ["customer-messaging", "support", "chat", "crm"],
+  "subcategories": ["customer-messaging", "customer-support", "live-chat", "crm"],
   "tags": ["intercom", "customer-messaging", "support", "chat", "crm", "rest-api", "sdk", "webhooks", "in-app-messaging"],
-  "what_it_does": "Intercom's REST API for managing customer conversations, contacts, companies, and automated messaging workflows in Intercom's customer service platform.",
+  "what_it_does": "Intercom's REST API for managing customer conversations, contacts, companies, and automated messaging workflows. Enables agents to create and reply to support conversations, manage contact and company records, trigger message sequences, and build AI-powered support bots integrated with Intercom's messaging platform.",
   "use_cases": [
-    "Creating and replying to customer conversations from agent workflows",
-    "Managing contact and company data for CRM operations",
-    "Creating and routing support tickets via automation",
-    "Triggering automated message sequences from agent events",
-    "Building AI-powered customer support bots integrated with Intercom"
+    "Creating and replying to customer conversations from automated agent workflows",
+    "Managing contact and company data for CRM automation",
+    "Creating and routing support tickets via programmatic rules",
+    "Triggering automated message sequences based on agent-detected user behavior",
+    "Building AI-powered customer support bots integrated into the Intercom inbox"
   ],
   "not_for": [
-    "Teams not using Intercom",
-    "Simple email-only support (Intercom is a full platform)",
-    "Teams on tight budgets (Intercom is expensive)",
-    "Real-time high-volume messaging at scale"
+    "Teams not using Intercom (no value without the Intercom platform)",
+    "Simple email-only support where a full platform is overkill",
+    "Teams on tight budgets (Intercom is among the most expensive customer support platforms)",
+    "Real-time high-volume event-driven messaging at scale"
   ],
-  "best_when": "An agent needs to read or respond to customer conversations in Intercom, or manage contact/company data for customer success workflows.",
-  "avoid_when": "You don't use Intercom, or need a simple helpdesk without Intercom's in-app messaging capabilities.",
-  "alternatives": ["zendesk-api", "discord-api"],
+  "best_when": "An agent needs to read, respond to, or route customer conversations in Intercom, or sync contact/company data for customer success workflows.",
+  "avoid_when": "You are not using Intercom, or need a simple helpdesk without Intercom's in-app messaging and lifecycle capabilities.",
+  "alternatives": ["zendesk-api", "crisp-api", "freshdesk-api"],
   "interface": {
     "has_rest_api": true,
     "has_graphql": false,
@@ -39,21 +39,21 @@
     "methods": ["api_key", "oauth2"],
     "oauth": true,
     "scopes": true,
-    "notes": "Access tokens for single-workspace integrations. OAuth2 for multi-workspace apps with scope-based permissions. Token-based auth is simplest for agents. Tokens scope to one workspace."
+    "notes": "Access tokens for single-workspace integrations. OAuth 2.0 for multi-workspace apps with scope-based permissions. Token-based auth is simplest for agents. Tokens are workspace-scoped. API versioning is mandatory via Intercom-Version request header."
   },
   "pricing": {
     "model": "paid",
-    "free_tier_exists": true,
-    "free_tier_limits": "Free: very limited, early-stage startups only",
-    "paid_tiers": "Essential $39/seat/month, Advanced $99/seat/month, Expert $139/seat/month",
+    "free_tier_exists": false,
+    "free_tier_limits": "14-day free trial; Startup program offers free access for qualifying early-stage companies",
+    "paid_tiers": "Essential $39/seat/mo; Advanced $99/seat/mo; Expert $139/seat/mo",
     "requires_credit_card": false,
-    "notes": "One of the more expensive customer support platforms. Startup program offers free access. Most businesses will need Essential ($39/seat) minimum for API access."
+    "notes": "One of the more expensive customer support platforms. Most businesses need at minimum the Essential plan ($39/seat/mo) for full API access. Startup program provides free access for qualifying companies."
   },
   "performance": {
     "latency_p50_ms": 200,
     "latency_p99_ms": 800,
     "uptime_sla_percent": 99.9,
-    "rate_limits": "1,000 requests/minute (varies by plan)",
+    "rate_limits": "1,000 requests/minute per workspace; some endpoints have lower limits",
     "data_source": "llm_estimated"
   },
   "requirements": {
@@ -66,25 +66,48 @@
   },
   "agent_readiness": {
     "mcp_server_quality": null,
-    "mcp_security_score": 75,
+    "mcp_security_score": null,
     "documentation_accuracy": 82,
     "error_message_quality": 78,
-    "error_message_notes": "Error responses include type, message, and errors array. API versioning is explicit via header. Error codes are well-documented in reference. Generally agent-friendly.",
+    "error_message_notes": "Error responses include type, message, and errors array with field-level detail. API versioning is explicit via header, which helps maintain compatibility. Error codes are well-documented in the reference. Generally agent-friendly error format.",
     "idempotency_support": "none",
-    "idempotency_notes": "No idempotency keys. Conversation creation and replies are not idempotent on retry.",
+    "idempotency_notes": "No idempotency keys. Conversation creation and replies are not idempotent on retry. Agents must implement external state tracking to avoid duplicate messages.",
     "pagination_style": "cursor",
     "retry_guidance_documented": true,
     "known_agent_gotchas": [
-      "API versioning is required via Intercom-Version header — must specify correct version",
-      "Reply to conversation requires correct author type (bot vs admin) — bots need specific setup",
-      "Conversations vs tickets have different data models — check which is needed",
-      "Contact deduplication by email is not automatic — agents may create duplicate contacts",
-      "Webhook signatures must be validated for security",
-      "Rate limits are per workspace, not per token — shared limits with other integrations"
-    ],
-    "error_message_score": 78,
+      "API versioning is required via Intercom-Version header — must specify correct version or responses will be unexpected",
+      "Replying to a conversation requires correct author type (bot vs admin) — bots need specific Intercom app setup to reply as a bot",
+      "Conversations vs tickets have different data models — check which is in use for your workspace before writing code",
+      "Contact deduplication by email is not automatic — agents can easily create duplicate contacts without checking first",
+      "Webhook signatures must be validated using the client secret to prevent spoofed event ingestion",
+      "Rate limits are per workspace, not per token — other integrations on the same workspace consume the shared quota"
+    ]
+  },
+  "af_score_components": {
+    "api_doc_score": 82,
+    "error_handling_score": 78,
     "auth_complexity_score": 78,
-    "rate_limit_score": 72,
-    "security_score": 75
-  }
+    "rate_limit_clarity_score": 72
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 80,
+    "scope_granularity": 75,
+    "dependency_hygiene": 78,
+    "secret_handling": 78,
+    "security_notes": "OAuth 2.0 with workspace-scoped tokens. Single-workspace access tokens are straightforward for agent auth. Webhook signature verification available. EU and US data residency options satisfy GDPR requirements."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 82,
+    "breaking_changes_history": 80,
+    "error_recovery": 75
+  },
+  "af_score": 63,
+  "fq_score": 70,
+  "score_rationale": "Intercom API is reasonably agent-friendly with good documentation, cursor pagination, and clear error formats. The main friction points are the absence of idempotency keys, mandatory API version header, and the high cost of the platform itself. Bot reply setup requires specific Intercom app configuration that can block agent deployment. Best suited for teams already invested in the Intercom ecosystem.",
+  "score_version": "1.0",
+  "evaluated_at": "2026-03-02",
+  "evaluator": "claude-sonnet-4-6",
+  "confidence": "medium"
 }

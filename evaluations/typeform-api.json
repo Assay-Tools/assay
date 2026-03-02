@@ -3,57 +3,56 @@
   "name": "Typeform API",
   "version_evaluated": "current",
   "homepage": "https://developer.typeform.com",
-  "repo_url": null,
-  "category": "forms",
-  "subcategories": ["forms", "surveys", "data-collection", "conversational"],
-  "tags": ["typeform", "forms", "surveys", "conversational", "data-collection", "rest-api", "oauth2", "webhooks"],
-  "what_it_does": "Conversational form and survey platform API. Allows creating and managing forms, retrieving responses, and triggering webhooks on submission. Known for high-completion-rate conversational UX.",
+  "repo_url": "https://github.com/Typeform/js-api-client",
+  "category": "productivity",
+  "subcategories": ["forms", "surveys", "data-collection", "no-code"],
+  "tags": ["typeform", "forms", "surveys", "rest-api", "webhooks", "data-collection", "conversational"],
+  "what_it_does": "Typeform is a conversational form and survey builder. Its REST API allows agents to create and modify forms, retrieve responses, manage workspaces and themes, and receive webhook events when responses are submitted. Useful for automating survey deployment and response processing pipelines.",
   "use_cases": [
-    "Creating dynamic forms and surveys programmatically for data collection",
-    "Retrieving form responses for processing in AI agent workflows",
-    "Triggering agent actions when a form is submitted via webhooks",
-    "Building qualification flows and lead capture with conditional logic",
-    "Automating form creation for event registrations and feedback collection"
+    "Programmatically creating and deploying customized surveys or intake forms",
+    "Processing form responses in real-time via webhooks",
+    "Aggregating and analyzing survey response data",
+    "Dynamically updating form logic or questions based on agent decisions",
+    "Integrating form responses into CRM or data pipelines"
   ],
   "not_for": [
-    "High-volume data collection where cost per response matters",
-    "Complex multi-page surveys with advanced branching logic at scale",
-    "PDF or document-based forms",
-    "Forms requiring digital signatures"
+    "High-frequency transactional data collection (use a proper API/form handler)",
+    "Complex branching logic that requires programmatic flow control beyond Typeform's logic jumps",
+    "Agents that need to respond to submissions within milliseconds"
   ],
-  "best_when": "An agent needs to trigger workflows when forms are submitted, or needs to programmatically create conversational forms with high completion rates.",
-  "avoid_when": "You need very complex survey logic, offline forms, or cost-effective high-volume data collection.",
-  "alternatives": ["surveymonkey-api", "jotform-api"],
+  "best_when": "An agent needs to deploy and process structured human-input collection at scale, or trigger actions based on survey/form submission data.",
+  "avoid_when": "You need complex conditional form logic, payment collection, or very high response volumes on the free tier.",
+  "alternatives": ["google-forms-api", "jotform-api", "surveymonkey-api", "tally-api"],
   "interface": {
     "has_rest_api": true,
     "has_graphql": false,
     "has_grpc": false,
     "has_mcp_server": false,
     "mcp_server_url": null,
-    "has_sdk": false,
-    "sdk_languages": [],
-    "openapi_spec_url": "https://developer.typeform.com/create/reference/",
+    "has_sdk": true,
+    "sdk_languages": ["node", "python"],
+    "openapi_spec_url": "https://developer.typeform.com/openapi.json",
     "webhooks": true
   },
   "auth": {
-    "methods": ["oauth2", "bearer_token"],
+    "methods": ["oauth2", "personal_access_token"],
     "oauth": true,
     "scopes": true,
-    "notes": "OAuth2 for third-party integrations. Personal access tokens available for personal use and server-side agents. Token passed as Bearer in Authorization header. Scopes control access to forms, responses, webhooks."
+    "notes": "OAuth 2.0 for multi-user integrations with scopes (forms:read, forms:write, responses:read, webhooks:read, webhooks:write, etc.). Personal access tokens for single-user agents. Scopes are reasonably granular, allowing read-only agent access."
   },
   "pricing": {
     "model": "freemium",
     "free_tier_exists": true,
-    "free_tier_limits": "Free: 10 questions/form, 100 responses/month",
-    "paid_tiers": "Basic $29/month (unlimited questions, 100 responses), Plus $59/month (1000 responses), Business $99/month (10K responses)",
+    "free_tier_limits": "100 responses/month; unlimited forms; basic features only",
+    "paid_tiers": "Basic $25/mo (unlimited responses, 3 seats); Plus $50/mo (custom domains, 5 seats); Business $83/mo (priority support, 25 seats)",
     "requires_credit_card": false,
-    "notes": "Free tier is quite restrictive on responses. Per-response model can get expensive at scale. Annual plans offer significant discount. Response limits are the main constraint for agents."
+    "notes": "Free tier is very limited on response volume. Most agent use cases requiring meaningful data collection will need a paid plan. API access is available on all tiers."
   },
   "performance": {
-    "latency_p50_ms": 200,
-    "latency_p99_ms": 800,
+    "latency_p50_ms": 180,
+    "latency_p99_ms": 600,
     "uptime_sla_percent": 99.9,
-    "rate_limits": "3 requests/second, 200 requests/minute",
+    "rate_limits": "Not officially published; community reports suggest ~120 requests/minute",
     "data_source": "llm_estimated"
   },
   "requirements": {
@@ -67,25 +66,28 @@
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
-    "documentation_accuracy": 85,
-    "error_message_quality": 75,
-    "error_message_notes": "Errors returned as JSON with code and description. Standard HTTP status codes used. Error messages are generally clear. Rate limit errors include X-Rate-Limit headers.",
+    "documentation_accuracy": 82,
+    "error_message_quality": 73,
+    "error_message_notes": "Errors return JSON with code and description. Status codes are used correctly. Error messages are readable but sometimes point to the wrong level of nesting for complex form schema validation failures.",
     "idempotency_support": "none",
-    "idempotency_notes": "No idempotency keys. Form creation is not idempotent. Agents should check for existing forms before creating.",
+    "idempotency_notes": "No idempotency key support. Form creation calls are not idempotent. Agents should check for existing forms by title or reference ID before creating.",
     "pagination_style": "cursor",
-    "retry_guidance_documented": true,
+    "retry_guidance_documented": false,
     "known_agent_gotchas": [
-      "Response limits on all plans — agents must monitor usage to avoid hitting caps mid-campaign",
-      "Form schema can be complex with many block types — agents need to understand Typeform's field model",
-      "Webhook payload validation requires verifying Typeform-Signature header",
-      "Conditional logic (Logic Jumps) has a complex configuration structure",
-      "Hidden fields (prefilled data) must be set in the form embed URL, not via API response",
-      "File upload responses return temporary URLs that expire — agents must download promptly"
-    ],
-    "error_message_score": 75,
-    "auth_complexity_score": 75,
-    "rate_limit_score": 68,
-    "security_score": 78
+      "Rate limits are undocumented; agents must implement conservative throttling and exponential backoff",
+      "Webhook payload verification uses SHA-256 HMAC — agents must verify to avoid replay attacks",
+      "Form schema is complex nested JSON; building forms programmatically requires deep knowledge of the spec",
+      "Response data structure varies by question type — agents must handle many different answer schemas",
+      "Free tier response cap of 100/mo makes it impractical for agent-driven data collection workflows",
+      "Webhook retries are limited; missed events require manual re-querying of responses endpoint",
+      "OAuth token expiry handling must be implemented; tokens are short-lived"
+    ]
   },
-  "last_evaluated": "2026-02-28"
+  "af_score": 63,
+  "fq_score": 68,
+  "score_rationale": "Typeform has a clean API with good OAuth scopes, an OpenAPI spec, cursor pagination, and webhooks. The gaps are undocumented rate limits, no idempotency, a complex form schema that is hard to build programmatically, and a very limiting free tier for data collection. Best suited for agents that deploy and process human-input forms rather than high-frequency automated workflows.",
+  "score_version": "1.0",
+  "evaluated_at": "2026-03-02",
+  "evaluator": "claude-sonnet-4-6",
+  "confidence": "medium"
 }
