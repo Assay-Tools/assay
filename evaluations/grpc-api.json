@@ -1,0 +1,105 @@
+{
+  "id": "grpc-api",
+  "name": "gRPC (Python)",
+  "version_evaluated": "1.62.x",
+  "homepage": "https://grpc.io/docs/languages/python/",
+  "repo_url": "https://github.com/grpc/grpc",
+  "category": "infrastructure",
+  "subcategories": ["rpc-framework", "networking"],
+  "tags": ["python", "grpc", "protobuf", "rpc", "streaming", "library"],
+  "what_it_does": "Google's open-source RPC framework for Python that uses Protocol Buffers for serialization and HTTP/2 for transport, enabling unary and streaming remote procedure calls.",
+  "use_cases": [
+    "Calling internal microservices from an agent over a strongly-typed, low-latency RPC interface",
+    "Consuming server-streaming RPCs to receive a sequence of responses from a single agent request",
+    "Using bidirectional streaming for real-time agent-to-service dialogue without polling",
+    "Attaching client-side interceptors to inject auth metadata (e.g., JWT tokens) on every outbound call",
+    "Setting per-call deadlines so agent tool calls time out predictably rather than hanging indefinitely"
+  ],
+  "not_for": [
+    "Public-facing browser APIs where gRPC-Web or REST is more appropriate",
+    "Quick one-off HTTP calls where the .proto compilation and stub generation overhead is not justified",
+    "Environments where HTTP/2 is blocked by network policy or load balancer configuration"
+  ],
+  "best_when": "You are integrating an agent with an internal service mesh that already exposes gRPC endpoints and you need streaming or low-latency high-throughput calls.",
+  "avoid_when": "The target service only exposes REST and you have no control over its interface — wrapping REST in gRPC adds cost without benefit.",
+  "alternatives": ["httpx-api", "aiohttp-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": true,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "go", "java", "c++", "node", "ruby", "csharp", "php", "swift", "kotlin"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Library — auth is implemented via channel credentials (SSL/TLS), call credentials (metadata tokens), or composite credentials. Auth is application-defined."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Unlimited, open source",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Apache 2.0-licensed open source project maintained by Google."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "None (library)",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self_hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 83,
+    "error_message_notes": "RpcError carries a status code (grpc.StatusCode) and details string that map cleanly to retry vs abort decisions; structured error details via google.rpc.Status require extra parsing.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Idempotency is service-defined via .proto method options; the client library does not retry automatically — agents must implement retry with deadline awareness.",
+    "pagination_style": "none",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Deadline (absolute timestamp) and timeout (relative duration) are distinct concepts in gRPC — passing a timeout= kwarg that exceeds the parent deadline causes confusing DEADLINE_EXCEEDED errors that appear to come from the wrong place",
+      "Stubs are generated from .proto files at build time — agents consuming a service must regenerate stubs when the .proto changes or silent field mismatches will occur",
+      "Channel objects are expensive to create and must be reused; creating a new channel per RPC call causes severe performance degradation and port exhaustion",
+      "Unary calls do not stream, so a single large response must fit in memory; server-streaming RPCs are required for incremental delivery",
+      "Interceptors must propagate context metadata explicitly — a common mistake is injecting auth in a unary interceptor but forgetting to handle streaming RPC types separately"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 83,
+    "auth_complexity_score": 88,
+    "rate_limit_clarity_score": 100
+  },
+  "security_score_components": {
+    "tls_enforcement": 88,
+    "auth_strength": 85,
+    "scope_granularity": 0,
+    "dependency_hygiene": 86,
+    "secret_handling": 82,
+    "security_notes": "Supports mutual TLS and token-based call credentials. Insecure channels (grpc.insecure_channel) should never be used outside of localhost development. Metadata is sent as HTTP/2 headers — avoid logging raw metadata in production."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 0,
+    "version_stability": 87,
+    "breaking_changes_history": 82,
+    "error_recovery": 85
+  }
+}
