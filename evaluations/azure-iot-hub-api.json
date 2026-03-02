@@ -1,0 +1,105 @@
+{
+  "id": "azure-iot-hub-api",
+  "name": "Azure IoT Hub API",
+  "version_evaluated": "current",
+  "homepage": "https://azure.microsoft.com/en-us/products/iot-hub",
+  "repo_url": null,
+  "category": "iot",
+  "subcategories": ["device-management", "device-twins", "cloud-to-device", "telemetry"],
+  "tags": ["azure", "iot", "device-twins", "direct-methods", "c2d", "d2c", "mqtt", "amqp", "routing"],
+  "what_it_does": "Provides bidirectional IoT device communication on Azure — manages device twins (desired/reported state), invokes direct methods on devices, routes device-to-cloud telemetry, and sends cloud-to-device messages via MQTT, AMQP, or HTTPS for AI agents orchestrating IoT fleets.",
+  "use_cases": [
+    "Read and update device twin desired properties to push configuration changes to thousands of devices simultaneously via bulk twin updates",
+    "Invoke direct methods on specific devices (e.g., reboot, firmware update trigger) and await synchronous responses with configurable timeouts",
+    "Query device twin reported properties across the entire fleet using SQL-like IoT Hub query language to assess fleet health and compliance state",
+    "Configure D2C message routing rules to fan telemetry out to Event Hub, Service Bus, or storage endpoints based on message body or twin properties",
+    "Register, delete, and bulk-import devices with X.509 certificate or SAS token authentication using the device registry REST API"
+  ],
+  "not_for": [
+    "Sub-second real-time streaming analytics — use Azure Stream Analytics or Event Hubs with consumer groups for low-latency processing",
+    "Storing large blobs or time-series databases — IoT Hub is a message broker, not a storage or TSDB service; use ADX or Time Series Insights downstream",
+    "Non-IoT service-to-service messaging — use Azure Service Bus or Event Grid for application-layer messaging patterns"
+  ],
+  "best_when": "Best when an AI agent needs to manage device state, invoke remote commands, or monitor fleet health across a large Azure-hosted IoT deployment.",
+  "avoid_when": "Avoid for pure telemetry ingestion at extreme scale (>1M devices) without partitioning strategy — IoT Hub unit limits require careful capacity planning.",
+  "alternatives": ["aws-iot-core-api", "hivemq-cloud-api", "azure-iot-central-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "node", "java", "dotnet", "c", "ios"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["sas_token", "x509_certificate", "azure_ad", "connection_string"],
+    "oauth": true,
+    "scopes": true,
+    "notes": "IoT Hub connection string (contains SAS policy + key) is required for service-side operations. Devices authenticate with per-device SAS tokens or X.509 certificates. Azure AD with RBAC is supported for management plane operations. Connection strings are secrets and must be stored in Key Vault."
+  },
+  "pricing": {
+    "model": "tiered",
+    "free_tier_exists": true,
+    "free_tier_limits": "Free tier: 8,000 messages/day, 0.5 KB message size limit, 1 unit maximum",
+    "paid_tiers": "Basic B1: $10/unit/month (400K messages/day). Standard S1: $25/unit/month (400K messages/day, full features including device twins and direct methods). S3: $2,500/unit/month (300M messages/day).",
+    "requires_credit_card": true,
+    "notes": "Device twins and direct methods require Standard tier — Basic tier does not support these features. Free tier is limited to 1 unit and lacks SLA."
+  },
+  "performance": {
+    "latency_p50_ms": 150,
+    "latency_p99_ms": 800,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "Direct method invocations: 10/sec per device. Twin read/write: 10/sec per device. Device registry operations: 83.33/sec per hub. Cloud-to-device messages: 100/sec send rate per unit. Throttling returns 429 TooManyRequests.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": true,
+    "domain_verification": false,
+    "data_residency": ["US", "EU", "APAC", "AU", "BR"],
+    "compliance": ["SOC2", "ISO27001", "PCI-DSS", "HIPAA", "FedRAMP"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 84,
+    "error_message_quality": 78,
+    "error_message_notes": "Direct method errors return device-provided payloads which vary by device firmware — agents must handle both IoT Hub transport errors and application-level error codes in the method response body. Twin update conflicts return 412 Precondition Failed with ETag context.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Device twin desired property updates use ETags for optimistic concurrency. Direct method invocations are not idempotent by design — agents must track invocation IDs and check reported properties to avoid duplicate commands. Registry operations are idempotent by device ID.",
+    "pagination_style": "continuation_token",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "IoT Hub connection strings embed both the hostname and the SAS policy key — rotation of the connection string requires updating all agent configurations simultaneously or using Azure Key Vault references",
+      "Direct methods have a configurable response timeout (default 30s, max 300s) — agents invoking methods on offline or slow-responding devices will block for the full timeout unless the device is first confirmed online via twin connectivity status",
+      "Device twin desired/reported property convergence is asynchronous — an agent that sets desired properties cannot assume the device has applied them; it must poll reported properties or use twin change notifications via Event Hub",
+      "D2C message routing uses separate consumer groups per reader — agents that consume from the built-in endpoint compete with other consumers; always create dedicated consumer groups to avoid message loss",
+      "Basic tier hubs do not support device twins or direct methods — agents deployed against a Basic-tier hub will receive 403 errors on twin operations with a message that can be easy to misattribute to permission issues rather than tier restrictions"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 84,
+    "error_handling_score": 78,
+    "auth_complexity_score": 72,
+    "rate_limit_clarity_score": 80
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 90,
+    "scope_granularity": 85,
+    "dependency_hygiene": 88,
+    "secret_handling": 86,
+    "security_notes": "X.509 certificate-based device authentication is the most secure option and eliminates shared-key risks. IoT Hub supports per-device SAS tokens with configurable TTL. IP filtering and private endpoints (Private Link) are available for network isolation. Recommend disabling SAS token auth org-wide in favor of X.509."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 85,
+    "breaking_changes_history": 84,
+    "error_recovery": 80
+  }
+}

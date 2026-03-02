@@ -1,0 +1,105 @@
+{
+  "id": "kubernetes-client-api",
+  "name": "Kubernetes Python Client (official)",
+  "version_evaluated": "current",
+  "homepage": "https://github.com/kubernetes-client/python",
+  "repo_url": "https://github.com/kubernetes-client/python",
+  "category": "infrastructure",
+  "subcategories": ["container-orchestration", "cluster-management", "workload-automation"],
+  "tags": ["kubernetes", "k8s", "python", "kubeconfig", "watch", "informers", "crd", "rbac", "workloads"],
+  "what_it_does": "Provides Python bindings for the Kubernetes API — enables AI agents to create/read/update/delete workloads, watch resource streams for event-driven automation, manage CRDs, and switch kubeconfig contexts to operate across multiple clusters.",
+  "use_cases": [
+    "Deploy, scale, and roll back Deployments and StatefulSets by patching manifests, monitoring rollout status via watch streams, and reading Pod logs for failure analysis",
+    "Implement operator-style automation by using informers to watch CRDs and reconcile desired state — agent acts as a lightweight Kubernetes controller",
+    "Switch kubeconfig contexts to operate across multiple clusters (dev/staging/prod) within a single agent session using config.load_kube_config with context parameter",
+    "Inspect cluster resource utilization by reading Node/Pod metrics from the metrics-server API and triggering scaling decisions or alerts",
+    "Manage RBAC resources (Roles, RoleBindings, ClusterRoles) to provision access for new service accounts created during automated workload deployment"
+  ],
+  "not_for": [
+    "Managing the Kubernetes control plane itself (etcd, API server configuration) — use cluster provisioning tools like kubeadm or managed K8s APIs for infrastructure-level changes",
+    "High-frequency reconciliation loops at sub-second intervals — use a proper controller-runtime or Operator SDK in Go for production controllers; Python watch loops have higher overhead",
+    "GUI-based cluster exploration — use kubectl, Lens, or k9s for interactive cluster inspection"
+  ],
+  "best_when": "Best when an AI agent needs to automate Kubernetes workload lifecycle, implement event-driven cluster automation, or orchestrate multi-cluster deployments from Python.",
+  "avoid_when": "Avoid for production-grade Kubernetes controllers where reconciliation correctness and performance matter — Go controller-runtime is better suited; Python client is ideal for agent-driven automation rather than always-on controllers.",
+  "alternatives": ["kubectl-exec", "helm-api", "crossplane-api", "pulumi-kubernetes"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "go", "java", "node", "dotnet", "ruby"],
+    "openapi_spec_url": "https://raw.githubusercontent.com/kubernetes/kubernetes/master/api/openapi-spec/swagger.json",
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["kubeconfig", "service_account_token", "x509_certificate", "bearer_token"],
+    "oauth": false,
+    "scopes": true,
+    "notes": "In-cluster agents should use config.load_incluster_config() which reads the mounted ServiceAccount token. Out-of-cluster agents use config.load_kube_config(). RBAC must grant the agent's ServiceAccount appropriate permissions — minimum required permissions vary by operation. Never give agents cluster-admin unless strictly necessary."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "The client library is open source and free. Costs are incurred by the underlying Kubernetes cluster infrastructure (GKE, EKS, AKS, or self-managed).",
+    "paid_tiers": "No client library costs. Kubernetes cluster costs depend on provider and node configuration.",
+    "requires_credit_card": false,
+    "notes": "kubernetes Python client is Apache 2.0 licensed. Managed Kubernetes clusters (GKE, EKS, AKS) have their own pricing models."
+  },
+  "performance": {
+    "latency_p50_ms": 20,
+    "latency_p99_ms": 200,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "Kubernetes API server enforces per-user and global rate limits via API Priority and Fairness (APF). Default limits: 400 QPM for most operations. Watch streams count as long-lived connections. Exceeding limits returns 429 Too Many Requests.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["varies_by_cluster"],
+    "compliance": ["varies_by_cluster"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 82,
+    "error_message_quality": 79,
+    "error_message_notes": "ApiException wraps HTTP status codes — agents must inspect status.code and status.message within the exception body. 409 Conflict on create operations is common when agents retry; 422 Unprocessable Entity indicates malformed manifests with field-level validation errors that are usually actionable.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Read operations are idempotent. Create operations fail with 409 if resource exists — agents should use apply (server-side apply via patch with fieldManager) instead of create for idempotent resource management. Delete is idempotent if 404 is treated as success.",
+    "pagination_style": "continue_token",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Kubeconfig context switching is process-global state — agents running concurrent threads against multiple clusters must use separate ApiClient instances per cluster rather than relying on the default global client to avoid context collisions",
+      "Watch streams return a 410 Gone error when the resource version expires (typically after ~5 minutes) — agents must handle this by re-listing resources and restarting the watch from the new resourceVersion, not from '0' which triggers a full re-sync",
+      "CRD resources require dynamic client (client.CustomObjectsApi) and must specify group/version/plural correctly — the generated typed clients only cover core and well-known API groups; missing or wrong plural name returns 404 that looks like the resource doesn't exist",
+      "Server-side apply (patch with fieldManager) will conflict if another manager owns the fields being patched — agents must either use force=True (risks overwriting human changes) or respect field ownership, making multi-actor resource management complex",
+      "RBAC permissions are namespace-scoped by default — a Role/RoleBinding only grants access in one namespace; agents operating across namespaces need ClusterRole/ClusterRoleBinding or per-namespace bindings, and missing namespace permissions return 403 that can be confused with cluster-level denials"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 82,
+    "error_handling_score": 79,
+    "auth_complexity_score": 75,
+    "rate_limit_clarity_score": 72
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 88,
+    "scope_granularity": 92,
+    "dependency_hygiene": 85,
+    "secret_handling": 84,
+    "security_notes": "Kubernetes RBAC provides fine-grained verb/resource/namespace scoping. ServiceAccount tokens are short-lived when using the TokenRequest API (default in K8s 1.22+). Agents should avoid mounting default ServiceAccount tokens by setting automountServiceAccountToken: false and only mounting explicitly scoped tokens. Audit logging at the API server captures all agent actions."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 85,
+    "version_stability": 83,
+    "breaking_changes_history": 80,
+    "error_recovery": 82
+  }
+}

@@ -1,0 +1,105 @@
+{
+  "id": "gcp-iam-api",
+  "name": "Google Cloud IAM API",
+  "version_evaluated": "current",
+  "homepage": "https://cloud.google.com/iam",
+  "repo_url": null,
+  "category": "security",
+  "subcategories": ["identity", "access-management", "workload-identity"],
+  "tags": ["gcp", "google-cloud", "iam", "service-accounts", "workload-identity", "rbac", "resource-hierarchy"],
+  "what_it_does": "Manages Google Cloud identity and access control — assigns primitive/predefined/custom roles to principals, manages service accounts, configures workload identity federation, and evaluates IAM policies across the GCP resource hierarchy for AI agents automating cloud security posture.",
+  "use_cases": [
+    "Grant and revoke IAM bindings on GCP resources (projects, buckets, datasets) using getIamPolicy/setIamPolicy to implement least-privilege automation",
+    "Create and manage service accounts with scoped roles for workloads, then generate short-lived tokens via service account impersonation",
+    "Configure Workload Identity Federation to allow external identities (GitHub Actions, AWS, Azure) to authenticate to GCP without service account keys",
+    "Audit IAM policies across the resource hierarchy (org → folder → project → resource) to detect over-permissive bindings and policy drift",
+    "Create custom roles with precise permission sets when predefined roles are too broad for a specific agent workload's needs"
+  ],
+  "not_for": [
+    "End-user authentication flows (SSO, OAuth consent screens) — use Google Identity Platform or Firebase Auth instead",
+    "Managing non-GCP SaaS application permissions or on-premises LDAP/Active Directory integrations",
+    "High-frequency per-request authorization decisions — IAM policy evaluation is not a real-time authz service"
+  ],
+  "best_when": "Best when an AI agent needs to automate GCP permission management, service account lifecycle, or federate external identities into GCP workloads.",
+  "avoid_when": "Avoid when you need millisecond-latency authorization checks at application request rate — GCP IAM is a control plane, not a data plane authz service.",
+  "alternatives": ["aws-iam-api", "azure-rbac-api", "hashicorp-vault-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": true,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "node", "go", "java", "dotnet", "ruby", "php"],
+    "openapi_spec_url": "https://iam.googleapis.com/$discovery/rest?version=v1",
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["oauth2", "service_account_key", "workload_identity", "application_default_credentials"],
+    "oauth": true,
+    "scopes": true,
+    "notes": "Application Default Credentials (ADC) is strongly preferred for agents running on GCP. Service account JSON keys are a last resort and should be stored in Secret Manager. Workload Identity Federation eliminates keys for external workloads. Required OAuth scope: https://www.googleapis.com/auth/cloud-platform."
+  },
+  "pricing": {
+    "model": "included",
+    "free_tier_exists": true,
+    "free_tier_limits": "IAM API calls are free. Service account key creation and management are free.",
+    "paid_tiers": "IAM itself is free. Charges arise from GCP resources accessed. Policy Analyzer costs $0.01 per 1,000 queries.",
+    "requires_credit_card": true,
+    "notes": "GCP requires billing enabled even for free-tier usage. IAM management API calls do not themselves incur charges."
+  },
+  "performance": {
+    "latency_p50_ms": 90,
+    "latency_p99_ms": 450,
+    "uptime_sla_percent": 99.95,
+    "rate_limits": "Read operations: 6,000 QPM per project. Write operations (setIamPolicy): 600 QPM per project. Service account operations: 100 QPM. Exceeded limits return 429 RESOURCE_EXHAUSTED.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": true,
+    "domain_verification": false,
+    "data_residency": ["US", "EU", "APAC"],
+    "compliance": ["SOC2", "ISO27001", "PCI-DSS", "HIPAA", "FedRAMP"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 87,
+    "error_message_quality": 83,
+    "error_message_notes": "GCP IAM errors are generally informative — PERMISSION_DENIED messages typically name the missing permission. However, inherited policy denials from the resource hierarchy can be confusing without understanding ancestor policies.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "getIamPolicy/setIamPolicy use ETags for optimistic concurrency — agents must GET current policy, modify bindings, and SET with the ETag. Concurrent writes without ETag checking cause ABORTED errors. Custom role creation is idempotent by roleId.",
+    "pagination_style": "page_token",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "setIamPolicy is a full-replace operation — agents must GET the current policy first, merge their changes, then SET; partial updates will silently remove existing bindings not included in the request",
+      "IAM policy propagation across the resource hierarchy has eventual consistency of up to 2 minutes — agents testing permissions immediately after a grant may still get PERMISSION_DENIED",
+      "Service account key files downloaded once cannot be re-downloaded — agents must immediately store them in a secrets manager or they are unrecoverable",
+      "Workload Identity Federation requires configuring both the GCP side (pool/provider) and the external identity side; misconfigured attribute mappings are a common source of silent auth failures",
+      "IAM Conditions use CEL expressions and have specific attribute availability per resource type — an agent using a condition attribute not supported by the target resource will get an INVALID_ARGUMENT error that can be hard to trace"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 87,
+    "error_handling_score": 83,
+    "auth_complexity_score": 68,
+    "rate_limit_clarity_score": 80
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 94,
+    "scope_granularity": 95,
+    "dependency_hygiene": 90,
+    "secret_handling": 92,
+    "security_notes": "Workload Identity Federation is a best-practice keyless auth approach. Service account key rotation and expiry policies are configurable at org level. OS Login integration provides SSH certificate-based access. Recommend org policy constraints to prevent service account key creation."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 93,
+    "version_stability": 88,
+    "breaking_changes_history": 86,
+    "error_recovery": 84
+  }
+}

@@ -1,0 +1,105 @@
+{
+  "id": "aws-iam-api",
+  "name": "AWS IAM API",
+  "version_evaluated": "current",
+  "homepage": "https://aws.amazon.com/iam/",
+  "repo_url": null,
+  "category": "security",
+  "subcategories": ["identity", "access-management", "policy-engine"],
+  "tags": ["aws", "iam", "rbac", "policy", "sts", "assume-role", "permissions"],
+  "what_it_does": "Manages AWS identity and access management — creates/evaluates IAM policies (JSON), handles role assumption via STS, enforces permission boundaries, and provides policy simulation for AI agents automating cloud access control.",
+  "use_cases": [
+    "Simulate whether a principal has permission to perform an action before attempting it using IAM Policy Simulator",
+    "Assume cross-account roles via STS AssumeRole to perform actions in target accounts",
+    "Create least-privilege IAM policies by analyzing CloudTrail access patterns and generating scoped JSON policy documents",
+    "Manage service account equivalents (IAM roles for EC2/Lambda/EKS) including trust relationship updates",
+    "Audit IAM entities for overly permissive policies, inactive access keys, and compliance violations"
+  ],
+  "not_for": [
+    "Managing non-AWS identity providers or SSO for SaaS applications outside the AWS ecosystem",
+    "Real-time authentication token issuance at high throughput — STS has strict rate limits unsuitable for per-request auth",
+    "Fine-grained row/column data access control within databases or application-layer authorization"
+  ],
+  "best_when": "Best when an AI agent needs to automate cloud permission auditing, role federation, or policy generation within the AWS ecosystem.",
+  "avoid_when": "Avoid when you need sub-second identity decisions at high volume — IAM policy evaluation adds latency and STS has aggressive throttling.",
+  "alternatives": ["gcp-iam-api", "azure-rbac-api", "hashicorp-vault-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "node", "go", "java", "dotnet", "ruby", "php", "rust"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["aws_sigv4", "iam_role", "sts_temporary_credentials"],
+    "oauth": false,
+    "scopes": true,
+    "notes": "All requests signed with AWS Signature Version 4. Agents should use IAM roles with instance/task metadata rather than long-lived access keys. STS temporary credentials expire (15 min to 12 hours) and must be refreshed."
+  },
+  "pricing": {
+    "model": "included",
+    "free_tier_exists": true,
+    "free_tier_limits": "IAM itself is free; STS AssumeRole calls are free. Costs arise from AWS services accessed via assumed roles.",
+    "paid_tiers": "IAM API calls are free. AWS IAM Access Analyzer costs $0.20/policy analyzed per month for custom policy checks.",
+    "requires_credit_card": true,
+    "notes": "IAM management calls are free but require an active AWS account. IAM Access Analyzer has separate per-analysis pricing."
+  },
+  "performance": {
+    "latency_p50_ms": 80,
+    "latency_p99_ms": 400,
+    "uptime_sla_percent": 99.99,
+    "rate_limits": "STS AssumeRole: 1,000 TPS per account. IAM write APIs: 20 TPS. IAM read APIs (GetPolicy, SimulatePrincipalPolicy): lower limits apply. Throttling returns ThrottlingException.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": true,
+    "domain_verification": false,
+    "data_residency": ["US", "EU", "APAC"],
+    "compliance": ["SOC2", "ISO27001", "PCI-DSS", "HIPAA", "FedRAMP"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 88,
+    "error_message_quality": 80,
+    "error_message_notes": "Errors distinguish AccessDenied (no permission) from NoSuchEntity (resource missing) but confused-deputy and cross-account errors can be cryptic. Policy simulation errors are verbose but helpful.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Read operations are idempotent. Most write operations (CreatePolicy, AttachRolePolicy) are idempotent by resource name but CreatePolicyVersion and certain tag operations are not. Agents must handle EntityAlreadyExists gracefully.",
+    "pagination_style": "marker",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Confused deputy problem: when assuming roles on behalf of users, always use ExternalId condition in trust policies to prevent cross-account privilege escalation",
+      "IAM policy changes are eventually consistent (up to ~60 seconds) — agents that immediately test permissions after policy attachment may get stale denials",
+      "STS AssumeRole session duration defaults to 1 hour; agents running long tasks must proactively refresh credentials before expiry or operations will fail mid-execution",
+      "Policy size limits (6,144 characters for inline, 6,144 for managed) are easy to hit when agents generate verbose condition-rich policies — SimulatePrincipalPolicy to verify before attaching",
+      "Permission boundaries silently cap effective permissions — an agent with AdministratorAccess can still be denied if a permission boundary excludes the action; always check both attached policies and permission boundaries"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 88,
+    "error_handling_score": 80,
+    "auth_complexity_score": 65,
+    "rate_limit_clarity_score": 75
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 95,
+    "scope_granularity": 96,
+    "dependency_hygiene": 90,
+    "secret_handling": 90,
+    "security_notes": "AWS SigV4 is industry standard. IAM supports highly granular condition keys (aws:SourceIp, aws:RequestedRegion, etc.). Strongly prefer IAM roles over long-lived access keys. Enable MFA delete on access key operations where possible."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 95,
+    "version_stability": 90,
+    "breaking_changes_history": 88,
+    "error_recovery": 82
+  }
+}
