@@ -1,29 +1,28 @@
 {
   "id": "fhir-api",
   "name": "HL7 FHIR API",
-  "version_evaluated": "current",
+  "version_evaluated": "R4/R5",
   "homepage": "https://hl7.org/fhir/",
-  "repo_url": "https://github.com/hapifhir/hapi-fhir",
+  "repo_url": "https://github.com/HL7/fhir",
   "category": "healthcare",
-  "subcategories": ["health-records", "interoperability", "ehr", "clinical-data"],
-  "tags": ["fhir", "hl7", "healthcare", "ehr", "health-records", "interoperability", "rest-api", "standard", "hipaa"],
-  "what_it_does": "HL7 FHIR (Fast Healthcare Interoperability Resources) is the global standard REST API for electronic health records. Defines how clinical data (patients, medications, observations, conditions) is structured and exchanged across healthcare systems.",
+  "subcategories": ["health-data", "interoperability"],
+  "tags": ["fhir", "hl7", "healthcare", "patient-data", "interoperability", "ehr", "open-standard"],
+  "what_it_does": "Open standard RESTful API specification for exchanging healthcare data (patients, observations, medications, conditions) across EHR systems using JSON or XML resources.",
   "use_cases": [
-    "Reading patient health records from EHR systems (Epic, Cerner, Allscripts) for clinical AI",
-    "Querying medication lists, allergies, and diagnoses for care coordination agents",
-    "Integrating health data from multiple providers into unified patient views",
-    "Clinical decision support by accessing structured patient history",
-    "Building patient-facing health apps that access their own records (SMART on FHIR)"
+    "Query patient demographics, allergies, and medications from any FHIR-compliant EHR",
+    "Aggregate clinical observations (vitals, lab results) across multiple provider systems",
+    "Sync care plans and immunization records between payer and provider portals",
+    "Trigger alerts when new diagnostic reports or conditions are written to a patient record",
+    "Build longitudinal patient timelines by fetching and correlating FHIR resource bundles"
   ],
   "not_for": [
-    "Billing and revenue cycle management (use X12 EDI for claims)",
-    "Imaging storage (DICOM for medical imaging, not FHIR)",
-    "Lab result ordering (may require HL7 v2 LIS integration)",
-    "Non-clinical administrative data outside the FHIR resource model"
+    "Real-time surgical telemetry or device streaming (use HL7 FHIR Subscriptions or dedicated device APIs)",
+    "Legacy HL7 v2 message routing — requires a separate integration engine",
+    "Direct consumer app data without an underlying FHIR server implementation"
   ],
-  "best_when": "An agent needs to access or exchange structured clinical health data across EHR systems in a standardized way, especially in the US under ONC 21st Century Cures Act mandates.",
-  "avoid_when": "You need claims/billing data, medical imaging, or are not working in the healthcare domain.",
-  "alternatives": ["healthie-api"],
+  "best_when": "Your agent needs vendor-neutral access to structured clinical data and the target system exposes a certified FHIR R4 endpoint.",
+  "avoid_when": "The target health system only supports HL7 v2 or proprietary EHR APIs and has no FHIR facade.",
+  "alternatives": ["epic-fhir-api", "hl7-api", "health-gorilla-api", "redox-api"],
   "interface": {
     "has_rest_api": true,
     "has_graphql": false,
@@ -31,63 +30,76 @@
     "has_mcp_server": false,
     "mcp_server_url": null,
     "has_sdk": true,
-    "sdk_languages": ["python", "javascript", "java", "dotnet", "r"],
-    "openapi_spec_url": null,
+    "sdk_languages": ["python", "node", "java", "dotnet", "go"],
+    "openapi_spec_url": "https://hl7.org/fhir/R4/fhir.schema.json",
     "webhooks": true
   },
   "auth": {
     "methods": ["oauth2", "smart_on_fhir"],
     "oauth": true,
     "scopes": true,
-    "notes": "SMART on FHIR is the standard auth framework — OAuth2 with FHIR-specific scopes (patient/Patient.read, user/Observation.read, etc.). Each EHR vendor implements SMART on FHIR differently. Client credentials for backend agents, authorization code for patient-facing apps."
+    "notes": "SMART on FHIR (OAuth2 profile) is the standard auth layer; specific scopes follow patient/*.read and user/*.read conventions. Implementation varies per vendor."
   },
   "pricing": {
-    "model": "custom",
+    "model": "open_standard",
     "free_tier_exists": true,
-    "free_tier_limits": "Open-source FHIR server (HAPI FHIR) free to self-host; public test servers available",
-    "paid_tiers": "Hosted FHIR servers (Azure Health Data Services, AWS HealthLake) vary by storage and requests",
+    "free_tier_limits": "Spec is open; server hosting costs depend on implementation (e.g., HAPI FHIR is free OSS)",
+    "paid_tiers": "Varies by EHR vendor or cloud FHIR service (Google Cloud Healthcare API, Azure Health Data Services)",
     "requires_credit_card": false,
-    "notes": "FHIR is a standard, not a product. Costs depend on the EHR system or FHIR server vendor. Cloud FHIR services start at ~$0.05-0.25 per 1000 requests. EHR vendor access may have separate licensing."
+    "notes": "FHIR is a royalty-free open standard. Cost is incurred at the server/infrastructure layer, not the spec itself."
   },
   "performance": {
-    "latency_p50_ms": 200,
-    "latency_p99_ms": 1500,
+    "latency_p50_ms": 150,
+    "latency_p99_ms": 800,
     "uptime_sla_percent": 99.9,
-    "rate_limits": "Varies by server implementation; typically 100-1000 requests/minute",
+    "rate_limits": "Varies by server implementation; typical vendor limits are 100-1000 req/min per app",
     "data_source": "llm_estimated"
   },
   "requirements": {
     "requires_signup": true,
     "requires_credit_card": false,
-    "domain_verification": true,
-    "data_residency": ["US", "EU", "AU", "multiple"],
-    "compliance": ["HIPAA", "GDPR", "SOC2"],
+    "domain_verification": false,
+    "data_residency": ["US", "EU"],
+    "compliance": ["HIPAA", "21st Century Cures Act", "ONC"],
     "min_contract": "none"
   },
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
-    "documentation_accuracy": 80,
-    "error_message_quality": 70,
-    "error_message_notes": "FHIR uses OperationOutcome resources for errors with issue.severity, issue.code, and diagnostics. Well-standardized format. Quality varies by EHR implementation — some vendors have excellent messages, others are terse.",
-    "idempotency_support": "full",
-    "idempotency_notes": "FHIR PUT with known ID is idempotent (upsert). POST creates new resource without idempotency. Conditional creates (If-None-Exist header) provide idempotent creation patterns.",
+    "documentation_accuracy": 85,
+    "error_message_quality": 75,
+    "error_message_notes": "FHIR OperationOutcome resources provide structured errors but quality varies widely by server implementation; some vendors return generic HTTP 500s.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "GET/READ operations are idempotent; POST (create) may or may not be depending on conditional create support. PUT (update) is idempotent.",
     "pagination_style": "cursor",
     "retry_guidance_documented": true,
     "known_agent_gotchas": [
-      "Each EHR vendor implements FHIR differently — same query may work on Epic but not Cerner",
-      "SMART on FHIR OAuth2 flows differ between patient-facing and backend service apps",
-      "Resource profiles and extensions vary by vendor — generic FHIR code may need vendor-specific tuning",
-      "Patient consent and access controls are complex — agents must respect authorization grants",
-      "FHIR R4 vs STU3 vs R5 version differences — check which version the EHR supports",
-      "Searching FHIR requires knowledge of search parameters — not all parameters supported by all servers",
-      "PHI handling requires HIPAA BAA — agents must ensure data handling compliance",
-      "Bundle transactions for multi-resource writes have complex interdependency rules"
-    ],
-    "error_message_score": 70,
-    "auth_complexity_score": 45,
-    "rate_limit_score": 65,
-    "security_score": 90
+      "FHIR is a spec, not a product — behavior varies significantly across EHR vendor implementations of the same endpoint",
+      "SMART on FHIR OAuth2 launch sequences (EHR launch vs standalone launch) require different flows that agents must detect and handle",
+      "Paging via Bundle.link[relation=next] must be followed to retrieve complete result sets; agents that ignore paging will silently miss data",
+      "Date/time fields use FHIR dateTime partial precision (e.g., '2024-01' is valid) which can break ISO 8601 parsers expecting full timestamps",
+      "Resource versioning and conditional updates use ETags/If-Match headers — agents that skip these may overwrite concurrent changes"
+    ]
   },
-  "last_evaluated": "2026-02-28"
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 75,
+    "auth_complexity_score": 68,
+    "rate_limit_clarity_score": 60
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 88,
+    "scope_granularity": 90,
+    "dependency_hygiene": 82,
+    "secret_handling": 85,
+    "security_notes": "SMART on FHIR provides fine-grained patient/user/system scopes. PHI handling requires HIPAA BAA with the server operator. TLS 1.2+ required by ONC certification."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 78,
+    "version_stability": 85,
+    "breaking_changes_history": 80,
+    "error_recovery": 78
+  }
 }

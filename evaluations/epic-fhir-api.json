@@ -1,28 +1,28 @@
 {
   "id": "epic-fhir-api",
   "name": "Epic FHIR API",
-  "version_evaluated": "R4 (FHIR 4.0.1)",
-  "homepage": "https://fhir.epic.com",
+  "version_evaluated": "R4",
+  "homepage": "https://fhir.epic.com/",
   "repo_url": null,
   "category": "healthcare",
-  "subcategories": ["ehr", "fhir", "clinical-data", "patient-records"],
-  "tags": ["epic", "fhir", "ehr", "healthcare", "clinical", "hipaa", "r4"],
-  "what_it_does": "Epic's FHIR R4 API for accessing and writing patient health data from Epic EHR systems, including demographics, medications, lab results, and clinical notes.",
+  "subcategories": ["ehr", "fhir"],
+  "tags": ["epic", "fhir", "ehr", "patient-data", "mychart", "smart-on-fhir", "healthcare", "clinical"],
+  "what_it_does": "Epic's FHIR R4 API enables agents to read and write patient clinical data (records, schedules, medications, results) from Epic EHR systems using SMART on FHIR OAuth2.",
   "use_cases": [
-    "Reading patient demographics, allergies, conditions, and medications for clinical decision support agents",
-    "Accessing structured lab results and vital signs via Observation resources",
-    "Writing clinical notes back to Epic using DocumentReference or NoteWriter APIs",
-    "Scheduling automation via Appointment and Slot resources",
-    "Population health analytics by querying bulk FHIR export for cohort data"
+    "Retrieve a patient's active medication list and allergy history for pre-visit intake automation",
+    "Pull appointment schedules and care gaps to drive proactive patient outreach workflows",
+    "Write structured clinical notes or questionnaire responses back into the patient chart",
+    "Query diagnostic report results and trigger downstream care coordination tasks",
+    "Access longitudinal patient data across Epic-connected health networks via Care Everywhere"
   ],
   "not_for": [
-    "Non-healthcare applications — requires patient data agreements and HIPAA compliance",
-    "Real-time streaming of clinical events (use Epic Interconnect or HL7 feeds)",
-    "Access to non-Epic EHR systems (each EHR has its own FHIR server)"
+    "Organizations without an Epic EHR subscription — requires an active Epic customer relationship",
+    "Anonymous or public health data research — all access is patient or provider context bound",
+    "High-throughput bulk analytics without using Epic's $export Bulk FHIR endpoint"
   ],
-  "best_when": "Building clinical decision support tools, care coordination agents, or patient-facing apps for Epic-based health systems.",
-  "avoid_when": "You don't have a signed BAA with the health system and explicit data sharing agreements; HIPAA violation risk is severe.",
-  "alternatives": ["cerner-fhir-api", "allscripts-fhir-api", "aws-healthlake-api", "1up-health-api"],
+  "best_when": "Your agent is embedded in a healthcare organization that runs Epic and needs chart-level clinical data with patient or clinician identity context.",
+  "avoid_when": "The health system uses a non-Epic EHR; use the generic FHIR API spec against that vendor's endpoint instead.",
+  "alternatives": ["fhir-api", "hl7-api", "cerner-fhir-api", "athenahealth-api"],
   "interface": {
     "has_rest_api": true,
     "has_graphql": false,
@@ -30,63 +30,63 @@
     "has_mcp_server": false,
     "mcp_server_url": null,
     "has_sdk": true,
-    "sdk_languages": ["python", "node", "dotnet", "java"],
-    "openapi_spec_url": null,
-    "webhooks": false
+    "sdk_languages": ["python", "node", "java", "dotnet"],
+    "openapi_spec_url": "https://fhir.epic.com/Sandbox",
+    "webhooks": true
   },
   "auth": {
-    "methods": ["oauth2"],
+    "methods": ["oauth2", "smart_on_fhir", "backend_services"],
     "oauth": true,
     "scopes": true,
-    "notes": "SMART on FHIR OAuth2: patient-context (patient standalone), EHR launch (embedded in Epic), backend services (client_credentials with JWK). Scopes follow SMART v1 (patient/*.read) or v2 (system/Patient.read) patterns."
+    "notes": "SMART on FHIR for patient and clinician-facing apps; SMART Backend Services (JWT client credentials) for system-to-system agents. Apps must be registered in Epic's App Orchard or directly with the health system."
   },
   "pricing": {
-    "model": "enterprise",
+    "model": "enterprise_contract",
     "free_tier_exists": true,
-    "free_tier_limits": "Epic Sandbox (open.epic.com) is free for development with synthetic patient data",
-    "paid_tiers": "Production access requires contract with Epic customer health system — not directly priced by Epic",
+    "free_tier_limits": "Free sandbox environment at open.epic.com with synthetic patient data",
+    "paid_tiers": "Production access requires Epic customer agreement; no direct per-call pricing — bundled with Epic EHR licensing",
     "requires_credit_card": false,
-    "notes": "Costs negotiated with individual health system customers. Epic charges health systems for API access tiers. Third-party app certification may require Epic App Orchard review."
+    "notes": "App Orchard listing and review process required for third-party apps connecting to Epic production environments."
   },
   "performance": {
-    "latency_p50_ms": 300,
-    "latency_p99_ms": 2000,
-    "uptime_sla_percent": 99.9,
-    "rate_limits": "Varies by health system and contract; typically 100-1000 requests/minute",
+    "latency_p50_ms": 200,
+    "latency_p99_ms": 1200,
+    "uptime_sla_percent": 99.5,
+    "rate_limits": "Varies by Epic site; typical limits are 100-500 req/min per app credential; Bulk FHIR export has separate async job limits",
     "data_source": "llm_estimated"
   },
   "requirements": {
     "requires_signup": true,
     "requires_credit_card": false,
     "domain_verification": true,
-    "data_residency": ["US", "varies_by_health_system"],
-    "compliance": ["HIPAA", "SOC2", "ONC_certified"],
-    "min_contract": "enterprise"
+    "data_residency": ["US"],
+    "compliance": ["HIPAA", "21st Century Cures Act", "ONC", "SOC2"],
+    "min_contract": "Epic EHR customer agreement required for production"
   },
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
-    "documentation_accuracy": 80,
+    "documentation_accuracy": 83,
     "error_message_quality": 78,
-    "error_message_notes": "FHIR OperationOutcome returned for errors with issue.code and issue.details; often verbose XML or JSON",
+    "error_message_notes": "OperationOutcome errors are generally well-formed but Epic often returns 403s for missing scopes without indicating which scope is needed.",
     "idempotency_support": "partial",
-    "idempotency_notes": "FHIR PUT and conditional creates support idempotent operations via If-None-Exist header",
+    "idempotency_notes": "GET operations idempotent; POST for resource creation supports conditional create via If-None-Exist header. Flowsheet writes are not idempotent without external dedup.",
     "pagination_style": "cursor",
-    "retry_guidance_documented": false,
+    "retry_guidance_documented": true,
     "known_agent_gotchas": [
-      "Each health system has its own Epic instance with different base URL — no single global endpoint",
-      "SMART on FHIR token scopes must match what was requested at app registration — mismatch causes opaque 403 errors",
-      "Bulk FHIR export ($export) is async — poll status endpoint, then download NDJSON files; takes minutes to hours",
-      "Epic adds proprietary extensions to standard FHIR resources — parse with extension awareness or data is incomplete",
-      "Sandbox synthetic data (open.epic.com) behaves differently from production — test with real system in UAT environment"
+      "App Orchard review process takes weeks — agents cannot deploy to new Epic sites without per-site approval workflows",
+      "Each Epic installation may have different FHIR capability statements; always fetch /metadata before assuming resource support",
+      "SMART Backend Services tokens expire in 5 minutes — agents must implement token refresh without caching stale credentials",
+      "Epic's sandbox uses synthetic data that does not replicate all production edge cases (e.g., merged patient records, proxy access)",
+      "Bulk FHIR ($export) jobs are asynchronous and may take hours for large populations — agents must poll status endpoints and handle partial failures"
     ]
   },
   "af_score_components": {
     "mcp_score": 0,
-    "api_doc_score": 80,
+    "api_doc_score": 83,
     "error_handling_score": 78,
-    "auth_complexity_score": 65,
-    "rate_limit_clarity_score": 68
+    "auth_complexity_score": 62,
+    "rate_limit_clarity_score": 65
   },
   "security_score_components": {
     "tls_enforcement": 100,
@@ -94,12 +94,12 @@
     "scope_granularity": 92,
     "dependency_hygiene": 85,
     "secret_handling": 88,
-    "security_notes": "SMART on FHIR is a rigorous auth standard. Patient data requires BAA and PHI handling agreements. JWK-based client assertion for backend services is very secure."
+    "security_notes": "SMART on FHIR scopes allow fine-grained PHI access control. Epic enforces app-level and user-level consent. HIPAA BAA required with each Epic customer organization."
   },
   "reliability_score_components": {
-    "uptime_documented": 83,
-    "version_stability": 85,
-    "breaking_changes_history": 82,
-    "error_recovery": 78
+    "uptime_documented": 82,
+    "version_stability": 88,
+    "breaking_changes_history": 85,
+    "error_recovery": 80
   }
 }

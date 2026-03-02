@@ -1,0 +1,105 @@
+{
+  "id": "sendgrid-inbound-api",
+  "name": "SendGrid Inbound Parse",
+  "version_evaluated": "current",
+  "homepage": "https://docs.sendgrid.com/for-developers/parsing-email/setting-up-the-inbound-parse-webhook",
+  "repo_url": null,
+  "category": "communications",
+  "subcategories": ["email-receiving"],
+  "tags": ["email", "inbound", "webhook", "parsing", "sendgrid", "twilio", "email-to-http"],
+  "what_it_does": "Receives inbound emails via MX record routing and POSTs parsed email data including headers, body, attachments, and spam scores to your configured webhook endpoint.",
+  "use_cases": [
+    "Trigger agent workflows from inbound emails by processing the parsed multipart form POST at your webhook URL",
+    "Extract structured data from customer reply emails by parsing the plain-text and HTML body fields in the webhook payload",
+    "Process email attachments programmatically by reading base64-encoded attachment data from the inbound parse POST",
+    "Build email-to-ticket or email-to-task automation by routing inbound emails from a catch-all domain to an agent handler",
+    "Filter and classify inbound emails using SpamScore and spam report fields in the webhook payload before processing"
+  ],
+  "not_for": [
+    "Sending outbound email — use SendGrid Mail Send API for that; Inbound Parse is receive-only",
+    "High-volume transactional inbound processing at millions of emails per day without dedicated infrastructure",
+    "Real-time bidirectional email conversations requiring sub-second response — MX propagation adds latency"
+  ],
+  "best_when": "You need to convert inbound emails into HTTP webhook events that trigger agent or application logic without managing your own mail server.",
+  "avoid_when": "You need full IMAP/MIME control over raw email handling or your domain MX records cannot be pointed to SendGrid.",
+  "alternatives": ["mailgun-inbound-api", "postmark-inbound-api", "cloudmailin-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": false,
+    "sdk_languages": [],
+    "openapi_spec_url": null,
+    "webhooks": true
+  },
+  "auth": {
+    "methods": ["api_key"],
+    "oauth": false,
+    "scopes": true,
+    "notes": "SendGrid account API key required to configure inbound parse settings; webhook endpoint receives unsigned POSTs by default — implement your own HMAC verification or IP allowlisting to secure the endpoint."
+  },
+  "pricing": {
+    "model": "freemium",
+    "free_tier_exists": true,
+    "free_tier_limits": "100 emails/day on free plan; inbound parse included with all plans",
+    "paid_tiers": "Essentials from $19.95/month (50K emails); Pro from $89.95/month (1.5M emails)",
+    "requires_credit_card": false,
+    "notes": "Inbound Parse has no separate per-email charge; counts against plan email volume; free tier throttled at 100 emails/day total account limit."
+  },
+  "performance": {
+    "latency_p50_ms": 500,
+    "latency_p99_ms": 3000,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "No explicit inbound rate limits published; free tier capped at 100 emails/day; webhook delivery retried for up to 72 hours on 4xx/5xx responses",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": false,
+    "domain_verification": true,
+    "data_residency": ["US"],
+    "compliance": ["SOC2", "ISO27001"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 83,
+    "error_message_quality": 70,
+    "error_message_notes": "Inbound parse is a push webhook — there are no API error responses to the agent; delivery failures appear in SendGrid activity feed only, not in agent response.",
+    "idempotency_support": "none",
+    "idempotency_notes": "Webhook may deliver duplicate POSTs during retries; agents must implement deduplication using the email Message-ID header field.",
+    "pagination_style": "none",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Webhook payload is multipart/form-data, not JSON — agents must parse form fields rather than JSON body; email field contains the raw MIME message as a form field string",
+      "Attachments are included in the POST body as separate form fields named attachment1, attachment2, etc. — agents must iterate numbered fields rather than an array",
+      "Webhook delivery has no request signing by default — any server that knows your webhook URL can POST fake email data; implement IP allowlisting (sendgrid.net IPs) or switch to signed webhooks",
+      "MX record propagation takes up to 48 hours after DNS change — agents deployed expecting immediate email receipt after setup will see a silent delay period",
+      "Emails exceeding 20MB total size (including attachments) are rejected silently — senders get no bounce and agents receive no event for oversized messages"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 83,
+    "error_handling_score": 65,
+    "auth_complexity_score": 78,
+    "rate_limit_clarity_score": 70
+  },
+  "security_score_components": {
+    "tls_enforcement": 90,
+    "auth_strength": 70,
+    "scope_granularity": 72,
+    "dependency_hygiene": 80,
+    "secret_handling": 75,
+    "security_notes": "Webhook lacks built-in request signing by default — this is a significant security gap for agent deployments; Twilio-owned SendGrid has strong platform security but inbound webhook validation is the agent developer's responsibility."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 85,
+    "breaking_changes_history": 85,
+    "error_recovery": 75
+  }
+}

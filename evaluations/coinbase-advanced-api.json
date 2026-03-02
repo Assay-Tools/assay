@@ -1,0 +1,105 @@
+{
+  "id": "coinbase-advanced-api",
+  "name": "Coinbase Advanced Trade API",
+  "version_evaluated": "current",
+  "homepage": "https://docs.cdp.coinbase.com/advanced-trade/docs/welcome",
+  "repo_url": null,
+  "category": "fintech",
+  "subcategories": ["crypto-exchange", "trading"],
+  "tags": ["coinbase", "crypto", "trading", "bitcoin", "ethereum", "rest", "websocket", "jwt", "exchange"],
+  "what_it_does": "Coinbase's current-generation REST and WebSocket API for placing spot crypto orders, managing portfolios, and streaming real-time market data on Coinbase's retail and institutional exchange.",
+  "use_cases": [
+    "Execute automated spot buy/sell orders based on agent-determined price signals or portfolio rebalancing rules",
+    "Stream real-time order book and trade ticker data via WebSocket for low-latency market monitoring agents",
+    "Query portfolio balances and open orders to maintain an accurate position ledger across agent decisions",
+    "Implement DCA (dollar-cost averaging) strategies by scheduling recurring market orders with idempotency keys",
+    "Monitor fill events and order status updates to trigger downstream accounting or notification workflows"
+  ],
+  "not_for": [
+    "Futures or derivatives trading — Coinbase Advanced does not support leveraged or futures products for most jurisdictions",
+    "Institutional prime brokerage or OTC desk workflows — use Coinbase Prime API instead",
+    "High-frequency trading requiring sub-millisecond latency — colocation is not offered"
+  ],
+  "best_when": "Your agent needs reliable spot crypto execution on a regulated US exchange with good documentation and JWT-based auth.",
+  "avoid_when": "You need futures, margin trading, or the lowest possible fees — Binance or Kraken offer better pricing for high-volume traders.",
+  "alternatives": ["binance-api", "kraken-api", "coinbase-prime-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "node", "java", "go"],
+    "openapi_spec_url": "https://docs.cdp.coinbase.com/advanced-trade/docs/rest-api-overview",
+    "webhooks": true
+  },
+  "auth": {
+    "methods": ["jwt", "api_key", "oauth2"],
+    "oauth": true,
+    "scopes": true,
+    "notes": "Newer CDP (Coinbase Developer Platform) auth uses ES256 JWTs signed with an EC private key; legacy API key + secret HMAC auth still supported but being phased out. OAuth2 available for user-delegated access."
+  },
+  "pricing": {
+    "model": "transaction_fee",
+    "free_tier_exists": true,
+    "free_tier_limits": "Market data endpoints are free; trading incurs maker/taker fees (0.00%-0.60% depending on volume tier)",
+    "paid_tiers": "Volume-based fee tiers; Advanced Trade fees are lower than Coinbase retail",
+    "requires_credit_card": false,
+    "notes": "No monthly subscription; cost is entirely per-trade fee. API access itself is free."
+  },
+  "performance": {
+    "latency_p50_ms": 80,
+    "latency_p99_ms": 400,
+    "uptime_sla_percent": 99.5,
+    "rate_limits": "10 req/s for private endpoints; 15 req/s for public market data; WebSocket supports up to 25 subscriptions per connection",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["US", "EU"],
+    "compliance": ["FinCEN", "SOC2", "ISO27001"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 82,
+    "error_message_quality": 80,
+    "error_message_notes": "Error responses include a preview_failure_reason field on order rejects that is more actionable than the top-level error code. REST errors follow a consistent JSON envelope.",
+    "idempotency_support": "full",
+    "idempotency_notes": "client_order_id field on order creation provides idempotency — re-submitting the same ID returns the existing order rather than creating a duplicate.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Migrating from deprecated Coinbase Pro API requires non-trivial endpoint mapping — old Pro order IDs are not valid in Advanced Trade",
+      "JWT tokens are short-lived (2 minutes); agents must generate a new JWT per request or implement a tight token refresh cycle",
+      "WebSocket heartbeat messages must be handled or the connection will be dropped after ~30s of inactivity",
+      "Order size must meet minimum notional values per product — agents must fetch product details to validate before submitting",
+      "Rate limits are enforced per API key; agents running multiple strategies under one key must implement shared rate limiting or risk 429s"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 82,
+    "error_handling_score": 80,
+    "auth_complexity_score": 72,
+    "rate_limit_clarity_score": 80
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 90,
+    "scope_granularity": 85,
+    "dependency_hygiene": 85,
+    "secret_handling": 88,
+    "security_notes": "EC private key for JWT auth never leaves the client — significantly better than HMAC shared secret patterns. IP allowlisting available. Withdrawal permissions are a separate API key scope."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 85,
+    "version_stability": 80,
+    "breaking_changes_history": 72,
+    "error_recovery": 82
+  }
+}

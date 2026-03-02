@@ -1,28 +1,28 @@
 {
   "id": "binance-api",
   "name": "Binance API",
-  "version_evaluated": "current",
-  "homepage": "https://developers.binance.com/docs/binance-spot-api-docs/README",
-  "repo_url": "https://github.com/binance/binance-connector-python",
-  "category": "finance",
-  "subcategories": ["crypto", "trading", "exchange", "defi", "derivatives"],
-  "tags": ["binance", "crypto", "trading", "exchange", "websocket", "rest-api", "spot", "futures", "margin", "community-sdk"],
-  "what_it_does": "REST and WebSocket API for trading cryptocurrency on the world's largest exchange by volume, covering spot, margin, and futures markets across hundreds of pairs.",
+  "version_evaluated": "current (v3/v2)",
+  "homepage": "https://developers.binance.com/docs/binance-spot-api-docs/rest-api",
+  "repo_url": "https://github.com/binance/binance-spot-api-docs",
+  "category": "fintech",
+  "subcategories": ["crypto-exchange", "trading"],
+  "tags": ["binance", "crypto", "trading", "spot", "futures", "websocket", "hmac", "exchange", "market-data"],
+  "what_it_does": "Binance's REST and WebSocket API for spot, margin, and futures crypto trading with the world's highest liquidity exchange, using HMAC-SHA256 signed requests for authenticated endpoints.",
   "use_cases": [
-    "Agents executing high-volume crypto trades with access to the deepest liquidity globally",
-    "Algorithmic trading bots using futures and margin for leveraged strategies",
-    "Market data agents streaming order book depth and trade data via WebSocket",
-    "Arbitrage bots exploiting price differences across hundreds of trading pairs",
-    "DeFi and cross-chain agents using Binance as an on/off-ramp for liquidity"
+    "Execute high-frequency spot and futures orders programmatically with low latency via REST or WebSocket order streams",
+    "Stream real-time order book depth, trade, and kline (candlestick) data for multiple symbols simultaneously via WebSocket",
+    "Monitor margin account health and automate collateral top-up to avoid liquidation events",
+    "Run arbitrage strategies across Binance spot and futures markets using unified account balance views",
+    "Implement trailing stop and OCO (one-cancels-other) orders for automated risk management without external monitoring"
   ],
   "not_for": [
-    "US-based users who need full regulatory compliance (must use Binance.US, which has reduced features)",
-    "Developers who need simple, well-documented APIs — Binance's API surface is enormous and complex",
-    "Agents operating in regulated financial institutions that cannot use non-US-regulated venues"
+    "US-based users requiring a regulated exchange — Binance.US has a separate API with reduced functionality",
+    "Fiat on/off ramp automation — Binance's fiat APIs are heavily region-restricted and not programmatically reliable",
+    "Simple retail buy-and-hold portfolios where fee optimization doesn't justify the integration complexity"
   ],
-  "best_when": "An agent needs the broadest crypto asset selection, deepest liquidity, and lowest trading fees, and is not subject to US regulatory constraints.",
-  "avoid_when": "You are building for US users or regulated environments — regulatory uncertainty around Binance is significant, and Binance.US has reduced API functionality.",
-  "alternatives": ["coinbase-api", "coinmarketcap-api", "quicknode-api"],
+  "best_when": "Your agent needs maximum liquidity, the broadest asset selection, and lowest fees for high-volume crypto trading with full futures and margin support.",
+  "avoid_when": "Operating in a US-regulated context requiring FinCEN-compliant exchange; use Coinbase Advanced or Kraken instead.",
+  "alternatives": ["coinbase-advanced-api", "kraken-api", "okx-api", "bybit-api"],
   "interface": {
     "has_rest_api": true,
     "has_graphql": false,
@@ -30,29 +30,29 @@
     "has_mcp_server": false,
     "mcp_server_url": null,
     "has_sdk": true,
-    "sdk_languages": ["python", "node", "java", "go", "ruby", "php"],
-    "openapi_spec_url": null,
-    "webhooks": true
+    "sdk_languages": ["python", "node", "java", "go", "dotnet", "rust"],
+    "openapi_spec_url": "https://github.com/binance/binance-spot-api-docs/blob/master/swagger/api.yaml",
+    "webhooks": false
   },
   "auth": {
-    "methods": ["api_key", "hmac_signature", "rsa_signature", "ed25519_signature"],
+    "methods": ["hmac_sha256", "rsa", "ed25519"],
     "oauth": false,
-    "scopes": true,
-    "notes": "API key plus HMAC-SHA256 or RSA/Ed25519 request signing for all trading endpoints. Public market data endpoints require no auth. API keys have configurable permissions (read, spot trading, futures, withdrawals) and IP allowlist support. Key management is via the web UI."
+    "scopes": false,
+    "notes": "Requests signed with HMAC-SHA256 using API secret; RSA and Ed25519 signature methods also supported for enhanced security. API key permissions (read, trade, withdraw) set at key creation time — no per-request scoping."
   },
   "pricing": {
-    "model": "usage_based",
+    "model": "transaction_fee",
     "free_tier_exists": true,
-    "free_tier_limits": "API access is free; market data endpoints are fully public with no auth required",
-    "paid_tiers": "Trading fees: 0.1% spot (base rate); up to 25% discount with BNB token payment; VIP tiers reduce fees further based on 30-day volume; futures fees lower than spot",
+    "free_tier_limits": "Market data endpoints are free; 1200 req/min weight limit on free tier; trading fees start at 0.10% maker/taker",
+    "paid_tiers": "BNB holdings and 30-day volume reduce fees down to 0.00% for highest VIP tiers; Binance Broker program for institutional access",
     "requires_credit_card": false,
-    "notes": "No API subscription fee. Fee structure is among the most competitive for crypto trading. BNB token discount incentivizes holding Binance's own token. Binance.US (US version) has somewhat higher fees and fewer trading pairs."
+    "notes": "API access is free; fees are per-trade. Holding BNB tokens provides 25% fee discount on spot trading."
   },
   "performance": {
-    "latency_p50_ms": 50,
-    "latency_p99_ms": 200,
-    "uptime_sla_percent": 99.9,
-    "rate_limits": "1200 request weight per minute (each endpoint has a weight); order rate limits separate (100 orders/10 seconds, 200,000/day); WebSocket up to 1024 streams per connection",
+    "latency_p50_ms": 30,
+    "latency_p99_ms": 150,
+    "uptime_sla_percent": 99.8,
+    "rate_limits": "Weight-based system: 1200 weight/min for most endpoints; order rate limit 10/s per symbol; WebSocket 5 connections per user stream",
     "data_source": "llm_estimated"
   },
   "requirements": {
@@ -60,48 +60,46 @@
     "requires_credit_card": false,
     "domain_verification": false,
     "data_residency": ["global"],
-    "compliance": [],
+    "compliance": ["varies_by_jurisdiction"],
     "min_contract": "none"
   },
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
-    "documentation_accuracy": 80,
+    "documentation_accuracy": 85,
     "error_message_quality": 78,
-    "error_message_notes": "REST errors return JSON with code (negative integer) and msg fields. Error codes are documented but the list is very long and some codes lack clear descriptions. HTTP status codes used correctly. WebSocket error events carry code and msg.",
+    "error_message_notes": "Binance returns numeric error codes with short messages (e.g., -1121 Invalid symbol). Community-maintained error code reference fills gaps the official docs leave. Futures and spot APIs have different error code namespaces.",
     "idempotency_support": "partial",
-    "idempotency_notes": "No built-in client order ID idempotency for all order types. newClientOrderId can be set to track orders, but duplicate submissions may create duplicate orders — agents must implement their own deduplication.",
-    "pagination_style": "cursor",
+    "idempotency_notes": "newClientOrderId parameter provides client-side idempotency for order creation; must be explicitly set by the agent. No idempotency on cancel or modify operations.",
+    "pagination_style": "offset",
     "retry_guidance_documented": true,
     "known_agent_gotchas": [
-      "US regulatory status of Binance (non-US) is uncertain — US-based agents or regulated deployments should use Binance.US or a different exchange",
-      "Request weight system is complex — different endpoints consume different 'weight' from the 1200/minute budget; agents must track total weight, not just call count",
-      "Timestamps must be within 5 seconds of server time (serverTime endpoint) — clock drift causes signature failures that are hard to debug",
-      "newClientOrderId for idempotency is recommended but not enforced — test deduplication behavior carefully before production",
-      "API documentation covers spot, margin, futures, and options separately — choosing the wrong API for your use case is easy",
-      "WebSocket streams drop after 24 hours and must be renewed — agents require reconnection and re-subscription logic",
-      "Binance.US API is different from Binance.com API — code written for one may not work on the other"
+      "The weight-based rate limiting system is non-obvious — agents must track cumulative request weight (not count) and parse X-MBX-USED-WEIGHT headers to avoid 429 bans",
+      "IP bans (418 status) are issued after repeated 429s and last minutes to days — exponential backoff alone is insufficient without weight tracking",
+      "Futures and spot APIs are separate base URLs (fapi vs api) with overlapping but inconsistent endpoint naming and different filter rules",
+      "Symbol precision rules (lot size, price filter, min notional) vary per trading pair and must be fetched from /exchangeInfo before each order to avoid PRICE_FILTER errors",
+      "WebSocket user data streams require a listenKey that expires every 60 minutes and must be kept alive with a keepalive PING — agents that miss this silently lose order fill events"
     ]
   },
   "af_score_components": {
     "mcp_score": 0,
-    "api_doc_score": 78,
-    "error_handling_score": 75,
-    "auth_complexity_score": 72,
-    "rate_limit_clarity_score": 65
+    "api_doc_score": 85,
+    "error_handling_score": 78,
+    "auth_complexity_score": 75,
+    "rate_limit_clarity_score": 70
   },
   "security_score_components": {
     "tls_enforcement": 100,
-    "auth_strength": 88,
-    "scope_granularity": 85,
-    "dependency_hygiene": 78,
+    "auth_strength": 85,
+    "scope_granularity": 78,
+    "dependency_hygiene": 82,
     "secret_handling": 82,
-    "security_notes": "Strong HMAC/RSA/Ed25519 request signing. IP allowlist for API keys. Granular permissions per key. However, Binance has had significant security incidents historically (2019 hack, 2022 BSC bridge exploit) and operates outside Western regulatory frameworks."
+    "security_notes": "API key permissions are coarse-grained (read/trade/withdraw) — no per-symbol or per-order-type restrictions. Ed25519 signing is available and preferred over HMAC. Withdrawal IP whitelist strongly recommended."
   },
   "reliability_score_components": {
-    "uptime_documented": 80,
-    "version_stability": 78,
-    "breaking_changes_history": 72,
-    "error_recovery": 75
+    "uptime_documented": 82,
+    "version_stability": 82,
+    "breaking_changes_history": 75,
+    "error_recovery": 80
   }
 }

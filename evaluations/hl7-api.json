@@ -1,0 +1,105 @@
+{
+  "id": "hl7-api",
+  "name": "HL7 v2 Messaging",
+  "version_evaluated": "2.x (2.5.1, 2.8)",
+  "homepage": "https://www.hl7.org/implement/standards/product_brief.cfm?product_id=185",
+  "repo_url": null,
+  "category": "healthcare",
+  "subcategories": ["health-data", "legacy-integration"],
+  "tags": ["hl7", "v2", "healthcare", "legacy", "messaging", "mllp", "adt", "orm", "oru", "ehr-integration"],
+  "what_it_does": "HL7 v2 is the dominant legacy healthcare messaging standard that transports clinical events (admissions, orders, results) as pipe-delimited text messages over MLLP TCP connections between hospital systems.",
+  "use_cases": [
+    "Receive ADT (Admit/Discharge/Transfer) events to trigger real-time patient flow automation",
+    "Ingest ORU (Observation Result) messages from lab and radiology systems for downstream alert processing",
+    "Parse ORM/OMG order messages to extract pending procedures for pre-authorization workflows",
+    "Bridge legacy hospital systems to modern APIs by parsing v2 feeds and transforming to FHIR resources",
+    "Monitor MFN (Master File Notification) messages to keep provider directory data synchronized"
+  ],
+  "not_for": [
+    "Modern RESTful integration — HL7 v2 is a messaging protocol, not an API; use FHIR for new builds",
+    "Consumer-facing or mobile applications — MLLP transport is not internet-friendly",
+    "Systems without an existing HL7 interface engine (Mirth Connect, Rhapsody, Iguana, etc.)"
+  ],
+  "best_when": "Your agent must integrate with legacy hospital systems (labs, radiology, ADT feeds) that predate FHIR adoption and only emit HL7 v2 messages.",
+  "avoid_when": "The target system already exposes a FHIR endpoint — HL7 v2 parsing adds unnecessary complexity and fragility.",
+  "alternatives": ["fhir-api", "epic-fhir-api", "redox-api", "mirth-connect"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "java", "dotnet", "node"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["transport_level", "vpn", "tls_mutual"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "HL7 v2 has no built-in auth. Security is enforced at transport level via MLLP over TLS, VPN tunnels, or dedicated leased lines. Application-level auth is custom per integration."
+  },
+  "pricing": {
+    "model": "open_standard",
+    "free_tier_exists": true,
+    "free_tier_limits": "HL7 v2 spec is available from HL7.org (free for implementers); parsers like python-hl7 and hl7apy are open source",
+    "paid_tiers": "Interface engine licensing (Mirth Connect is free OSS; Rhapsody, Iguana are commercial) and HL7 membership for balloted specs",
+    "requires_credit_card": false,
+    "notes": "Cost is in the integration engine, IT infrastructure, and labor to map message variants — not the standard itself."
+  },
+  "performance": {
+    "latency_p50_ms": 50,
+    "latency_p99_ms": 300,
+    "uptime_sla_percent": 99.5,
+    "rate_limits": "Effectively unlimited for point-to-point MLLP; throughput bounded by TCP connection and processing capacity",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["US", "EU"],
+    "compliance": ["HIPAA"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 70,
+    "error_message_quality": 55,
+    "error_message_notes": "ACK/NAK responses (MSA segment) are minimal — AE (Application Error) codes rarely include actionable detail. Error handling is largely custom per sending system.",
+    "idempotency_support": "none",
+    "idempotency_notes": "HL7 v2 has no built-in idempotency. MSH-10 (Message Control ID) can be used for deduplication but requires custom logic in the receiving application.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "HL7 v2 is not a single standard — every vendor sends non-conformant 'Z-segments' and local field extensions that require custom parsing per source system",
+      "MLLP transport requires a persistent TCP socket with EB/SB framing bytes; standard HTTP clients cannot connect without a dedicated MLLP library",
+      "Encoding characters (MSH-2) vary across senders and must be parsed dynamically before any field splitting is attempted",
+      "Message timestamps in MSH-7 use non-ISO formats (YYYYMMDDHHMMSS) and timezone handling is inconsistent or absent",
+      "ACK choreography requires the receiver to send an Application ACK (AA) synchronously before the sender will release the MLLP connection — blocking behavior agents must handle"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 70,
+    "error_handling_score": 55,
+    "auth_complexity_score": 50,
+    "rate_limit_clarity_score": 70
+  },
+  "security_score_components": {
+    "tls_enforcement": 72,
+    "auth_strength": 55,
+    "scope_granularity": 40,
+    "dependency_hygiene": 75,
+    "secret_handling": 60,
+    "security_notes": "HL7 v2 predates modern security practices. PHI transmitted in plaintext unless TLS wrapper applied. No native auth, audit, or access control — must be layered externally. HIPAA compliance is entirely the implementer's responsibility."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 70,
+    "version_stability": 90,
+    "breaking_changes_history": 92,
+    "error_recovery": 60
+  }
+}
