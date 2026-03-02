@@ -1,0 +1,105 @@
+{
+  "id": "apple-music-api",
+  "name": "Apple Music API (MusicKit)",
+  "version_evaluated": "current",
+  "homepage": "https://developer.apple.com/documentation/applemusicapi",
+  "repo_url": null,
+  "category": "developer-tools",
+  "subcategories": ["music-streaming", "music-catalog", "apple-ecosystem"],
+  "tags": ["apple", "music", "musickit", "catalog", "playlists", "library", "streaming", "itunes"],
+  "what_it_does": "Provides access to Apple Music's catalog of over 100 million songs, artist metadata, curated playlists, and user library management for Apple Music subscribers via JWT-authenticated REST requests.",
+  "use_cases": [
+    "Search Apple Music's catalog for tracks, albums, and artists to enrich a music knowledge base or power a music recommendation agent",
+    "Fetch storefront-specific catalog data to surface region-appropriate music recommendations for a localized content agent",
+    "Manage a subscriber's personal library — add albums, create playlists, and sync favorites — as part of a music organization automation",
+    "Retrieve Apple-curated playlists (New Music Daily, Top Charts) to build trend-tracking and music discovery reports",
+    "Cross-reference track ISRCs and Apple Music IDs to identify the same song across multiple streaming platforms in a metadata sync pipeline"
+  ],
+  "not_for": [
+    "Non-Apple-ecosystem users — the API requires an Apple Music subscription for user library operations and Apple Developer enrollment for any access",
+    "Audio streaming or download — the API provides metadata and playback initiation but not raw audio streams accessible outside MusicKit clients",
+    "Bulk catalog mirroring or competitive music service construction — Apple's ToS prohibits aggregating catalog data at scale"
+  ],
+  "best_when": "Building iOS/macOS native apps or Apple-ecosystem-focused tools where users are Apple Music subscribers and you need deep catalog integration with Apple's curation data.",
+  "avoid_when": "Your user base is cross-platform or primarily non-Apple users, or you need raw audio access — Spotify or SoundCloud are better fits for platform-agnostic music tools.",
+  "alternatives": ["spotify-api", "soundcloud-api", "youtube-analytics-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["swift", "javascript"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["jwt", "oauth2"],
+    "oauth": true,
+    "scopes": true,
+    "notes": "Two-layer authentication: (1) Developer Token — a JWT signed with an Apple MusicKit private key from your Apple Developer account, used for all catalog requests; (2) Music-User-Token — a user-specific token obtained via MusicKit JS or native MusicKit SDK, required for accessing or modifying a user's personal library. Catalog access (no user data) requires only the Developer Token. Developer keys are obtained from Apple Developer portal and require an active paid developer membership ($99/year)."
+  },
+  "pricing": {
+    "model": "freemium",
+    "free_tier_exists": true,
+    "free_tier_limits": "Catalog API access is free with an Apple Developer membership. User library operations require the end user to have an Apple Music subscription.",
+    "paid_tiers": "Apple Developer Program membership required at $99/year. No per-request API fees.",
+    "requires_credit_card": true,
+    "notes": "The $99/year Apple Developer Program fee is required to generate MusicKit keys. There are no per-call API charges. End users must have active Apple Music subscriptions ($10.99/month) for any personal library features to function."
+  },
+  "performance": {
+    "latency_p50_ms": 180,
+    "latency_p99_ms": 700,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "Rate limits are not publicly documented. Apple throttles aggressively on abuse detection. Community-observed limits suggest ~300 requests per minute per developer token for catalog operations.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": true,
+    "domain_verification": false,
+    "data_residency": ["US", "EU"],
+    "compliance": ["GDPR", "CCPA"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 80,
+    "error_message_quality": 75,
+    "error_message_notes": "Apple's API documentation is thorough but terse. Error responses follow a consistent JSON structure with error code and detail fields. However, error codes are not comprehensively documented — some errors require trial and error to understand. Authentication errors in particular can be ambiguous between expired tokens and permission issues.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "All catalog GET requests are idempotent. Library mutation endpoints (add to library, create playlist) are not idempotent and can create duplicates on retry. No idempotency key mechanism.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Developer Tokens (JWTs) expire in up to 6 months maximum — agents running long-term must track token expiry and rotate keys, which requires the private key to be securely stored server-side",
+      "Music-User-Tokens have shorter expiry windows and can only be obtained through interactive MusicKit SDK flows — there is no server-side refresh mechanism, making headless agent flows difficult for user library operations",
+      "Catalog content availability is storefront-specific — a track available in the US storefront may not exist in other storefronts, causing 404s if the storefront is not explicitly managed",
+      "The API does not support audio feature data (tempo, energy, acousticness) — unlike Spotify, Apple Music provides no acoustic analysis metadata",
+      "Apple Developer key generation requires manual steps in the Apple Developer portal — it cannot be automated, creating a manual prerequisite for any agent deployment pipeline"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 80,
+    "error_handling_score": 75,
+    "auth_complexity_score": 65,
+    "rate_limit_clarity_score": 55
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 90,
+    "scope_granularity": 78,
+    "dependency_hygiene": 88,
+    "secret_handling": 85,
+    "security_notes": "JWT-based developer tokens with short-lived signing keys provide strong authentication. The two-token model (developer + user) cleanly separates service-level and user-level authorization. Private key management requires careful handling — the MusicKit key cannot be rotated automatically and compromise requires manual revocation in Apple Developer portal."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 85,
+    "breaking_changes_history": 82,
+    "error_recovery": 78
+  }
+}

@@ -1,0 +1,105 @@
+{
+  "id": "twilio-studio-api",
+  "name": "Twilio Studio REST API",
+  "version_evaluated": "current",
+  "homepage": "https://www.twilio.com/docs/studio/rest-api",
+  "repo_url": null,
+  "category": "communications",
+  "subcategories": ["ivr", "flow-automation", "sms", "voice"],
+  "tags": ["twilio", "studio", "ivr", "flow-builder", "sms", "voice", "chatbot", "automation", "visual-flows"],
+  "what_it_does": "REST API for managing Twilio Studio flows programmatically — creating, updating, and executing visual communication workflows that orchestrate SMS, voice, and messaging interactions without writing low-level Twilio API code.",
+  "use_cases": [
+    "Trigger a Studio flow execution programmatically (e.g., initiate an outbound appointment reminder flow for a specific contact)",
+    "Deploy or update Studio flow definitions from CI/CD pipelines to manage flow versions across development, staging, and production environments",
+    "Query flow execution history and step-level context to audit conversation outcomes and debug failed interactions",
+    "List and manage active flow executions to cancel or monitor in-progress conversations at scale",
+    "Create or update Studio flows via API-driven configuration from an external flow definition management system"
+  ],
+  "not_for": [
+    "Low-level phone number management, call routing, or SIP configuration — use the Twilio core Voice or Messaging APIs directly for infrastructure-level control",
+    "Real-time modification of an in-progress call or conversation mid-flow — Studio flows are state machine driven and cannot be redirected from outside once executing",
+    "High-frequency transactional messaging where Studio's flow overhead adds unnecessary latency — use Twilio Messaging API directly for simple programmatic sends"
+  ],
+  "best_when": "You have visual IVR or messaging flows built in Twilio Studio and need to programmatically trigger executions, deploy flow updates via CI/CD, or retrieve execution state for monitoring and auditing.",
+  "avoid_when": "You do not already use Twilio Studio or your use case requires direct message sending and call control without a flow orchestration layer — the core Twilio APIs are simpler for those cases.",
+  "alternatives": ["twilio-messaging-api", "twilio-voice-api", "vonage-messages-api", "bandwidth-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "node", "ruby", "java", "csharp", "php", "go"],
+    "openapi_spec_url": "https://github.com/twilio/twilio-oai",
+    "webhooks": true
+  },
+  "auth": {
+    "methods": ["basic"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "HTTP Basic authentication using Twilio Account SID as username and Auth Token as password. API Keys (a separate SID/secret pair) are the recommended pattern for production agents as they can be rotated without affecting the master account credentials. Both auth methods use the same Basic auth mechanism. No OAuth or scope-based access control is available for the Studio API specifically."
+  },
+  "pricing": {
+    "model": "usage_based",
+    "free_tier_exists": true,
+    "free_tier_limits": "Twilio trial account with $15.50 credit; Studio flows free to create, flow executions billed per step",
+    "paid_tiers": "Studio executions are billed at $0.001 per flow step executed. Standard Twilio messaging and voice charges apply for SMS/calls initiated within flows.",
+    "requires_credit_card": true,
+    "notes": "Flow creation and management via API is free. Each step executed in a Studio flow costs $0.001. Total cost depends on flow complexity and execution volume. Standard Twilio A2P messaging fees apply for SMS steps."
+  },
+  "performance": {
+    "latency_p50_ms": 200,
+    "latency_p99_ms": 800,
+    "uptime_sla_percent": 99.95,
+    "rate_limits": "Twilio's default rate limits apply: 100 concurrent requests per second per account for most REST API endpoints. Studio flow execution triggers follow the same limits. Specific Studio API rate limits are governed by the account's overall Twilio rate limits.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": true,
+    "domain_verification": false,
+    "data_residency": ["US", "EU", "AU"],
+    "compliance": ["SOC2", "ISO27001", "HIPAA", "GDPR"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 82,
+    "error_message_quality": 80,
+    "error_message_notes": "Twilio returns well-structured error responses with a numeric error code, message, and a link to the Twilio error code documentation page. The error code reference is comprehensive and includes specific remediation guidance. Most errors are actionable and clearly indicate the failing parameter.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Flow execution triggers do not support idempotency keys — duplicate calls will trigger duplicate executions. Flow definition updates (create/update flow) are idempotent if using the same flow SID. Agents should implement their own deduplication logic before triggering executions.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Studio flow definitions are stored as JSON state machines — programmatically creating or modifying flows requires constructing valid Twilio Studio JSON, which is complex and poorly documented compared to the visual editor",
+      "Flow execution triggering requires the flow SID, which is a static identifier per flow — agents must store SIDs obtained during flow creation and cannot discover them dynamically without a list API call",
+      "Execution context (variables set during a flow run) is only accessible after the execution completes — agents polling for conversation outcomes must wait for execution status to transition to 'ended' before retrieving full context",
+      "Studio flows on phone numbers use webhooks as callbacks — if the Studio flow is assigned as the webhook for a phone number, executing it programmatically via the Executions API creates a parallel context separate from the webhook-triggered path",
+      "Flow version management requires explicit publishing — a flow must be published (not just saved as a draft) before execution triggers will use the latest version, and drafts are silently ignored"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 82,
+    "error_handling_score": 80,
+    "auth_complexity_score": 78,
+    "rate_limit_clarity_score": 75
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 78,
+    "scope_granularity": 68,
+    "dependency_hygiene": 82,
+    "secret_handling": 80,
+    "security_notes": "All traffic over TLS. Basic auth with Account SID and Auth Token is straightforward but coarse — Auth Token grants full account access. API Keys are recommended for production and can be scoped and rotated independently. Webhook callbacks support HMAC-SHA1 signature verification via the X-Twilio-Signature header. Twilio holds SOC2 Type II and ISO 27001 certifications."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 85,
+    "breaking_changes_history": 82,
+    "error_recovery": 80
+  }
+}
