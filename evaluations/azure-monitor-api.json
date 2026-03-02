@@ -1,0 +1,105 @@
+{
+  "id": "azure-monitor-api",
+  "name": "Azure Monitor REST API",
+  "version_evaluated": "current",
+  "homepage": "https://learn.microsoft.com/en-us/azure/azure-monitor/essentials/rest-api-walkthrough",
+  "repo_url": null,
+  "category": "monitoring",
+  "subcategories": ["metrics", "logs", "alerting", "observability"],
+  "tags": ["azure", "microsoft", "monitoring", "metrics", "logs", "alerts", "log-analytics", "application-insights", "observability"],
+  "what_it_does": "Azure Monitor REST API provides programmatic access to platform metrics, Log Analytics query execution, alert management, diagnostic settings, and Application Insights telemetry across Azure resources.",
+  "use_cases": [
+    "Querying Azure resource metrics (CPU, memory, request rates) via the Metrics API to detect anomalies and trigger automated remediation workflows",
+    "Executing KQL (Kusto Query Language) queries against Log Analytics workspaces to retrieve structured log data for security investigations or capacity reports",
+    "Creating, updating, and evaluating alert rules programmatically to manage alert policies as infrastructure-as-code",
+    "Retrieving Application Insights telemetry (exceptions, dependencies, page views) to feed into an agent that monitors application health and generates incident summaries",
+    "Automating diagnostic settings configuration across newly provisioned Azure resources to ensure consistent logging to a centralized Log Analytics workspace"
+  ],
+  "not_for": [
+    "Non-Azure workloads — Datadog, Prometheus, or CloudWatch are better choices when Azure is not your primary cloud",
+    "Real-time streaming telemetry at sub-second granularity — Azure Monitor metrics have a minimum 1-minute aggregation window",
+    "Simple uptime checks or synthetic monitoring — Azure Monitor is heavyweight for basic ping/health-check use cases"
+  ],
+  "best_when": "You are already running workloads on Azure and need to query metrics, logs, or alerts programmatically within the Azure ecosystem — especially when combining observability with Azure Resource Manager automation.",
+  "avoid_when": "Your observability stack is already centralized in a non-Azure tool (Datadog, Splunk, Elastic) and you would need to duplicate data collection into Azure Monitor just to use this API.",
+  "alternatives": ["datadog-api", "aws-cloudwatch-api", "grafana-api", "splunk-api", "prometheus-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "node", "java", "dotnet", "go"],
+    "openapi_spec_url": null,
+    "webhooks": true
+  },
+  "auth": {
+    "methods": ["oauth2", "azure_ad", "managed_identity"],
+    "oauth": true,
+    "scopes": true,
+    "notes": "Azure AD OAuth 2.0 is required — no API key option. Managed identity is strongly recommended for Azure-hosted agents; eliminates credential management entirely. Service principal with client secret or certificate for non-Azure agents. Required scope: https://management.azure.com/.default for ARM-level APIs; https://api.loganalytics.io/.default for Log Analytics query API."
+  },
+  "pricing": {
+    "model": "pay-as-you-go",
+    "free_tier_exists": true,
+    "free_tier_limits": "Platform metrics (from Azure resources) are free to collect and query. Log Analytics: first 5 GB of data ingestion per month is free. Alerts: first 1,000 alert rule evaluations/month free for metric alerts.",
+    "paid_tiers": "Log Analytics ingestion: ~$2.30/GB after free tier. Log Analytics retention: free for 31 days, then ~$0.10/GB/month. Application Insights: sampled telemetry billed at Log Analytics rates. Alert rules: ~$0.10 per metric alert rule/month. Scheduled query alerts: ~$1.50/rule/month.",
+    "requires_credit_card": true,
+    "notes": "Log Analytics costs can grow significantly with verbose diagnostic logs — filtering at source (diagnostic settings category selection) is critical cost management. Data cap settings available to prevent bill surprises."
+  },
+  "performance": {
+    "latency_p50_ms": 300,
+    "latency_p99_ms": 3000,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "Metrics API: 12,000 requests per hour per subscription. Log Analytics query API: 200 concurrent queries per workspace; individual queries timeout after 10 minutes. Alert API follows standard ARM throttling (1,200 reads/hour, 1,200 writes/hour per subscription).",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": true,
+    "domain_verification": false,
+    "data_residency": ["US", "EU", "UK", "AU", "CA", "APAC", "JP", "IN", "ZA", "UAE"],
+    "compliance": ["SOC1", "SOC2", "ISO27001", "ISO27018", "HIPAA", "FedRAMP-High", "GDPR", "PCI-DSS"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 78,
+    "error_message_quality": 74,
+    "error_message_notes": "ARM-level errors follow standard Azure Resource Manager error format with code and message fields. Log Analytics query errors return query-specific error objects. KQL syntax errors include position information but can be cryptic for agents generating queries dynamically. Throttling responses are well-documented with Retry-After headers.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Metrics and log queries are fully idempotent read operations. Alert rule creation and diagnostic setting configuration via PUT are idempotent. No native deduplication for alert firing events — alert suppression rules must be configured separately.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Azure Monitor is not a single API — it spans multiple endpoints: management.azure.com for metrics/alerts, api.loganalytics.io for Log Analytics queries, and dc.services.visualstudio.com for Application Insights ingestion; agents must handle multiple base URLs and auth scopes",
+      "Metrics API returns data in a time series format with nested MetricValue objects — the response shape is significantly more complex than most time-series APIs and requires careful parsing",
+      "Log Analytics queries use KQL (Kusto Query Language), not SQL — agents generating dynamic queries must produce syntactically correct KQL, which has different operators, functions, and data types",
+      "Metric availability varies by resource type — not all Azure resources emit all metrics, and available metrics must be discovered via the Metric Definitions API before querying",
+      "Log Analytics workspace data is subject to ingestion delay of 1-5 minutes — agents querying for very recent events (last 1-2 minutes) may get incomplete results without time buffer"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 78,
+    "error_handling_score": 74,
+    "auth_complexity_score": 65,
+    "rate_limit_clarity_score": 76
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 94,
+    "scope_granularity": 88,
+    "dependency_hygiene": 86,
+    "secret_handling": 88,
+    "security_notes": "Managed identity is the ideal auth path — zero credentials in agent code. Azure RBAC provides fine-grained read vs write control over monitoring resources (Monitoring Reader vs Monitoring Contributor roles). Data access controls on Log Analytics workspaces can restrict which tables agents can query. Private Link supported for network-isolated Log Analytics access."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 84,
+    "breaking_changes_history": 80,
+    "error_recovery": 80
+  }
+}

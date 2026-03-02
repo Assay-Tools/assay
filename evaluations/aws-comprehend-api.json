@@ -1,0 +1,105 @@
+{
+  "id": "aws-comprehend-api",
+  "name": "Amazon Comprehend API",
+  "version_evaluated": "current",
+  "homepage": "https://aws.amazon.com/comprehend/",
+  "repo_url": "https://github.com/boto/boto3",
+  "category": "ai-ml",
+  "subcategories": ["nlp", "text-analysis", "entity-recognition"],
+  "tags": ["aws", "boto3", "nlp", "sentiment", "entity-recognition", "text-analysis", "pii", "classification"],
+  "what_it_does": "Extract entities, sentiment, key phrases, language, and PII from text using AWS-managed NLP models, with support for custom classifiers and entity recognizers.",
+  "use_cases": [
+    "Classify incoming support tickets or emails by topic using a custom document classifier trained on historical data",
+    "Detect and redact PII (names, SSNs, credit card numbers) from user-submitted documents before storing them",
+    "Analyze customer review sentiment at scale by batching DetectSentiment calls across thousands of reviews",
+    "Extract named entities (organizations, locations, dates, quantities) from news articles or contracts for downstream indexing",
+    "Identify the dominant language of multilingual user content before routing to the appropriate processing pipeline"
+  ],
+  "not_for": [
+    "Real-time conversational NLP requiring sub-100ms latency — inference latency is in the hundreds of milliseconds",
+    "Tasks requiring deep semantic understanding, summarization, or generative text — use Amazon Bedrock instead",
+    "Highly specialized domain entity extraction where a fine-tuned LLM would outperform a custom Comprehend recognizer"
+  ],
+  "best_when": "You need scalable, cost-effective NLP primitives (sentiment, entities, PII, classification) tightly integrated with AWS IAM, S3, and batch pipelines without managing ML infrastructure.",
+  "avoid_when": "Your use case requires generative responses, complex reasoning over text, or accuracy levels that only large foundation models can achieve.",
+  "alternatives": ["aws-bedrock-api", "google-natural-language-api", "azure-text-analytics-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "node", "java", "go", "dotnet", "ruby", "php"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["aws_iam"],
+    "oauth": false,
+    "scopes": true,
+    "notes": "AWS SigV4 via IAM roles or access key credentials. IAM policies control individual actions such as comprehend:DetectSentiment, comprehend:BatchDetectEntities, comprehend:CreateDocumentClassifier. Async jobs require IAM role with S3 read/write permissions."
+  },
+  "pricing": {
+    "model": "pay-as-you-go",
+    "free_tier_exists": true,
+    "free_tier_limits": "50,000 units/month free for 12 months for most real-time NLP APIs (DetectSentiment, DetectEntities, etc.). 1 unit = 100 characters.",
+    "paid_tiers": "Real-time APIs: $0.0001–$0.0002 per unit (100 chars) depending on feature. Custom model training: $3/hour. Async batch jobs: lower per-unit rate than real-time at scale.",
+    "requires_credit_card": true,
+    "notes": "Pricing is per 100 characters with a 300-character minimum per API call. Custom classifier training and endpoint hosting add separate costs. Comprehend Medical is priced separately."
+  },
+  "performance": {
+    "latency_p50_ms": 200,
+    "latency_p99_ms": 1500,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "Default: 20 TPS for real-time single-document APIs. Batch APIs: limited by job quotas. Custom endpoint TPS configurable at creation. Limits adjustable via Service Quotas.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": true,
+    "domain_verification": false,
+    "data_residency": ["US", "EU", "APAC"],
+    "compliance": ["SOC1", "SOC2", "ISO27001", "HIPAA"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 87,
+    "error_message_quality": 82,
+    "error_message_notes": "Errors are typed and descriptive (TextSizeLimitExceededException, UnsupportedLanguageException, ResourceNotFoundException for custom models). Batch errors are reported per-document in the results with an ErrorCode and ErrorMessage.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Real-time detection APIs (DetectSentiment, DetectEntities) are stateless and effectively idempotent. Async job creation (StartSentimentDetectionJob) generates a new JobId each call — not idempotent; agents should check for existing running jobs before submitting.",
+    "pagination_style": "page_token",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Text input has a hard limit of 5,000 bytes (not characters) per real-time API call; agents must chunk longer documents before submitting, accounting for multi-byte UTF-8 characters",
+      "Async batch jobs write results to S3 in a non-deterministic subfolder path under the output prefix; agents must use ListDocumentClassificationJobs or the job response to find the exact output location",
+      "Custom classifier and entity recognizer endpoints must be explicitly started (CreateEndpoint) before real-time inference; the model ARN alone is insufficient and endpoints have hourly costs even when idle",
+      "DetectPiiEntities and ContainsPiiEntities are different APIs with different output formats; the former returns entity offsets while the latter returns only a boolean — mixing them up produces confusing results",
+      "Language must be specified explicitly for most APIs; Comprehend does not auto-detect language in the same call — call DetectDominantLanguage first if input language is unknown"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 87,
+    "error_handling_score": 82,
+    "auth_complexity_score": 74,
+    "rate_limit_clarity_score": 80
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 92,
+    "scope_granularity": 89,
+    "dependency_hygiene": 88,
+    "secret_handling": 89,
+    "security_notes": "IAM action-level policies. KMS encryption for custom model training data and async job output in S3. VPC endpoints available. Comprehend does not retain submitted text after processing. HIPAA eligible for Protected Health Information use cases."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 87,
+    "breaking_changes_history": 88,
+    "error_recovery": 83
+  }
+}

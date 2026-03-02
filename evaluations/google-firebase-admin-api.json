@@ -1,0 +1,105 @@
+{
+  "id": "google-firebase-admin-api",
+  "name": "Google Firebase Admin SDK",
+  "version_evaluated": "current",
+  "homepage": "https://firebase.google.com/docs/admin/setup",
+  "repo_url": "https://github.com/firebase/firebase-admin-node",
+  "category": "developer-tools",
+  "subcategories": ["firebase", "admin", "server-sdk", "backend"],
+  "tags": ["google", "firebase", "admin-sdk", "server-side", "authentication", "firestore", "realtime-database", "cloud-messaging", "backend"],
+  "what_it_does": "Firebase's privileged server-side SDK providing admin access to all Firebase services — Auth, Firestore, Realtime Database, Cloud Messaging, Storage, and Remote Config — without user authentication or Security Rules restrictions.",
+  "use_cases": [
+    "Agents managing Firebase Auth users server-side — creating, updating, disabling, or deleting accounts and setting custom claims for RBAC",
+    "Backend data pipelines reading and writing to Firestore or Realtime Database with full admin privileges, bypassing Security Rules for trusted server operations",
+    "Notification delivery systems where agents use Firebase Cloud Messaging (FCM) to send push notifications to mobile or web clients at scale",
+    "Server-side verification of Firebase ID tokens to authenticate incoming agent API requests from mobile or web clients",
+    "Automated Remote Config management — agents updating A/B test parameters or feature flag values without requiring app store releases"
+  ],
+  "not_for": [
+    "Client-side browser or mobile app code — the Admin SDK must never run in untrusted environments as it bypasses all Security Rules",
+    "Teams not using Firebase — the Admin SDK only covers Firebase services; use individual GCP client libraries for non-Firebase GCP services",
+    "Read-heavy query workloads requiring complex filters — use the underlying Firestore or Realtime Database APIs directly for query-optimized access"
+  ],
+  "best_when": "You are building server-side or agent backends that need privileged access to multiple Firebase services from a single SDK, especially for user management, token verification, or push notifications.",
+  "avoid_when": "You only need one Firebase service — use that service's dedicated API directly. Never use Admin SDK in client-side or untrusted environments.",
+  "alternatives": ["firebase-firestore-api", "firebase-auth-api", "firebase-realtime-db-api", "supabase-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["node", "python", "java", "go", "dotnet"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["service_account", "application_default_credentials"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Admin SDK is initialized with a service account JSON key or Application Default Credentials (ADC). ADC is strongly preferred for GCP-hosted agents — avoids key file management. The SDK grants full admin access to all Firebase services in the project — treat credentials with the same care as root database credentials."
+  },
+  "pricing": {
+    "model": "freemium",
+    "free_tier_exists": true,
+    "free_tier_limits": "Admin SDK itself is free; costs are incurred by the underlying Firebase services used (Firestore, Auth, FCM, etc.)",
+    "paid_tiers": "Pricing determined by Firebase Blaze plan usage of individual services",
+    "requires_credit_card": false,
+    "notes": "The Admin SDK is a library, not a separate billable service. Costs accrue from the Firebase services it calls. FCM (push notifications) is free at any scale. Firestore and Realtime Database have their own pricing tiers."
+  },
+  "performance": {
+    "latency_p50_ms": 50,
+    "latency_p99_ms": 300,
+    "uptime_sla_percent": 99.95,
+    "rate_limits": "Per-service limits apply: Auth admin operations 1 req/s for some operations; Firestore standard quotas; FCM: 600 messages/second per project",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["US", "EU"],
+    "compliance": ["SOC2", "GDPR", "HIPAA", "ISO27001"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 80,
+    "error_message_notes": "Admin SDK throws typed Firebase exceptions with error codes and messages. Auth errors include the specific code (e.g., auth/user-not-found, auth/email-already-exists). Firestore errors surface the underlying gRPC status. Error quality varies by service — Auth is better documented than FCM error codes.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Auth user creation is idempotent by UID if specified; by email it throws ALREADY_EXISTS. Firestore set() is idempotent; update() fails on non-existent documents. FCM send is not idempotent — retries send duplicate messages.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Admin SDK bypasses Firebase Security Rules entirely — any bug in agent code can overwrite or delete data without the safety net that client-side Security Rules provide; always validate inputs server-side",
+      "Service account credentials grant access to ALL Firebase services in the project — compromise of the credential is equivalent to a full breach of all Firebase data",
+      "The Admin SDK does not support real-time listeners (onSnapshot) — it uses one-shot reads; agents needing live updates must poll or use the REST API with long-polling",
+      "FCM send() returns success even when the device token is invalid — agents must parse the response for token errors and clean up invalid tokens from their database",
+      "Admin SDK initialization must happen exactly once per process — calling initializeApp() multiple times without a name parameter throws an error; in serverless environments (Cloud Functions, Cloud Run), use a singleton initialization pattern"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 80,
+    "auth_complexity_score": 78,
+    "rate_limit_clarity_score": 72
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 90,
+    "scope_granularity": 60,
+    "dependency_hygiene": 85,
+    "secret_handling": 82,
+    "security_notes": "Admin SDK credentials are all-or-nothing — there is no fine-grained scope control within the Admin SDK (unlike individual service IAM). Use ADC with Workload Identity in GKE/Cloud Run to avoid storing service account key files. Never commit service account JSON to version control. HIPAA-eligible with BAA from Google."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 90,
+    "version_stability": 88,
+    "breaking_changes_history": 85,
+    "error_recovery": 82
+  }
+}

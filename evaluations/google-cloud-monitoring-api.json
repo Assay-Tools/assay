@@ -1,0 +1,105 @@
+{
+  "id": "google-cloud-monitoring-api",
+  "name": "Google Cloud Monitoring API",
+  "version_evaluated": "current",
+  "homepage": "https://cloud.google.com/monitoring",
+  "repo_url": null,
+  "category": "monitoring",
+  "subcategories": ["metrics", "alerting", "observability", "infrastructure"],
+  "tags": ["google", "gcp", "cloud-monitoring", "stackdriver", "metrics", "alerting", "observability", "time-series", "uptime"],
+  "what_it_does": "Google Cloud's fully-managed metrics, alerting, and uptime monitoring service for ingesting custom time-series metrics, querying GCP infrastructure metrics, and configuring alert policies via a REST/gRPC API.",
+  "use_cases": [
+    "Agents writing custom application metrics (job throughput, queue depth, error rates) to Cloud Monitoring for unified observability alongside GCP infrastructure metrics",
+    "Automated alerting pipelines where agents create and manage alert policies programmatically — escalating when SLOs are breached or anomalies are detected",
+    "Agent-driven SLO management workflows querying service-level indicators and tracking error budget burn rate via the Monitoring API",
+    "Infrastructure health checks where agents create and monitor uptime checks against HTTP endpoints, TCP ports, or GCP services",
+    "Dashboard automation — agents querying time-series data to generate custom reports or feed metrics into downstream visualization tools"
+  ],
+  "not_for": [
+    "Log-based analysis — use Cloud Logging for querying log events; Cloud Monitoring is for numeric time-series metrics",
+    "Long-term metrics retention beyond 6 weeks for custom metrics — export to BigQuery for extended metric history",
+    "Multi-cloud metrics aggregation requiring a vendor-neutral format — consider Prometheus with remote_write or Datadog for cross-cloud observability"
+  ],
+  "best_when": "You are running GCP workloads and want automatic collection of infrastructure metrics alongside custom application metrics in a single pane — especially when GCP service metrics are already flowing in without any configuration.",
+  "avoid_when": "You need multi-cloud observability, are standardized on Datadog or Prometheus, or need metric retention beyond 6 weeks without BigQuery export.",
+  "alternatives": ["datadog-api", "prometheus-api", "aws-cloudwatch-api", "grafana-cloud-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": true,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "node", "java", "go", "dotnet", "ruby", "php"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["oauth2", "service_account"],
+    "oauth": true,
+    "scopes": true,
+    "notes": "Service accounts with ADC are recommended. IAM roles: roles/monitoring.metricWriter for write-only (least-privilege for agents that only push metrics), roles/monitoring.viewer for read-only queries, roles/monitoring.admin for full access including alert policy management. Workload Identity preferred in GKE."
+  },
+  "pricing": {
+    "model": "pay-as-you-go",
+    "free_tier_exists": true,
+    "free_tier_limits": "All GCP infrastructure metrics are free. Custom metrics: first 150 MB of metric data ingested per month free. Monitoring API calls: first 1 million free.",
+    "paid_tiers": "Custom metrics: $0.258/MB ingested after free tier. Monitoring API calls: $0.01/1,000 calls after free tier. Uptime checks: first 1 million check executions/month free, $0.10/million after.",
+    "requires_credit_card": true,
+    "notes": "GCP built-in metrics (Compute, Cloud Run, GKE, etc.) are always free — cost only applies to custom metrics and API calls. High-cardinality custom metrics (many unique label value combinations) can drive up cost quickly."
+  },
+  "performance": {
+    "latency_p50_ms": 200,
+    "latency_p99_ms": 1000,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "Write: 1,000 time series per request; 1 data point per time series per minute. Read: 1,000 requests/minute per project. Alert policies: 500 per project. Uptime checks: 100 per project.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": true,
+    "domain_verification": false,
+    "data_residency": ["US", "EU"],
+    "compliance": ["SOC1", "SOC2", "SOC3", "ISO27001", "ISO27017", "ISO27018", "HIPAA", "GDPR", "FedRAMP-High"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 80,
+    "error_message_notes": "API errors follow standard Google Status proto format. Quota exceeded errors include the specific limit and the resource that was exceeded. Invalid metric type or label errors are descriptive. Time-series write failures include which data points were rejected and why.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Writing a time-series data point with the same timestamp and value is idempotent — duplicate writes are silently deduplicated. Creating alert policies with the same display name is not idempotent — always check existence before creating.",
+    "pagination_style": "page_token",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Custom metric types must be created before data can be written — agents must call metricDescriptors.create first, or use the auto-creation behavior of the write API carefully",
+      "Time-series labels have strict cardinality constraints — each unique combination of label values creates a separate time series; high-cardinality labels (user IDs, request IDs) cause rapid cost escalation and quota exhaustion",
+      "Metric data cannot be backfilled more than 25 hours in the past — agents that miss a write window cannot retroactively fill gaps in metric history",
+      "The MQL (Monitoring Query Language) and the older filter-based query API have different capabilities — MQL is more powerful but not available in all API endpoints",
+      "Alert policies with notification channels require channels to be pre-created — agents building full alert automation must manage notification channel lifecycle separately from alert policies"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 80,
+    "auth_complexity_score": 76,
+    "rate_limit_clarity_score": 80
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 92,
+    "scope_granularity": 90,
+    "dependency_hygiene": 90,
+    "secret_handling": 88,
+    "security_notes": "Separate IAM roles for metric writers vs readers enables least-privilege agent design. Metrics data does not contain raw log content — lower sensitivity than Cloud Logging. Alert notification channels (email, PagerDuty, Slack) store connection tokens that should be protected with appropriate IAM. HIPAA-eligible with BAA. FedRAMP High authorized."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 90,
+    "version_stability": 88,
+    "breaking_changes_history": 88,
+    "error_recovery": 85
+  }
+}

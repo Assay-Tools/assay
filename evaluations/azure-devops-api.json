@@ -1,0 +1,105 @@
+{
+  "id": "azure-devops-api",
+  "name": "Azure DevOps REST API",
+  "version_evaluated": "current",
+  "homepage": "https://learn.microsoft.com/en-us/rest/api/azure/devops/",
+  "repo_url": "https://github.com/MicrosoftDocs/azure-devops-docs",
+  "category": "developer-tools",
+  "subcategories": ["ci-cd", "version-control", "project-management", "artifact-registry"],
+  "tags": ["azure", "microsoft", "devops", "pipelines", "repos", "git", "boards", "artifacts", "work-items", "ci-cd"],
+  "what_it_does": "Azure DevOps REST API provides programmatic access to Azure DevOps services — Pipelines (CI/CD), Repos (Git), Boards (work items/sprints), Artifacts (package feeds), and Test Plans.",
+  "use_cases": [
+    "Triggering pipeline runs in response to external events (e.g., an agent detects a new release tag and initiates a build-and-deploy pipeline)",
+    "Creating, updating, and querying work items and sprints programmatically to synchronize Azure Boards with external project management systems",
+    "Fetching build and release status, logs, and artifacts to generate deployment reports or trigger downstream notifications",
+    "Managing Git repositories — creating branches, PRs, and reviewing PR status as part of an automated code review or release workflow",
+    "Publishing and consuming packages from Azure Artifacts feeds to automate dependency management in build pipelines"
+  ],
+  "not_for": [
+    "Organizations using GitHub Actions or GitLab CI — those platforms have native APIs better suited to their pipelines",
+    "Lightweight task automation that only needs issue tracking — Jira, Linear, or GitHub Issues are simpler targets",
+    "Teams not already on Azure DevOps — onboarding Azure DevOps solely for API access adds significant operational overhead"
+  ],
+  "best_when": "Your engineering organization is already on Azure DevOps and you need to automate cross-service workflows — triggering pipelines, syncing work items, or querying deployment history — without switching platforms.",
+  "avoid_when": "You need a simple webhook-driven CI/CD trigger and your pipeline tooling is not Azure DevOps — the API surface is large and the auth setup overhead is not justified for single-purpose integrations.",
+  "alternatives": ["github-api", "gitlab-api", "jenkins-api", "jira-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "node", "dotnet", "java", "go"],
+    "openapi_spec_url": null,
+    "webhooks": true
+  },
+  "auth": {
+    "methods": ["pat", "oauth2", "azure_ad", "service_connection"],
+    "oauth": true,
+    "scopes": true,
+    "notes": "Personal Access Tokens (PATs) are the most common method for agent use — simple but must be manually rotated and scoped to specific services. OAuth 2.0 with AAD is preferred for production agents. Service connections in Azure DevOps encapsulate credentials for pipeline use. PATs support fine-grained scopes (e.g., Build:Read, Code:Write). PATs expire and must be rotated — not suitable for long-lived unattended agents without rotation automation."
+  },
+  "pricing": {
+    "model": "tiered",
+    "free_tier_exists": true,
+    "free_tier_limits": "Free for up to 5 users with Basic plan. Includes 1 Microsoft-hosted CI/CD parallel job (1,800 minutes/month), unlimited private Git repos, and Azure Boards. Azure Artifacts free up to 2 GB.",
+    "paid_tiers": "Basic plan: $6/user/month beyond 5 free. Additional CI/CD parallel jobs: $40/month per additional Microsoft-hosted job. Self-hosted parallel jobs: $15/month each. Azure Artifacts: $2/GB/month after first 2 GB.",
+    "requires_credit_card": true,
+    "notes": "API access itself is not separately billed — costs are driven by user seats and pipeline execution minutes. Enterprise agreements may include Azure DevOps as part of MSDN/Visual Studio subscriptions."
+  },
+  "performance": {
+    "latency_p50_ms": 200,
+    "latency_p99_ms": 1200,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "Global rate limit of 200 requests per user per minute across all Azure DevOps REST APIs. Some APIs have additional per-resource limits. 429 responses include Retry-After headers. Batch operations available for work items.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": true,
+    "domain_verification": false,
+    "data_residency": ["US", "EU", "AU", "IN", "CA", "UK", "APAC"],
+    "compliance": ["SOC1", "SOC2", "ISO27001", "ISO27018", "HIPAA", "GDPR", "FedRAMP-Moderate"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 80,
+    "error_message_quality": 76,
+    "error_message_notes": "REST errors follow a consistent JSON structure with message and typeKey fields. Authentication errors are clear. However, pipeline-specific errors (e.g., queue failures) sometimes return generic messages that require log inspection to diagnose. Work item API errors tend to be more descriptive than pipeline API errors.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "GET operations are idempotent. Work item updates via PATCH with JSON Patch operations are mostly safe to retry. Pipeline triggers (POST /runs) are not idempotent — duplicate calls create duplicate runs. Agents should check existing run state before triggering.",
+    "pagination_style": "offset",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "The API uses a versioned URL pattern (api-version=7.1) — omitting the version parameter or using an outdated version can return different response shapes or 400 errors without clear explanation",
+      "Organization and project names in URLs are case-sensitive and must exactly match the ADO organization slug — URL-encoding spaces in project names is a common source of 404 errors",
+      "PATs have a maximum lifetime of 1 year and cannot be refreshed — agents relying on PATs will silently fail when tokens expire; build PAT rotation into agent lifecycle management",
+      "Pipeline queue operations return immediately with a run object but the run is not yet started — polling runState is required; do not assume a queued run will start immediately",
+      "The Boards (work items) API uses WIQL (Work Item Query Language) for filtering — agents must learn a SQL-like dialect rather than using standard REST filter parameters"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 80,
+    "error_handling_score": 76,
+    "auth_complexity_score": 68,
+    "rate_limit_clarity_score": 78
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 88,
+    "scope_granularity": 88,
+    "dependency_hygiene": 85,
+    "secret_handling": 82,
+    "security_notes": "PAT-based auth is convenient but is a security liability for long-lived agents — prefer OAuth 2.0 with AAD service principals. Service connections use encrypted secret storage within Azure DevOps. IP allowlisting available at organization level. Audit log API available for compliance and incident response. PAT exposure in logs is a common risk in pipeline environments."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 85,
+    "breaking_changes_history": 80,
+    "error_recovery": 80
+  }
+}

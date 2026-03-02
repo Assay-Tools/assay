@@ -1,0 +1,105 @@
+{
+  "id": "aws-eks-api",
+  "name": "Amazon EKS (Elastic Kubernetes Service) API",
+  "version_evaluated": "current",
+  "homepage": "https://aws.amazon.com/eks/",
+  "repo_url": "https://github.com/boto/boto3",
+  "category": "infrastructure",
+  "subcategories": ["containers", "kubernetes", "orchestration"],
+  "tags": ["aws", "boto3", "kubernetes", "k8s", "containers", "orchestration", "eks", "devops"],
+  "what_it_does": "Provision and manage AWS-hosted Kubernetes control planes, node groups, and Fargate profiles, enabling teams to run Kubernetes workloads without operating the control plane.",
+  "use_cases": [
+    "Provision a production EKS cluster with managed node groups via API and apply add-ons like CoreDNS and VPC CNI programmatically",
+    "Automate cluster upgrades by calling UpdateClusterVersion and polling for active status before upgrading node groups",
+    "Create Fargate profiles to run specific Kubernetes namespaces serverlessly without managing EC2 worker nodes",
+    "Manage EKS access entries to grant IAM roles Kubernetes RBAC permissions without modifying aws-auth ConfigMap",
+    "Retrieve cluster endpoint and certificate authority data to dynamically configure kubectl or Kubernetes SDK clients in automation pipelines"
+  ],
+  "not_for": [
+    "Teams seeking AWS-native simplicity without Kubernetes complexity — use ECS for simpler container workloads",
+    "Running non-Kubernetes container workloads where ECS or App Runner is a better fit",
+    "Developers who need a fully managed application platform — consider AWS App Runner or ECS Fargate instead"
+  ],
+  "best_when": "Your team requires full Kubernetes API compatibility, wants to port existing Helm charts and kubectl workflows to AWS, or needs multi-cloud Kubernetes portability.",
+  "avoid_when": "You are starting fresh with containers and do not have existing Kubernetes expertise or tooling, as ECS Fargate offers a simpler on-ramp with less operational overhead.",
+  "alternatives": ["aws-ecs-api", "google-gke-api", "azure-aks-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "node", "java", "go", "dotnet", "ruby", "php"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["aws_iam"],
+    "oauth": false,
+    "scopes": true,
+    "notes": "AWS SigV4 for EKS API calls. Kubernetes API authentication uses IAM tokens generated via aws eks get-token (or SDK equivalent). EKS access entries (newer) or aws-auth ConfigMap (legacy) map IAM principals to Kubernetes RBAC roles."
+  },
+  "pricing": {
+    "model": "pay-as-you-go",
+    "free_tier_exists": false,
+    "free_tier_limits": "No free tier for EKS control plane. Worker node compute is charged separately at standard EC2 or Fargate rates.",
+    "paid_tiers": "$0.10/hour per EKS cluster (~$72/month). Worker nodes billed at EC2 or Fargate rates. EKS Auto Mode includes additional managed node costs.",
+    "requires_credit_card": true,
+    "notes": "Control plane cost is fixed per cluster. Most cost comes from worker nodes, data transfer, and load balancers. EKS Anywhere has different licensing."
+  },
+  "performance": {
+    "latency_p50_ms": 300,
+    "latency_p99_ms": 3000,
+    "uptime_sla_percent": 99.95,
+    "rate_limits": "EKS API limits: DescribeCluster ~20 TPS, CreateCluster ~1 TPS. Kubernetes API server limits scale with cluster size. Adjustable via AWS Support.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": true,
+    "domain_verification": false,
+    "data_residency": ["US", "EU", "APAC", "SA", "AF", "ME"],
+    "compliance": ["SOC1", "SOC2", "ISO27001", "HIPAA", "PCI-DSS", "FedRAMP"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 78,
+    "error_message_notes": "EKS API errors are generally clear (ResourceNotFoundException, UnsupportedAvailabilityZoneException) but cluster creation failures may surface opaque reasons that require CloudTrail inspection.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "CreateCluster and CreateNodegroup are not idempotent; calling them when a resource exists returns ResourceInUseException. DescribeCluster is fully idempotent. Agents should check existence before creating.",
+    "pagination_style": "page_token",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Cluster creation takes 10-15 minutes; agents must poll DescribeCluster for ACTIVE status before attempting to interact with the Kubernetes API endpoint",
+      "EKS API and the Kubernetes API are separate — creating a cluster via boto3 is distinct from deploying workloads, which requires a separate Kubernetes client configured with the cluster endpoint and IAM token",
+      "IAM token for Kubernetes API auth expires after 15 minutes; agents with long-running operations must refresh tokens periodically using generate_presigned_url or aws eks get-token",
+      "Node group updates (e.g., AMI upgrades) can trigger rolling replacements that temporarily reduce cluster capacity; agents should check node group status before scheduling sensitive workloads",
+      "Deleting a cluster does not automatically delete associated node groups, Fargate profiles, or load balancers created by Kubernetes — orphaned resources accrue cost and must be cleaned up separately"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 78,
+    "auth_complexity_score": 62,
+    "rate_limit_clarity_score": 74
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 93,
+    "scope_granularity": 90,
+    "dependency_hygiene": 87,
+    "secret_handling": 88,
+    "security_notes": "Dual auth layer: IAM for EKS API, Kubernetes RBAC for workloads. EKS Pod Identity (newer) or IRSA grant pods scoped IAM roles. Private API endpoint option restricts Kubernetes API to VPC. Envelope encryption for etcd secrets via KMS."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 90,
+    "version_stability": 85,
+    "breaking_changes_history": 83,
+    "error_recovery": 80
+  }
+}

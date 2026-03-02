@@ -1,0 +1,105 @@
+{
+  "id": "azure-cognitive-api",
+  "name": "Azure Cognitive Services API",
+  "version_evaluated": "current",
+  "homepage": "https://azure.microsoft.com/en-us/products/ai-services",
+  "repo_url": null,
+  "category": "ai-ml",
+  "subcategories": ["nlp", "vision", "speech", "translation", "document-intelligence"],
+  "tags": ["azure", "microsoft", "cognitive-services", "text-analytics", "vision", "speech", "translation", "form-recognizer", "ai"],
+  "what_it_does": "Azure Cognitive Services provides pre-built AI REST APIs for language understanding, computer vision, speech recognition and synthesis, translation, and document intelligence — all deployable within Azure compliance boundaries.",
+  "use_cases": [
+    "Extracting structured data from scanned invoices, forms, and contracts using Document Intelligence (Form Recognizer) in document processing pipelines",
+    "Performing sentiment analysis, entity recognition, and key phrase extraction on customer feedback or support tickets using the Language API",
+    "Converting speech to text and text to speech in voice-enabled agent interfaces using the Speech Services API",
+    "Translating user input or document content across 100+ languages in real time using the Translator API within a multilingual agent workflow",
+    "Analyzing images for objects, text (OCR), faces, or content moderation using the Vision API as a preprocessing step in visual data pipelines"
+  ],
+  "not_for": [
+    "Teams on AWS or GCP who already use Rekognition, Comprehend, or Polly — Azure Cognitive Services requires Azure resource provisioning with no cross-cloud portability",
+    "Use cases requiring the latest generative AI capabilities — Azure OpenAI Service (separate product) is the right choice for LLM-based tasks",
+    "Developers needing zero-configuration AI APIs — Cognitive Services requires Azure resource creation, endpoint configuration, and key management before first call"
+  ],
+  "best_when": "Your organization is on Azure and needs enterprise-grade compliance (HIPAA, FedRAMP) for AI workloads that don't require generative models — especially document processing and language analysis within a data residency boundary.",
+  "avoid_when": "You want the fastest path to production AI features and are not constrained to Azure — direct APIs from OpenAI, Google, or AWS offer less provisioning friction for non-enterprise scenarios.",
+  "alternatives": ["aws-rekognition-api", "aws-comprehend-api", "google-cloud-vision-api", "google-cloud-speech-api", "openai-api", "azure-cognitive-services-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "node", "java", "dotnet", "go"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["api_key", "azure_ad", "managed_identity"],
+    "oauth": true,
+    "scopes": true,
+    "notes": "Two options: subscription key (Ocp-Apim-Subscription-Key header) for simple use, or Azure AD with managed identity for production. Each Cognitive Services resource has its own endpoint URL and key — there is no global key. Managed identity recommended for Azure-hosted agents. Different sub-services (Language, Vision, Speech, Translator) are separate Azure resources with separate keys unless using a multi-service resource."
+  },
+  "pricing": {
+    "model": "pay-as-you-go",
+    "free_tier_exists": true,
+    "free_tier_limits": "F0 free tier available for most services: Language ~5,000 text records/month; Vision ~5,000 transactions/month; Speech ~5 hours recognition/month; Translator ~2M characters/month; Document Intelligence ~500 pages/month.",
+    "paid_tiers": "Language S tier: ~$1/1,000 text records. Vision S1: ~$1/1,000 transactions. Speech: ~$1/hour of recognition. Translator: ~$10/million characters. Document Intelligence: ~$1.50/1,000 pages for prebuilt models; ~$5/1,000 pages for custom models.",
+    "requires_credit_card": true,
+    "notes": "F0 tiers enforce hard monthly caps with no overage — requests above the cap return 429 errors. F0 is not available for Azure OpenAI. Committed use discounts available via Azure Reservations for high-volume workloads. Multi-service resource simplifies billing but reduces per-service quota visibility."
+  },
+  "performance": {
+    "latency_p50_ms": 350,
+    "latency_p99_ms": 2000,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "Varies by service and SKU. Language S: 1,000 records/minute. Vision S1: 10 TPS. Speech: 20 concurrent requests. Document Intelligence: 15 TPS. Async batch operations available for Language and Document Intelligence. Rate increases available via Azure support.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": true,
+    "domain_verification": false,
+    "data_residency": ["US", "EU", "UK", "AU", "CA", "APAC", "JP", "IN", "ZA", "UAE"],
+    "compliance": ["SOC1", "SOC2", "SOC3", "ISO27001", "ISO27018", "HIPAA", "FedRAMP-High", "GDPR", "PCI-DSS", "HITRUST", "IRAP"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 76,
+    "error_message_quality": 73,
+    "error_message_notes": "Error response formats are inconsistent across sub-services. Language and Vision return JSON error objects. Speech SDK errors surface through exception types rather than HTTP status codes. Document Intelligence async errors require polling the operation status endpoint. Documentation quality varies significantly between services — Document Intelligence docs are excellent; Speech REST docs are sparse.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Analysis operations (Language, Vision) are stateless and idempotent for the same input. Document Intelligence uses an async pattern with operation IDs — the analysis submission is not idempotent but polling the result is. Speech synthesis is stateless. No built-in deduplication for async operations.",
+    "pagination_style": "none",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Each sub-service requires a separate Azure resource with its own endpoint URL and authentication key — there is no single endpoint for all Cognitive Services; a multi-service resource reduces this but still uses service-specific endpoints",
+      "Async Document Intelligence operations require polling a returned operation URL for results — the initial POST returns 202 Accepted, not results; polling interval and timeout must be managed by the agent",
+      "F0 (free) tier rate limits cause 429 errors silently at the monthly cap with no advance warning — agents on F0 will stop working mid-month without any notification",
+      "SDK packages are split between azure-ai-{service} (modern) and azure-cognitiveservices-{service} (legacy) namespaces — mixing them in the same project causes conflicts; always use azure-ai-* packages",
+      "Speech service requires a separate SDK (not a pure REST client) for streaming audio — the REST API only supports short (up to 60-second) audio files, making it unsuitable for real-time speech scenarios without the SDK"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 76,
+    "error_handling_score": 73,
+    "auth_complexity_score": 60,
+    "rate_limit_clarity_score": 70
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 92,
+    "scope_granularity": 88,
+    "dependency_hygiene": 87,
+    "secret_handling": 86,
+    "security_notes": "Managed identity eliminates credential exposure for Azure-hosted agents. Private endpoints available to route traffic over Azure backbone without internet exposure. Customer-managed keys supported for data at rest. Content submitted to Cognitive Services may be used for model improvement by default — opt-out available via data privacy settings in Azure portal."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 90,
+    "version_stability": 80,
+    "breaking_changes_history": 76,
+    "error_recovery": 78
+  }
+}

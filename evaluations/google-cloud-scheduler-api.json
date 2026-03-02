@@ -1,0 +1,105 @@
+{
+  "id": "google-cloud-scheduler-api",
+  "name": "Google Cloud Scheduler API",
+  "version_evaluated": "current",
+  "homepage": "https://cloud.google.com/scheduler",
+  "repo_url": null,
+  "category": "infrastructure",
+  "subcategories": ["scheduling", "cron", "task-automation", "serverless"],
+  "tags": ["google", "gcp", "cloud-scheduler", "cron", "scheduling", "task-automation", "http", "pub-sub"],
+  "what_it_does": "Google's fully-managed enterprise cron job service for scheduling recurring HTTP, Pub/Sub, or App Engine requests on a defined schedule, with configurable retry and timezone support.",
+  "use_cases": [
+    "Scheduling periodic agent workflows — daily report generation, hourly data syncs, weekly cleanup jobs — using cron syntax without managing infrastructure",
+    "Triggering Cloud Run or Cloud Functions endpoints on a schedule by configuring HTTP targets with OIDC authentication",
+    "Publishing scheduled messages to Pub/Sub topics to fan out to multiple agent subscribers on a time-based trigger",
+    "Orchestrating agent pipelines that must run at specific times across multiple time zones using Cloud Scheduler's timezone support",
+    "Programmatically creating, pausing, and resuming job schedules from agent code to dynamically control when pipeline steps run"
+  ],
+  "not_for": [
+    "One-time task execution with a future delay — use Cloud Tasks with a schedule time for one-off delayed tasks instead",
+    "Sub-minute scheduling granularity — Cloud Scheduler minimum frequency is once per minute",
+    "Complex workflow orchestration with dependencies between steps — use Cloud Workflows or Airflow for DAG-based pipelines"
+  ],
+  "best_when": "You need reliable cron-like scheduling of HTTP or Pub/Sub triggers in GCP with zero infrastructure, timezone awareness, and managed retry — replacing cron jobs on VMs.",
+  "avoid_when": "You need sub-minute precision, one-off delayed tasks, or event-driven (not time-driven) triggering — Cloud Tasks or Eventarc are better fits.",
+  "alternatives": ["google-cloud-tasks-api", "aws-eventbridge-scheduler-api", "temporal-api", "airflow-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "node", "java", "go", "dotnet", "ruby", "php"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["oauth2", "service_account"],
+    "oauth": true,
+    "scopes": true,
+    "notes": "Management API uses service account or ADC with roles/cloudscheduler.admin or roles/cloudscheduler.jobRunner. For HTTP targets, Cloud Scheduler can include an OIDC token (for Google services) or OAuth token (for Google APIs) in the request header — the service account used must have invoker permission on the target."
+  },
+  "pricing": {
+    "model": "pay-as-you-go",
+    "free_tier_exists": true,
+    "free_tier_limits": "3 jobs free per month per billing account",
+    "paid_tiers": "$0.10 per job per month after the first 3 free jobs",
+    "requires_credit_card": true,
+    "notes": "Very low cost — 10 jobs cost $0.70/month. Pricing is per job, not per execution. There is no charge for job executions themselves — only the number of configured jobs. The free tier resets monthly."
+  },
+  "performance": {
+    "latency_p50_ms": 500,
+    "latency_p99_ms": 3000,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "No documented execution rate limit; management API limited to 600 requests/minute per project. Cloud Scheduler delivers jobs with best-effort punctuality — small delays (seconds to minutes) are possible.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": true,
+    "domain_verification": false,
+    "data_residency": ["US", "EU", "APAC"],
+    "compliance": ["SOC1", "SOC2", "SOC3", "ISO27001", "GDPR", "HIPAA", "FedRAMP-Moderate"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 87,
+    "error_message_quality": 80,
+    "error_message_notes": "Job creation errors include clear messages for invalid cron syntax and missing permissions. HTTP target failures are logged in Cloud Logging with the response code. The API returns standard Google Status proto errors with actionable detail for most configuration mistakes.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Job creation with the same name returns ALREADY_EXISTS — safe to check and handle idempotently. Pause and resume operations are idempotent. Updating a job with the same config is a no-op.",
+    "pagination_style": "page_token",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Cloud Scheduler guarantees at-least-once delivery, not exactly-once — targets may receive duplicate invocations on retries; make sure your target handlers are idempotent",
+      "Timezone must be specified as a IANA timezone string (e.g., 'America/Los_Angeles') not an offset — using UTC offsets directly is not supported",
+      "Job execution is not guaranteed to be exactly on-the-minute — delays of seconds to minutes are possible during high load; do not design workflows requiring precise timing",
+      "HTTP targets must return a 2xx response within 30 minutes or the execution is marked failed and retried — long-running work should trigger async processing rather than synchronous execution in the handler",
+      "The maximum number of retry attempts is 5 by default with exponential backoff — if your target is consistently unavailable, jobs will be dropped after exhausting retries without further notification"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 87,
+    "error_handling_score": 80,
+    "auth_complexity_score": 74,
+    "rate_limit_clarity_score": 78
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 90,
+    "scope_granularity": 85,
+    "dependency_hygiene": 88,
+    "secret_handling": 85,
+    "security_notes": "OIDC token injection for HTTP targets enables secure service-to-service invocation without embedding credentials. Service account used for job execution should follow least-privilege — only invoker permission on the specific target. IAM controls who can create or modify jobs. All job definitions encrypted at rest. HIPAA-eligible with BAA."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 90,
+    "breaking_changes_history": 90,
+    "error_recovery": 82
+  }
+}

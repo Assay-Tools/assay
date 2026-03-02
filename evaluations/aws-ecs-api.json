@@ -1,0 +1,105 @@
+{
+  "id": "aws-ecs-api",
+  "name": "Amazon ECS (Elastic Container Service) API",
+  "version_evaluated": "current",
+  "homepage": "https://aws.amazon.com/ecs/",
+  "repo_url": "https://github.com/boto/boto3",
+  "category": "infrastructure",
+  "subcategories": ["containers", "orchestration", "compute"],
+  "tags": ["aws", "boto3", "containers", "docker", "orchestration", "fargate", "ecs", "devops"],
+  "what_it_does": "Run and orchestrate Docker containers on AWS without managing the underlying server infrastructure, using either Fargate (serverless) or EC2 launch types.",
+  "use_cases": [
+    "Deploy a containerized microservice as a long-running ECS service with auto-scaling and load balancing",
+    "Run ephemeral batch processing tasks as ECS tasks on Fargate without provisioning EC2 instances",
+    "Orchestrate multi-container applications using ECS task definitions with sidecars and shared volumes",
+    "Automate blue/green deployments by updating ECS service task definitions and monitoring deployment health",
+    "Scale container workloads dynamically by adjusting ECS service desired count based on queue depth or CPU metrics"
+  ],
+  "not_for": [
+    "Workloads requiring full Kubernetes API compatibility or portability across cloud providers",
+    "Running non-containerized applications or bare-metal workloads",
+    "Simple single-host Docker deployments where overhead of ECS is not justified"
+  ],
+  "best_when": "You need reliable, AWS-native container orchestration with deep integration into IAM, ALB, CloudWatch, and Fargate and do not need Kubernetes portability.",
+  "avoid_when": "Your team is already heavily invested in Kubernetes tooling and needs kubectl-compatible workflows or multi-cloud portability.",
+  "alternatives": ["aws-eks-api", "google-cloud-run-api", "azure-container-instances-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "node", "java", "go", "dotnet", "ruby", "php"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["aws_iam"],
+    "oauth": false,
+    "scopes": true,
+    "notes": "AWS SigV4 signing via IAM roles or access key credentials. IAM policies control granular actions such as ecs:RunTask, ecs:UpdateService, ecs:DescribeClusters. Task-level IAM roles grant containers their own scoped permissions."
+  },
+  "pricing": {
+    "model": "pay-as-you-go",
+    "free_tier_exists": true,
+    "free_tier_limits": "ECS itself has no additional charge; you pay only for the underlying EC2 or Fargate resources consumed.",
+    "paid_tiers": "Fargate: ~$0.04048/vCPU/hour and ~$0.004445/GB/hour. EC2 launch type: standard EC2 instance pricing. No per-API-call charge.",
+    "requires_credit_card": true,
+    "notes": "Costs are dominated by compute (Fargate or EC2), data transfer, and load balancer hours. ECS orchestration layer itself is free."
+  },
+  "performance": {
+    "latency_p50_ms": 200,
+    "latency_p99_ms": 2000,
+    "uptime_sla_percent": 99.99,
+    "rate_limits": "Default API rate limits vary by action: DescribeTasks ~40 TPS, RunTask ~1 TPS (burstable). Limits adjustable via AWS Support.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": true,
+    "domain_verification": false,
+    "data_residency": ["US", "EU", "APAC", "SA", "AF", "ME"],
+    "compliance": ["SOC1", "SOC2", "ISO27001", "HIPAA", "PCI-DSS", "FedRAMP"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 88,
+    "error_message_quality": 80,
+    "error_message_notes": "Errors include typed exception classes (e.g., ClusterNotFoundException, InvalidParameterException) with descriptive messages. Some transient failures require inspecting nested FailureReason fields.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "RunTask and StartTask are not idempotent by default; re-running them spawns duplicate tasks. RegisterTaskDefinition is effectively idempotent if content is unchanged (creates new revision). Use clientToken parameter for RunTask idempotency.",
+    "pagination_style": "page_token",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "RunTask returns a 'failures' array alongside launched tasks — a 200 response does NOT guarantee the task started; always inspect the failures field",
+      "Task definitions are immutable and versioned; updating a task definition always creates a new revision, so agents must track the latest active ARN explicitly",
+      "Fargate tasks may take 30-90 seconds to reach RUNNING state; polling DescribeTasks in a tight loop without backoff causes rate limit errors",
+      "ECS service stabilization after an UpdateService call can take several minutes; the API returns immediately but deployment health must be separately polled",
+      "Container logs are not surfaced through ECS API directly — agents must query CloudWatch Logs using the logGroup/logStream from the task definition"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 88,
+    "error_handling_score": 80,
+    "auth_complexity_score": 70,
+    "rate_limit_clarity_score": 75
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 92,
+    "scope_granularity": 91,
+    "dependency_hygiene": 88,
+    "secret_handling": 88,
+    "security_notes": "IAM task roles provide per-container scoped credentials. Secrets Manager and SSM Parameter Store integrations inject secrets at runtime without embedding in task definitions. VPC endpoints available for private connectivity. Container images should be scanned via ECR."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 92,
+    "version_stability": 88,
+    "breaking_changes_history": 87,
+    "error_recovery": 82
+  }
+}
