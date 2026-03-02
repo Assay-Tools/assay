@@ -1,0 +1,105 @@
+{
+  "id": "dynamics-365-api",
+  "name": "Microsoft Dynamics 365 API",
+  "version_evaluated": "current",
+  "homepage": "https://learn.microsoft.com/en-us/dynamics365/developer/",
+  "repo_url": null,
+  "category": "developer-tools",
+  "subcategories": ["crm", "erp", "sales", "automation"],
+  "tags": ["dynamics365", "microsoft", "crm", "erp", "azure-ad", "odata", "dataverse", "enterprise"],
+  "what_it_does": "Provides REST/OData access to Microsoft Dynamics 365 CRM and ERP data (sales, service, finance, supply chain) via the Dataverse Web API and organization service endpoints.",
+  "use_cases": [
+    "Query and update Dynamics 365 Sales leads, opportunities, and accounts using OData filters from an agent",
+    "Create customer service cases and route them via Dynamics 365 Customer Service API based on agent-triaged support tickets",
+    "Retrieve and update inventory or order records in Dynamics 365 Finance & Operations to automate procurement workflows",
+    "Subscribe to Dataverse change events via webhooks or Azure Service Bus plugin steps to trigger agent actions on record changes",
+    "Execute custom business actions and workflows registered in Dataverse from an agent orchestration layer"
+  ],
+  "not_for": [
+    "Organizations not running Microsoft Dynamics 365 or Dataverse — there is no standalone access",
+    "Simple CRM needs where the Azure AD app registration and Dataverse environment setup overhead is not justified",
+    "High-frequency low-latency operations — OData query overhead makes it unsuitable for sub-100ms use cases"
+  ],
+  "best_when": "Your organization is in the Microsoft ecosystem (Azure AD, M365, Dynamics 365) and you need an agent to read or write CRM/ERP records with enterprise-grade security.",
+  "avoid_when": "You need rapid prototyping with minimal auth setup or your team lacks Azure AD and Dataverse administration access.",
+  "alternatives": ["salesforce-crm-api", "hubspot-api", "zoho-crm-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["javascript", "python", "dotnet", "java"],
+    "openapi_spec_url": null,
+    "webhooks": true
+  },
+  "auth": {
+    "methods": ["oauth2", "azure_ad", "service_principal", "client_credentials"],
+    "oauth": true,
+    "scopes": true,
+    "notes": "Requires Azure AD app registration with Dynamics 365 / Dataverse API permissions granted and admin consent. Supports OAuth 2.0 authorization code flow for delegated access and client credentials (service principal) for server-to-server agent use. Token endpoint is tenant-specific (https://login.microsoftonline.com/{tenant_id}/oauth2/v2.0/token). Access tokens are scoped to a specific Dynamics environment URL."
+  },
+  "pricing": {
+    "model": "enterprise",
+    "free_tier_exists": true,
+    "free_tier_limits": "Microsoft Power Apps Developer Plan includes a Dataverse environment with Dynamics 365 API access for development/testing at no cost",
+    "paid_tiers": "Dynamics 365 Sales from ~$65/user/month; Customer Service from ~$50/user/month; Finance from ~$180/user/month; API access included with licensed users",
+    "requires_credit_card": false,
+    "notes": "Dataverse API calls consume storage and compute capacity units; high-volume agent workloads may require capacity add-ons. Developer plan is free for non-production use."
+  },
+  "performance": {
+    "latency_p50_ms": 300,
+    "latency_p99_ms": 2000,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "Dataverse service protection limits: 6,000 requests per 5-minute window per user, 52,000 requests per 5-minute window per environment; limits are user/app-context specific; 429 responses include Retry-After headers",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["US", "EU", "UK", "APAC", "AU", "CA"],
+    "compliance": ["SOC1", "SOC2", "ISO27001", "GDPR", "HIPAA", "FedRAMP"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 83,
+    "error_message_quality": 74,
+    "error_message_notes": "OData errors return structured JSON with error codes and messages; Dataverse service protection errors include retry-after guidance; however inner error details for plugin/workflow failures can be opaque and require trace log access.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "PATCH (upsert) with alternate keys supports idempotent updates; standard POST creates are not idempotent; no built-in request deduplication token mechanism.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Each Dynamics 365 environment has its own unique URL (e.g., https://yourorg.crm.dynamics.com); tokens are scoped to this URL and cannot be reused across environments",
+      "OData query syntax requires logical names for entities and columns (not display names); agents must call the EntityDefinitions metadata endpoint to discover correct schema names",
+      "Service protection API limits are per-user-context, meaning an agent using a single service account will hit limits faster than one using delegated user tokens spread across callers",
+      "Plugin and workflow side effects fire synchronously on record changes via API; an agent updating a record may trigger expensive server-side logic that causes timeout errors",
+      "Dataverse relationships require separate $expand clauses in OData queries; deep navigation properties are limited to 2 levels, complicating multi-entity joins"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 83,
+    "error_handling_score": 74,
+    "auth_complexity_score": 62,
+    "rate_limit_clarity_score": 78
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 88,
+    "scope_granularity": 82,
+    "dependency_hygiene": 85,
+    "secret_handling": 82,
+    "security_notes": "Azure AD integration provides enterprise SSO, Conditional Access, and MFA enforcement. Dataverse row-level security uses business unit hierarchies and security roles. Service principal secrets should be stored in Azure Key Vault; certificate-based auth preferred over client secrets for production agents."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 90,
+    "version_stability": 84,
+    "breaking_changes_history": 82,
+    "error_recovery": 80
+  }
+}
