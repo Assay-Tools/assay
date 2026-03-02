@@ -1,0 +1,106 @@
+{
+  "id": "rudderstack-api",
+  "name": "RudderStack API",
+  "version_evaluated": "current",
+  "homepage": "https://www.rudderstack.com/",
+  "repo_url": "https://github.com/rudderlabs/rudder-server",
+  "category": "Data",
+  "subcategories": ["Customer Data Platform", "Event Streaming", "Data Pipeline"],
+  "tags": ["cdp", "customer-data", "event-tracking", "analytics", "data-pipeline", "open-source", "rudderstack"],
+  "what_it_does": "RudderStack is an open-source customer data platform (CDP) with REST and HTTP APIs for event ingestion (track, identify, page, group, alias), data transformation, and routing to 200+ destinations. Acts as a single collection point for customer event data with real-time streaming to warehouses and analytics tools.",
+  "use_cases": [
+    "Instrument agent actions as customer events for downstream analytics (Amplitude, Mixpanel, BigQuery)",
+    "Centralize user identification and trait management across multiple agent touchpoints",
+    "Build event-driven pipelines where agent outputs trigger downstream marketing or analytics workflows",
+    "Replace Segment with open-source self-hosted CDP to control costs at scale",
+    "Sync customer profile data from CRM, support, and product tools into a unified warehouse"
+  ],
+  "not_for": [
+    "Real-time streaming analytics (RudderStack is a routing layer, not an analytics engine)",
+    "Teams needing a UI-first CDP with marketer-friendly audience segmentation out of the box",
+    "Sub-100ms latency requirements (routing adds overhead)"
+  ],
+  "best_when": "You need to send customer event data to multiple destinations simultaneously, want Segment API compatibility for easy migration, and prefer open-source with self-hosting option.",
+  "avoid_when": "Your team lacks infrastructure to manage open-source deployment, or you need real-time analytics rather than event routing to external tools.",
+  "alternatives": ["segment-api", "mparticle-api", "amplitude-api", "mixpanel-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["JavaScript", "Python", "Go", "Java", "Ruby", "PHP", "iOS", "Android", "React Native", "Flutter"],
+    "openapi_spec_url": null,
+    "webhooks": true
+  },
+  "auth": {
+    "methods": ["write_key", "basic_auth"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Source write keys authenticate ingest API calls — one key per data source. Basic auth (write_key as username, empty password) is the standard pattern, matching Segment API compatibility. Management API uses personal access tokens. No fine-grained scope support."
+  },
+  "pricing": {
+    "model": "usage_based_tiered",
+    "free_tier_exists": true,
+    "free_tier_limits": "Free tier: 1,000 monthly tracked users (MTUs) on Cloud Free",
+    "paid_tiers": "Starter $0 (self-hosted open source), Cloud Growth from ~$750/month based on MTUs, Enterprise custom",
+    "requires_credit_card": false,
+    "notes": "Self-hosted open-source is free but requires infrastructure management. Cloud offering priced by MTUs (monthly tracked users). Warehouse destinations often add egress costs from cloud providers separately."
+  },
+  "performance": {
+    "latency_p50_ms": 100,
+    "latency_p99_ms": 500,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "Cloud: no published hard rate limits for standard ingest; very high throughput reported in benchmarks. Self-hosted limits depend on infrastructure. Transformation function execution has per-event timeout of 4 seconds.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["US", "EU"],
+    "compliance": ["SOC2", "GDPR", "HIPAA (Enterprise)"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 82,
+    "error_message_quality": 75,
+    "error_message_notes": "HTTP 200 is returned for all accepted events regardless of downstream delivery success — agents cannot determine if events reached destinations via the ingest response. Transformation errors visible only in dashboard logs, not API responses.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "messageId field in event payloads used for deduplication within a 24-hour window. Agents should generate and persist messageIds to prevent duplicate event processing on retry. Dedup is best-effort, not guaranteed.",
+    "pagination_style": "offset",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Ingest API always returns HTTP 200 on receipt — a 200 response does NOT confirm delivery to destinations; use destination-level monitoring or warehouse arrival to verify end-to-end delivery",
+      "Transformation functions have a 4-second execution timeout — complex agent-built transformations that call external APIs will fail silently if they exceed this limit; keep transformations lightweight",
+      "messageId deduplication window is 24 hours only — agents retrying older failed events (e.g., after an outage) may create duplicates; implement idempotency in destination systems as well",
+      "The track/identify/page call schema is opaque — extra properties are passed through but typos in reserved field names (e.g., 'user_Id' vs 'userId') cause silent data loss without validation errors",
+      "Self-hosted deployments require managing the rudder-server, rudder-transformer, and warehouse loader components separately — agents calling a self-hosted instance must account for partial component failures",
+      "Segment API compatibility mode covers most calls but not all management API operations — do not assume 1:1 compatibility when migrating Segment-based agent code to RudderStack"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 82,
+    "error_handling_score": 72,
+    "auth_complexity_score": 80,
+    "rate_limit_clarity_score": 70
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 72,
+    "scope_granularity": 65,
+    "dependency_hygiene": 78,
+    "secret_handling": 75,
+    "security_notes": "Write keys are source-level credentials with no scope granularity. No per-destination access control from the ingest API perspective. SOC2 Type II for cloud offering. Self-hosted deployments shift full security responsibility to the operator."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 80,
+    "version_stability": 78,
+    "breaking_changes_history": 75,
+    "error_recovery": 72
+  }
+}
