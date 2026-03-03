@@ -1,0 +1,106 @@
+{
+  "id": "asyncpg-api",
+  "name": "asyncpg",
+  "version_evaluated": "0.29.x",
+  "homepage": "https://magicstack.github.io/asyncpg/current/",
+  "repo_url": "https://github.com/MagicStack/asyncpg",
+  "category": "developer-tools",
+  "subcategories": ["database", "python", "postgresql", "async", "driver"],
+  "tags": ["python", "postgresql", "async", "asyncio", "driver", "database", "high-performance", "fastapi"],
+  "what_it_does": "High-performance async PostgreSQL client library for Python asyncio — 3-10x faster than psycopg2 for most operations. asyncpg uses PostgreSQL binary protocol (not text), prepared statement caching, and efficient type codecs for optimal performance. Provides: connection pooling (asyncpg.create_pool()), raw SQL execution (await conn.fetch()), record objects with column access, custom type codecs, copy operations, and listen/notify for PostgreSQL events. Does not implement DBAPI 2.0 — uses its own async API. Used directly or as the driver underneath SQLAlchemy async and Tortoise ORM. Essential for high-throughput async Python agent services querying PostgreSQL.",
+  "use_cases": [
+    "High-throughput async agent API with PostgreSQL — asyncpg connection pool with 20 connections handles 10k+ concurrent agent requests more efficiently than psycopg2 thread pool",
+    "Raw SQL agent data queries without ORM overhead — await pool.fetch('SELECT * FROM agents WHERE status = $1 ORDER BY created_at DESC LIMIT $2', 'active', 100) for high-performance agent list queries",
+    "Bulk agent data loading with COPY protocol — await conn.copy_records_to_table('agents', records=agent_batch) for 100x faster bulk agent data inserts vs individual INSERT statements",
+    "Real-time agent notifications via LISTEN/NOTIFY — await conn.add_listener('agent_events', callback) for PostgreSQL pub/sub event delivery to agent services without external message broker",
+    "Custom type codecs for agent-specific PostgreSQL types — register codec for PostgreSQL composite types or custom domains representing agent configuration objects"
+  ],
+  "not_for": [
+    "MySQL or SQLite — asyncpg is PostgreSQL-only; use aiomysql for async MySQL, aiosqlite for async SQLite in agent services",
+    "Synchronous Python applications — asyncpg is async-only; use psycopg2 or psycopg3 for synchronous agent data access",
+    "Teams wanting ORM — asyncpg is raw SQL; use SQLAlchemy async (with asyncpg driver) or Tortoise ORM for agent services that need model-based database access"
+  ],
+  "best_when": "You're building a high-performance async FastAPI or aiohttp agent service that queries PostgreSQL and need maximum throughput — asyncpg delivers 3-10x better performance than psycopg2 with native asyncio integration.",
+  "avoid_when": "You need MySQL, you prefer ORM over raw SQL, or your agent service is synchronous (use psycopg2).",
+  "alternatives": ["psycopg2-api", "psycopg3-api", "sqlalchemy-async-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Database driver — auth via PostgreSQL credentials in DSN string or keyword arguments. Supports SSL/TLS for encrypted agent database connections."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, Apache 2.0 licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "asyncpg is Apache 2.0 licensed, maintained by MagicStack. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 2,
+    "latency_p99_ms": 20,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — client driver. Binary protocol and prepared statement cache give asyncpg 3-10x throughput advantage over psycopg2. Pool size limits maximum concurrent agent queries.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 88,
+    "error_message_quality": 90,
+    "error_message_notes": "asyncpg exceptions include PostgreSQL error codes (asyncpg.UniqueViolationError, asyncpg.ForeignKeyViolationError) with table and constraint names. Connection pool exhaustion raises asyncpg.TooManyConnectionsError. SSL errors include certificate context. Error messages are developer-friendly with query context.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "SQL semantics — idempotency depends on query design. asyncpg transactions via conn.transaction() for atomic agent operations. Pool connections are automatically returned after use in async with context.",
+    "pagination_style": "offset",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "asyncpg is not DBAPI 2.0 — asyncpg uses its own API (fetch, fetchrow, execute, executemany); code written for psycopg2's cursor.execute()/fetchall() doesn't port directly; agent code migration from psycopg2 requires API rewrite not just driver swap",
+      "Connection pool must be created at startup — asyncpg.create_pool() is a coroutine; create pool in FastAPI lifespan event (asynccontextmanager) or startup handler; creating pool per request causes connection flood and defeats pooling for agent API",
+      "Parameter placeholders use $1/$2, not %s — asyncpg uses PostgreSQL-native $1, $2 positional parameters not Python %s or %(name)s; mixing placeholder styles causes PostgreSQL syntax error in agent queries",
+      "Record objects are read-only tuples — asyncpg fetch() returns Record objects (not dict); access by column name (record['agent_id']) or index; converting to dict requires dict(record) for agent code that needs mutable dicts",
+      "Pool min_size vs max_size affects agent throughput — default pool has max_size=10; under high agent request load, pool exhaustion queues requests; set max_size based on PostgreSQL max_connections and agent service instance count",
+      "SSL certificate verification requires explicit config — asyncpg verifies SSL certificates by default; self-signed dev PostgreSQL certificates require ssl=ssl.create_default_context() with custom CA; ssl='disable' for no verification (dev only, never production agent databases)"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 88,
+    "error_handling_score": 90,
+    "auth_complexity_score": 92,
+    "rate_limit_clarity_score": 95
+  },
+  "security_score_components": {
+    "tls_enforcement": 90,
+    "auth_strength": 88,
+    "scope_granularity": 82,
+    "dependency_hygiene": 90,
+    "secret_handling": 88,
+    "security_notes": "Parameterized queries prevent SQL injection by default. TLS via ssl parameter for encrypted agent database connections. Database credentials via environment variables in DSN. LISTEN/NOTIFY pub/sub data should not contain sensitive agent information without encryption."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 85,
+    "breaking_changes_history": 82,
+    "error_recovery": 88
+  }
+}

@@ -1,0 +1,106 @@
+{
+  "id": "flask-sqlalchemy-api",
+  "name": "Flask-SQLAlchemy",
+  "version_evaluated": "3.x",
+  "homepage": "https://flask-sqlalchemy.palletsprojects.com/",
+  "repo_url": "https://github.com/pallets-eco/flask-sqlalchemy",
+  "category": "developer-tools",
+  "subcategories": ["database", "python", "flask", "orm", "sqlalchemy"],
+  "tags": ["python", "flask", "sqlalchemy", "orm", "database", "postgresql", "mysql", "sqlite"],
+  "what_it_does": "Flask extension that integrates SQLAlchemy ORM with Flask application lifecycle. Flask-SQLAlchemy handles: application context binding (db.session scoped to request), database URI configuration via SQLALCHEMY_DATABASE_URI, model base class (db.Model with automatic __tablename__), connection pool management, and database creation (db.create_all()). Provides db.session for thread-local SQLAlchemy sessions tied to Flask request context — automatically committed on response, rolled back on error. The standard ORM solution for Flask agent applications, enabling SQLAlchemy's full query capabilities with Flask's application context.",
+  "use_cases": [
+    "Define agent data models in Flask app — class Agent(db.Model): id = db.Column(db.Integer, primary_key=True); Agent.query.filter_by(status='active').all() for agent data access in Flask routes",
+    "Agent CRUD API with Flask-SQLAlchemy — create agent with db.session.add(agent); db.session.commit(); delete with db.session.delete(agent) in Flask REST route handlers",
+    "Paginate agent results in Flask API — Agent.query.paginate(page=page, per_page=20) returns Pagination object with items, total, pages for agent list endpoints",
+    "Agent database migrations with Flask-Migrate — Alembic-based flask db migrate and flask db upgrade commands manage agent schema evolution",
+    "Test agent Flask app with in-memory SQLite — configure SQLALCHEMY_DATABASE_URI='sqlite:///:memory:' in test config for fast isolated agent database tests"
+  ],
+  "not_for": [
+    "FastAPI or non-Flask async frameworks — Flask-SQLAlchemy is Flask-specific; use SQLAlchemy async directly or SQLModel for FastAPI agent services",
+    "Complex SQLAlchemy without Flask — Flask-SQLAlchemy adds Flask-specific session management that can be limiting; use SQLAlchemy directly for non-Flask agent data access layers",
+    "Large-scale agent services with custom session management — Flask-SQLAlchemy's per-request session model works well for simple APIs but can be limiting for background tasks and async agent processing"
+  ],
+  "best_when": "You're building a Flask agent web application that needs SQLAlchemy ORM — Flask-SQLAlchemy handles session lifecycle, configuration, and model setup so you can focus on agent business logic.",
+  "avoid_when": "You're using FastAPI (use SQLModel or SQLAlchemy async), you need async database access, or you're building a non-Flask agent service.",
+  "alternatives": ["sqlalchemy-api", "sqlmodel-api", "peewee-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "ORM extension — no auth concepts. Database credentials in SQLALCHEMY_DATABASE_URI config or environment variable."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, BSD licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Flask-SQLAlchemy is BSD licensed, maintained by Pallets ecosystem. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 5,
+    "latency_p99_ms": 50,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — self-hosted ORM. Connection pool managed by SQLAlchemy via SQLALCHEMY_POOL_SIZE, SQLALCHEMY_MAX_OVERFLOW config.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 85,
+    "error_message_notes": "Flask-SQLAlchemy surfaces SQLAlchemy exceptions with ORM context. IntegrityError for constraint violations includes table and column. DetachedInstanceError when accessing lazy-loaded attribute outside request context. Query compilation errors show bad filter expressions.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "db.session.merge() for idempotent updates. db.session.commit() automatically rolled back on exception in Flask request context. db.session.rollback() available for explicit rollback in agent error handlers.",
+    "pagination_style": "offset",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "DetachedInstanceError on lazy loading outside request context — accessing relationships on agent models after request context closes (in background tasks, after db.session.commit()) causes DetachedInstanceError; use db.session.refresh(agent) or eager loading with joinedload() for background agent processing",
+      "db.session is scoped to request by default — Flask-SQLAlchemy creates session per thread/request; background Celery tasks or threads outside Flask request context need explicit app.app_context() push and db.session management",
+      "Model must be imported before db.create_all() — db.create_all() only creates tables for imported models; forgetting to import agent model files in app factory means tables are never created silently",
+      "SQLALCHEMY_TRACK_MODIFICATIONS should be False — default True enables SQLAlchemy event system for change tracking; adds overhead without benefit for most agent apps; set SQLALCHEMY_TRACK_MODIFICATIONS = False to suppress deprecation warning and reduce memory use",
+      "Flask-SQLAlchemy 3.x removed Model.query in 3.1 — legacy Model.query class attribute (Agent.query.filter_by(...)) deprecated; use db.session.execute(select(Agent).filter_by(...)) in Flask-SQLAlchemy 3.x for agent queries following SQLAlchemy 2.0 style",
+      "Multiple databases require bind_key — Flask-SQLAlchemy supports multiple databases via SQLALCHEMY_BINDS; agent models for secondary databases need __bind_key__ = 'secondary'; without bind_key, all models use primary SQLALCHEMY_DATABASE_URI"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 85,
+    "auth_complexity_score": 92,
+    "rate_limit_clarity_score": 95
+  },
+  "security_score_components": {
+    "tls_enforcement": 88,
+    "auth_strength": 85,
+    "scope_granularity": 80,
+    "dependency_hygiene": 88,
+    "secret_handling": 85,
+    "security_notes": "SQLAlchemy parameterized queries prevent SQL injection. Database URI with credentials should use environment variable not hardcoded. Flask-SQLAlchemy session auto-rollback on exception prevents partial agent data commits. No default CSRF protection — add Flask-WTF for form-based agent endpoints."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 82,
+    "breaking_changes_history": 78,
+    "error_recovery": 88
+  }
+}

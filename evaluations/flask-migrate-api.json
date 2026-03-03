@@ -1,0 +1,106 @@
+{
+  "id": "flask-migrate-api",
+  "name": "Flask-Migrate",
+  "version_evaluated": "4.x",
+  "homepage": "https://flask-migrate.readthedocs.io/",
+  "repo_url": "https://github.com/miguelgrinberg/Flask-Migrate",
+  "category": "developer-tools",
+  "subcategories": ["database", "python", "flask", "migrations", "alembic"],
+  "tags": ["python", "flask", "alembic", "migrations", "database", "schema", "sqlalchemy"],
+  "what_it_does": "Flask extension wrapping Alembic for SQLAlchemy database schema migrations — provides CLI commands: flask db init (create migrations folder), flask db migrate (auto-generate migration from model changes), flask db upgrade (apply pending migrations), flask db downgrade (rollback migration). Flask-Migrate detects SQLAlchemy model changes and generates Alembic migration scripts automatically. Migration scripts stored in migrations/ folder, versioned in git. Production deployment pattern: run flask db upgrade before starting agent service. Eliminates manual SQL schema management while keeping full migration history.",
+  "use_cases": [
+    "Add new column to agent model — modify Agent model, run flask db migrate -m 'add agent_model column', review generated migration, run flask db upgrade in deployment",
+    "Version-controlled agent schema changes — migration scripts in git enable reviewing schema changes in PR, rolling back deployments with flask db downgrade",
+    "Docker container agent service migration — CMD ['/bin/sh', '-c', 'flask db upgrade && gunicorn app:app'] pattern ensures agent database is migrated before service starts",
+    "Multi-environment agent schema management — same migration scripts applied to dev, staging, production agent databases ensuring environment parity",
+    "Agent database initial setup — flask db upgrade applies all pending migrations from scratch on fresh agent database deployment"
+  ],
+  "not_for": [
+    "Non-Flask SQLAlchemy projects — use Alembic directly for non-Flask Python agent services needing migrations",
+    "Non-SQLAlchemy ORMs — Flask-Migrate is SQLAlchemy-only; use django-south or peewee-migrate for other Python ORMs",
+    "Large-scale data migrations — Flask-Migrate handles schema changes; bulk data transformations should use custom scripts or Flask-Migrate custom migration functions, not auto-generated migrations"
+  ],
+  "best_when": "You're using Flask-SQLAlchemy and need database schema version control — Flask-Migrate adds Alembic migration management via simple CLI commands integrated with your Flask app.",
+  "avoid_when": "You're not using Flask-SQLAlchemy, you prefer manual SQL migrations, or you're using a different ORM.",
+  "alternatives": ["alembic-api", "yoyo-migrations-api", "flyway-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Migration tool — uses Flask-SQLAlchemy database connection. No separate auth."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Flask-Migrate is MIT licensed, maintained by Miguel Grinberg. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — migration tool. Migration execution time depends on schema change complexity and database size.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 88,
+    "error_message_quality": 85,
+    "error_message_notes": "Flask-Migrate errors include Alembic migration context. 'Can't locate revision' error for missing migration history. Conflict detection for concurrent migration development. Database connection errors surface from SQLAlchemy with connection string context.",
+    "idempotency_support": "full",
+    "idempotency_notes": "flask db upgrade is idempotent — already-applied migrations are skipped. Alembic tracks applied versions in alembic_version table. Safe to run on every deployment.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Auto-detect doesn't catch all changes — flask db migrate auto-detect finds column additions/removals and type changes but misses CHECK constraints, index changes, and some server defaults; review generated migration before applying to agent production database",
+      "Migration conflicts in team development — multiple developers creating migrations simultaneously causes branch conflicts in alembic revision chain; use flask db merge to merge migration heads before deploying agent service",
+      "Import models before migrate command — flask db migrate requires all agent models to be imported in Flask app factory; models in separate modules not imported are invisible to auto-detect; create an models/__init__.py that imports all agent model modules",
+      "Data migrations require manual coding — auto-generated migrations only handle schema changes; data transformations (backfilling agent fields, transforming data during column rename) require manual op.execute() SQL in migration script",
+      "Downgrade scripts need manual verification — flask db migrate generates downgrade() but may generate incomplete or wrong rollback SQL for complex changes; always test downgrade path for critical agent schema changes before production deployment",
+      "Production migration locking — on large agent tables (millions of rows), ADD COLUMN with DEFAULT or adding index causes table lock or long migration time; use batched migrations (op.batch_alter_table) or online schema change tools for large agent production databases"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 88,
+    "error_handling_score": 85,
+    "auth_complexity_score": 95,
+    "rate_limit_clarity_score": 98
+  },
+  "security_score_components": {
+    "tls_enforcement": 90,
+    "auth_strength": 88,
+    "scope_granularity": 85,
+    "dependency_hygiene": 90,
+    "secret_handling": 88,
+    "security_notes": "Migration scripts are code — review in PR before applying to agent production. Migration scripts have full database access; never include data with PII in migration scripts. Use flask db upgrade in CD pipeline with database credentials from secrets manager, not hardcoded."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 90,
+    "version_stability": 88,
+    "breaking_changes_history": 85,
+    "error_recovery": 90
+  }
+}
