@@ -1,0 +1,107 @@
+{
+  "id": "pomerium-api",
+  "name": "Pomerium",
+  "version_evaluated": "0.x",
+  "homepage": "https://www.pomerium.com/",
+  "repo_url": "https://github.com/pomerium/pomerium",
+  "category": "security",
+  "subcategories": ["zero-trust", "access-proxy", "identity-aware-proxy", "vpn-alternative"],
+  "tags": ["zero-trust", "access-proxy", "identity", "kubernetes", "vpn-replacement", "sso", "open-source"],
+  "what_it_does": "Identity-aware access proxy implementing zero-trust network access (ZTNA). Pomerium sits in front of internal applications and services, authenticating every request via OIDC/OAuth2 and enforcing policy-based authorization without a VPN. Replaces VPN + firewall rules with identity-verified, context-aware access control. REST API and policy-as-code (YAML/Rego) for programmatic access route management. Pomerium Zero (cloud-managed) or self-hosted.",
+  "use_cases": [
+    "Provide agent workers and developers secure access to internal services (databases, admin UIs, monitoring) without VPN using identity-verified access proxy",
+    "Protect internal agent APIs and services with identity-aware authentication — only authenticated agents with valid OIDC tokens can reach protected upstream services",
+    "Implement device trust for agent access — Pomerium can enforce that only managed devices with valid certificates can access sensitive internal services",
+    "Replace VPN for remote developer access with cryptographically-verified, audited access to internal services via Pomerium's TCP tunneling mode",
+    "Secure Kubernetes internal services (dashboards, monitoring, CI/CD) with Pomerium in front — no public exposure, identity-verified access from anywhere"
+  ],
+  "not_for": [
+    "Public-facing application authentication — Pomerium protects internal services; use Auth0, Clerk, or WorkOS for public-facing user authentication",
+    "Teams that genuinely need a VPN for non-web protocols — Pomerium supports TCP tunneling but is primarily HTTP(S) proxy; full VPN solutions cover more protocols",
+    "Simple single-service setups — if you have one internal service to protect, a simpler solution (Cloudflare Tunnel, nginx + auth) may be sufficient"
+  ],
+  "best_when": "You want to eliminate VPN for internal service access while providing identity-verified, audited access to developers and agents via zero-trust principles.",
+  "avoid_when": "You need to protect public-facing user applications — Pomerium is for internal/corporate access, not customer-facing authentication.",
+  "alternatives": ["cloudflare-access-api", "tailscale-api", "teleport-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": true,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": false,
+    "sdk_languages": [],
+    "openapi_spec_url": "https://www.pomerium.com/docs/internals/data-model",
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["oauth2", "oidc"],
+    "oauth": true,
+    "scopes": true,
+    "notes": "Pomerium authenticates users via any OIDC provider (Google, Okta, Azure AD, GitHub, Keycloak, etc.). Policy enforcement uses user claims from OIDC token. Service accounts for machine-to-machine access via JWT. TLS client certificates for device trust."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Open source: free to self-host. Pomerium Zero (cloud-managed): free tier for small deployments",
+    "paid_tiers": "Pomerium Enterprise for advanced features; Pomerium Zero paid plans for larger deployments",
+    "requires_credit_card": false,
+    "notes": "Apache 2.0 open source. Community edition is fully functional for most use cases. Pomerium Zero provides managed connectivity (no port forwarding required). Enterprise adds RBAC, device trust management, and compliance features."
+  },
+  "performance": {
+    "latency_p50_ms": 10,
+    "latency_p99_ms": 100,
+    "uptime_sla_percent": null,
+    "rate_limits": "Self-hosted: no rate limits. Performance depends on deployment sizing.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": true,
+    "data_residency": ["self-hosted", "US"],
+    "compliance": ["SOC2"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 80,
+    "error_message_quality": 75,
+    "error_message_notes": "Access denied responses include reason codes (policy denied, identity not verified). Authentication errors surface as HTTP redirects to identity provider. Policy configuration errors surface at startup, not at request time. Audit logs capture all access decisions.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Pomerium is a stateless proxy — each request is independently authenticated and authorized. No session state in the proxy itself (sessions via cookie, backed by identity provider). All requests are idempotent from Pomerium's perspective.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Pomerium requires a public domain and HTTPS for authentication callbacks — self-hosted deployment requires valid TLS certificates and DNS; local development setup is non-trivial",
+      "Session cookies are per-user browser session — machine-to-machine agent access requires service account JWT tokens, not cookie-based auth; this is a separate configuration path",
+      "Policy configuration is YAML or Rego — policy changes require Pomerium restart or hot-reload depending on configuration; agents cannot dynamically update policies via API in community edition",
+      "Upstream service address configuration is proxied through Pomerium — agents accessing internal services must use Pomerium's public URL, not direct internal addresses; all traffic flows through the proxy",
+      "OIDC provider callback URLs must be registered in the identity provider — misconfigured callbacks result in authentication loop failures that are confusing to debug",
+      "TCP tunneling (for non-HTTP protocols) requires pomerium-cli on the client side — agent environments accessing TCP-proxied services (databases, SSH) must have pomerium-cli installed",
+      "Pomerium Zero (managed) vs self-hosted have different configuration models — documentation examples may mix the two; verify which deployment model applies to your setup"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 80,
+    "error_handling_score": 75,
+    "auth_complexity_score": 75,
+    "rate_limit_clarity_score": 80
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 92,
+    "scope_granularity": 88,
+    "dependency_hygiene": 85,
+    "secret_handling": 88,
+    "security_notes": "Apache 2.0 open source, actively maintained. Zero-trust model — every request verified, no implicit trust. Device trust via mTLS client certificates. Full audit logs of all access decisions. OIDC-based identity verification. SOC2 for Enterprise. Cryptographic routing for Pomerium Zero tunnels."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 75,
+    "version_stability": 78,
+    "breaking_changes_history": 75,
+    "error_recovery": 80
+  }
+}

@@ -1,0 +1,107 @@
+{
+  "id": "kyverno-api",
+  "name": "Kyverno",
+  "version_evaluated": "1.12+",
+  "homepage": "https://kyverno.io/",
+  "repo_url": "https://github.com/kyverno/kyverno",
+  "category": "security",
+  "subcategories": ["kubernetes", "policy-enforcement", "admission-control", "compliance"],
+  "tags": ["kubernetes", "policy", "admission-control", "security", "compliance", "cncf", "yaml", "open-source"],
+  "what_it_does": "Kubernetes-native policy engine for validating, mutating, and generating Kubernetes resources. Kyverno policies are written in YAML (not Rego/OPA) — no new policy language to learn. Runs as a Kubernetes admission controller: blocks non-compliant resources at deployment time, auto-remediates existing resources, and generates new resources based on triggers. CNCF graduated. Powers policy enforcement for security (no root containers), compliance (required labels), and operational standards (resource limits) in Kubernetes clusters.",
+  "use_cases": [
+    "Enforce security policies for agent workloads in Kubernetes — block containers running as root, require non-privileged containers, and enforce read-only filesystems via Kyverno admission policies",
+    "Automatically mutate agent pod specs at admission time — inject sidecar containers, add resource limits, or set security contexts without modifying agent application manifests",
+    "Generate Kubernetes resources automatically when namespaces are created — provision network policies, resource quotas, and RBAC for each new agent namespace via Kyverno generators",
+    "Audit existing cluster resources for policy compliance via Kyverno's policy report API — agent compliance pipelines can query ClusterPolicyReport CRDs for violation summaries",
+    "Implement supply chain security policies — require signed container images via Kyverno's image verification with cosign before allowing deployment to agent environments"
+  ],
+  "not_for": [
+    "Application-level authorization — Kyverno controls Kubernetes resource admission, not application API authorization; use OPA, Cerbos, or Aserto for application-level authz",
+    "Non-Kubernetes policy enforcement — Kyverno is Kubernetes-specific; use OPA/Rego for general-purpose policy enforcement across services",
+    "Runtime threat detection — Kyverno enforces admission policies (before deployment), not runtime security; use Falco or Tetragon for runtime threat detection"
+  ],
+  "best_when": "You need Kubernetes admission control and policy enforcement without learning Rego — Kyverno's YAML-based policies are accessible to platform engineers who know Kubernetes.",
+  "avoid_when": "You need policy enforcement across multiple systems beyond Kubernetes — OPA provides broader policy enforcement beyond K8s admission control.",
+  "alternatives": ["open-policy-agent-api", "gatekeeper-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": false,
+    "sdk_languages": [],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["bearer_token"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Kyverno interacts via Kubernetes API (RBAC). Kubernetes ServiceAccount tokens authenticate API calls. ClusterPolicyReport and PolicyReport CRDs are read via standard Kubernetes RBAC. No separate Kyverno authentication."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Apache 2.0 — completely free",
+    "paid_tiers": "Nirmata (commercial Kyverno distribution) offers enterprise support and additional features",
+    "requires_credit_card": false,
+    "notes": "Apache 2.0 CNCF graduated project. Completely free. Nirmata provides commercial support and enterprise features (Policy Manager UI, FIPS compliance). Free to use at any scale."
+  },
+  "performance": {
+    "latency_p50_ms": 10,
+    "latency_p99_ms": 100,
+    "uptime_sla_percent": null,
+    "rate_limits": "Admission controller latency adds to Kubernetes API call time. Policies with external API calls (image verification) add latency. No API rate limits.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 80,
+    "error_message_notes": "Policy violations surface as Kubernetes admission error messages when resources are rejected. PolicyReport CRDs provide structured JSON violation reports queryable via Kubernetes API. Kyverno events in Kubernetes describe policy actions. CLI (kyverno test) for local policy testing.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Kyverno policies are Kubernetes resources — applying the same policy twice is idempotent (same as kubectl apply). Admission webhook calls are idempotent (same resource always gets same policy decision). Policy reports reflect current cluster state.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Kyverno policies run as admission webhooks — misconfigured Kyverno can block ALL resource creation in a cluster if webhook fails closed; always configure failurePolicy: Ignore during initial testing",
+      "Policy evaluation order matters for mutating policies — multiple mutating policies can conflict; use Kyverno's policy ordering configuration to control evaluation sequence",
+      "Image verification policies (cosign) add significant latency to pod creation — each image must be verified against a transparency log; budget 1-5 seconds of additional pod creation time",
+      "Generate policies (resource generation) are eventually consistent — generated resources (like NetworkPolicies for new namespaces) may not exist immediately after namespace creation",
+      "Kyverno's background scanning for existing resources (audit mode) runs periodically — violations for pre-existing non-compliant resources appear in PolicyReports only after background scan completes",
+      "Agent workflows that programmatically create Kubernetes resources must handle Kyverno admission rejections (400/422 errors) — implement retry with exponential backoff and log violation reasons for debugging",
+      "Policy testing with `kyverno test` requires test YAML files — agent CI pipelines validating Kyverno policies must maintain separate test resource fixtures alongside policy definitions"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 80,
+    "auth_complexity_score": 88,
+    "rate_limit_clarity_score": 85
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 88,
+    "scope_granularity": 88,
+    "dependency_hygiene": 88,
+    "secret_handling": 85,
+    "security_notes": "Apache 2.0 CNCF graduated with strong security posture. Kubernetes RBAC controls all policy management. Cosign image verification for supply chain security. Admission control enforces security at deployment time. Regular security audits as CNCF graduated project. No network API — Kubernetes admission webhook only."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 82,
+    "version_stability": 85,
+    "breaking_changes_history": 80,
+    "error_recovery": 82
+  }
+}

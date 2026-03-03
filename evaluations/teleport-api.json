@@ -1,0 +1,107 @@
+{
+  "id": "teleport-api",
+  "name": "Teleport",
+  "version_evaluated": "15+",
+  "homepage": "https://goteleport.com/",
+  "repo_url": "https://github.com/gravitational/teleport",
+  "category": "security",
+  "subcategories": ["zero-trust", "infrastructure-access", "ssh", "kubernetes", "database-access"],
+  "tags": ["zero-trust", "ssh", "kubernetes", "database", "infrastructure-access", "privileged-access", "pam", "open-source"],
+  "what_it_does": "Infrastructure access platform providing zero-trust privileged access management (PAM) for SSH, Kubernetes, databases, Windows desktops, and web applications. Teleport replaces VPN + bastion hosts with certificate-based, identity-verified access that is fully audited. REST API and tctl CLI enable programmatic access management — creating users, tokens, roles, and audit log queries. Widely used for agent access to infrastructure without long-lived credentials.",
+  "use_cases": [
+    "Provide agents secure, time-limited access to production infrastructure (SSH, K8s, databases) without storing long-lived SSH keys or database passwords",
+    "Audit all agent infrastructure access via Teleport's session recordings and audit logs — every command executed by agents is captured and queryable via REST API",
+    "Issue short-lived certificates for agent machine identity via Teleport's machine ID (bot) feature — agents get ephemeral, role-limited credentials automatically rotated",
+    "Implement just-in-time access for agents to sensitive systems via Teleport's access request workflow — agents request elevated access, humans approve, access expires automatically",
+    "Manage Kubernetes RBAC for agent workloads via Teleport's K8s integration — agents access cluster resources with Teleport-issued, short-lived kubeconfig credentials"
+  ],
+  "not_for": [
+    "Application-layer user authentication — Teleport is for infrastructure access (SSH, K8s, DBs), not web application SSO; use Okta, Auth0, or Casdoor for app auth",
+    "Small teams with simple SSH needs — Teleport's operational complexity is significant; simple SSH with key management may suffice for small teams",
+    "Non-technical users — Teleport's value is infrastructure access; non-engineers don't interact with SSH or databases in ways Teleport manages"
+  ],
+  "best_when": "You need audited, zero-trust access to infrastructure for both humans and automated agents, replacing VPN + bastion hosts + static SSH keys.",
+  "avoid_when": "You need application SSO or user authentication — Teleport solves infrastructure access, not end-user authentication.",
+  "alternatives": ["pomerium-api", "boundary-api", "strongdm-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": true,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["go", "python"],
+    "openapi_spec_url": "https://goteleport.com/docs/api/",
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["bearer_token", "oauth2", "x509"],
+    "oauth": true,
+    "scopes": true,
+    "notes": "Teleport uses short-lived X.509 certificates for all access. Users authenticate via SSO (OIDC/SAML) and receive time-limited certificates. Machine ID (bots) use join tokens and certificate renewal. API uses bearer tokens issued by tctl. RBAC with role inheritance."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Community: free, up to 5 nodes, basic features. Teleport Team: free up to 25 users on Teleport Cloud.",
+    "paid_tiers": "Teleport Cloud from $12/user/month; Enterprise custom pricing for self-hosted",
+    "requires_credit_card": false,
+    "notes": "Apache 2.0 open source. Community edition has node limits but is fully functional. Teleport Cloud adds managed infrastructure. Enterprise adds Access Requests workflow, Access Monitoring, and compliance features. Widely used at scale."
+  },
+  "performance": {
+    "latency_p50_ms": 50,
+    "latency_p99_ms": 500,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "API rate limits documented per endpoint. Self-hosted: configurable.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted", "US", "EU"],
+    "compliance": ["SOC2", "FedRAMP", "ISO27001"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 80,
+    "error_message_notes": "REST and gRPC APIs return structured errors with codes. Certificate errors include expiry and permission context. Audit log API returns structured JSON events. tctl CLI provides human-readable feedback. Machine ID errors include renewal failure context.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "User and role creation is idempotent with stable names. Certificate issuance creates new certificates each time (by design — ephemeral). Access request creation is idempotent per request ID. Agents should check for existing resources before creating.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Machine ID (tbot) for agent access requires the bot to be running continuously for certificate renewal — if tbot stops, agent certificates expire and access fails; ensure tbot process lifecycle management",
+      "Short-lived certificates (default 12 hours) mean agent systems must handle re-authentication — build credential refresh into agent infrastructure rather than assuming long-lived credentials",
+      "Teleport's audit events API has specific event types and JSON schemas that differ between versions — pin Teleport version when building audit log parsers to avoid schema breakage",
+      "Node registration (adding servers to Teleport) requires bidirectional network connectivity to the Teleport proxy — agents in private networks must configure reverse tunnels for proxy connectivity",
+      "Role condition expressions use Teleport-specific predicate syntax — LLM-generated role conditions may have syntax errors; always validate with `tctl auth sign` before deployment",
+      "Database access through Teleport requires a Teleport database agent running alongside the database — additional infrastructure component that must be deployed and maintained",
+      "Teleport's Community edition node limit (5 free nodes) may force upgrades sooner than expected for agent-heavy deployments; plan for licensing costs when scaling"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 80,
+    "auth_complexity_score": 72,
+    "rate_limit_clarity_score": 75
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 95,
+    "scope_granularity": 90,
+    "dependency_hygiene": 88,
+    "secret_handling": 92,
+    "security_notes": "SOC2 Type II, FedRAMP, ISO 27001. Certificate-based auth eliminates long-lived passwords/keys. Full session recording for compliance. Hardware key support (YubiKey). Role-based access with fine-grained conditions. Open source for auditability. No standing access — all access time-limited."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 85,
+    "breaking_changes_history": 80,
+    "error_recovery": 85
+  }
+}

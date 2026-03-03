@@ -1,0 +1,107 @@
+{
+  "id": "bullmq-api",
+  "name": "BullMQ",
+  "version_evaluated": "5.x",
+  "homepage": "https://docs.bullmq.io/",
+  "repo_url": "https://github.com/taskforcesh/bullmq",
+  "category": "developer-tools",
+  "subcategories": ["background-jobs", "message-queue", "task-queue", "nodejs"],
+  "tags": ["queue", "background-jobs", "redis", "node.js", "typescript", "workers", "scheduling", "priority"],
+  "what_it_does": "Battle-tested Node.js/TypeScript background job and message queue library backed by Redis. BullMQ provides reliable job processing with priority queues, rate limiting, concurrency control, job delays, repeatable jobs (cron), and comprehensive job lifecycle events. Used in production by thousands of Node.js applications. The de facto standard background job library for the Node.js ecosystem — successor to Bull with TypeScript-first design and improved architecture.",
+  "use_cases": [
+    "Process AI agent tasks as background jobs with priority queues — high-priority agent requests jump the queue while batch processing waits behind them",
+    "Rate-limit outbound API calls from Node.js agents using BullMQ's built-in rate limiter — never exceed provider rate limits even under high concurrency",
+    "Implement delayed retries for failed agent operations with exponential backoff using BullMQ's built-in retry and backoff configuration",
+    "Schedule recurring agent tasks (report generation, data sync, maintenance) using BullMQ's repeatable jobs with cron expression support",
+    "Build multi-stage agent processing pipelines with BullMQ Flows — parent/child job dependencies with automatic parent completion when all children succeed"
+  ],
+  "not_for": [
+    "Non-Node.js environments — BullMQ is TypeScript/JavaScript only; use Celery (Python), Sidekiq (Ruby), or Faktory (language-agnostic) for other stacks",
+    "Durable multi-step workflow orchestration with checkpointing — BullMQ handles job queuing, not complex stateful workflows; use Temporal or Hatchet for complex agent orchestration",
+    "High-throughput event streaming — BullMQ uses Redis for persistence which has throughput limits; use Kafka for millions of events/second"
+  ],
+  "best_when": "You're building a Node.js/TypeScript application that needs reliable background job processing with priority queues, rate limiting, and scheduling — and Redis is already in your stack.",
+  "avoid_when": "You need language-agnostic job processing, complex workflow orchestration, or are not using Node.js.",
+  "alternatives": ["hatchet-api", "inngest-api", "temporal-api", "celery-api", "trigger-dev-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["node"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No authentication in BullMQ itself — auth is at the Redis connection level. Use Redis AUTH or TLS for secured Redis connections. BullMQ queues are identified by name within a Redis instance. Namespace queues with prefixes for multi-tenant separation."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "MIT open source — completely free. Taskforce.sh (hosted BullMQ dashboard) has paid plans.",
+    "paid_tiers": "Taskforce.sh dashboard from $19/month. BullMQ Pro (additional features) from $79/month per project.",
+    "requires_credit_card": false,
+    "notes": "BullMQ core library is MIT open source and completely free. Primary cost is Redis hosting. BullMQ Pro adds advanced features (rate limiter improvements, job deduplication). Taskforce.sh provides hosted monitoring dashboard."
+  },
+  "performance": {
+    "latency_p50_ms": 5,
+    "latency_p99_ms": 50,
+    "uptime_sla_percent": null,
+    "rate_limits": "Performance limited by Redis throughput. BullMQ handles thousands of jobs/second on a single Redis instance.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 88,
+    "error_message_quality": 82,
+    "error_message_notes": "Job failures capture error messages and stack traces stored in Redis. Worker process errors surface via error events. Job state transitions (waiting, active, completed, failed, delayed) are well-documented. Comprehensive event system for monitoring.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "BullMQ Pro adds job deduplication via custom IDs. Core BullMQ does not deduplicate — adding the same job twice creates two jobs. Agents must implement deduplication logic or use BullMQ Pro's deduplication feature with stable job IDs.",
+    "pagination_style": "page_number",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "BullMQ requires Redis — Redis must be available and properly sized for queue volume; Redis memory exhaustion causes job loss; configure Redis maxmemory-policy appropriately",
+      "Worker processes must be running to process jobs — if no workers are active, jobs queue in Redis but nothing executes; agent deployments must ensure worker processes stay alive",
+      "Stalled jobs (worker crashed mid-execution) require stalledInterval configuration for automatic recovery — default stalled check interval may be too slow for time-sensitive agent jobs",
+      "Job concurrency is per-worker instance — multiple worker instances multiply effective concurrency; agents running multiple containers must plan total concurrency across all instances",
+      "BullMQ Flows (parent/child) require all child jobs to complete before parent completes — partial child failures require careful error handling to prevent parent jobs from waiting forever",
+      "Job data is serialized to JSON and stored in Redis — large payloads (binary data, large embeddings) should be stored externally with only references in job data to avoid Redis memory pressure",
+      "Rate limiter in BullMQ core has limitations; BullMQ Pro's rate limiter is more robust for production agent rate limiting — evaluate whether pro features are needed before building rate-limiting logic on core"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 88,
+    "error_handling_score": 82,
+    "auth_complexity_score": 92,
+    "rate_limit_clarity_score": 85
+  },
+  "security_score_components": {
+    "tls_enforcement": 90,
+    "auth_strength": 75,
+    "scope_granularity": 65,
+    "dependency_hygiene": 85,
+    "secret_handling": 80,
+    "security_notes": "Security entirely dependent on Redis deployment security. TLS and AUTH on Redis connection. Job data in Redis is at-rest in Redis security boundary. MIT source available for audit. No network API surface to attack. Redis AUTH is the primary security control."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 80,
+    "version_stability": 85,
+    "breaking_changes_history": 82,
+    "error_recovery": 85
+  }
+}

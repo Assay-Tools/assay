@@ -1,0 +1,107 @@
+{
+  "id": "apache-hudi-api",
+  "name": "Apache Hudi",
+  "version_evaluated": "0.14+",
+  "homepage": "https://hudi.apache.org/",
+  "repo_url": "https://github.com/apache/hudi",
+  "category": "data-engineering",
+  "subcategories": ["data-lakehouse", "streaming", "batch-processing", "storage"],
+  "tags": ["lakehouse", "streaming", "upserts", "incremental", "s3", "open-source", "apache", "spark", "flink"],
+  "what_it_does": "Open-source data lakehouse table format providing ACID transactions, record-level updates/deletes, and incremental processing on cloud object stores (S3, GCS, Azure). Hudi enables streaming upserts, efficient incremental queries ('give me records changed since timestamp X'), and time-travel on data lakes built on Spark, Flink, or Presto. Originated at Uber for streaming CDC to data lakes at scale. Competes directly with Delta Lake and Apache Iceberg.",
+  "use_cases": [
+    "Stream CDC events (database changes) into a data lake with record-level upserts without full table rewrites — key use case originated at Uber",
+    "Build incremental processing pipelines where agents query only data changed since last run using Hudi's incremental pull API",
+    "Implement GDPR right-to-be-forgotten by deleting specific records from immutable object store tables via Hudi's delete support",
+    "Create near-real-time analytics tables updated via micro-batch streaming with compaction managing read performance",
+    "Time-travel queries for debugging or auditing by reading Hudi tables at specific timestamps or commits"
+  ],
+  "not_for": [
+    "Teams not using Spark or Flink — Hudi requires one of these engines for writes; Delta Lake or Iceberg may have broader engine support",
+    "Transactional OLTP workloads — Hudi is optimized for batch and micro-batch, not low-latency single-row transactions",
+    "Small datasets — Hudi's benefits (compaction, indexing) have overhead that only pays off at scale (millions+ rows)"
+  ],
+  "best_when": "You need to stream CDC data or upserts into a data lake at scale with incremental processing, and you're already running Spark or Flink.",
+  "avoid_when": "You need broad SQL engine compatibility (DuckDB, Trino, Spark, Flink all reading natively) — Apache Iceberg has better multi-engine ecosystem support.",
+  "alternatives": ["delta-lake-api", "apache-iceberg-api", "apache-flink-api", "databricks-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["java", "scala", "python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Hudi is a library/table format — no auth of its own. Access control is inherited from the underlying storage (S3 bucket policies, HDFS permissions, GCS IAM) and the compute engine (Spark, Flink, Presto). Enterprise managed services (Amazon EMR, Cloudera) add their own auth layers."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Fully free — Apache 2.0. You pay only for cloud storage and compute.",
+    "paid_tiers": "No paid Hudi version. Commercial support available via vendors (Onehouse.ai, Cloudera). AWS/GCP/Azure offer managed Spark clusters that can use Hudi.",
+    "requires_credit_card": false,
+    "notes": "Apache 2.0 licensed. Onehouse.ai offers a managed lakehouse service based on Hudi with paid tiers. Core Hudi is always free."
+  },
+  "performance": {
+    "latency_p50_ms": 5000,
+    "latency_p99_ms": 60000,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — governed by your Spark/Flink cluster capacity and cloud storage throughput.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted", "any-cloud"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 75,
+    "error_message_quality": 65,
+    "error_message_notes": "Hudi errors surface through Spark/Flink executor logs — not user-friendly JSON. Common errors (schema evolution conflicts, commit timeline issues) require knowledge of Hudi internals. Error messages are verbose and include Java stack traces.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Hudi commits are atomic and support exactly-once semantics with Spark structured streaming. Re-running a Spark job with the same Hudi commit configuration is idempotent. Manual replay without proper commit configuration can cause duplicates.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Hudi has two table types (Copy-on-Write and Merge-on-Read) with different read/write performance tradeoffs — choosing wrong type for workload significantly impacts performance",
+      "Schema evolution in Hudi has limitations — not all schema changes are supported without full table rewrite; column deletion can break existing readers",
+      "Compaction is required for MOR tables to maintain read performance — agents must schedule or trigger compaction to prevent small file proliferation",
+      "Hudi's timeline (commits, compactions, rollbacks) must not be corrupted — manual file deletion from object store can corrupt the timeline irreparably",
+      "The Python API (hudi-py) is less mature than Java/Scala — some features are only available via PySpark or native Spark API",
+      "Concurrent writes from multiple Spark jobs require optimistic concurrency control — OCC conflicts cause job failures that must be retried",
+      "Incremental queries require knowing the last commit timestamp — agents must maintain this state to avoid reprocessing or missing data"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 72,
+    "error_handling_score": 62,
+    "auth_complexity_score": 100,
+    "rate_limit_clarity_score": 100
+  },
+  "security_score_components": {
+    "tls_enforcement": 88,
+    "auth_strength": 80,
+    "scope_granularity": 78,
+    "dependency_hygiene": 85,
+    "secret_handling": 82,
+    "security_notes": "Apache 2.0, open source. Security delegated to cloud storage IAM and compute cluster auth. Apache Software Foundation governance provides supply chain assurance. No built-in encryption — use cloud storage encryption at rest."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 82,
+    "version_stability": 75,
+    "breaking_changes_history": 70,
+    "error_recovery": 78
+  }
+}

@@ -1,0 +1,107 @@
+{
+  "id": "nango-api",
+  "name": "Nango",
+  "version_evaluated": "current (SaaS)",
+  "homepage": "https://www.nango.dev/",
+  "repo_url": "https://github.com/NangoHQ/nango",
+  "category": "developer-tools",
+  "subcategories": ["integrations", "oauth", "api-management", "developer-tools"],
+  "tags": ["oauth", "integrations", "api-connectors", "token-management", "open-source", "saas", "product-integrations"],
+  "what_it_does": "Open-source platform for building native product integrations with 250+ pre-built API connectors. Nango handles OAuth flows, token refresh, credential storage, and provides a unified interface to call any connected API. Designed for SaaS products that need to integrate with user-authorized third-party APIs (Salesforce, HubSpot, Slack, GitHub, etc.) without managing OAuth complexity per provider. Unlike Fivetran/Airbyte (ETL focus), Nango enables real-time API interactions on behalf of users.",
+  "use_cases": [
+    "Enable AI agents to act on behalf of users in third-party services (send Slack messages, create GitHub issues, update CRM records) using stored OAuth tokens managed by Nango",
+    "Build product integrations where users connect their own accounts (Salesforce, HubSpot, Gmail) and agents operate with those credentials via Nango's proxy API",
+    "Eliminate OAuth implementation complexity for 250+ APIs — Nango handles token refresh, rotation, and storage so agents always have valid credentials",
+    "Sync data from external APIs (Salesforce contacts, GitHub repos, Notion pages) into your application using Nango's sync framework with incremental fetching",
+    "Implement multi-tenant credential management for SaaS products where each customer connects their own third-party accounts and agents need per-customer API access"
+  ],
+  "not_for": [
+    "Internal service-to-service authentication — Nango is designed for user-delegated OAuth, not machine-to-machine auth; use service accounts for internal API calls",
+    "High-frequency, high-volume data pipelines — Nango enables real-time API interactions, not bulk ETL; use Airbyte or Fivetran for large-scale data warehouse ingestion",
+    "Custom API integrations requiring complex transformation logic — Nango handles credential management and proxying; business logic lives in your application"
+  ],
+  "best_when": "You're building a SaaS product where users connect their own third-party accounts and you need agents to operate those accounts on their behalf without building OAuth per provider.",
+  "avoid_when": "You need ETL/data pipeline integrations (use Airbyte) or service-to-service auth (use service accounts directly). Nango solves user-delegated OAuth, not all integration needs.",
+  "alternatives": ["airbyte-api", "merge-dev-api", "hotglue-api", "apideck-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["node", "python"],
+    "openapi_spec_url": "https://docs.nango.dev/reference/overview",
+    "webhooks": true
+  },
+  "auth": {
+    "methods": ["api_key", "bearer_token"],
+    "oauth": true,
+    "scopes": true,
+    "notes": "Nango uses API keys for server-side API calls and secret keys for backend-to-backend communication. Frontend OAuth connections use public keys. Connection tokens are scoped to specific integrations and users. Nango stores encrypted OAuth tokens; your application receives connection IDs."
+  },
+  "pricing": {
+    "model": "tiered",
+    "free_tier_exists": true,
+    "free_tier_limits": "Free: 3 integrations, 2 connections, limited API calls",
+    "paid_tiers": "Starter from $250/month; Scale from $750/month; Enterprise custom",
+    "requires_credit_card": false,
+    "notes": "Open source (MIT) self-hostable. Cloud pricing based on number of active connections and integrations. Pricing can scale significantly for large user bases with many connected accounts. Self-hosting is viable for cost control."
+  },
+  "performance": {
+    "latency_p50_ms": 200,
+    "latency_p99_ms": 2000,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "Nango proxy passes through target API rate limits. Nango itself has per-plan API call rate limits.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["US", "EU"],
+    "compliance": ["SOC2"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 80,
+    "error_message_notes": "REST API returns structured JSON errors. Proxy errors include target API error context. Webhook events for connection status changes (token expiry, refresh failures). Good error documentation with provider-specific notes.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Connection management operations use stable connection IDs. Proxy calls to external APIs inherit the target API's idempotency properties. Connection creation is idempotent with same connection ID. Agents can safely retry connection lookups.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Nango proxies API calls to third-party services — rate limits and errors from target APIs surface through Nango; agents must handle provider-specific rate limits, not just Nango limits",
+      "OAuth token refresh is automatic but can fail — agents should handle Nango webhook events for token_expired and token_refresh_failed to surface connection issues to users",
+      "Provider OAuth scopes must be configured in Nango before connection — agents requesting actions requiring ungranted scopes will fail; scope management requires re-authorization by user",
+      "Nango connection IDs are per-user — multi-tenant agents must correctly associate connection IDs with requesting users; using wrong connection ID accesses wrong user's account",
+      "Self-hosted Nango requires PostgreSQL + Redis + Node.js — more infrastructure than calling APIs directly; only worthwhile when managing 10+ integrations or 100+ connections",
+      "Nango's sync framework (for data fetching) and proxy (for real-time API calls) are distinct patterns with different setup requirements — don't confuse them in agent architecture",
+      "Some provider OAuth implementations have quirks that Nango handles internally — but provider API changes may temporarily break integrations; monitor Nango's status page for provider-specific issues"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 80,
+    "auth_complexity_score": 85,
+    "rate_limit_clarity_score": 78
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 85,
+    "scope_granularity": 82,
+    "dependency_hygiene": 82,
+    "secret_handling": 88,
+    "security_notes": "SOC2 Type II. OAuth tokens encrypted at rest in Nango's database. Frontend key / backend secret key separation prevents credential exposure. Connection IDs are non-sensitive references. Open source for auditability. EU data residency available."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 82,
+    "version_stability": 80,
+    "breaking_changes_history": 78,
+    "error_recovery": 80
+  }
+}

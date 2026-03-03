@@ -1,0 +1,107 @@
+{
+  "id": "aserto-api",
+  "name": "Aserto",
+  "version_evaluated": "current (SaaS)",
+  "homepage": "https://www.aserto.com/",
+  "repo_url": "https://github.com/aserto-dev",
+  "category": "security",
+  "subcategories": ["authorization", "access-control", "policy-as-code", "developer-tools"],
+  "tags": ["authorization", "rbac", "abac", "policy", "open-policy-agent", "rego", "fine-grained", "cloud-native"],
+  "what_it_does": "Cloud-native fine-grained authorization service for applications and APIs. Aserto provides a hosted Open Policy Agent (OPA) service with user/group management, role-based access control (RBAC), and relationship-based access control (ReBAC / Google Zanzibar model). Decision logs, policy versioning, and middleware SDKs for Express, FastAPI, Rails, and more. Agents call Aserto's authorization API to answer 'can user X perform action Y on resource Z?' without building custom authorization logic.",
+  "use_cases": [
+    "Check authorization decisions in agent-driven APIs — 'can this user's agent access this resource?' answered in <5ms via Aserto's local sidecar or hosted cloud API",
+    "Implement fine-grained RBAC and ReBAC for multi-tenant agent applications — roles, permissions, and relationship-based policies managed via Aserto API",
+    "Centralize authorization policy across multiple agent microservices — single Aserto policy enforced consistently across Python, Node.js, and Go services",
+    "Audit authorization decisions from agent systems via Aserto's decision log API — full audit trail of who accessed what, when, and with what result",
+    "Implement ABAC (attribute-based) authorization for agents using Rego policy language — policies can consider resource attributes, user properties, and context from external data sources"
+  ],
+  "not_for": [
+    "Authentication — Aserto is authorization-only; pair with an OIDC provider (Auth0, Clerk, Casdoor) for user authentication",
+    "Simple role-based apps with 3-5 roles — basic RBAC can be implemented without Aserto; the value is in complex, fine-grained, multi-tenant authorization",
+    "Teams unfamiliar with OPA/Rego — Rego policy language has a learning curve; simpler tools (Cerbos, Casbin) may be more approachable for basic use cases"
+  ],
+  "best_when": "You need fine-grained, centralized authorization for multi-tenant agent applications with complex permission models that go beyond simple role checks.",
+  "avoid_when": "You have simple authorization needs — three roles, clear rules — that don't justify a separate authorization service.",
+  "alternatives": ["cerbos-api", "open-policy-agent-api", "permit-io-api", "openfga-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": true,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["go", "python", "node", "ruby", "java"],
+    "openapi_spec_url": "https://aserto.com/docs/api",
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["api_key", "bearer_token"],
+    "oauth": true,
+    "scopes": true,
+    "notes": "Aserto uses API keys for service-to-service calls and OIDC bearer tokens for management console. Policy bundle push uses API keys. Authorizer (decision) API uses API keys. Keys scoped to tenant."
+  },
+  "pricing": {
+    "model": "tiered",
+    "free_tier_exists": true,
+    "free_tier_limits": "Free: 3 policies, limited users, 100K decisions/month",
+    "paid_tiers": "Pro from $100/month; Enterprise custom pricing",
+    "requires_credit_card": false,
+    "notes": "Free tier is meaningful for development and small applications. Pro scales to larger decision volumes. Enterprise adds dedicated infrastructure and SLA. Open source authorizer (Topaz) available for self-hosting."
+  },
+  "performance": {
+    "latency_p50_ms": 5,
+    "latency_p99_ms": 50,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "Decision rate limits by plan. Local sidecar (no network hop) achieves sub-millisecond latency.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["US", "EU"],
+    "compliance": ["SOC2"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 83,
+    "error_message_quality": 80,
+    "error_message_notes": "Authorization decisions return structured JSON (allowed: true/false) with optional reason codes. Policy errors include Rego evaluation context. gRPC error codes for decision service failures. REST API has standard HTTP error responses.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Authorization decisions are pure reads — fully idempotent. Same input always produces same output given same policy. Decision logs are append-only. Policy management operations vary; creating the same policy twice errors gracefully.",
+    "pagination_style": "page_number",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Aserto authorization decisions are synchronous and fast but require the Aserto service to be reachable — add circuit breakers to prevent authorization failures from cascading into full service outages",
+      "Policy changes take time to propagate to all authorizer instances — there's a replication lag between pushing a new policy and all decision points reflecting the change; test for eventual consistency in agent workflows",
+      "Rego policy language requires learning — LLM-generated Rego may have logical errors that compile successfully but produce wrong authorization decisions; always test policy changes with assertions",
+      "Directory (user/group/relation) data must be synced to Aserto from your identity provider — authorization decisions are only as current as your directory sync; stale data causes wrong decisions",
+      "Local sidecar deployment achieves sub-millisecond authorization but requires managing a sidecar process per service — evaluate whether cloud API or sidecar better fits your agent deployment architecture",
+      "Decision logs in Aserto capture every authorization check — high-volume agents may generate significant log volume; configure log retention and sampling for cost control",
+      "The distinction between Aserto cloud and Topaz (open source self-hosted) is important — Aserto cloud manages policy distribution and directory; Topaz is self-managed with additional operational overhead"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 83,
+    "error_handling_score": 80,
+    "auth_complexity_score": 82,
+    "rate_limit_clarity_score": 78
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 85,
+    "scope_granularity": 85,
+    "dependency_hygiene": 82,
+    "secret_handling": 85,
+    "security_notes": "SOC2 Type II. Authorization as a dedicated service improves security posture vs embedded authorization. Decision audit logs for compliance. Policy-as-code with version control. TLS for all communications. OPA-based evaluation is well-audited and widely deployed."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 82,
+    "version_stability": 80,
+    "breaking_changes_history": 78,
+    "error_recovery": 82
+  }
+}

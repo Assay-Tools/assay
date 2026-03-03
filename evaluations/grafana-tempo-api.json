@@ -1,0 +1,107 @@
+{
+  "id": "grafana-tempo-api",
+  "name": "Grafana Tempo",
+  "version_evaluated": "2.x",
+  "homepage": "https://grafana.com/oss/tempo/",
+  "repo_url": "https://github.com/grafana/tempo",
+  "category": "developer-tools",
+  "subcategories": ["observability", "distributed-tracing", "monitoring", "opentelemetry"],
+  "tags": ["tracing", "observability", "opentelemetry", "jaeger", "grafana", "open-source", "object-storage"],
+  "what_it_does": "High-scale, cost-efficient distributed tracing backend from Grafana Labs. Tempo stores traces directly in object storage (S3, GCS, Azure Blob) with no indexing — making it dramatically cheaper than Jaeger or Zipkin for high-volume trace storage. Integrates natively with Grafana for trace visualization and supports trace-to-log and trace-to-metric correlation. Accepts OTLP, Jaeger, Zipkin, and OpenCensus trace formats. Designed as the tracing component of the Grafana LGTM stack (Loki + Grafana + Tempo + Mimir).",
+  "use_cases": [
+    "Store distributed traces from OpenTelemetry-instrumented services at low cost using object storage with no indexing overhead",
+    "Correlate traces with logs (Loki) and metrics (Mimir/Prometheus) in Grafana for unified observability without multiple backends",
+    "Query traces by trace ID or span attributes via TraceQL for debugging agent distributed workflows",
+    "Ingest traces from multiple sources (OTLP, Jaeger, Zipkin) into a single scalable backend",
+    "Set up a complete self-hosted observability stack for agent infrastructure monitoring using the LGTM stack"
+  ],
+  "not_for": [
+    "Teams needing search-heavy trace analytics — Tempo's design prioritizes storage cost over query flexibility; Jaeger or Honeycomb offer richer search",
+    "Application Performance Monitoring (APM) with automatic instrumentation — use Elastic APM or Datadog APM for full APM capabilities",
+    "Small-scale deployments where object storage overhead isn't justified — Jaeger all-in-one is simpler for dev/test"
+  ],
+  "best_when": "You're running Grafana for metrics/logs and want affordable high-volume trace storage using object storage, with native Grafana trace visualization and correlation.",
+  "avoid_when": "You need rich trace search and analytics with complex filters — Honeycomb or Jaeger with Elasticsearch backend offer better search capabilities.",
+  "alternatives": ["jaeger-api", "zipkin-api", "honeycomb-api", "opentelemetry-api", "signoz-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": true,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": false,
+    "sdk_languages": [],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["bearer_token", "username_password"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Tempo open source: no built-in auth — use reverse proxy. Grafana Cloud Tempo: uses Grafana Cloud auth (API keys or OAuth). Multi-tenancy via X-Scope-OrgID header for organizational isolation."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Fully free (Apache 2.0). Grafana Cloud: free tier with limited trace volume.",
+    "paid_tiers": "Grafana Cloud: usage-based pricing for traces (per GB ingested). Self-hosted: free — only pay for object storage.",
+    "requires_credit_card": false,
+    "notes": "Apache 2.0 open source. Self-hosted with S3 storage is extremely cost-efficient — storage at $0.023/GB vs $0.10-0.50/GB for managed tracing services. Grafana Cloud offers a managed option."
+  },
+  "performance": {
+    "latency_p50_ms": 200,
+    "latency_p99_ms": 2000,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "No rate limits — self-hosted. Object store throughput limits apply for large trace ingestion.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted", "US", "EU"],
+    "compliance": ["SOC2"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 82,
+    "error_message_quality": 75,
+    "error_message_notes": "REST API returns JSON for trace queries. TraceQL query errors include position information. OTLP gRPC export errors use standard gRPC status codes. Tempo query errors are descriptive in Grafana UI.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Trace queries are read-only and idempotent. Trace writes are append-only — re-sending the same trace ID overwrites the stored trace. Object storage provides durability.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Tempo's primary query interface is by trace ID — searching by service name or time range requires TraceQL or Tempo Search API (which has resource overhead)",
+      "No auth by default in self-hosted — must deploy behind auth proxy or use Grafana's built-in auth for Grafana Cloud",
+      "Object storage consistency models vary — GCS/Azure may have eventual consistency for newly written traces; allow 1-5 seconds before querying recent traces",
+      "Tempo requires sufficient local disk for WAL (write-ahead log) and block cache — undersized disks cause ingestion failures",
+      "TraceQL is powerful but different from SQL — agents querying traces must learn Tempo's specific query syntax",
+      "Tempo compactor runs periodically — fragmented blocks accumulate until compaction; configure compaction schedule for storage efficiency",
+      "Multi-tenant isolation requires X-Scope-OrgID header — missing header routes to 'anonymous' tenant in multi-tenant mode"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 82,
+    "error_handling_score": 75,
+    "auth_complexity_score": 85,
+    "rate_limit_clarity_score": 90
+  },
+  "security_score_components": {
+    "tls_enforcement": 90,
+    "auth_strength": 72,
+    "scope_granularity": 70,
+    "dependency_hygiene": 85,
+    "secret_handling": 82,
+    "security_notes": "Apache 2.0, Grafana Labs. No built-in auth is a risk — mitigated by reverse proxy. OTLP traces may contain sensitive request data — ensure TLS for ingestion. Multi-tenancy via header-based org isolation. SOC2 for Grafana Cloud."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 80,
+    "version_stability": 80,
+    "breaking_changes_history": 78,
+    "error_recovery": 82
+  }
+}

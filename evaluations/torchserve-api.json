@@ -1,0 +1,107 @@
+{
+  "id": "torchserve-api",
+  "name": "TorchServe",
+  "version_evaluated": "0.9+",
+  "homepage": "https://pytorch.org/serve/",
+  "repo_url": "https://github.com/pytorch/serve",
+  "category": "ai-ml",
+  "subcategories": ["model-serving", "inference", "pytorch", "mlops"],
+  "tags": ["pytorch", "model-serving", "inference", "rest", "grpc", "open-source", "aws", "facebook"],
+  "what_it_does": "Production-grade model serving framework for PyTorch models developed by AWS and Meta/Facebook. TorchServe provides REST and gRPC APIs for serving PyTorch models with features including multi-model serving, model versioning, A/B testing, batch inference, metrics, and dynamic model loading/unloading without server restarts. Acts as the reference serving solution for the PyTorch ecosystem — used when you have PyTorch models and need a production inference server without building one from scratch.",
+  "use_cases": [
+    "Serve PyTorch models via REST API with built-in batching, versioning, and health endpoints — standard inference endpoint for agent model calls",
+    "Deploy multiple PyTorch models on a single TorchServe instance with separate endpoints and per-model resource allocation",
+    "Implement A/B testing between model versions using TorchServe's version routing without changing agent code",
+    "Process high-throughput batch inference with configurable batch size and timeout for embedding generation or classification",
+    "Monitor model performance with built-in metrics (prediction latency, queue length, error rate) exported to Prometheus/CloudWatch"
+  ],
+  "not_for": [
+    "Non-PyTorch models — TorchServe is PyTorch-specific; use NVIDIA Triton for multi-framework serving (TensorFlow, ONNX, TensorRT)",
+    "Simple inference APIs — for small models or prototyping, FastAPI with torch.load is simpler",
+    "LLM serving at scale — vLLM, TGI, or NVIDIA Triton with TensorRT-LLM are optimized for LLM continuous batching"
+  ],
+  "best_when": "You have PyTorch models that need production serving with multi-model support, versioning, and batching, and want a framework that integrates natively with the PyTorch/AWS ecosystem.",
+  "avoid_when": "You're serving LLMs or need multi-framework support — specialized LLM servers (vLLM, TGI) or NVIDIA Triton are better choices.",
+  "alternatives": ["nvidia-triton-api", "ray-serve-api", "bentoml-api", "vllm-api", "seldon-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": true,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": false,
+    "sdk_languages": [],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none", "api_key"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No built-in auth — TorchServe is designed to run behind an API gateway or load balancer that handles auth. Management API (model loading/unloading) runs on separate port (8081) and should be network-restricted. Token auth available as plugin in newer versions."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Fully free — Apache 2.0 licensed",
+    "paid_tiers": "None. AWS offers managed PyTorch serving via SageMaker which uses TorchServe internally.",
+    "requires_credit_card": false,
+    "notes": "Apache 2.0 licensed. AWS SageMaker Real-Time Inference uses TorchServe under the hood. Core TorchServe is always free."
+  },
+  "performance": {
+    "latency_p50_ms": 20,
+    "latency_p99_ms": 200,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — governed by GPU/CPU capacity and configured batch sizes.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 78,
+    "error_message_quality": 72,
+    "error_message_notes": "REST API returns standard JSON errors. Model handler exceptions surface in TorchServe logs and as 500 errors with handler traceback. Inference error responses include error type and message.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Inference endpoints are idempotent — same input produces same output. Model registration via Management API is idempotent. Model loading is asynchronous — poll /models/{name} for status.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "TorchServe has two separate APIs: Inference API (port 8080) and Management API (port 8081) — agents making model management calls must target the correct port",
+      "Models must be packaged as .mar (Model Archive) files using torch-model-archiver before deployment — not just raw .pt files",
+      "Custom handlers must extend BaseHandler and implement initialize(), preprocess(), inference(), and postprocess() — all four methods required",
+      "Batch inference requires clients to wait for batch assembly timeout — agents must configure appropriate timeout for their use case",
+      "TorchServe default batch size is 1 — enable batching explicitly in config and handler to get throughput benefits",
+      "GPU memory is not automatically released when a model is unregistered — server restart required to fully free GPU memory in some cases",
+      "Logging configuration via log4j2.xml — agents debugging production issues need to understand log4j configuration"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 78,
+    "error_handling_score": 72,
+    "auth_complexity_score": 90,
+    "rate_limit_clarity_score": 90
+  },
+  "security_score_components": {
+    "tls_enforcement": 85,
+    "auth_strength": 65,
+    "scope_granularity": 60,
+    "dependency_hygiene": 82,
+    "secret_handling": 78,
+    "security_notes": "Apache 2.0, open source. No built-in auth is a security risk — must deploy behind API gateway. Management API on separate port — network-restrict to prevent unauthorized model loading. TLS requires reverse proxy. Minimal auth by default."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 75,
+    "version_stability": 78,
+    "breaking_changes_history": 72,
+    "error_recovery": 75
+  }
+}

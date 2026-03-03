@@ -1,0 +1,107 @@
+{
+  "id": "atlantis-api",
+  "name": "Atlantis",
+  "version_evaluated": "0.28+",
+  "homepage": "https://www.runatlantis.io/",
+  "repo_url": "https://github.com/runatlantis/atlantis",
+  "category": "developer-tools",
+  "subcategories": ["infrastructure-as-code", "ci-cd", "terraform", "gitops"],
+  "tags": ["terraform", "gitops", "pull-request", "automation", "iac", "open-source", "self-hosted"],
+  "what_it_does": "Self-hosted pull request automation server for Terraform and OpenTofu. Atlantis listens for GitHub/GitLab/Bitbucket pull request events and automatically runs terraform plan on PRs with changes, posting plan output as PR comments. Reviewers can approve and trigger terraform apply by commenting 'atlantis apply' directly on the PR. Implements GitOps for infrastructure — the PR is the source of truth for what infrastructure changes will be made.",
+  "use_cases": [
+    "Automatically run terraform plan on every PR touching Terraform files and post the plan output as a PR comment for reviewer visibility",
+    "Allow team members to approve and trigger infrastructure deployments by commenting 'atlantis apply' on reviewed PRs without direct cloud access",
+    "Implement GitOps workflow where all infrastructure changes go through PR review before being applied — auditability and change management",
+    "Lock Terraform workspaces during active deployments to prevent concurrent conflicting applies across team members",
+    "Route agent-triggered infrastructure changes through PR-based approval workflows for human-in-the-loop validation"
+  ],
+  "not_for": [
+    "Teams needing advanced RBAC, policy enforcement, or drift detection — Spacelift or env0 offer more enterprise features",
+    "Non-Terraform IaC tools (Ansible, Pulumi without Terraform backend) — Atlantis is Terraform/OpenTofu specific",
+    "Fully automated deployments without PR review — Atlantis is designed for human approval workflows"
+  ],
+  "best_when": "You want a simple, open-source GitOps workflow for Terraform where infrastructure changes require PR review and apply is triggered by PR comments, without a paid IaC platform.",
+  "avoid_when": "You need enterprise RBAC, compliance reporting, cost estimation, drift detection, or policy enforcement — use Spacelift, env0, or Terraform Cloud/Enterprise.",
+  "alternatives": ["spacelift-api", "env0-api", "opentofu-api", "terragrunt-api", "github-actions-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": false,
+    "sdk_languages": [],
+    "openapi_spec_url": null,
+    "webhooks": true
+  },
+  "auth": {
+    "methods": ["webhook_secret", "api_key"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Atlantis uses a shared webhook secret to validate incoming PR events from GitHub/GitLab/Bitbucket. API token for accessing Atlantis server directly. Authorization is based on PR authorship and repository membership — whoever can merge PRs can apply. No fine-grained RBAC in open source version."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Fully free — Apache 2.0 licensed. Self-hosted on your own infrastructure.",
+    "paid_tiers": "No paid version of Atlantis. Consider Spacelift, env0, or Terraform Cloud for managed alternatives.",
+    "requires_credit_card": false,
+    "notes": "Atlantis is Apache 2.0 licensed and free. You pay for your own hosting (small server, typically $20-50/month). No commercial offering from Atlantis maintainers."
+  },
+  "performance": {
+    "latency_p50_ms": 5000,
+    "latency_p99_ms": 30000,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — self-hosted. Concurrent plan/apply limited by configured parallelism and Terraform backend locking.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 80,
+    "error_message_quality": 72,
+    "error_message_notes": "Plan and apply output posted as PR comments — agents must parse PR comment content to verify success. HTTP API has minimal error structure. Webhook events are GitHub/GitLab native format.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Atlantis plan is idempotent. Apply is not — re-running apply on an already-applied PR is blocked by Atlantis's apply-once semantic. Must unlock workspace before re-applying.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Atlantis requires a publicly accessible webhook endpoint — agents triggering Atlantis must ensure PR events reach the Atlantis server",
+      "The primary interface is PR comments ('atlantis plan', 'atlantis apply') — there is no rich REST API for programmatic control beyond triggering via PRs",
+      "Workspace locking prevents concurrent applies — if a workspace is locked, subsequent apply attempts fail until explicitly unlocked",
+      "Atlantis requires cloud credentials mounted in the server environment — secret rotation requires server restart in some configurations",
+      "Automerge feature can automatically merge PRs after apply — agents must account for this when orchestrating multi-step PR workflows",
+      "Output is posted as PR comments — for large Terraform plans, GitHub API limits can truncate output; check for truncation in large deployments",
+      "Custom workflows (pre_workflow_hooks, post_workflow_hooks) run arbitrary commands — review server config before automating"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 75,
+    "error_handling_score": 68,
+    "auth_complexity_score": 85,
+    "rate_limit_clarity_score": 90
+  },
+  "security_score_components": {
+    "tls_enforcement": 90,
+    "auth_strength": 75,
+    "scope_granularity": 62,
+    "dependency_hygiene": 82,
+    "secret_handling": 80,
+    "security_notes": "Apache 2.0, open source. Webhook secret for integrity. Cloud credentials on server are a security consideration — compromise of Atlantis server = compromise of cloud credentials. No fine-grained RBAC in OSS version. Allowlist repositories to restrict blast radius."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 75,
+    "version_stability": 80,
+    "breaking_changes_history": 78,
+    "error_recovery": 72
+  }
+}

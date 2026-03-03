@@ -1,0 +1,107 @@
+{
+  "id": "huggingface-tgi-api",
+  "name": "HuggingFace Text Generation Inference",
+  "version_evaluated": "2.x",
+  "homepage": "https://huggingface.co/docs/text-generation-inference/",
+  "repo_url": "https://github.com/huggingface/text-generation-inference",
+  "category": "ai-ml",
+  "subcategories": ["llm-inference", "model-serving", "ai-infrastructure"],
+  "tags": ["llm", "inference", "serving", "huggingface", "transformers", "open-source", "continuous-batching", "gpu"],
+  "what_it_does": "Production-grade LLM inference server from HuggingFace. TGI provides OpenAI-compatible REST API for serving open-source LLMs (Llama, Mistral, Gemma, Falcon, etc.) with continuous batching, PagedAttention for memory efficiency, quantization (GPTQ, AWQ, EETQ), streaming tokens, and multi-GPU tensor parallelism. Powers HuggingFace's Inference Endpoints and is the reference serving solution for the HuggingFace ecosystem. Used when deploying open-source LLMs in production.",
+  "use_cases": [
+    "Serve open-source LLMs (Llama 3, Mistral, Gemma) with production-grade continuous batching and streaming for agent inference pipelines",
+    "Deploy HuggingFace Hub models directly via model ID without manual weight downloading — TGI handles model acquisition",
+    "Run quantized LLMs (4-bit GPTQ/AWQ) for cost-efficient GPU serving while maintaining output quality",
+    "Serve multiple concurrent inference requests efficiently via continuous batching — higher GPU utilization than naive sequential serving",
+    "Build OpenAI-compatible inference backends by using TGI's messages API for drop-in replacement of OpenAI API calls"
+  ],
+  "not_for": [
+    "Non-Transformer models — TGI is optimized for causal LLMs; use NVIDIA Triton for broader model support",
+    "Embedding generation at scale — TGI Embeddings is available but specialized embedding servers (TEI from HuggingFace) are better for embeddings",
+    "Teams without GPU hardware — TGI requires CUDA GPUs; CPU inference is available but extremely slow for large models"
+  ],
+  "best_when": "You're serving open-source HuggingFace Hub LLMs in production and want a battle-tested inference server with continuous batching, quantization, and OpenAI-compatible API.",
+  "avoid_when": "You need multi-model serving orchestration, non-LLM model serving, or very simple single-request inference — lighter alternatives like Ollama or LM Studio work for those cases.",
+  "alternatives": ["vllm-api", "nvidia-triton-api", "ray-serve-api", "ollama-api", "llamacpp-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["api_key", "bearer_token"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth for self-hosted TGI by default. HuggingFace Hub models requiring authentication use HUGGING_FACE_HUB_TOKEN environment variable. API key auth can be added via reverse proxy. HuggingFace Inference Endpoints uses HF API token."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Fully free (Apache 2.0). You pay for GPU hardware/cloud. HuggingFace Inference Endpoints: usage-based pricing per GPU hour.",
+    "paid_tiers": "HuggingFace Inference Endpoints: from $0.60/GPU-hour for A10G to $5+/GPU-hour for A100. No paid TGI software itself.",
+    "requires_credit_card": false,
+    "notes": "Apache 2.0 licensed. Software is free — GPU compute is the cost. HuggingFace offers managed TGI deployment via Inference Endpoints for teams that don't want to manage GPU infrastructure."
+  },
+  "performance": {
+    "latency_p50_ms": 500,
+    "latency_p99_ms": 5000,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "Self-hosted: no rate limits — governed by GPU memory and continuous batching capacity. HuggingFace Inference Endpoints: rate limits per instance.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted", "US", "EU"],
+    "compliance": ["SOC2"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 80,
+    "error_message_notes": "OpenAI-compatible API returns standard JSON errors. Streaming via SSE with error events. Model loading errors appear in server logs. HTTP status codes follow OpenAI conventions for agent compatibility.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Inference requests are stateless and idempotent. Same prompt + temperature=0 produces deterministic output. Streaming responses can be retried from the beginning.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "TGI model loading takes 5-60 minutes for large models (70B+) at server startup — agents must wait for /health endpoint to return healthy",
+      "Context window limits are strict — requests exceeding max_total_tokens fail with 422 error; agents must truncate long prompts",
+      "Continuous batching improves throughput but adds variable latency — individual request latency depends on batch composition",
+      "GPTQ/AWQ quantized models require loading quantized weights specifically — cannot load standard weights with quantization at runtime",
+      "TGI's OpenAI compatibility is not 100% — some parameters (like n=5 for multiple completions) behave differently or aren't supported",
+      "GPU OOM errors are possible for large batches — configure max_batch_prefill_tokens and max_batch_total_tokens to prevent OOM",
+      "TGI requires specific CUDA driver versions — run official Docker images to avoid driver compatibility issues"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 80,
+    "auth_complexity_score": 90,
+    "rate_limit_clarity_score": 82
+  },
+  "security_score_components": {
+    "tls_enforcement": 90,
+    "auth_strength": 72,
+    "scope_granularity": 68,
+    "dependency_hygiene": 85,
+    "secret_handling": 80,
+    "security_notes": "Apache 2.0, HuggingFace-maintained. No built-in auth — must use reverse proxy for production. HF Hub token for gated model access. SOC2 for HuggingFace Cloud. Self-hosted means no external data sharing for inference."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 82,
+    "version_stability": 75,
+    "breaking_changes_history": 70,
+    "error_recovery": 80
+  }
+}

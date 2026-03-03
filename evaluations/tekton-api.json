@@ -1,0 +1,107 @@
+{
+  "id": "tekton-api",
+  "name": "Tekton",
+  "version_evaluated": "0.60+",
+  "homepage": "https://tekton.dev/",
+  "repo_url": "https://github.com/tektoncd/pipeline",
+  "category": "developer-tools",
+  "subcategories": ["ci-cd", "kubernetes", "pipeline", "cloud-native"],
+  "tags": ["ci", "cd", "kubernetes", "pipeline", "cncf", "cloud-native", "open-source", "tekton-pipelines"],
+  "what_it_does": "Kubernetes-native CI/CD framework that defines pipeline building blocks as Kubernetes Custom Resource Definitions (CRDs). Tekton provides Task, Pipeline, TaskRun, PipelineRun, and Trigger CRDs — CI/CD pipelines are just Kubernetes resources. Part of the CD Foundation (Linux Foundation). Powers OpenShift Pipelines (Red Hat) and Google Cloud Build. REST API is Kubernetes API extended with Tekton CRDs. Agents interact via kubectl or Kubernetes client libraries.",
+  "use_cases": [
+    "Trigger Tekton pipeline runs programmatically via Kubernetes API from agent orchestration systems for code build, test, and deployment workflows",
+    "Watch PipelineRun/TaskRun status via Kubernetes watch API to monitor agent-triggered CI/CD pipeline execution in real time without polling",
+    "Define reusable CI/CD pipeline components (Tasks) as Kubernetes resources that agent workflows can compose into custom pipelines via PipelineRun creation",
+    "Integrate agent-generated build artifacts into Kubernetes-native CD workflows using Tekton Chains for supply chain security (SLSA attestation)",
+    "Build event-driven CI/CD automation using Tekton Triggers — GitHub webhooks, cron schedules, and custom events trigger PipelineRuns automatically"
+  ],
+  "not_for": [
+    "Non-Kubernetes environments — Tekton requires a Kubernetes cluster; use GitHub Actions, GitLab CI, or CircleCI for non-Kubernetes CI/CD",
+    "Teams without Kubernetes expertise — Tekton's CRD model requires Kubernetes operational knowledge; managed CI/CD platforms have much lower operational overhead",
+    "Simple single-step CI needs — Tekton's power is in composable multi-step pipelines; simpler CI needs don't justify the Kubernetes overhead"
+  ],
+  "best_when": "You're running on Kubernetes and want cloud-native CI/CD pipeline definitions as Kubernetes resources, with full control and no vendor lock-in.",
+  "avoid_when": "You don't need Kubernetes-native CI/CD or don't have Kubernetes expertise — GitHub Actions, Buildkite, or CircleCI are far simpler to operate.",
+  "alternatives": ["argocd-api", "fluxcd-api", "jenkins-api", "github-actions-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["go", "python"],
+    "openapi_spec_url": null,
+    "webhooks": true
+  },
+  "auth": {
+    "methods": ["bearer_token", "oauth2"],
+    "oauth": true,
+    "scopes": true,
+    "notes": "Tekton uses Kubernetes RBAC for authorization. ServiceAccount tokens or kubeconfig credentials authenticate API calls. Tekton Triggers adds CORS/HMAC validation for incoming webhooks. RBAC controls who can create/view/delete PipelineRuns."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Apache 2.0 open source — completely free. Infrastructure (Kubernetes cluster) costs are user's responsibility.",
+    "paid_tiers": "Red Hat OpenShift Pipelines (enterprise Tekton distribution) included in OpenShift subscription",
+    "requires_credit_card": false,
+    "notes": "Apache 2.0 open source. CNCF graduated project. Primary cost is Kubernetes cluster for running Tekton components and pipeline execution."
+  },
+  "performance": {
+    "latency_p50_ms": 1000,
+    "latency_p99_ms": 10000,
+    "uptime_sla_percent": null,
+    "rate_limits": "Kubernetes API server rate limits apply. Pipeline execution limited by cluster resources.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 78,
+    "error_message_quality": 72,
+    "error_message_notes": "Errors surface as Kubernetes events and TaskRun/PipelineRun status conditions. Step-level logs accessible via Kubernetes pod logs API. Error messages are container-level output — no higher-level abstraction. Tekton Dashboard provides visual debugging.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Creating a PipelineRun always creates a new execution — not idempotent. Use generateName for unique PipelineRun names. Agents must check for existing runs before creating new ones. Tekton Chains provides artifact attestation but not run deduplication.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Tekton API is the Kubernetes API — agents interact via kubectl or Kubernetes client libraries (kubernetes-client for Python/Go), not a traditional REST API; requires Kubernetes kubeconfig or ServiceAccount token",
+      "PipelineRun names must be unique — agents should use generateName prefix rather than fixed names to avoid naming conflicts; Kubernetes rejects duplicate resource names",
+      "Task step containers run sequentially by default within a Task — parallel steps within a Task require StepAction with 'sidecar' pattern; true parallelism requires separate Tasks in a Pipeline",
+      "Workspace sharing between Tasks requires PersistentVolumeClaims (PVCs) — agent pipelines sharing data between steps must provision PVCs, adding K8s storage management complexity",
+      "Tekton Triggers webhook parsing is YAML-configured — complex event filtering logic requires JSONPath/CEL expressions in TriggerBinding/TriggerTemplate CRDs; testing trigger logic is non-trivial",
+      "Pod scheduling constraints apply to Task execution — agents creating PipelineRuns on resource-constrained clusters may see pending Tasks waiting for available nodes",
+      "Log access requires Kubernetes pod log API — agents monitoring pipeline output must use kubectl logs or Kubernetes client pod log streaming, not a Tekton-specific logging API"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 78,
+    "error_handling_score": 72,
+    "auth_complexity_score": 70,
+    "rate_limit_clarity_score": 68
+  },
+  "security_score_components": {
+    "tls_enforcement": 95,
+    "auth_strength": 85,
+    "scope_granularity": 85,
+    "dependency_hygiene": 85,
+    "secret_handling": 82,
+    "security_notes": "Apache 2.0 CNCF graduated project with strong security posture. Kubernetes RBAC for fine-grained access control. Tekton Chains for SLSA supply chain security (artifact attestation, signing). Workload identity via Kubernetes ServiceAccounts. Secrets via Kubernetes Secrets (recommend external-secrets for production)."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 78,
+    "version_stability": 80,
+    "breaking_changes_history": 78,
+    "error_recovery": 75
+  }
+}

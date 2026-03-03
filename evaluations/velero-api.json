@@ -1,0 +1,107 @@
+{
+  "id": "velero-api",
+  "name": "Velero",
+  "version_evaluated": "1.13+",
+  "homepage": "https://velero.io/",
+  "repo_url": "https://github.com/vmware-tanzu/velero",
+  "category": "developer-tools",
+  "subcategories": ["kubernetes", "backup", "disaster-recovery", "migration"],
+  "tags": ["kubernetes", "backup", "disaster-recovery", "migration", "open-source", "cncf", "s3"],
+  "what_it_does": "Kubernetes backup, restore, and migration tool maintained by VMware Tanzu. Velero backs up Kubernetes cluster resources (all objects from etcd) and persistent volume data to object storage (S3, GCS, Azure Blob), enabling disaster recovery, cluster migration, and namespace-level restore. Supports scheduled backups, pre/post-backup hooks, and selective resource filtering. The de-facto standard for Kubernetes backup.",
+  "use_cases": [
+    "Schedule automated Kubernetes cluster backups to S3/GCS for disaster recovery — restore entire cluster or specific namespaces after failure",
+    "Migrate Kubernetes workloads between clusters or cloud providers by backing up source cluster and restoring in target cluster",
+    "Backup persistent volume data alongside Kubernetes resource definitions for complete application state recovery",
+    "Implement namespace-level backups for multi-tenant clusters — back up individual tenant namespaces on schedule",
+    "Run pre-backup hooks to quiesce database writes before taking PV snapshots for consistent application backups"
+  ],
+  "not_for": [
+    "ETCD-level backup — Velero backs up Kubernetes object state, not raw etcd; etcd snapshots are separate",
+    "Real-time replication — Velero is backup-on-schedule, not continuous replication; use storage-level replication for RPO < backup interval",
+    "Application-aware backup for complex stateful apps — Velero's PV backup is crash-consistent; app-consistent backup requires hooks"
+  ],
+  "best_when": "You need Kubernetes cluster backup and DR with object storage as the backup target, namespace migration, or cluster upgrade rollback capability.",
+  "avoid_when": "You need sub-hour RPO with continuous replication — Velero's scheduled backup model has gaps between backup points.",
+  "alternatives": ["kasten-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": false,
+    "sdk_languages": [],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Velero interfaces via Kubernetes CRDs — Kubernetes RBAC is the auth model. Object store access via cloud IAM (IRSA for AWS, Workload Identity for GCP). Backup/restore operations run with Velero's cluster-admin service account."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Fully free — Apache 2.0 licensed",
+    "paid_tiers": "None for Velero. VMware offers commercial Kubernetes platform with managed backup. Object storage costs apply.",
+    "requires_credit_card": false,
+    "notes": "Apache 2.0, CNCF incubating. Free software — pay only for object storage (typically $0.023/GB/month on S3)."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "Backup throughput limited by object store upload speed and CSI snapshot API performance.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 78,
+    "error_message_notes": "Backup/restore status in Kubernetes CRD conditions. velero CLI provides verbose status output. Failed backups include specific resource errors. Logs available via velero backup logs command.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Backup creation with the same name fails if backup already exists. Restore operations are idempotent with --existing-resource-policy flag. Schedule creation is idempotent.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Velero requires CSI snapshotter for consistent PV backup — without CSI, only file system backup (restic/kopia) is available which is slower",
+      "Backup of resources with dependencies must preserve order — Velero backs up all resources but restore order may cause temporary failures for dependent resources",
+      "Namespace-scoped restore won't restore cluster-scoped resources (ClusterRoleBindings, StorageClasses) — separate backup/restore required",
+      "Large cluster backups can take hours — Velero runs backup as background job; poll Backup CRD status, don't wait synchronously",
+      "Cross-cloud migration requires identical storage class names or StorageClass mapping — mismatched storage classes cause PVC restore failures",
+      "Restic/Kopia (file-level backup) requires running a privileged DaemonSet — security policy restrictions can prevent installation",
+      "Default backup includes secrets — ensure object storage encryption and access controls before backing up production clusters"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 78,
+    "auth_complexity_score": 88,
+    "rate_limit_clarity_score": 90
+  },
+  "security_score_components": {
+    "tls_enforcement": 95,
+    "auth_strength": 85,
+    "scope_granularity": 80,
+    "dependency_hygiene": 88,
+    "secret_handling": 78,
+    "security_notes": "Apache 2.0. Backups include K8s Secrets — encrypt object storage. IRSA/Workload Identity for cloud storage auth. Kubernetes RBAC for CRD access. Velero service account typically has cluster-admin — scope access carefully."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 85,
+    "version_stability": 82,
+    "breaking_changes_history": 80,
+    "error_recovery": 82
+  }
+}

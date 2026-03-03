@@ -1,0 +1,107 @@
+{
+  "id": "hatchet-api",
+  "name": "Hatchet",
+  "version_evaluated": "0.x (preview)",
+  "homepage": "https://hatchet.run/",
+  "repo_url": "https://github.com/hatchet-dev/hatchet",
+  "category": "developer-tools",
+  "subcategories": ["workflow-orchestration", "background-jobs", "agent-infrastructure", "ai-infrastructure"],
+  "tags": ["workflow", "background-jobs", "orchestration", "ai", "python", "typescript", "open-source", "durable-execution"],
+  "what_it_does": "Durable workflow orchestration engine designed specifically for AI agent workloads. Hatchet provides background job execution with built-in durability, retries, concurrency control, and real-time streaming. Supports long-running AI workflows (multi-step LLM chains, agent loops) without timeouts. Built-in fan-out/fan-in patterns, priority queues, and rate limiting for agent orchestration. Self-hostable or managed cloud (Hatchet Cloud). Designed as a modern alternative to Celery/BullMQ for AI-native Python/TypeScript applications.",
+  "use_cases": [
+    "Orchestrate multi-step AI agent workflows with durable execution — if a step fails, Hatchet retries from the last successful checkpoint rather than restarting the entire workflow",
+    "Run long-running LLM inference tasks as background jobs with real-time streaming output back to the calling service without HTTP timeout constraints",
+    "Implement fan-out agent patterns — spawn N parallel agent tasks and collect results with built-in fan-in using Hatchet's child workflow spawning",
+    "Rate-limit and queue agent API calls (OpenAI, Anthropic) to stay within provider rate limits using Hatchet's built-in concurrency and rate limiting primitives",
+    "Build human-in-the-loop agent workflows with pause/resume — Hatchet workflows can pause waiting for human approval and resume on signal without losing execution context"
+  ],
+  "not_for": [
+    "Simple fire-and-forget background jobs — Celery, BullMQ, or RQ are simpler for straightforward queue-and-execute patterns without complex orchestration needs",
+    "Data pipeline orchestration at scale — Prefect, Airflow, or Kestra are more mature for data pipeline-specific orchestration with richer scheduling",
+    "High-throughput event streaming — Hatchet handles workflow orchestration, not high-volume event streaming; use Kafka for millions of events/second"
+  ],
+  "best_when": "You're building AI agent applications that need durable multi-step workflows with streaming, retries, and concurrency control — and Celery's task model is too primitive.",
+  "avoid_when": "Your background jobs are simple, stateless tasks with short execution times — a simpler queue (BullMQ, RQ) is sufficient and easier to operate.",
+  "alternatives": ["temporal-api", "inngest-api", "trigger-dev-api", "celery-api", "bullmq-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": true,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "typescript"],
+    "openapi_spec_url": null,
+    "webhooks": true
+  },
+  "auth": {
+    "methods": ["api_key", "bearer_token"],
+    "oauth": false,
+    "scopes": true,
+    "notes": "Hatchet uses API tokens for worker and service authentication. Tokens scoped to tenant. Hatchet Cloud adds SSO (Okta, Google). Self-hosted uses configurable auth. Worker connections use gRPC with token auth."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Open source: free to self-host. Hatchet Cloud: free tier with limited workflow runs/month",
+    "paid_tiers": "Hatchet Cloud from $20/month; Enterprise custom pricing",
+    "requires_credit_card": false,
+    "notes": "MIT licensed open source. Self-host on any infrastructure. Hatchet Cloud provides managed hosting. Early-stage product (0.x) — expect API changes. Growing quickly in AI agent community."
+  },
+  "performance": {
+    "latency_p50_ms": 100,
+    "latency_p99_ms": 1000,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "Self-hosted: configurable. Cloud: per-plan workflow run limits.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted", "US"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 78,
+    "error_message_quality": 75,
+    "error_message_notes": "Workflow step failures surface with step-level error context and stack traces. REST API returns structured JSON errors. gRPC errors include status codes. Dashboard provides real-time workflow execution visualization for debugging.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Hatchet uses event deduplication keys for idempotent workflow triggering. Same event key does not create duplicate runs within deduplication window. Workflow execution IDs are unique. Step outputs are persisted — retries replay from last checkpoint.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Hatchet is 0.x software — API surface is evolving rapidly; pin SDK version and test on upgrades; breaking changes between minor versions are possible",
+      "Workers are long-running Python/TypeScript processes, not stateless functions — agent deployment model requires running Hatchet worker processes alongside application services",
+      "Workflow step context is serialized via JSON — complex Python objects (non-serializable types, closures) cannot be passed between steps; all step inputs/outputs must be JSON-serializable",
+      "Streaming output requires Hatchet's streaming-specific API patterns — standard step return values are not streamed; agents must use the streaming SDK primitives explicitly",
+      "Concurrency slots and rate limits are configured at workflow/step level in code — misconfigured concurrency allows unbounded parallel execution that can overwhelm downstream APIs",
+      "Self-hosting requires PostgreSQL + Redis + Hatchet server — more infrastructure than simpler queue systems; evaluate whether Hatchet Cloud simplifies operations",
+      "Human-in-the-loop pause/resume uses signal events — agents must implement event sending to resume paused workflows; timed-out waits require explicit timeout handling in step logic"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 78,
+    "error_handling_score": 75,
+    "auth_complexity_score": 80,
+    "rate_limit_clarity_score": 75
+  },
+  "security_score_components": {
+    "tls_enforcement": 95,
+    "auth_strength": 78,
+    "scope_granularity": 75,
+    "dependency_hygiene": 80,
+    "secret_handling": 78,
+    "security_notes": "MIT open source for auditability. TLS for gRPC worker connections. Token-based auth for API access. Self-hosted deployments control all data. Secrets management is application responsibility — integrate with Vault or environment-based secrets."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 70,
+    "version_stability": 65,
+    "breaking_changes_history": 62,
+    "error_recovery": 80
+  }
+}

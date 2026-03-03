@@ -1,0 +1,107 @@
+{
+  "id": "keda-api",
+  "name": "KEDA",
+  "version_evaluated": "2.13+",
+  "homepage": "https://keda.sh/",
+  "repo_url": "https://github.com/kedacore/keda",
+  "category": "developer-tools",
+  "subcategories": ["kubernetes", "autoscaling", "event-driven", "devops"],
+  "tags": ["kubernetes", "autoscaling", "event-driven", "kafka", "queue", "open-source", "cncf"],
+  "what_it_does": "Kubernetes Event-Driven Autoscaling — extends Kubernetes' built-in HPA (Horizontal Pod Autoscaler) with 60+ scalers for external event sources. Where standard HPA scales on CPU/memory, KEDA scales based on external metrics: Kafka consumer lag, Azure Service Bus queue depth, AWS SQS messages, Prometheus metrics, Cron schedules, and many more. Enables scale-to-zero for event-driven workloads, activating pods only when messages are waiting. CNCF graduated project.",
+  "use_cases": [
+    "Scale Kafka consumers up/down based on consumer group lag — add more consumers when queue backs up, scale to zero when caught up",
+    "Scale agent worker pods based on Redis queue depth — deploy more parallel agent workers when work is available, zero when idle",
+    "Auto-scale async processing workloads based on SQS/Service Bus queue depth to match throughput with incoming demand",
+    "Schedule-based scaling using Cron scaler — pre-scale ML inference pods before peak traffic windows",
+    "Scale Kubernetes deployments based on Prometheus metrics — scale on custom application metrics like active sessions or task queue length"
+  ],
+  "not_for": [
+    "Real-time traffic autoscaling — KEDA is for event-driven workloads; use standard HPA or KEDA HTTP add-on for HTTP traffic scaling",
+    "Stateful applications requiring careful scale-down — KEDA scale-to-zero kills pods; stateful apps need draining logic",
+    "Non-Kubernetes environments — KEDA is Kubernetes-only"
+  ],
+  "best_when": "You have event-driven Kubernetes workloads (Kafka consumers, queue processors, batch jobs) that should scale to zero when idle and scale up based on queue depth.",
+  "avoid_when": "You need HTTP traffic scaling for web services — use Knative, standard HPA, or KEDA HTTP add-on for request-based autoscaling.",
+  "alternatives": ["cilium-api", "kubernetes-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": false,
+    "sdk_languages": [],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "KEDA interfaces via Kubernetes CRDs — Kubernetes RBAC is the auth model. ScaledObject and ScaledJob resources reference TriggerAuthentication resources that hold credentials for external scalers (Kafka SASL, SQS IAM, etc.). KEDA itself authenticates to external systems via these credentials."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Fully free — Apache 2.0 licensed",
+    "paid_tiers": "None — community maintained. Enterprise support from Red Hat, Microsoft, and others.",
+    "requires_credit_card": false,
+    "notes": "Apache 2.0, CNCF graduated. Free forever. Commercial Kubernetes distributions (OpenShift, AKS, EKS) include KEDA support."
+  },
+  "performance": {
+    "latency_p50_ms": 5000,
+    "latency_p99_ms": 30000,
+    "uptime_sla_percent": null,
+    "rate_limits": "Polling interval configurable per scaler (default 30 seconds). Scale-to-zero activation delay configurable.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 88,
+    "error_message_quality": 80,
+    "error_message_notes": "Kubernetes CRD status conditions report scaler errors. kubectl describe scaledobject provides current scale target and error messages. KEDA operator logs provide detailed scaling decision logs.",
+    "idempotency_support": "full",
+    "idempotency_notes": "ScaledObject and ScaledJob CRD specs are idempotent. KEDA continuously evaluates metrics and reconciles replica count. Creating the same ScaledObject twice is idempotent.",
+    "pagination_style": "none",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "ScaledObject takes ownership of the target Deployment's HPA — don't manually modify HPA created by KEDA or ScaledObject will override changes",
+      "Scale-to-zero means cold start latency when first message arrives — configure minReplicaCount: 1 if cold starts are unacceptable",
+      "Scaler polling interval (pollingInterval) vs cooldown period (cooldownPeriod) both affect scale responsiveness — tune both for your workload",
+      "TriggerAuthentication must be in the same namespace as ScaledObject (or use ClusterTriggerAuthentication for cross-namespace)",
+      "KEDA's Kafka scaler requires lag to be computed by KEDA — the consumer group must be registered even if no active consumers",
+      "Simultaneous scale-up and scale-down decisions for the same ScaledObject are handled by HPA — KEDA provides metrics, HPA makes the decision",
+      "External scaler timeouts can prevent scale-up if the external system is slow to respond — configure appropriate timeouts per scaler"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 88,
+    "error_handling_score": 80,
+    "auth_complexity_score": 85,
+    "rate_limit_clarity_score": 90
+  },
+  "security_score_components": {
+    "tls_enforcement": 95,
+    "auth_strength": 85,
+    "scope_granularity": 82,
+    "dependency_hygiene": 88,
+    "secret_handling": 85,
+    "security_notes": "Apache 2.0, CNCF graduated. TriggerAuthentication for scaler credentials — avoids embedding credentials in ScaledObject. Kubernetes RBAC for CRD access. External scaler credentials support IRSA/Workload Identity for cloud-native auth."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 85,
+    "breaking_changes_history": 82,
+    "error_recovery": 88
+  }
+}

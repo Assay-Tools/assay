@@ -1,0 +1,107 @@
+{
+  "id": "arcticdb-api",
+  "name": "ArcticDB",
+  "version_evaluated": "1.x",
+  "homepage": "https://arcticdb.io/",
+  "repo_url": "https://github.com/man-group/ArcticDB",
+  "category": "data-engineering",
+  "subcategories": ["time-series", "dataframe-storage", "financial-data", "embedded-database"],
+  "tags": ["time-series", "pandas", "dataframe", "s3", "financial", "high-performance", "columnar", "man-group"],
+  "what_it_does": "High-performance DataFrame and time series storage engine built for financial data and quantitative research. ArcticDB stores Pandas DataFrames directly in S3-compatible object storage or local files with extremely fast reads/writes for large numerical datasets. Created by Man Group (major hedge fund) and open-sourced in 2023. Provides versioning, snapshots, and concurrent read access to large DataFrames without a database server. The 'database for DataFrames' — not SQL, not key-value, just fast Pandas I/O.",
+  "use_cases": [
+    "Store and retrieve large Pandas DataFrames (time series, OHLCV data, feature matrices) from S3 at speeds 10-100x faster than Parquet for random access patterns",
+    "Build agent data pipelines that version financial datasets with ArcticDB's snapshot/version system — agents can query historical data versions reproducibly",
+    "Share large DataFrames between multiple agent workers via S3 without serialization overhead — ArcticDB handles concurrent reads from multiple processes",
+    "Cache ML feature matrices and model inputs as versioned ArcticDB libraries on S3 — agents access specific data versions without managing Parquet file organization",
+    "Store agent-generated time series outputs (metrics, predictions, backtests) with ArcticDB for fast retrieval and historical comparison across agent runs"
+  ],
+  "not_for": [
+    "General-purpose database needs — ArcticDB is optimized for DataFrame/time series storage, not arbitrary document or relational data",
+    "Non-Python environments — ArcticDB is Python-first (C++ core with Python bindings); limited support for other languages",
+    "Real-time streaming data ingestion — ArcticDB is optimized for batch writes and reads; use QuestDB or TimescaleDB for high-frequency streaming ingestion"
+  ],
+  "best_when": "You're working with large Pandas DataFrames (financial data, ML features, time series) and need faster than Parquet I/O with versioning, stored in S3 or local storage.",
+  "avoid_when": "You need SQL querying capabilities, non-Python access, or real-time streaming ingestion — ArcticDB is purpose-built for DataFrame I/O, not a general database.",
+  "alternatives": ["lancedb-api", "duckdb-api", "parquet-api", "questdb-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No ArcticDB-level authentication. Access control via S3 bucket policies and IAM roles. Local filesystem storage uses OS-level permissions. ArcticDB itself is a library — auth is at the storage backend level."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "BSL 1.1 open source — free for internal use. Storage costs are S3/cloud storage provider costs.",
+    "paid_tiers": "Man Group may offer enterprise support. ArcticDB itself is free; pay for S3 storage.",
+    "requires_credit_card": false,
+    "notes": "Business Source License (BSL 1.1) — source available, free for internal/commercial use but with some restrictions on competing services. Converts to Apache 2.0 after 4 years. Verify BSL terms for commercial use cases."
+  },
+  "performance": {
+    "latency_p50_ms": 50,
+    "latency_p99_ms": 500,
+    "uptime_sla_percent": null,
+    "rate_limits": "Limited by S3 throughput and request rates. ArcticDB itself has no rate limits.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["local", "self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 78,
+    "error_message_quality": 75,
+    "error_message_notes": "Python exceptions with descriptive messages for common errors. S3 access errors surface as storage backend errors. Symbol not found errors are clear. Documentation covers main workflows well but advanced use cases have gaps.",
+    "idempotency_support": "full",
+    "idempotency_notes": "ArcticDB writes create new versions — appending or updating creates a new version without overwriting. Agents can safely retry writes; duplicate writes create new versions (which may be desired). Snapshot operations are atomic.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "ArcticDB is a Python library, not a server — agents must be co-located with the storage backend (local files) or have S3 credentials; there's no remote API endpoint to call",
+      "BSL 1.1 license differs from Apache 2.0 — verify that use as part of a competing data storage service is not restricted before production deployment",
+      "S3 concurrent write operations from multiple processes require careful coordination — ArcticDB handles concurrent reads well but concurrent writes to the same symbol require application-level locking",
+      "ArcticDB versions accumulate over time — without periodic compaction and pruning, S3 storage costs and read overhead can grow; implement version lifecycle management",
+      "Symbol names are string keys within a library — agents must use consistent naming conventions; there's no schema enforcement or namespace collision prevention",
+      "Large DataFrames with many columns slow write performance — ArcticDB is optimized for wide time series (many rows, reasonable columns); extremely wide DataFrames (1000+ columns) may need schema design adjustments",
+      "ArcticDB is relatively new open source (2023) — some edge cases in concurrent access patterns may not be fully battle-tested; evaluate with representative workloads before production"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 78,
+    "error_handling_score": 75,
+    "auth_complexity_score": 95,
+    "rate_limit_clarity_score": 90
+  },
+  "security_score_components": {
+    "tls_enforcement": 95,
+    "auth_strength": 80,
+    "scope_granularity": 75,
+    "dependency_hygiene": 82,
+    "secret_handling": 85,
+    "security_notes": "No authentication surface — security is entirely at S3/storage layer. S3 IAM policies provide fine-grained access control. Data encrypted at rest via S3 default encryption. No network API to attack. BSL source available for audit. C++ core reduces memory safety risk."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 72,
+    "version_stability": 75,
+    "breaking_changes_history": 72,
+    "error_recovery": 78
+  }
+}

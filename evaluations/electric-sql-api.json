@@ -1,0 +1,107 @@
+{
+  "id": "electric-sql-api",
+  "name": "ElectricSQL",
+  "version_evaluated": "1.x (Electric)",
+  "homepage": "https://electric-sql.com/",
+  "repo_url": "https://github.com/electric-sql/electric",
+  "category": "developer-tools",
+  "subcategories": ["sync", "database", "local-first", "real-time"],
+  "tags": ["local-first", "sync", "postgresql", "sqlite", "real-time", "offline", "react", "open-source"],
+  "what_it_does": "Sync layer for Postgres that streams database changes to local SQLite in web browsers and mobile apps. ElectricSQL implements Partial Sync — clients subscribe to a 'shape' (filtered subset of Postgres data) and receive real-time updates as Postgres changes. Applications query local SQLite for instant reads without network latency, and Electric handles syncing changes bidirectionally. Enables offline-capable, real-time collaborative applications built on Postgres without custom sync infrastructure.",
+  "use_cases": [
+    "Build local-first agent applications where agents query a local SQLite replica of Postgres data with zero latency — no network round-trips for read-heavy agent data access",
+    "Enable offline agent functionality — agents continue operating on locally cached data when network is unavailable, syncing changes when connectivity is restored",
+    "Implement real-time multi-user collaboration in agent-powered tools — ElectricSQL propagates Postgres changes to all connected clients in real time without custom WebSocket infrastructure",
+    "Reduce database load from high-frequency agent read operations — agents query local SQLite replica instead of hitting Postgres directly for every read",
+    "Build reactive agent UIs that update instantly when underlying Postgres data changes without polling — ElectricSQL pushes live updates to client-side SQLite"
+  ],
+  "not_for": [
+    "Server-side agents — ElectricSQL is designed for browser/mobile clients with local SQLite; server-side agents should query Postgres directly",
+    "Large dataset sync — ElectricSQL syncs relevant subsets (shapes); syncing entire large tables to every client is inappropriate; design shapes carefully for data access patterns",
+    "Non-Postgres databases — ElectricSQL requires Postgres as the source of truth; not compatible with MySQL, MongoDB, or other database backends"
+  ],
+  "best_when": "You're building web or mobile applications where agents or users need instant read access to data and real-time updates from Postgres without managing WebSocket sync infrastructure.",
+  "avoid_when": "Your agent workloads are server-side and can query Postgres directly — ElectricSQL's value is for edge/client environments that benefit from local data access.",
+  "alternatives": ["powersync-api", "convex-api", "replicache-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["node", "python", "react"],
+    "openapi_spec_url": "https://electric-sql.com/docs/api/http",
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["bearer_token", "none"],
+    "oauth": false,
+    "scopes": true,
+    "notes": "ElectricSQL's sync API can be configured with bearer token auth or proxy-based auth. Shape access control via server-side proxy that validates access before exposing shape subscription endpoint. Open source self-hosted; auth is configurable."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Apache 2.0 open source — free to self-host. Electric Cloud (managed) has free tier.",
+    "paid_tiers": "Electric Cloud pricing TBD; project is in active development",
+    "requires_credit_card": false,
+    "notes": "Apache 2.0 open source. Self-hostable. Electric Cloud provides managed hosting. Project is actively developed; v1.x represents a major architectural rewrite from earlier versions. Pricing for managed cloud still evolving."
+  },
+  "performance": {
+    "latency_p50_ms": 0,
+    "latency_p99_ms": 5,
+    "uptime_sla_percent": null,
+    "rate_limits": "Self-hosted: no rate limits. Performance limited by Postgres WAL replication throughput.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 80,
+    "error_message_quality": 75,
+    "error_message_notes": "HTTP shape API returns standard errors. Client SDK errors include sync status context. Documentation is improving as the project matures. The v1.x rewrite improved documentation quality significantly.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Shape subscriptions are idempotent — subscribing to the same shape twice returns the same data. Sync state is deterministic given same Postgres state. Client-side SQLite queries are read-only and idempotent.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "ElectricSQL requires Postgres logical replication enabled — this is not default in all Postgres deployments; verify wal_level=logical and configure replication slots before deploying",
+      "Shape design is critical for performance — overly broad shapes (entire tables) cause excessive data transfer; agents must design shapes as targeted subsets of data needed by each client",
+      "ElectricSQL v1.x (current) is a complete rewrite from pre-1.x — docs and examples from pre-1.x are not compatible; verify documentation version before implementing",
+      "Write path must still go through Postgres directly (or via your API) — ElectricSQL only syncs reads; agents writing data must use a separate API or direct Postgres connection",
+      "Conflict resolution for concurrent writes is application responsibility — ElectricSQL syncs Postgres state; CRDT or last-write-wins strategies must be implemented at the application layer",
+      "Local SQLite queries use SQLite dialect, not Postgres SQL — agents must adapt queries for SQLite limitations (no JSONB operators, different date functions) when using local replica",
+      "Electric Cloud managed service pricing and availability are still evolving (2025) — evaluate self-hosting as the primary option until Cloud offering stabilizes"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 80,
+    "error_handling_score": 75,
+    "auth_complexity_score": 82,
+    "rate_limit_clarity_score": 80
+  },
+  "security_score_components": {
+    "tls_enforcement": 95,
+    "auth_strength": 78,
+    "scope_granularity": 78,
+    "dependency_hygiene": 82,
+    "secret_handling": 80,
+    "security_notes": "Apache 2.0 open source for auditability. Shape-level access control via server proxy. Data is client-local — no additional data exposure beyond what Postgres already contains. TLS for sync stream. Auth implementation is pluggable — security posture depends on application's auth layer."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 70,
+    "version_stability": 68,
+    "breaking_changes_history": 65,
+    "error_recovery": 72
+  }
+}

@@ -1,0 +1,107 @@
+{
+  "id": "chdb-api",
+  "name": "chDB",
+  "version_evaluated": "2.x",
+  "homepage": "https://clickhouse.com/docs/en/chdb",
+  "repo_url": "https://github.com/chdb-io/chdb",
+  "category": "data-engineering",
+  "subcategories": ["embedded-database", "analytics", "olap", "in-process"],
+  "tags": ["clickhouse", "embedded", "olap", "python", "in-process", "analytics", "columnar", "parquet"],
+  "what_it_does": "Embedded OLAP database engine that runs ClickHouse entirely in-process as a Python library (or Go/Node.js). No server, no Docker, no network — just import chdb and run ClickHouse SQL queries on local files (Parquet, CSV, JSON) or in-memory data at ClickHouse speed. Ideal for agents that need powerful analytical SQL without managing database infrastructure. Think DuckDB's architecture applied to ClickHouse's query engine.",
+  "use_cases": [
+    "Run ClickHouse-speed analytical queries on Parquet/CSV files directly from Python agents without spinning up a ClickHouse server or cluster",
+    "Process large local datasets (100GB+) with ClickHouse's columnar query engine in agent data pipelines without network overhead",
+    "Perform complex aggregations, window functions, and JOIN operations on agent-collected data using familiar SQL without database management",
+    "Build serverless analytics in Lambda/Cloud Run functions where spinning up a ClickHouse instance is impractical — embed chDB as a library",
+    "Query cloud storage files (S3 via URL table function) directly from in-process chDB without data movement to a server"
+  ],
+  "not_for": [
+    "Multi-user concurrent write workloads — chDB is a single-process embedded engine, not a shared database server",
+    "Transactional (OLTP) workloads — chDB is OLAP-focused; use PostgreSQL or SQLite for transactional use cases",
+    "Production-scale distributed queries requiring ClickHouse cluster features — use full ClickHouse server for distributed query execution across multiple nodes"
+  ],
+  "best_when": "You need ClickHouse's analytical performance for local file processing or single-node analytics without the complexity of running a ClickHouse server.",
+  "avoid_when": "You need a shared analytics database for multiple users or services — use full ClickHouse server, DuckDB with read-only access, or a managed service.",
+  "alternatives": ["duckdb-api", "polars-api", "apache-datafusion-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "go", "node", "rust"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No authentication — chDB runs in-process with the calling application's privileges. Access control is at the OS file system level. No network server means no authentication surface."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free — Apache 2.0 open source library",
+    "paid_tiers": "None for chDB itself. ClickHouse Cloud (separate product) has paid tiers.",
+    "requires_credit_card": false,
+    "notes": "Apache 2.0 open source. Community project backed by ClickHouse Inc. No paid tiers for the embedded library. Completely free for commercial use."
+  },
+  "performance": {
+    "latency_p50_ms": 10,
+    "latency_p99_ms": 1000,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — performance limited by local CPU, memory, and I/O. ClickHouse's vectorized query execution is extremely fast for analytical queries.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["local"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 80,
+    "error_message_quality": 78,
+    "error_message_notes": "SQL errors return ClickHouse-style error messages with query position context. Python exceptions are raised for invalid SQL. Error messages are informative but ClickHouse-specific (requires ClickHouse SQL knowledge to parse).",
+    "idempotency_support": "full",
+    "idempotency_notes": "Queries are pure reads — fully idempotent. chDB state is in-memory; each session starts fresh. No persistent state between sessions unless explicitly writing to files.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "chDB uses ClickHouse SQL dialect, not standard SQL — functions like arrayJoin, groupArray, and ARRAY JOIN syntax differ from PostgreSQL/DuckDB; LLM-generated SQL may need adaptation",
+      "Memory usage can be very high for large aggregations — chDB loads data into columnar format in memory; agents must account for memory limits in constrained environments",
+      "chDB is a Python library but the underlying engine is C++ — version compatibility between chdb Python package and the embedded ClickHouse binary matters; always pin versions",
+      "Query results are returned as Arrow, bytes, or DataFrame depending on output format setting — agents must specify the correct output format for downstream processing",
+      "Parquet file reading is very fast but CSV reading can be slow for large files — agents should prefer Parquet or ORC formats for large datasets",
+      "No persistent storage by default — chDB state is ephemeral; to persist query results, explicitly write to Parquet or use clickhouse-local syntax with writable paths",
+      "chDB is relatively new (2023) — some ClickHouse features available in server mode may not yet be available in the embedded version; check feature parity for advanced use cases"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 80,
+    "error_handling_score": 78,
+    "auth_complexity_score": 100,
+    "rate_limit_clarity_score": 95
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 85,
+    "scope_granularity": 80,
+    "dependency_hygiene": 80,
+    "secret_handling": 90,
+    "security_notes": "No network attack surface — pure in-process library. Data never leaves the process. OS-level file permissions govern data access. No credentials to leak. Apache 2.0 source available for audit. C++ core inherits ClickHouse's security track record."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 78,
+    "version_stability": 72,
+    "breaking_changes_history": 70,
+    "error_recovery": 75
+  }
+}

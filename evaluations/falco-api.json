@@ -1,0 +1,107 @@
+{
+  "id": "falco-api",
+  "name": "Falco",
+  "version_evaluated": "0.38+",
+  "homepage": "https://falco.org/",
+  "repo_url": "https://github.com/falcosecurity/falco",
+  "category": "security",
+  "subcategories": ["runtime-security", "threat-detection", "kubernetes", "ebpf"],
+  "tags": ["runtime-security", "ebpf", "threat-detection", "kubernetes", "syscall", "cncf", "open-source", "detection"],
+  "what_it_does": "Cloud-native runtime security and threat detection engine using eBPF (or kernel module) to monitor Linux system calls and detect anomalous behavior in real time. Falco rules define expected behavior; violations generate alerts sent to Slack, PagerDuty, webhooks, Kafka, or custom sinks. CNCF graduated. Used for detecting container escapes, privilege escalations, unexpected network connections, and data exfiltration attempts in Kubernetes and Linux environments. Generates structured JSON alerts consumable by SIEM systems.",
+  "use_cases": [
+    "Detect unauthorized system calls from agent containers at runtime — alert when agent workloads attempt to access sensitive files, spawn unexpected processes, or make privileged syscalls",
+    "Monitor AI agent runtime behavior for anomalies — Falco rules detect when an agent deviates from expected patterns (unexpected network connections, file system access outside permitted paths)",
+    "Integrate Falco alerts into agent incident response pipelines via webhook sinks — security events trigger automated agent workflows for triage, isolation, and remediation",
+    "Generate runtime security telemetry for agent audit trails — Falco structured JSON output provides syscall-level visibility into what agents did at runtime",
+    "Detect and alert on container breakout attempts in multi-tenant agent environments — Falco kernel-level monitoring detects escape attempts that application-level monitoring misses"
+  ],
+  "not_for": [
+    "Admission-time policy enforcement — Falco detects runtime behavior, not pre-deployment policy; use Kyverno or OPA Gatekeeper for admission control",
+    "Vulnerability scanning — Falco detects behavioral anomalies, not software vulnerabilities; use Trivy or Grype for CVE scanning",
+    "Application-layer monitoring — Falco works at kernel syscall level, not application API level; use distributed tracing for application-level observability"
+  ],
+  "best_when": "You need kernel-level runtime threat detection for containerized workloads — detecting behavior that can't be observed at the application or network layer.",
+  "avoid_when": "You need static analysis or admission-time controls — Falco is detective, not preventive; pair with Kyverno for preventive + detective security.",
+  "alternatives": ["tetragon-api", "tracee-api", "sysdig-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": true,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": false,
+    "sdk_languages": [],
+    "openapi_spec_url": null,
+    "webhooks": true
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Falco itself has no authentication — it runs as a privileged DaemonSet in Kubernetes. Alert sinks (webhook, Kafka, gRPC) use their respective authentication. Falco sidekick (alert routing component) has its own auth configuration per sink."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Apache 2.0 — completely free",
+    "paid_tiers": "Sysdig (commercial Falco distribution) offers managed Falco with enterprise features",
+    "requires_credit_card": false,
+    "notes": "Apache 2.0 CNCF graduated. Core Falco is completely free. Sysdig provides commercial support, managed cloud service, and enterprise rule management. Falcosidekick (alert routing) is also Apache 2.0 and free."
+  },
+  "performance": {
+    "latency_p50_ms": 1,
+    "latency_p99_ms": 10,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — kernel eBPF probe runs at kernel level with negligible overhead for typical workloads. High-frequency syscall workloads may see 1-5% CPU overhead.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 82,
+    "error_message_quality": 75,
+    "error_message_notes": "Alerts are structured JSON with rule name, priority, process, syscall context, and container metadata. gRPC output API provides streaming alert access. Webhook output delivers JSON alerts to configured endpoints. Rule syntax errors reported at startup.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Falco is a read-only monitoring system — no state mutations. Alert generation is idempotent (same behavior always triggers same rule). Alert delivery via webhook may duplicate on retry; implement deduplication in alert consumers.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Falco requires privileged DaemonSet pods (kernel module or eBPF) — deploy on nodes with strict PSP/PSA policies needs explicit exception; security teams must approve Falco's own privileged posture",
+      "Falco rules must be tuned for your workload — default rules generate high noise for typical containerized applications; expect 1-2 weeks of rule tuning before production-quality alerting",
+      "eBPF probe vs kernel module vs modern eBPF driver all have different compatibility requirements — check kernel version compatibility before selecting probe driver type for your environment",
+      "Alert volume can be extremely high on active clusters — implement Falcosidekick with alert aggregation and deduplication before connecting to PagerDuty or Slack to avoid alert fatigue",
+      "Falco rules use a custom condition syntax (not Rego, not SQL) — LLM-generated Falco rules may have syntax errors; always validate rules with `falco --validate rules.yaml` before deployment",
+      "Container syscall context in alerts provides pid, uid, command, args but not application-level context (user ID, session, request) — correlate with application logs for full incident context",
+      "Falco's gRPC output requires falco-exporter or custom consumer — don't expect a simple REST endpoint; implement a gRPC consumer or use Falcosidekick for webhook/HTTP delivery"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 82,
+    "error_handling_score": 75,
+    "auth_complexity_score": 88,
+    "rate_limit_clarity_score": 85
+  },
+  "security_score_components": {
+    "tls_enforcement": 90,
+    "auth_strength": 80,
+    "scope_granularity": 75,
+    "dependency_hygiene": 88,
+    "secret_handling": 82,
+    "security_notes": "Apache 2.0 CNCF graduated, actively maintained by security community. eBPF-based monitoring with minimal attack surface. Kernel-level visibility that can't be bypassed by container escape. Regular security audits. Falco itself needs privileged access — protect Falco DaemonSet configuration. Rule management is plain YAML — version control policies."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 80,
+    "version_stability": 82,
+    "breaking_changes_history": 80,
+    "error_recovery": 78
+  }
+}

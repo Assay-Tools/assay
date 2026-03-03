@@ -1,0 +1,107 @@
+{
+  "id": "spinnaker-api",
+  "name": "Spinnaker",
+  "version_evaluated": "1.33+",
+  "homepage": "https://spinnaker.io/",
+  "repo_url": "https://github.com/spinnaker/spinnaker",
+  "category": "developer-tools",
+  "subcategories": ["ci-cd", "deployment", "release-management", "multi-cloud"],
+  "tags": ["cd", "deployment", "multi-cloud", "kubernetes", "canary", "blue-green", "netflix", "open-source"],
+  "what_it_does": "Open-source multi-cloud continuous delivery platform originally developed at Netflix. Spinnaker provides deployment pipelines with built-in support for canary analysis, blue/green deployments, and rollbacks across AWS, GCP, Azure, Kubernetes, and other providers. REST API enables programmatic pipeline execution and management. Designed for enterprise-scale CD with strong safety mechanisms — approval gates, automated canary analysis (ACA), and multi-cluster deployments.",
+  "use_cases": [
+    "Execute production deployments programmatically via Spinnaker REST API from agent orchestration pipelines with automated approval gates",
+    "Trigger canary deployments across multiple cloud providers from agent workflows using Spinnaker's pipeline execution API",
+    "Query deployment history and pipeline execution status for audit trails and agent-driven release coordination",
+    "Orchestrate blue/green deployments with automatic traffic shifting and rollback triggers from agent decision systems",
+    "Manage multi-region, multi-cloud deployment strategies from a single API surface without cloud-specific deployment code"
+  ],
+  "not_for": [
+    "Small teams or simple deployment needs — Spinnaker's operational complexity (10+ microservices, Redis, Cassandra) is excessive for straightforward deployments",
+    "CI pipeline automation — Spinnaker is CD-only; pair with Jenkins, GitHub Actions, or Tekton for CI",
+    "Teams without dedicated platform engineering — Spinnaker requires significant operational investment to run and maintain"
+  ],
+  "best_when": "Your organization needs enterprise-scale multi-cloud CD pipelines with strong safety features (canary analysis, approval gates) and has the platform team to operate Spinnaker.",
+  "avoid_when": "You need simple Kubernetes deployments — Argo CD, Flux CD, or even Helm are far simpler to operate. Spinnaker's complexity is only justified at Netflix-scale.",
+  "alternatives": ["argocd-api", "fluxcd-api", "argo-rollouts-api", "harness-api", "codefresh-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": false,
+    "sdk_languages": [],
+    "openapi_spec_url": "https://www.spinnaker.io/reference/api/",
+    "webhooks": true
+  },
+  "auth": {
+    "methods": ["oauth2", "saml", "ldap", "x509"],
+    "oauth": true,
+    "scopes": true,
+    "notes": "Spinnaker uses Gate (API gateway) for authentication. Supports OAuth2/OIDC (GitHub, Google, Okta), SAML, LDAP/AD, and X.509 client certs. Service accounts for CI/CD automation. RBAC controls pipeline execution permissions."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Open source, free to self-host. Infrastructure costs are user's responsibility.",
+    "paid_tiers": "Armory (enterprise Spinnaker distribution) from custom pricing; Harness (Spinnaker successor from some teams) has paid tiers",
+    "requires_credit_card": false,
+    "notes": "Apache 2.0 open source. Primary cost is infrastructure: Spinnaker requires Redis, Cassandra (or SQL), and 10+ microservices consuming significant compute. Armory provides enterprise support."
+  },
+  "performance": {
+    "latency_p50_ms": 500,
+    "latency_p99_ms": 5000,
+    "uptime_sla_percent": null,
+    "rate_limits": "Self-hosted: limited by infrastructure sizing. Gate API rate limits configurable.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 72,
+    "error_message_quality": 68,
+    "error_message_notes": "REST API returns JSON with pipeline execution status, stage details, and error context. Error messages can be verbose and require parsing stage-level status to understand failure. Gate API documentation is comprehensive but dated.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Pipeline executions are not inherently idempotent — triggering the same pipeline twice creates two executions. Agents must check in-flight executions before triggering to avoid duplicate deployments. Execution IDs are unique.",
+    "pagination_style": "page_number",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Spinnaker's 10+ microservice architecture means API failures can have different root causes — Gate (API), Orca (orchestration), Front50 (storage) — error messages don't always identify which service failed",
+      "Pipeline execution is asynchronous — agents must poll execution status via GET /pipelines/{id} until terminal state (SUCCEEDED, FAILED, CANCELED, TERMINAL)",
+      "Concurrent pipeline execution limits per application — triggering too many pipelines simultaneously may queue or reject executions depending on configuration",
+      "Pipeline definitions are stored in Front50 (object storage) — pipeline configuration changes may not propagate immediately; agents should wait for pipeline sync before triggering",
+      "Canary analysis (Kayenta) requires separate configuration and metric backends (Prometheus, Stackdriver) — ACA failures may not be obvious from API responses alone",
+      "Spinnaker's RBAC model is application-centric — agents need permissions scoped to specific Spinnaker applications, not just global API access",
+      "Deployment target credentials (AWS, GCP, Kubernetes) are managed separately in Clouddriver — missing credentials fail at deployment stage, not at pipeline trigger time"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 72,
+    "error_handling_score": 68,
+    "auth_complexity_score": 65,
+    "rate_limit_clarity_score": 60
+  },
+  "security_score_components": {
+    "tls_enforcement": 90,
+    "auth_strength": 82,
+    "scope_granularity": 78,
+    "dependency_hygiene": 72,
+    "secret_handling": 75,
+    "security_notes": "Self-hosted — security posture depends entirely on deployment configuration. OAuth2/OIDC/SAML for strong auth. RBAC for pipeline control. Cloud credentials managed via Clouddriver with IAM roles support. No built-in secrets management — integrate with Vault or cloud KMS."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 65,
+    "version_stability": 68,
+    "breaking_changes_history": 65,
+    "error_recovery": 70
+  }
+}

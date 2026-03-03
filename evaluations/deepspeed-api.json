@@ -1,0 +1,107 @@
+{
+  "id": "deepspeed-api",
+  "name": "DeepSpeed",
+  "version_evaluated": "0.14+",
+  "homepage": "https://www.deepspeed.ai/",
+  "repo_url": "https://github.com/microsoft/DeepSpeed",
+  "category": "ai-ml",
+  "subcategories": ["llm-training", "distributed-computing", "model-optimization", "inference"],
+  "tags": ["training", "distributed", "gpu", "llm", "microsoft", "open-source", "inference", "optimization", "zero"],
+  "what_it_does": "Microsoft's distributed training and inference optimization library for large-scale deep learning. DeepSpeed enables training LLMs with billions of parameters on GPU clusters via ZeRO (Zero Redundancy Optimizer) — which shards optimizer state, gradients, and model parameters across GPUs to dramatically reduce memory footprint. Also provides inference optimization (DeepSpeed-Inference, DeepSpeed-MII) with kernel fusion, quantization, and tensor parallelism for faster LLM serving. Used to train GPT-3, Megatron-DeepSpeed, and many other large models.",
+  "use_cases": [
+    "Train large language models (70B+ parameters) that don't fit on a single GPU by distributing with ZeRO optimizer sharding across multiple nodes",
+    "Reduce GPU memory usage for fine-tuning large models using ZeRO Stage 1/2/3 — enabling fine-tuning of 30B+ models on modest GPU clusters",
+    "Accelerate LLM inference with DeepSpeed-MII: kernel fusion, quantization (INT8/INT4), and continuous batching for 5-10x throughput improvement",
+    "Run inference on large models with limited GPU memory using ZeRO-Inference for CPU/NVMe offloading",
+    "Implement mixed-precision training (FP16, BF16, FP8) with gradient overflow handling and loss scaling"
+  ],
+  "not_for": [
+    "Simple single-GPU training — PyTorch Lightning or HuggingFace Trainer are simpler; DeepSpeed adds complexity that's only justified at scale",
+    "Model serving at production scale without GPU clusters — use vLLM, TGI, or NVIDIA Triton for production inference serving",
+    "Training non-deep-learning models — DeepSpeed is specifically for neural network training with PyTorch"
+  ],
+  "best_when": "You're training or fine-tuning large language models (7B+ parameters) and need to maximize GPU cluster utilization with ZeRO memory optimization.",
+  "avoid_when": "You're fine-tuning smaller models (< 7B) on 1-2 GPUs — standard PyTorch with HuggingFace PEFT is simpler and sufficient.",
+  "alternatives": ["pytorch-api", "nvidia-triton-api", "colossalai-api", "ray-serve-api", "vllm-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "DeepSpeed is a Python library — no auth. Authentication for distributed training is handled by the cluster manager (SLURM, MPI, Kubernetes). DeepSpeed-MII inference server can be deployed with standard web auth if wrapped in a service."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Fully free — Apache 2.0 licensed",
+    "paid_tiers": "None for DeepSpeed itself. Azure ML offers DeepSpeed integration with paid GPU compute.",
+    "requires_credit_card": false,
+    "notes": "Apache 2.0 licensed. Microsoft's open research library — free forever. You pay for GPU compute from your cloud provider."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — local library execution. Performance governed by GPU cluster capacity.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["local"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 78,
+    "error_message_quality": 65,
+    "error_message_notes": "DeepSpeed errors are often cryptic CUDA errors or distributed process group failures. Debugging requires understanding NCCL, CUDA, and PyTorch internals. Error messages improved in recent versions but still require expertise to diagnose.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Training runs are deterministic with fixed seeds. ZeRO checkpointing enables resuming from saved state. But checkpoint format between ZeRO stages is not directly compatible — converting requires consolidated checkpoints.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "ZeRO Stage 3 (parameter sharding) has the most memory savings but the most compatibility issues — some model architectures don't work correctly with Stage 3",
+      "DeepSpeed requires a ds_config.json configuration file — the JSON format has many interdependent settings where incorrect combinations cause silent degradation or crashes",
+      "Gradient checkpointing (activation recomputation) with DeepSpeed requires specific API usage — using PyTorch's built-in gradient checkpointing may conflict",
+      "CPU/NVMe offloading (ZeRO-Infinity) provides huge memory savings but dramatically reduces throughput — verify training speed before relying on it",
+      "DeepSpeed MPI launcher vs torch.distributed — different launch mechanisms have different environment setup requirements",
+      "Checkpoint conversion between DeepSpeed ZeRO and standard HuggingFace format requires zero_to_fp32.py utility — plan for this in your training pipeline",
+      "CUDA version compatibility: DeepSpeed CUDA extensions must match the installed PyTorch CUDA version — version mismatches cause install failures"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 75,
+    "error_handling_score": 62,
+    "auth_complexity_score": 100,
+    "rate_limit_clarity_score": 100
+  },
+  "security_score_components": {
+    "tls_enforcement": 80,
+    "auth_strength": 80,
+    "scope_granularity": 70,
+    "dependency_hygiene": 82,
+    "secret_handling": 80,
+    "security_notes": "Apache 2.0, Microsoft open source. No network exposure for library use. Distributed training over MPI/NCCL — cluster network security is the operator's responsibility. Model weights and training data handled locally."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 78,
+    "version_stability": 72,
+    "breaking_changes_history": 68,
+    "error_recovery": 70
+  }
+}

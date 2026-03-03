@@ -1,0 +1,107 @@
+{
+  "id": "faktory-api",
+  "name": "Faktory",
+  "version_evaluated": "1.9+",
+  "homepage": "https://contribsys.com/faktory/",
+  "repo_url": "https://github.com/contribsys/faktory",
+  "category": "developer-tools",
+  "subcategories": ["background-jobs", "message-queue", "task-queue", "language-agnostic"],
+  "tags": ["queue", "background-jobs", "language-agnostic", "sidekiq", "open-source", "priority", "scheduled-jobs", "worker"],
+  "what_it_does": "Language-agnostic background job server with a simple wire protocol (RESP-based). Faktory provides the job server component while language-specific workers connect to execute jobs. Unlike Redis-backed libraries (BullMQ, Celery, Sidekiq), Faktory is a standalone server purpose-built for job queuing — not general-purpose caching. Created by Mike Perham (creator of Sidekiq). Workers available for Ruby, Python, Go, Node.js, Java, Rust, and more. Web UI for monitoring. Faktory Pro/Enterprise adds batches, unique jobs, and more.",
+  "use_cases": [
+    "Queue background jobs from agent orchestration systems in any language — Python agents enqueue jobs, Go workers execute them, without shared language dependencies",
+    "Build polyglot agent processing pipelines where different services (Python, Node.js, Go) all share a single job queue with unified monitoring via Faktory Web UI",
+    "Implement priority job queues for agent task routing — critical agent tasks go to high-priority queues, batch tasks to low-priority, with workers that drain in priority order",
+    "Schedule delayed agent jobs (retry after cooling period, future-dated processing) using Faktory's scheduled job support with precise execution timing",
+    "Monitor and manage job queues from agent orchestration systems via Faktory's REST API for queue depth, worker status, and job lifecycle tracking"
+  ],
+  "not_for": [
+    "Complex workflow orchestration with dependencies — Faktory is a job queue, not a workflow engine; use Temporal or Hatchet for multi-step stateful workflows",
+    "Teams already using Redis-backed queues — if Celery (Python) or BullMQ (Node.js) already works, Faktory adds infrastructure without proportional benefit",
+    "Very high throughput (millions of jobs/second) — Faktory is a single-server job queue; use Kafka or cloud-native queues for extremely high-volume event processing"
+  ],
+  "best_when": "You have polyglot services that need to share a job queue, or you want Sidekiq-quality job processing without Ruby.",
+  "avoid_when": "You're working in a single language with existing queue library support — BullMQ (Node.js), Celery (Python), or Sidekiq (Ruby) are simpler and better-integrated.",
+  "alternatives": ["bullmq-api", "celery-api", "hatchet-api", "inngest-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["ruby", "python", "go", "node", "java", "rust"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["api_key"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Faktory uses a password for worker and management authentication. Password set via FAKTORY_PASSWORD environment variable. All connections (worker and API) use the same password. No scope granularity. Bind to localhost for security — expose via private network only."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Faktory open source: free, MIT licensed",
+    "paid_tiers": "Faktory Pro from $95/month (batches, unique jobs, cron); Faktory Enterprise from $295/month (multi-queue, enhanced monitoring)",
+    "requires_credit_card": false,
+    "notes": "Open source Faktory is MIT licensed and fully featured for basic use. Faktory Pro adds enterprise features (job batches, unique jobs, rate limiting). Pricing is per-server, not per-seat."
+  },
+  "performance": {
+    "latency_p50_ms": 5,
+    "latency_p99_ms": 50,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — self-hosted. Performance: thousands of jobs/second on modern hardware.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 80,
+    "error_message_quality": 75,
+    "error_message_notes": "Job failures store error messages and backtraces. REST API for queue management returns JSON. Worker-level errors surface via worker language SDKs. Web UI provides human-readable queue and job status. Error messages are concise.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Faktory Pro adds unique jobs (job deduplication within a time window). Open source Faktory does not deduplicate — same job pushed twice creates two jobs. Agents must implement deduplication externally or upgrade to Pro for unique job support.",
+    "pagination_style": "page_number",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Faktory is a standalone server process — agents must deploy and manage Faktory as infrastructure, not just install a library; single point of failure without HA configuration",
+      "Faktory stores jobs in memory with RDB persistence — data loss risk on server crash between RDB snapshots; configure RDB save frequency based on acceptable job loss window",
+      "Worker processes must connect to Faktory server via TCP — agents running in environments with strict network policies must allow outbound TCP to Faktory port (7419)",
+      "Job retry behavior uses exponential backoff with jitter — job retry timing is Faktory-managed; agents cannot customize retry intervals per job without Faktory Pro",
+      "Dead jobs (exhausted retries) accumulate in the dead queue — agents must implement dead job cleanup or jobs accumulate indefinitely, consuming memory",
+      "Faktory Web UI (port 7420) should not be exposed publicly — it has minimal auth; use reverse proxy with auth or restrict to private network access",
+      "Batches (multi-job grouping with callbacks) require Faktory Pro — agents that need 'process N jobs then do something when all complete' patterns need the Pro license"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 80,
+    "error_handling_score": 75,
+    "auth_complexity_score": 82,
+    "rate_limit_clarity_score": 85
+  },
+  "security_score_components": {
+    "tls_enforcement": 80,
+    "auth_strength": 65,
+    "scope_granularity": 55,
+    "dependency_hygiene": 80,
+    "secret_handling": 72,
+    "security_notes": "MIT open source for auditability. Single password auth with no scope granularity — weak auth model for multi-tenant use. TLS support via stunnel or reverse proxy. Bind to localhost recommended for security. Jobs in queue are plaintext in memory. Keep Faktory on private network."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 72,
+    "version_stability": 80,
+    "breaking_changes_history": 78,
+    "error_recovery": 78
+  }
+}

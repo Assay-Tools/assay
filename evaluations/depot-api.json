@@ -1,0 +1,107 @@
+{
+  "id": "depot-api",
+  "name": "Depot",
+  "version_evaluated": "current (SaaS)",
+  "homepage": "https://depot.dev/",
+  "repo_url": null,
+  "category": "developer-tools",
+  "subcategories": ["ci-cd", "build-tools", "containerization", "docker"],
+  "tags": ["docker", "build", "ci", "faster-builds", "cache", "arm64", "multi-arch", "saas"],
+  "what_it_does": "Remote Docker build acceleration service. Depot replaces `docker build` with `depot build` and runs builds on fast, persistent-cache remote machines with native ARM64 support. Typical result: 10-40x faster Docker builds due to persistent layer caches across builds and team members. Drop-in replacement for Docker BuildKit — no Dockerfile changes required. REST API and GitHub Actions integration for CI pipeline acceleration.",
+  "use_cases": [
+    "Accelerate CI pipeline Docker builds by 10-40x using Depot's persistent remote cache without changing Dockerfiles or CI configuration structure",
+    "Build multi-architecture Docker images (linux/amd64 + linux/arm64) natively without QEMU emulation — critical for Apple Silicon compatibility and ARM deployments",
+    "Share Docker layer cache across team members and CI runs so everyone benefits from cached layers rather than rebuilding from scratch",
+    "Reduce CI costs by shortening Docker build duration — faster builds = fewer CI runner minutes consumed for the same workload",
+    "Integrate Depot into agent-driven build pipelines via CLI (depot build) or GitHub Actions to accelerate containerized application packaging"
+  ],
+  "not_for": [
+    "Non-Docker build systems — Depot only accelerates Docker builds; use Earthly or Bazel for broader build system acceleration",
+    "Fully air-gapped environments — Depot requires connectivity to Depot's remote builder infrastructure",
+    "Teams with trivial Dockerfiles — if builds take under 30 seconds, Depot's overhead may not provide meaningful improvement"
+  ],
+  "best_when": "Your Docker builds in CI take more than 2-5 minutes and you want faster builds without changing Dockerfiles or managing BuildKit infrastructure.",
+  "avoid_when": "Your builds are already fast, or you need full control over build infrastructure without external service dependencies.",
+  "alternatives": ["earthly-api", "dagger-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": false,
+    "sdk_languages": [],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["api_key"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Depot uses API tokens for authentication. Tokens generated per organization in Depot dashboard. CI integration via DEPOT_TOKEN environment variable. Project-level tokens available for scoped access."
+  },
+  "pricing": {
+    "model": "usage_based",
+    "free_tier_exists": true,
+    "free_tier_limits": "Free: 500 build minutes/month",
+    "paid_tiers": "On-demand from $0.002/minute; Pro from $40/month (2000 minutes); Team/Enterprise custom",
+    "requires_credit_card": false,
+    "notes": "Pricing is per build minute on Depot's infrastructure. Cost typically lower than equivalent CI runner minutes because Depot builds are much faster — fewer minutes for same work. Free tier is generous for small teams."
+  },
+  "performance": {
+    "latency_p50_ms": 2000,
+    "latency_p99_ms": 15000,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "Concurrent build limits per plan. No API rate limits for build management.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["US", "EU"],
+    "compliance": ["SOC2"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 80,
+    "error_message_notes": "CLI provides clear error output matching Docker BuildKit errors. Build failures surface layer-level error context. API responses for build management are clean JSON. Documentation is clear and up-to-date.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Docker builds are deterministic given same inputs and Dockerfile. Depot layer cache is a performance optimization, not a state mutation — safe to retry failed builds. Each build creates a unique build ID.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Depot requires the Depot CLI installed alongside Docker — agent execution environments must have depot CLI available (`curl -L https://depot.dev/install-cli.sh | sh`)",
+      "First build per project warms the cache — expect normal Docker build times on first run; subsequent builds benefit from persistent cache",
+      "Multi-architecture builds (--platform linux/amd64,linux/arm64) are significantly faster on Depot than locally but still take longer than single-arch builds",
+      "DEPOT_TOKEN must be set in environment — builds fail silently or fall back to local Docker if token is missing or invalid",
+      "Cache invalidation follows standard Docker layer rules — changing early layers invalidates all downstream cached layers; agent-generated Dockerfiles should order cache-stable layers first",
+      "Concurrent build limits per plan — agent systems that trigger many parallel builds may hit concurrency limits and queue builds",
+      "Build context upload time depends on context size — agents building large repositories should configure .dockerignore to minimize build context upload overhead"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 80,
+    "auth_complexity_score": 90,
+    "rate_limit_clarity_score": 82
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 78,
+    "scope_granularity": 72,
+    "dependency_hygiene": 80,
+    "secret_handling": 82,
+    "security_notes": "SOC2 Type II. Build context sent to Depot's remote infrastructure — review for sensitive data in build context. Docker secrets (--secret) handled securely and not cached in layers. Ephemeral build environments per build. API tokens scoped to project."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 82,
+    "version_stability": 85,
+    "breaking_changes_history": 82,
+    "error_recovery": 80
+  }
+}
