@@ -1,0 +1,106 @@
+{
+  "id": "spring-batch-api",
+  "name": "Spring Batch",
+  "version_evaluated": "5.x",
+  "homepage": "https://spring.io/projects/spring-batch",
+  "repo_url": "https://github.com/spring-projects/spring-batch",
+  "category": "developer-tools",
+  "subcategories": ["batch-processing", "java", "spring", "etl", "data-pipeline"],
+  "tags": ["java", "spring", "batch", "etl", "chunk-processing", "job", "step", "scheduler", "retry", "partitioning"],
+  "what_it_does": "Enterprise Java batch processing framework for high-volume, reliable bulk data processing. Core concepts: Job (complete batch process), Step (independent unit of work), Chunk-oriented processing (read-process-write in configurable chunks with transaction per chunk), ItemReader (read from database/file/queue), ItemProcessor (transform/filter), ItemWriter (write output). Built-in retry/skip policies, restart from failure, job repository for tracking execution state. Supports partitioned processing for parallel execution. Integrates with Spring Boot, Spring Data, Quartz, JPA. Used for ETL pipelines, report generation, data migration, and periodic data processing jobs.",
+  "use_cases": [
+    "Process large volumes of agent interaction logs in nightly batch jobs — Spring Batch chunk-oriented processing handles millions of agent conversation records with configurable transaction boundaries",
+    "ETL pipeline for agent training data — read raw agent responses from S3 using FlatFileItemReader, transform/filter with ItemProcessor, write processed data to PostgreSQL using JpaItemWriter",
+    "Retry failed agent API calls in batch jobs — Spring Batch retry policy with backoff handles transient API failures without restarting entire job from beginning",
+    "Parallel agent data processing using partitioned steps — partition agent dataset by date range across worker threads for 10x throughput improvement in agent analytics jobs",
+    "Track and restart failed agent batch jobs — Spring Batch JobRepository records execution state in database; failed jobs restart from last successful chunk, not from beginning"
+  ],
+  "not_for": [
+    "Real-time or streaming data processing — Spring Batch is for bounded batch jobs; use Spring Cloud Stream, Apache Kafka Streams, or Apache Flink for continuous stream processing",
+    "Simple scheduled tasks — Spring's @Scheduled annotation is sufficient for simple periodic tasks; Spring Batch's complexity is justified only for chunk-oriented processing with retry/restart requirements",
+    "Event-driven processing — Spring Batch jobs are triggered explicitly (cron, API call); for event-driven agent processing, use Spring Integration or messaging with message-driven execution"
+  ],
+  "best_when": "You need reliable, restartable, high-volume data processing with chunk-oriented transactions — Spring Batch is the Java standard for ETL jobs, nightly batch processing, and data migration with failure recovery.",
+  "avoid_when": "Your processing is real-time or streaming, tasks are simple enough for @Scheduled, or you don't need the restart/retry/tracking complexity that Spring Batch provides.",
+  "alternatives": ["quartz-scheduler-api", "spring-integration-api", "apache-spark-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["java", "kotlin"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Batch framework — no auth concepts for the framework itself. Individual ItemReaders/ItemWriters authenticate with their respective data sources (databases, APIs, file systems) using application credentials."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, Apache 2.0 licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Spring Batch is Apache 2.0 licensed, maintained by VMware/Broadcom. Free for all use including commercial."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — self-hosted. Throughput depends on chunk size, ItemProcessor complexity, and ItemWriter batch size. Typical range: 10k-1M records/minute depending on data source and processing.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 82,
+    "error_message_notes": "Spring Batch exception messages identify step name, chunk number, and item that caused failure. Skip/retry policies log item-level errors with stack traces. JobRepository stores execution context for debugging failed jobs. Spring Batch Admin or Actuator endpoints expose job execution status.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Spring Batch job restarts resume from last committed chunk — ItemReader must be restartable (stateless or state stored in ExecutionContext). ItemWriter must handle duplicate writes for idempotent restart (use upsert semantics). Job instance key must be unique for each logical run.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Job parameters must be unique per run — Spring Batch identifies a JobInstance by JobParameters; same parameters = same instance; re-running with same params requires incrementer (RunIdIncrementer) or the job is considered already complete",
+      "Chunk size tuning is critical — too small (1-10) causes excessive transaction overhead and slow throughput; too large (10000+) risks memory issues and long transaction times; start with 100-1000 and tune based on item size and database batch support",
+      "ItemReader must be thread-safe for partitioned steps — JdbcCursorItemReader is not thread-safe; use JdbcPagingItemReader or synchronized wrapper for multi-threaded step execution; unsynchronized cursor readers cause data corruption in partitioned jobs",
+      "JobRepository requires persistent datasource — Spring Batch stores job execution state in database tables (BATCH_JOB_INSTANCE, BATCH_STEP_EXECUTION, etc.); in-memory H2 for testing only; production must use persistent database for restart capability",
+      "Skip and retry interact subtly — skip policy defines which exceptions to skip; retry policy defines which to retry; an exception in both retry and skip policy first retries N times, then skips; misunderstanding this interaction causes items to skip when they should retry",
+      "Step scope for late binding — ItemReader/ItemWriter beans that need job parameter injection must be @StepScope; without @StepScope, beans are created at application startup before job parameters are available, causing null parameter values"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 82,
+    "auth_complexity_score": 90,
+    "rate_limit_clarity_score": 92
+  },
+  "security_score_components": {
+    "tls_enforcement": 90,
+    "auth_strength": 82,
+    "scope_granularity": 78,
+    "dependency_hygiene": 85,
+    "secret_handling": 85,
+    "security_notes": "Spring Batch itself has no network exposure. Security depends on data sources used. Job execution API should be secured if exposed. Spring Security can protect batch management endpoints. Agent data in batch jobs processed in-memory — ensure sensitive data is cleared after processing."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 90,
+    "version_stability": 88,
+    "breaking_changes_history": 82,
+    "error_recovery": 95
+  }
+}

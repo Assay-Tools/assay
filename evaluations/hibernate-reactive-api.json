@@ -1,0 +1,106 @@
+{
+  "id": "hibernate-reactive-api",
+  "name": "Hibernate Reactive",
+  "version_evaluated": "2.x",
+  "homepage": "https://hibernate.org/reactive/",
+  "repo_url": "https://github.com/hibernate/hibernate-reactive",
+  "category": "developer-tools",
+  "subcategories": ["orm", "java", "reactive", "quarkus", "database"],
+  "tags": ["java", "kotlin", "hibernate", "reactive", "mutiny", "quarkus", "orm", "postgresql", "mysql", "non-blocking"],
+  "what_it_does": "Reactive programming model for Hibernate ORM — replaces JDBC with non-blocking Vert.x database drivers (PostgreSQL, MySQL, MariaDB, DB2, SQL Server, CockroachDB). Returns Mutiny Uni<T>/Multi<T> (or CompletionStage for project reactor) instead of blocking results. Hibernate Reactive enables JPA-style entity mapping with reactive execution — same @Entity, @ManyToOne, @OneToMany annotations, but queries return reactive types. First-class Quarkus integration via Panache Reactive (extends PanacheEntity with Uni<> return types). Designed for Quarkus reactive web stacks where blocking database I/O would block the event loop.",
+  "use_cases": [
+    "Build non-blocking Quarkus agent APIs that query PostgreSQL without blocking the event loop — Hibernate Reactive returns Uni<List<Agent>> instead of blocking List<Agent>",
+    "Replace blocking Panache with Panache Reactive in Quarkus agent services — AgentEntity.find('status', 'active').list() returns Uni<List<AgentEntity>> for reactive composition",
+    "Chain agent database operations using Mutiny Uni composition — fetch agent, update status, persist, and return result without blocking threads using Uni.flatMap()",
+    "Handle concurrent agent requests efficiently with reactive ORM — Hibernate Reactive uses Vert.x event loop threads, enabling high concurrency with fewer OS threads than blocking JDBC",
+    "Migrate existing Hibernate ORM agent services to reactive — same entity mappings work; swap @Inject EntityManager for @Inject Mutiny.SessionFactory for incremental migration"
+  ],
+  "not_for": [
+    "Non-Quarkus or non-Vert.x stacks — Hibernate Reactive requires Vert.x; use Spring Data R2DBC or jOOQ + R2DBC for reactive Spring applications",
+    "Teams unfamiliar with reactive programming — Uni/Multi reactive chains have steep learning curve compared to blocking ORM; plain Hibernate ORM with virtual threads (Quarkus 3) is simpler for most agent services",
+    "Complex batch operations — reactive ORM adds ceremony for bulk inserts/updates; use Hibernate ORM batch with StatelessSession for large agent data migrations"
+  ],
+  "best_when": "You're building a Quarkus reactive agent service that needs maximum throughput and cannot afford blocking JDBC calls on the event loop — Hibernate Reactive provides familiar JPA semantics with non-blocking execution.",
+  "avoid_when": "Your team is unfamiliar with reactive programming, you're using Spring WebMVC (not WebFlux), or your agent service doesn't have the concurrency requirements that justify reactive complexity.",
+  "alternatives": ["panache-quarkus-api", "spring-data-r2dbc-api", "jooq-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["java", "kotlin"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "ORM library — no auth concepts. Database credentials via quarkus.datasource.reactive.url, username, password properties or environment variables."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, LGPL 2.1 licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Hibernate Reactive is LGPL 2.1 licensed, maintained by Red Hat. Free for all use including commercial applications."
+  },
+  "performance": {
+    "latency_p50_ms": 3,
+    "latency_p99_ms": 30,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — embedded ORM. Non-blocking Vert.x driver enables higher concurrency than JDBC connection pools at similar memory footprint.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 78,
+    "error_message_quality": 75,
+    "error_message_notes": "Hibernate Reactive error messages inherit from Hibernate ORM with reactive context. Session closed errors are common and surface as IllegalStateException. Constraint violations from Vert.x driver include database-specific error codes. Stack traces in reactive chains can be deep and hard to correlate with user code.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Reactive sessions are single-use — each Uni chain gets a session via withTransaction(). Operations within a transaction compose idempotently. persist() on detached entities without merge causes errors; use merge() for update semantics.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Reactive session is not thread-safe — Hibernate Reactive Session must be used within the Vert.x event loop context; escaping to a worker thread (e.g., blocking code) causes 'session closed' or 'wrong context' exceptions",
+      "withTransaction() is the primary API — use sessionFactory.withTransaction((session, tx) -> ...) instead of managing sessions manually; manual session.close() is easy to forget in Uni chains causing resource leaks",
+      "Lazy loading requires open session — accessing lazy associations outside the original Uni chain causes LazyInitializationException; eager fetch (@ManyToOne(fetch=EAGER)) or explicit Fetch.LAZY load within session",
+      "Panache Reactive requires reactive datasource config — quarkus.datasource.db-kind and quarkus.datasource.reactive must be configured; mixing blocking and reactive datasource in same Quarkus app requires named datasources",
+      "Mutiny vs CompletionStage API — Hibernate Reactive supports both Mutiny (Uni/Multi) and CompletionStage; mixing both in same codebase causes type confusion; pick Mutiny for Quarkus, CompletionStage for Vert.x-first apps",
+      "Connection pool sizing differs from JDBC — reactive Vert.x pool is event-loop based; smaller pool sizes (5-10) support high concurrency vs JDBC needing 1 connection per thread; incorrect pool sizing wastes resources"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 78,
+    "error_handling_score": 75,
+    "auth_complexity_score": 95,
+    "rate_limit_clarity_score": 95
+  },
+  "security_score_components": {
+    "tls_enforcement": 92,
+    "auth_strength": 85,
+    "scope_granularity": 80,
+    "dependency_hygiene": 88,
+    "secret_handling": 88,
+    "security_notes": "Parameterized queries prevent SQL injection. Vert.x reactive driver supports TLS for database connections. Database credentials via environment variables through Quarkus config. Same security surface as Hibernate ORM — relies on application-layer auth guards."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 80,
+    "version_stability": 75,
+    "breaking_changes_history": 72,
+    "error_recovery": 82
+  }
+}

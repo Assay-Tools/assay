@@ -1,0 +1,106 @@
+{
+  "id": "archunit-api",
+  "name": "ArchUnit",
+  "version_evaluated": "1.x",
+  "homepage": "https://www.archunit.org/",
+  "repo_url": "https://github.com/TNG/ArchUnit",
+  "category": "developer-tools",
+  "subcategories": ["testing", "java", "architecture", "static-analysis", "code-quality"],
+  "tags": ["java", "kotlin", "architecture", "testing", "static-analysis", "layered-architecture", "dependency", "junit"],
+  "what_it_does": "Java architecture testing library that validates architectural constraints as unit tests. ArchUnit imports Java bytecode and applies rule checks: no cycles between packages, layered architecture rules (controllers don't import repositories), naming conventions, annotation requirements, dependency restrictions, and custom rules. Rules run as standard JUnit 5 or JUnit 4 tests — architecture violations appear as test failures with detailed violation messages. Catches architecture drift before it becomes technical debt. Rules expressed in fluent DSL: classes().that().resideInPackage('..controller..').should().onlyDependOnClassesThat()...",
+  "use_cases": [
+    "Enforce layered architecture in Java agent services — ArchUnit test verifies agent controllers only depend on services, services only depend on repositories, preventing layer skipping",
+    "Validate agent module boundaries — ensure agent domain classes don't import infrastructure details; inner circle classes must not depend on outer ring classes (clean architecture enforcement)",
+    "Enforce naming conventions for agent code — all classes implementing AgentHandler must end in 'Handler', all Spring @Service classes must reside in 'service' package",
+    "Detect dependency cycles in agent codebase — ArchUnit cycle detection finds package cycles that indicate tangled design before they become impossible to untangle",
+    "Validate annotation usage patterns — ensure agent @RestController classes are annotated with @Validated, all agent event handlers use @TransactionalEventListener not @EventListener"
+  ],
+  "not_for": [
+    "Runtime behavior testing — ArchUnit analyzes bytecode statically; use integration tests for runtime behavior, security testing, or performance validation",
+    "Non-Java/Kotlin JVM languages — ArchUnit works on JVM bytecode but rules are expressed in Java; Kotlin users can write rules in Kotlin but some DSL expressions are awkward",
+    "Enforcing code style/formatting — use Checkstyle or ktlint for formatting; ArchUnit is for structural and architectural rules, not code style"
+  ],
+  "best_when": "You're building a Java/Kotlin agent service with intentional architecture (layers, modules, clean architecture) and want to prevent gradual architecture erosion as the codebase grows.",
+  "avoid_when": "Your codebase has no architectural conventions yet (define them first), you need runtime or behavioral testing, or you're enforcing code formatting (use Checkstyle/PMD).",
+  "alternatives": ["spotbugs-api", "pmd-api", "checkstyle-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["java", "kotlin"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Testing library — no auth concepts. Tests run locally or in CI without external service dependencies."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, Apache 2.0 licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "ArchUnit is Apache 2.0 licensed, maintained by TNG Technology Consulting. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 500,
+    "latency_p99_ms": 5000,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — local analysis. Import time scales with codebase size (large codebases: 2-10 seconds for bytecode import). Cache imported classes across tests using @AnalyzeClasses at class level.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["local"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 90,
+    "error_message_quality": 92,
+    "error_message_notes": "ArchUnit violation messages are exceptionally detailed — each violation lists the exact class, method, or field that violates the rule with the specific dependency path. Violation messages include line numbers and the chain of dependencies that caused the violation. One of the clearest error messages in the Java testing ecosystem.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Architecture tests are purely deterministic — same bytecode produces same results. No external state. Safe to run repeatedly in CI.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "@AnalyzeClasses caching is critical for test suite performance — without @AnalyzeClasses at the test class level, ArchUnit re-imports all bytecode for each test method; large codebases can take 30+ seconds per test without caching",
+      "Package matching uses regex, not glob — 'com.agent..' means 'com.agent and all subpackages' (double dot); 'com.agent.' (single dot) means only the exact package; this differs from Gradle/Maven wildcards and causes silent rule mismatches",
+      "Inner classes require separate rule handling — ArchUnit's package rules apply to inner/anonymous classes separately; agent inner classes in 'wrong' packages fail layer rules unless explicitly excluded with .ignoreDependency()",
+      "Freeze architecture for gradual enforcement — ArchUnit FreezingArchRule stores current violations as 'allowed violations' and only fails on new ones; use this to enforce rules on new code without fixing all legacy violations at once",
+      "Third-party library classes are excluded by default — ArchUnit only analyzes YOUR classes by default; rules about dependencies on external libraries require explicit ClassFileImporter with EXCLUDE_JARS not set",
+      "Rule naming matters for CI visibility — unnamed rules show 'ArchRule' in test reports; always name rules with .as('Agent controllers should only...') to make CI failure messages actionable without reading rule code"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 90,
+    "error_handling_score": 92,
+    "auth_complexity_score": 100,
+    "rate_limit_clarity_score": 100
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 100,
+    "scope_granularity": 95,
+    "dependency_hygiene": 92,
+    "secret_handling": 95,
+    "security_notes": "No network exposure — purely local bytecode analysis. Can enforce security-related architectural rules: @Secured annotations required on agent REST endpoints, no direct crypto calls outside security package, sensitive data classes must not be logged."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 92,
+    "version_stability": 90,
+    "breaking_changes_history": 88,
+    "error_recovery": 95
+  }
+}
