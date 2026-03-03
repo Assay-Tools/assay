@@ -1,0 +1,106 @@
+{
+  "id": "motor-mongodb-api",
+  "name": "Motor",
+  "version_evaluated": "3.x",
+  "homepage": "https://motor.readthedocs.io/",
+  "repo_url": "https://github.com/mongodb/motor",
+  "category": "developer-tools",
+  "subcategories": ["database", "python", "mongodb", "async", "nosql"],
+  "tags": ["python", "mongodb", "motor", "async", "asyncio", "nosql", "document-db", "fastapi"],
+  "what_it_does": "Async Python MongoDB driver — the official asyncio-native MongoDB driver for Python, wrapping PyMongo for async/await usage. Motor features: AsyncIOMotorClient, AsyncIOMotorDatabase, AsyncIOMotorCollection, async CRUD (await collection.insert_one(), await collection.find_one()), async aggregation pipeline, change streams with async_for, GridFS async, connection pooling, Tornado support, and full PyMongo feature parity via async interface. Required for FastAPI, aiohttp, and asyncio-based agent backends that use MongoDB.",
+  "use_cases": [
+    "Async agent document store — client = AsyncIOMotorClient(MONGO_URI); db = client.agents; agent_doc = await db.agents.find_one({'_id': ObjectId(agent_id)}) — non-blocking MongoDB document fetch in FastAPI agent endpoint",
+    "Agent conversation history — await db.conversations.insert_one({'agent_id': str(agent_id), 'messages': messages, 'timestamp': datetime.utcnow()}) stores agent conversation; await db.conversations.find({'agent_id': str(id)}).sort('timestamp', -1).limit(10).to_list(10) retrieves last 10",
+    "Agent change stream monitoring — async for change in db.agents.watch([{'$match': {'operationType': 'update'}}]): handle_agent_update(change) — real-time agent status changes via MongoDB change streams without polling",
+    "Agent analytics aggregation — pipeline = [{'$match': {'status': 'completed'}}, {'$group': {'_id': '$agent_id', 'count': {'$sum': 1}}}]; results = await db.tasks.aggregate(pipeline).to_list(None) — async aggregation for agent performance metrics",
+    "GridFS agent file storage — fs = AsyncIOMotorGridFSBucket(db); await fs.upload_from_stream('agent-output.pdf', file_data) stores large agent outputs; await fs.open_download_stream(file_id) retrieves; avoids 16MB BSON document limit"
+  ],
+  "not_for": [
+    "Synchronous Python — Motor is async-only; for synchronous agent scripts use PyMongo directly",
+    "Relational data — MongoDB is document-oriented; for agent data with complex joins and transactions use PostgreSQL with asyncpg or SQLAlchemy async",
+    "Beanie/ODM users — Motor is the low-level driver; for Pydantic-integrated MongoDB ODM use Beanie which wraps Motor"
+  ],
+  "best_when": "Your async Python agent service (FastAPI, aiohttp) uses MongoDB for document storage — Motor provides the native asyncio interface to MongoDB with full feature support and connection pooling.",
+  "avoid_when": "You're using synchronous code (use PyMongo), want an ODM layer (use Beanie), or need relational queries.",
+  "alternatives": ["beanie-odm-api", "odmantic-api", "pymongo-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["password", "certificate", "aws_iam"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "MongoDB auth via connection string (mongodb://user:pass@host/db). Supports SCRAM-SHA-256, x.509 certificates, AWS IAM for Atlas. Connection string contains credentials — use environment variables."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, Apache 2.0 licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Motor is Apache 2.0 licensed, official MongoDB driver. Requires MongoDB server or Atlas (paid cloud). Motor itself is free."
+  },
+  "performance": {
+    "latency_p50_ms": 3,
+    "latency_p99_ms": 30,
+    "uptime_sla_percent": null,
+    "rate_limits": "No Motor rate limits. Performance depends on MongoDB server. Connection pool: maxPoolSize=100 default. Async driver enables high concurrency without thread pool overhead.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted", "cloud"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 82,
+    "error_message_quality": 80,
+    "error_message_notes": "Motor wraps PyMongo errors as async. pymongo.errors.ConnectionFailure for network issues. pymongo.errors.DuplicateKeyError for unique index violations. pymongo.errors.OperationFailure for server-side errors. All errors are awaitable — raised at await points not at motor client creation.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "insert_one is not idempotent — creates new document each call. update_one with upsert=True is idempotent. replace_one with upsert=True provides upsert. find_one is idempotent. Use _id or unique fields for idempotent agent document writes.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "AsyncIOMotorClient must not be created per-request — creating AsyncIOMotorClient in each FastAPI route handler creates a new connection pool per request; agent APIs create single client at startup (lifespan) and reuse; motor client is thread-safe and coroutine-safe for sharing",
+      "to_list(None) loads entire cursor into memory — await cursor.to_list(None) fetches all documents; agent queries returning 10,000 documents exhaust memory; use to_list(100) with async pagination or async for doc in cursor: process(doc) for memory-efficient agent data processing",
+      "ObjectId not JSON serializable by default — MongoDB _id is ObjectId type; FastAPI return values with ObjectId raise TypeError: Object of type ObjectId is not JSON serializable; serialize as str(_id) or use custom JSONEncoder; Beanie handles this automatically unlike raw Motor",
+      "Change streams require replica set — db.collection.watch() requires MongoDB replica set or Atlas (sharded cluster); standalone MongoDB raises OperationFailure: The $changeStream stage is only supported on replica sets; agent real-time features using change streams need Atlas or configured replica set",
+      "Motor 3.x requires PyMongo 4.x — Motor 3 dropped support for PyMongo 3.x; agent projects upgrading Motor 2→3 must also upgrade PyMongo; breaking changes in PyMongo 4 (removed Collection.insert, count deprecated) affect agent code using old PyMongo APIs",
+      "Async context managers required for transactions — async with await client.start_session() as session: async with session.start_transaction(): — double async context manager pattern; forgetting await on start_session returns coroutine not session; agent multi-document transactions require this exact pattern"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 82,
+    "error_handling_score": 80,
+    "auth_complexity_score": 82,
+    "rate_limit_clarity_score": 88
+  },
+  "security_score_components": {
+    "tls_enforcement": 85,
+    "auth_strength": 85,
+    "scope_granularity": 80,
+    "dependency_hygiene": 88,
+    "secret_handling": 82,
+    "security_notes": "Use TLS (mongodb+srv:// or tls=true) for production agent connections. Store MONGO_URI in environment variables, never in code. Create MongoDB users with minimum required roles (readWrite on specific DB, not root). Validate and sanitize MongoDB query operators in user input to prevent NoSQL injection ($where, $regex with user input)."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 82,
+    "version_stability": 80,
+    "breaking_changes_history": 75,
+    "error_recovery": 82
+  }
+}

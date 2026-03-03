@@ -1,0 +1,106 @@
+{
+  "id": "beanie-odm-api",
+  "name": "Beanie",
+  "version_evaluated": "1.x",
+  "homepage": "https://beanie-odm.dev/",
+  "repo_url": "https://github.com/BeanieODM/beanie",
+  "category": "developer-tools",
+  "subcategories": ["database", "python", "mongodb", "odm", "pydantic"],
+  "tags": ["python", "mongodb", "beanie", "odm", "pydantic", "async", "fastapi", "document"],
+  "what_it_does": "Async Python MongoDB ODM with Pydantic validation — Document-Object Mapper built on Motor + Pydantic v2. Beanie features: Document class (Pydantic BaseModel + MongoDB collection), async CRUD (await Agent.insert(), await Agent.find_one()), query builder (Agent.find(Agent.status == 'idle')), aggregation expressions, link references (Link[Task] for relations), lazy loading, Settings class for collection/index config, migrations via beanie-migration, and built-in JSON serialization. The FastAPI-native MongoDB ODM that makes agent document validation and persistence ergonomic.",
+  "use_cases": [
+    "Typed agent document model — class Agent(Document): name: str; status: Literal['idle', 'running', 'error'] = 'idle'; class Settings: name = 'agents'; await Agent(name='SearchAgent').insert() — Pydantic validation + MongoDB persistence in one model",
+    "FastAPI agent CRUD endpoint — @router.get('/agents/{id}'); agent = await Agent.get(id); return agent — Beanie Document is Pydantic model, serializes to JSON automatically; no manual ObjectId serialization unlike raw Motor",
+    "Agent linked documents — class Task(Document): agent: Link[Agent]; task = await Task.find_one(Task.id == task_id, fetch_links=True); task.agent.name — Beanie fetches linked Agent document in one query via $lookup",
+    "Agent query builder — agents = await Agent.find(Agent.status == 'idle', Agent.created_at >= datetime.now() - timedelta(hours=1)).sort(-Agent.created_at).limit(10).to_list() — type-safe query builder with Pydantic field references",
+    "Agent aggregation pipeline — result = await Agent.find_many(Agent.status == 'completed').aggregate([{'$group': {'_id': '$team_id', 'count': {'$sum': 1}}}]).to_list() — Pydantic-typed aggregation results for agent analytics"
+  ],
+  "not_for": [
+    "Synchronous Python — Beanie is async-only via Motor; for sync MongoDB use MongoEngine or PyMongo directly",
+    "Non-Pydantic codebases — Beanie's Document class is a Pydantic BaseModel; deep Pydantic integration may conflict with non-Pydantic agent architectures",
+    "Complex MongoDB operations — Beanie adds abstraction over Motor; for raw aggregation, change streams, GridFS use Motor directly or via Beanie's motor_client access"
+  ],
+  "best_when": "Your FastAPI agent backend uses MongoDB and you want Pydantic model validation, type-safe queries, and automatic JSON serialization — Beanie eliminates the Motor + Pydantic boilerplate in FastAPI agent services.",
+  "avoid_when": "You need synchronous MongoDB access, raw Motor control, or your team doesn't use Pydantic.",
+  "alternatives": ["motor-mongodb-api", "odmantic-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["password", "certificate"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Auth via Motor/PyMongo connection string. Beanie inherits Motor auth configuration. Store MONGO_URI in environment variables."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, Apache 2.0 licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Beanie is Apache 2.0 licensed. Free for all use. Requires MongoDB server or Atlas."
+  },
+  "performance": {
+    "latency_p50_ms": 5,
+    "latency_p99_ms": 50,
+    "uptime_sla_percent": null,
+    "rate_limits": "No Beanie rate limits. Slight overhead vs raw Motor from Pydantic validation on document load. Lazy link loading can cause N+1 if not using fetch_links=True. Connection pooling inherited from Motor AsyncIOMotorClient.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted", "cloud"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 80,
+    "error_message_quality": 78,
+    "error_message_notes": "Pydantic ValidationError on document save with invalid field types. DocumentNotFound raised by Agent.get(id) when not found. pymongo errors (DuplicateKeyError) surface through Beanie operations. Beanie query builder type errors caught at Python type-checking time with pyright/mypy.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Agent.insert() creates new document — not idempotent. Agent.save() performs insert or replace. Agent.find_one_and_update() with upsert provides idempotent upsert. Use Agent.get_or_create() pattern for idempotent agent creation.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "await init_beanie() required before any Document operation — init_beanie(database=db, document_models=[Agent, Task]) must be called at app startup (FastAPI lifespan); Document operations before init raise RuntimeError: 'Beanie not initialized'; agent startup must include init_beanie in lifespan or startup event",
+      "Link fields require fetch_links=True or are unloaded stubs — task = await Task.find_one(Task.id == id); task.agent is a Link stub not Agent instance; await task.fetch_link(Task.agent) or use fetch_links=True in query; agent code accessing task.agent.name without fetch raises AttributeError",
+      "Pydantic v2 vs v1 compatibility — Beanie 1.25+ requires Pydantic v2; older Beanie requires Pydantic v1; agent FastAPI apps with mixed pydantic versions cause ImportError; ensure beanie and pydantic versions are compatible via pip install 'beanie>=1.25'",
+      "Document class requires Settings with name — class Agent(Document): class Settings: name = 'agents'; omitting Settings.name uses class name as collection (lowercase); agent code expecting 'agents' collection but getting 'agent' (singular) causes confusion; always set explicit collection name",
+      "Index creation runs at init_beanie — Indexes defined in Settings.indexes are created on startup; if MongoDB user lacks createIndex permission, init_beanie fails; agent production deployments need MongoDB user with createIndex; disable auto-creation with allow_index_dropping=False if indexes managed separately",
+      "to_list() memory and revision — await Agent.find_all().to_list() loads ALL documents; agent collections with 100k+ documents exhaust memory; use .find().batch_size(100) with async for, or .skip()/.limit() for pagination; Beanie's revision_id automatic field can cause concurrent update conflicts (DocumentRevisionIdWasChanged)"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 78,
+    "error_handling_score": 75,
+    "auth_complexity_score": 82,
+    "rate_limit_clarity_score": 88
+  },
+  "security_score_components": {
+    "tls_enforcement": 85,
+    "auth_strength": 82,
+    "scope_granularity": 78,
+    "dependency_hygiene": 82,
+    "secret_handling": 82,
+    "security_notes": "Pydantic validation prevents malformed agent documents at the model layer. Beanie query builder uses proper MongoDB operators — less NoSQL injection risk than raw string queries. Store MONGO_URI in environment variables. Enable MongoDB TLS for production agent deployments."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 75,
+    "version_stability": 72,
+    "breaking_changes_history": 68,
+    "error_recovery": 75
+  }
+}

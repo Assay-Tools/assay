@@ -1,0 +1,106 @@
+{
+  "id": "minikube-api",
+  "name": "Minikube",
+  "version_evaluated": "1.x",
+  "homepage": "https://minikube.sigs.k8s.io/",
+  "repo_url": "https://github.com/kubernetes/minikube",
+  "category": "developer-tools",
+  "subcategories": ["kubernetes", "devops", "local-dev", "containerization"],
+  "tags": ["kubernetes", "minikube", "local-k8s", "devops", "containers", "k8s", "local-dev"],
+  "what_it_does": "Local Kubernetes cluster for development — runs a single-node Kubernetes cluster on your local machine. Minikube features: minikube start (creates cluster), minikube stop/delete, multiple driver options (Docker, VirtualBox, HyperKit, Lima), minikube addons (ingress, metrics-server, dashboard), minikube tunnel for LoadBalancer service access, minikube image load for pushing local images, minikube service for accessing NodePort services, kubectl integration, multi-node cluster support, and configurable Kubernetes version. Used by agent developers testing Kubernetes deployments locally before pushing to staging.",
+  "use_cases": [
+    "Agent Kubernetes deployment testing — minikube start; kubectl apply -f agent-deployment.yaml; kubectl rollout status deployment/agent; minikube service agent-svc — test full Kubernetes agent deployment locally before staging; validate YAML manifests, ConfigMaps, Secrets, and Services",
+    "Agent ingress testing locally — minikube addons enable ingress; kubectl apply -f agent-ingress.yaml; echo '$(minikube ip) agent.local' >> /etc/hosts; curl http://agent.local/api/agents — tests nginx ingress routing for agent API before AWS ALB deployment",
+    "Agent Docker image development — minikube image load agent-api:dev or minikube docker-env | source; docker build -t agent:dev .; kubectl set image deployment/agent agent=agent:dev — push local Docker images to minikube without registry for agent development iteration",
+    "Kubernetes addon testing — minikube addons enable metrics-server; kubectl top pods — tests Horizontal Pod Autoscaler rules with real metrics for agent workload scaling testing; validates agent HPA configuration before production",
+    "Multi-node agent testing — minikube start --nodes=3; kubectl taint nodes minikube-m02 agenttype=search:NoSchedule — tests agent pod scheduling, anti-affinity rules, and node selection in multi-node cluster; validates agent Kubernetes scheduling constraints"
+  ],
+  "not_for": [
+    "Production Kubernetes — Minikube is for local development only; for agent production use EKS, GKE, AKS, or bare metal Kubernetes",
+    "CI/CD Kubernetes testing — Minikube in CI has overhead; for CI Kubernetes testing use kind (faster startup, lighter) or k3s",
+    "High-resource agent workloads — Minikube shares local machine resources; for testing GPU or high-memory agent workloads use cloud Kubernetes"
+  ],
+  "best_when": "You're developing Kubernetes-deployed agent services and need to test Kubernetes manifests, ingress, ConfigMaps, Secrets, and pod scheduling locally before pushing to a shared cluster.",
+  "avoid_when": "You need CI-friendly Kubernetes (use kind), production cluster, or your agent doesn't use Kubernetes.",
+  "alternatives": ["kind-k8s-api", "k3s-api", "docker-compose-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": false,
+    "sdk_languages": [],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["certificate"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Minikube creates kubectl context with certificate-based auth automatically. Access controlled by kubeconfig (~/.kube/config). No external auth service."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, Apache 2.0 licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Minikube is Apache 2.0 licensed, maintained by Kubernetes SIG-Node. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 0,
+    "latency_p99_ms": 0,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Startup time: 60-120 seconds (first run downloading images), 10-30 seconds subsequently. Resource usage: 2GB RAM minimum for agent clusters with multiple pods. Docker driver fastest on macOS/Linux.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 82,
+    "error_message_notes": "minikube start failures show driver-specific errors (Docker not running, insufficient resources). kubectl errors surface normally (CrashLoopBackOff, ImagePullBackOff). minikube logs --file=out.log captures all cluster logs. minikube tunnel must stay running for LoadBalancer services — exits cause service unavailability.",
+    "idempotency_support": "full",
+    "idempotency_notes": "minikube start is idempotent — starting running cluster has no effect. minikube stop is idempotent. kubectl apply is idempotent for Kubernetes manifests. minikube delete is destructive — removes cluster state.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "minikube tunnel required for LoadBalancer services — kubectl get svc shows EXTERNAL-IP as <pending> without tunnel; agent APIs exposed as LoadBalancer type never get external IP without running minikube tunnel in separate terminal; tunnel process must stay alive; use NodePort or port-forward for simpler agent service access",
+      "Local Docker images need minikube image load — agent Docker images built on host machine aren't accessible in minikube cluster by default; docker build then minikube image load agent:dev makes image available; OR eval $(minikube docker-env) builds directly into minikube Docker daemon; must specify imagePullPolicy: Never in agent Deployment",
+      "minikube ip changes between restarts — cluster IP address changes when minikube restarts; /etc/hosts entries for agent ingress (agent.local → minikube ip) become stale; update /etc/hosts after each minikube start for ingress-based agent service access; use minikube tunnel instead for consistent localhost routing",
+      "Resource limits cause agent pod OOMKilled — minikube default 2GB RAM shared across all pods; agent pods without memory limits may OOMKill other pods; always set resources.requests and resources.limits on agent Deployment; minikube start --memory=4096 allocates more RAM for multiple agent pods",
+      "macOS Docker driver vs HyperKit — minikube on macOS with Docker Desktop uses docker driver (recommended); HyperKit driver slower and requires sudo; agent developers with Docker Desktop should use --driver=docker explicitly; VirtualBox driver deprecated on Apple Silicon (no x86 VMs)",
+      "kubectl context not automatic on new terminal — minikube start sets kubectl context; new terminal tabs need KUBECONFIG or kubectl config use-context minikube; agent team members with multiple kubectl contexts (production, staging, minikube) must verify current context before kubectl apply to avoid accidental production changes"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 80,
+    "auth_complexity_score": 88,
+    "rate_limit_clarity_score": 90
+  },
+  "security_score_components": {
+    "tls_enforcement": 85,
+    "auth_strength": 82,
+    "scope_granularity": 78,
+    "dependency_hygiene": 85,
+    "secret_handling": 80,
+    "security_notes": "Minikube cluster is local and isolated — no external network exposure by default. minikube tunnel exposes services on localhost only. Do not use minikube Secrets with production credentials; minikube is dev-only. kubeconfig credentials in ~/.kube/config give admin access to minikube cluster — protect from other local users."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 82,
+    "version_stability": 85,
+    "breaking_changes_history": 82,
+    "error_recovery": 80
+  }
+}
