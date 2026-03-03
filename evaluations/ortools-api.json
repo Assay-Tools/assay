@@ -1,0 +1,106 @@
+{
+  "id": "ortools-api",
+  "name": "OR-Tools",
+  "version_evaluated": "9.x",
+  "homepage": "https://developers.google.com/optimization",
+  "repo_url": "https://github.com/google/or-tools",
+  "category": "ai-ml",
+  "subcategories": ["optimization", "python", "operations-research", "scheduling", "routing"],
+  "tags": ["python", "or-tools", "optimization", "linear-programming", "constraint-programming", "routing", "scheduling", "google"],
+  "what_it_does": "Combinatorial optimization library — solves routing, scheduling, constraint satisfaction, and linear programming problems. OR-Tools features: CP-SAT solver (constraint programming with SAT), LP and MIP (linear/mixed-integer programming), Vehicle Routing Problem (VRP) solver, assignment problem solver, bin packing, knapsack, network flow, GLOP (LP solver), and Python API with CpModel/CpSolver/RoutingModel. Google's production optimization library — used for Google Maps routing, logistics optimization, and scheduling. Agent optimization for resource allocation, scheduling, and routing problems.",
+  "use_cases": [
+    "Agent task scheduling — model = cp_model.CpModel(); start = [model.NewIntVar(0, horizon, f'start_{i}') for i in tasks]; end = [model.NewIntVar(0, horizon, f'end_{i}') for i in tasks]; model.AddNoOverlap([model.NewIntervalVar(start[i], duration[i], end[i], f'task_{i}') for i in tasks]); solver.Solve(model) — schedule agent tasks without overlap; agent resource scheduler finds optimal task sequence",
+    "Agent routing optimization — manager = pywrapcp.RoutingIndexManager(len(locations), num_agents, depot); routing = pywrapcp.RoutingModel(manager); routing.SetArcCostEvaluatorOfAllVehicles(callback); solution = routing.SolveWithParameters(params) — optimize agent vehicle routes; delivery scheduling, field agent territory assignment",
+    "Agent resource assignment — model = cp_model.CpModel(); assignments = {}; for agent, task in product(agents, tasks): assignments[agent, task] = model.NewBoolVar(f'{agent}_{task}'); for task in tasks: model.AddExactlyOne(assignments[a, task] for a in agents) — assign tasks to agents; agent workload balancing optimization",
+    "Agent bin packing — model = cp_model.CpModel(); bins = [model.NewBoolVar(f'item_{i}_bin_{j}') for i, j in product(items, bin_range)]; for i in items: model.AddExactlyOne(bins[i, j] for j in bin_range) — pack agent tasks into time slots or capacity bins; agent resource utilization optimization",
+    "Agent linear programming — solver = pywraplp.Solver.CreateSolver('GLOP'); x = solver.NumVar(0, 1, 'x'); y = solver.NumVar(0, 2, 'y'); solver.Add(x + y <= 2); solver.Maximize(solver.Objective().SetCoefficient(x, 3)); solver.Solve() — LP for agent resource allocation; maximize agent throughput subject to capacity constraints"
+  ],
+  "not_for": [
+    "Machine learning — OR-Tools is combinatorial/mathematical optimization; for ML use PyTorch or JAX",
+    "Continuous nonlinear optimization — OR-Tools is for combinatorial and LP problems; for nonlinear optimization use scipy.optimize",
+    "Real-time constraint programming — OR-Tools solves offline optimization problems; for online constraint satisfaction use different approaches"
+  ],
+  "best_when": "Solving combinatorial optimization problems for agent systems — scheduling, routing, assignment, and resource allocation where brute-force search is infeasible and exact or near-optimal solutions are needed.",
+  "avoid_when": "You need machine learning, continuous nonlinear optimization, or real-time online constraint solving.",
+  "alternatives": ["scipy-api", "cvxpy-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "c++", "java", "csharp"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — local optimization library."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, Apache 2.0 licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "OR-Tools is Apache 2.0 licensed by Google. Free for all use including commercial."
+  },
+  "performance": {
+    "latency_p50_ms": 100,
+    "latency_p99_ms": 60000,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Solve time depends on problem complexity — NP-hard problems may take hours for large instances. CP-SAT uses modern conflict-driven learning for practical performance. Set time_limit_in_seconds in SolveWithParameters for bounded execution.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 75,
+    "error_message_quality": 70,
+    "error_message_notes": "SolverStatus shows INFEASIBLE when constraints have no solution. UNKNOWN status when time limit exceeded before solution found. InsufficientTimeError equivalent via status check. Constraint conflicts not explained directly — requires debugging model formulation.",
+    "idempotency_support": "full",
+    "idempotency_notes": "solver.Solve(model) is deterministic for same model and solver parameters. CP-SAT uses fixed random seed by default. Setting solver parameters explicitly ensures reproducibility. Solution quality may vary with time limits.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "CP-SAT uses integers only — CpModel.NewIntVar works with integers; float constraints require scaling: multiply all coefficients by 1000 to avoid floats; agent optimization with floating-point costs (1.5 hours) must convert to integers (150 minutes) before model formulation",
+      "INFEASIBLE status means model has contradiction — solver.Solve() returning INFEASIBLE means constraints conflict or no valid assignment exists; agent code must check status before accessing solution: if solver.StatusName(status) == 'INFEASIBLE': diagnose constraints; don't call solver.Value() on INFEASIBLE result",
+      "Routing vs CP-SAT are separate APIs — pywrapcp.RoutingModel (VRP) and cp_model.CpModel (general CP-SAT) are different Python modules; routing.Solve() and solver.Solve(model) have different call signatures; agent scheduling uses CP-SAT; agent routing uses RoutingModel; don't mix APIs",
+      "Large models require time limits — CP-SAT can run indefinitely on hard combinatorial problems; agent scheduling with 1000+ tasks must set time_limit: parameters.max_time_in_seconds = 30; solver returns best solution found within time limit; check solver.ObjectiveValue() for solution quality",
+      "Variable bounds affect solver performance — NewIntVar(0, 1000000, 'x') with large upper bound slows CP-SAT; tighten bounds to actual problem constraints; agent scheduling with 8-hour horizon should use NewIntVar(0, 480, 'start_minutes') not NewIntVar(0, 86400, 'start_seconds')",
+      "from ortools.sat.python import cp_model vs from ortools.constraint_solver import pywrapcp — CP-SAT uses cp_model module; routing uses constraint_solver module; agent code mixing these gets AttributeError on wrong class; import correct module for problem type"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 72,
+    "error_handling_score": 65,
+    "auth_complexity_score": 98,
+    "rate_limit_clarity_score": 98
+  },
+  "security_score_components": {
+    "tls_enforcement": 95,
+    "auth_strength": 95,
+    "scope_granularity": 90,
+    "dependency_hygiene": 88,
+    "secret_handling": 95,
+    "security_notes": "Local optimization library — no network access, no data exfiltration. Mathematical computation only. No security concerns beyond standard Python dependency hygiene."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 85,
+    "version_stability": 82,
+    "breaking_changes_history": 78,
+    "error_recovery": 80
+  }
+}

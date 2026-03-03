@@ -1,0 +1,106 @@
+{
+  "id": "faiss-python-api",
+  "name": "FAISS",
+  "version_evaluated": "1.8.x",
+  "homepage": "https://faiss.ai/",
+  "repo_url": "https://github.com/facebookresearch/faiss",
+  "category": "ai-ml",
+  "subcategories": ["vector-search", "python", "embeddings", "rag", "similarity-search"],
+  "tags": ["python", "faiss", "vector-search", "similarity-search", "embeddings", "rag", "ann", "facebook"],
+  "what_it_does": "High-performance similarity search and vector clustering library — searches billion-scale vector databases efficiently. FAISS features: IndexFlatL2 and IndexFlatIP (exact brute-force), IndexIVFFlat (inverted file for fast approximate search), IndexHNSWFlat (graph-based ANN), IndexIVFPQ (product quantization for compression), GPU support (index_cpu_to_gpu), faiss.write_index/read_index for persistence, D,I = index.search(query, k) for k-NN search, index.add(vectors) for insertion, faiss.normalize_L2 for cosine similarity, and index.nprobe for speed/accuracy tradeoff. Facebook Research library — most deployed vector search for local agent RAG without managed vector database.",
+  "use_cases": [
+    "Agent RAG vector search — import faiss; index = faiss.IndexFlatL2(768); index.add(doc_embeddings); D, I = index.search(query_embedding, k=5) — find 5 most similar documents by L2 distance; agent RAG retrieves relevant context; no database setup required for small-to-medium knowledge bases",
+    "Agent approximate search at scale — quantizer = faiss.IndexFlatL2(768); index = faiss.IndexIVFFlat(quantizer, 768, 100); index.train(embeddings); index.add(embeddings); index.nprobe = 10; D, I = index.search(query, 5) — IVF index searches 1M vectors in milliseconds; agent handles large knowledge bases with approximate search",
+    "Agent compressed vector index — index = faiss.IndexIVFPQ(quantizer, 768, 100, 8, 8); index.train(embeddings); index.add(embeddings) — product quantization compresses 768-dim float32 (3KB/vec) to 8 bytes/vec; agent stores 1M embeddings in 8MB instead of 3GB; 400x memory reduction with ~10% accuracy loss",
+    "Agent GPU vector search — res = faiss.StandardGpuResources(); gpu_index = faiss.index_cpu_to_gpu(res, 0, cpu_index) — move FAISS index to GPU; agent similarity search 10-100x faster on GPU; automatic GPU memory management",
+    "Agent persistent index — faiss.write_index(index, 'agent_knowledge.faiss'); index = faiss.read_index('agent_knowledge.faiss') — save and load index; agent knowledge base persists across restarts; faiss file format is compact binary"
+  ],
+  "not_for": [
+    "Metadata filtering — FAISS is pure vector similarity; for filtered search (find docs matching query AND category='finance') use Qdrant, Weaviate, or ChromaDB",
+    "Real-time index updates — FAISS indexes require retraining on major data changes; IVF indexes require train() on representative data; for real-time append use IndexIDMap or flat index",
+    "Managed cloud vector search — FAISS is self-hosted; for managed vector databases use Pinecone, Weaviate Cloud, or Qdrant Cloud"
+  ],
+  "best_when": "Local agent RAG pipelines needing fast vector similarity search over millions of embeddings without a managed vector database — FAISS provides production-grade ANN search with GPU acceleration, multiple index types, and quantization for memory efficiency.",
+  "avoid_when": "You need metadata filtering alongside vector search (use Qdrant/ChromaDB), real-time heavy updates, or prefer managed cloud vector databases.",
+  "alternatives": ["chromadb-api", "qdrant-api", "pinecone-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "c++"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — local vector search library."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "FAISS is MIT licensed by Facebook/Meta Research. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 1,
+    "latency_p99_ms": 50,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. IndexFlatL2 brute-force: 1M vectors searched in ~100ms CPU. IndexIVFFlat: 1M vectors in ~1ms with nprobe=10. GPU: 10-100x faster. IVF requires train() on representative data before add().",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 78,
+    "error_message_quality": 70,
+    "error_message_notes": "RuntimeError when searching untrained IVF index. Assertion errors for dimension mismatches (not descriptive). FAISS errors are often C++ assertions with cryptic messages. Index not trained error shows during add() not search() for IVF. GPU memory errors show CUDA error codes.",
+    "idempotency_support": "full",
+    "idempotency_notes": "index.search() is deterministic for same vectors and index state. read_index/write_index round-trip preserves index exactly. Exact indexes (Flat) produce identical results. ANN indexes (IVF, HNSW) produce consistent approximate results.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "IVF index requires train() before add() — faiss.IndexIVFFlat must be trained: index.train(representative_vectors) before index.add(all_vectors); calling add() on untrained IVF raises RuntimeError; agent code must have representative training data (10-100x nlist size) before building IVF index",
+      "FAISS returns L2 distances not similarities — index.search() with IndexFlatL2 returns squared L2 distances (smaller = more similar); for cosine similarity use faiss.normalize_L2(vectors) then IndexFlatIP (inner product = cosine sim for normalized vectors); agent RAG using L2 distance needs correct comparison logic",
+      "Vectors must be float32 C-contiguous — faiss requires float32 dtype and C-contiguous memory layout; index.add(embeddings) where embeddings is float64 raises TypeError; ensure np.ascontiguousarray(embeddings.astype(np.float32)) before adding to agent FAISS index",
+      "Index dimension fixed at creation — faiss.IndexFlatL2(768) only accepts 768-dimensional vectors; adding vectors of different dimension raises error; agent code must create new index when embedding model changes; migration requires re-embedding all documents",
+      "GPU index requires faiss-gpu package — pip install faiss-cpu for CPU; pip install faiss-gpu for NVIDIA GPU; cannot install both simultaneously; agent Docker images must choose: faiss-cpu for CPU-only containers, faiss-gpu for GPU-enabled containers",
+      "FAISS has no deletion support for most indexes — IndexFlatL2 supports remove_ids() but IVF indexes don't support deletion; agent knowledge base requiring document deletion must use IndexIDMap wrapper or rebuild index; plan for periodic index rebuilds for agent systems needing delete capability"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 72,
+    "error_handling_score": 62,
+    "auth_complexity_score": 98,
+    "rate_limit_clarity_score": 98
+  },
+  "security_score_components": {
+    "tls_enforcement": 92,
+    "auth_strength": 92,
+    "scope_granularity": 88,
+    "dependency_hygiene": 85,
+    "secret_handling": 92,
+    "security_notes": "Local vector search — no network access, no data exfiltration. FAISS index files contain vector data — treat as sensitive data if embeddings represent proprietary content. Index files are binary format — validate source before loading in agent systems."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 80,
+    "version_stability": 80,
+    "breaking_changes_history": 78,
+    "error_recovery": 72
+  }
+}

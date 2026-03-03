@@ -1,0 +1,106 @@
+{
+  "id": "mitmproxy-api",
+  "name": "mitmproxy",
+  "version_evaluated": "10.x",
+  "homepage": "https://mitmproxy.org/",
+  "repo_url": "https://github.com/mitmproxy/mitmproxy",
+  "category": "developer-tools",
+  "subcategories": ["security", "python", "proxy", "network-testing", "api-testing"],
+  "tags": ["python", "mitmproxy", "proxy", "ssl-inspection", "http-intercept", "api-testing", "security-testing"],
+  "what_it_does": "Interactive HTTPS proxy for security testing and API analysis — intercepts, inspects, and modifies HTTP/HTTPS traffic. mitmproxy features: mitmproxy interactive TUI, mitmdump for automated capture, mitmweb browser UI, Python addons API (request/response hooks), SSL/TLS interception (transparent MitM), WebSocket support, HTTP/2 and HTTP/3, upstream proxy chaining, HAR export, flow manipulation (modification of requests/responses in flight), replay/fuzz flows, and scripting via Python addon scripts. Three frontends: interactive (mitmproxy), CLI (mitmdump), and web (mitmweb). Used for API security testing, mobile app traffic analysis, and agent HTTP traffic inspection.",
+  "use_cases": [
+    "Agent HTTP traffic inspection — mitmdump -s addon.py — run addon.py script intercepting all traffic; class MyAddon: def response(self, flow): if 'api/agent' in flow.request.url: print(flow.response.json()) — agent intercepts and logs all API responses matching pattern",
+    "Agent request modification — class ModifyAddon: def request(self, flow): if 'Authorization' in flow.request.headers: flow.request.headers['Authorization'] = f'Bearer {new_token}' — agent replaces auth tokens in flight; API testing with different credentials without client modification",
+    "Agent traffic recording — mitmdump -w agent_traffic.flows — record all HTTP flows to file; mitmproxy -r agent_traffic.flows — replay recorded traffic; agent captures mobile app API calls for analysis and regression testing",
+    "Agent security testing — class FuzzAddon: def request(self, flow): flow.request.content = fuzz(flow.request.content) — modify request bodies with fuzzer; agent sends malformed requests to test API resilience; intercept and corrupt specific parameters",
+    "Agent certificate pinning bypass — mitmproxy with device trust store configured + Frida script disables pinning — agent inspects mobile app HTTPS traffic; reveals hidden APIs, authentication flows, and data collection patterns"
+  ],
+  "not_for": [
+    "Production proxy — mitmproxy is for testing; for production API gateway use Nginx, Kong, or Envoy",
+    "High-throughput proxying — mitmproxy Python processing adds latency; for high-performance TLS inspection use dedicated appliances",
+    "Unauthorized traffic interception — mitmproxy requires device trust of CA certificate; intercepting traffic without device owner consent is illegal"
+  ],
+  "best_when": "Analyzing, testing, or debugging HTTP/HTTPS traffic for agent security assessment, API testing, or mobile app reverse engineering in authorized environments — mitmproxy's Python addon API enables programmable traffic manipulation that Burp Suite's community edition doesn't provide.",
+  "avoid_when": "You need production traffic proxying, high-throughput processing, or are intercepting traffic without explicit authorization.",
+  "alternatives": ["scapy-python-api", "playwright-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth to mitmproxy itself (listen locally). Upstream proxy auth (username:password@proxy) supported. Target application auth credentials visible in intercepted traffic."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "mitmproxy is MIT licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 10,
+    "latency_p99_ms": 100,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Python addon processing adds ~5-20ms per request. SSL handshake adds ~50ms. High-volume API traffic may accumulate flows in memory.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 82,
+    "error_message_quality": 80,
+    "error_message_notes": "SSL certificate errors when client doesn't trust mitmproxy CA. ProxyConnectionFailed for unreachable upstream. Script addon errors shown in TUI with traceback. flow.kill() silently drops connection. Response modification errors show in addon error panel.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Traffic replay via mitmproxy -r file.flows replays recorded flows. Addons are stateless by default. Flow file recording is idempotent append. Modification addons have side effects on target application.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "CA certificate must be trusted by client — mitmproxy generates unique CA certificate at ~/.mitmproxy/mitmproxy-ca.pem; client must trust this CA for TLS interception; mobile devices require installing cert to device trust store + disabling certificate pinning; agent certificate management is setup overhead for each test device",
+      "Addons must be in separate file — mitmdump -s addon.py requires addon.py in current directory or full path; inline scripts not supported in mitmdump; agent addon development must save to file and restart mitmdump to reload; no hot reload without mitmdump --watch flag (mitmproxy TUI supports it)",
+      "flow.request.content is bytes — flow.request.content returns bytes; JSON parsing requires: import json; data = json.loads(flow.request.content); modifying requires setting bytes: flow.request.content = json.dumps(new_data).encode(); agent addons mixing str/bytes get TypeError",
+      "HTTP/2 multiplexes multiple streams — mitmproxy handles HTTP/2 but flow.request ordering differs from HTTP/1.1; agent addons assuming sequential request ordering may misattribute responses to requests; use flow.id for request-response matching in HTTP/2 agent testing",
+      "Addon errors silently continue — if addon def request(self, flow) raises exception, mitmproxy logs error but continues; agent addons with bugs appear to work but don't modify flows; always add explicit logging and check mitmproxy error output during agent addon development",
+      "Memory grows with recorded flows — mitmdump without -w flag accumulates all flows in memory; agent long-running captures of high-traffic APIs exhaust memory; use mitmdump -w flows.file to stream to disk or implement flow.kill() for unneeded flows in addon"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 80,
+    "error_handling_score": 75,
+    "auth_complexity_score": 88,
+    "rate_limit_clarity_score": 92
+  },
+  "security_score_components": {
+    "tls_enforcement": 78,
+    "auth_strength": 75,
+    "scope_granularity": 72,
+    "dependency_hygiene": 82,
+    "secret_handling": 68,
+    "security_notes": "Active MitM proxy — intercepted traffic contains auth tokens, passwords, PII; handle with strict access controls. mitmproxy CA private key at ~/.mitmproxy/mitmproxy-ca.pem must be protected. Only use on authorized systems and networks. Intercepted credentials must not be logged to unsecured files."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 80,
+    "version_stability": 78,
+    "breaking_changes_history": 75,
+    "error_recovery": 78
+  }
+}
