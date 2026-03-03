@@ -1,0 +1,106 @@
+{
+  "id": "objgraph-python-api",
+  "name": "objgraph",
+  "version_evaluated": "3.x",
+  "homepage": "https://mg.pov.lt/objgraph/",
+  "repo_url": "https://github.com/mgedmin/objgraph",
+  "category": "developer-tools",
+  "subcategories": ["debugging", "python", "memory", "profiling", "visualization"],
+  "tags": ["python", "objgraph", "memory", "leak", "objects", "graph", "debugging", "gc"],
+  "what_it_does": "Object graph visualization and memory leak detection for Python — shows what objects are in memory and what references them. objgraph features: show_most_common_types() for top object counts by type, show_growth() for new objects since last check, find_backref_chain() for reference chains, show_backrefs()/show_refs() for object reference graphs (requires graphviz), get_leaking_objects() for objects with no referrers, count() for type count, at_addrs() for objects at specific memory addresses, and typestats()/get_new_ids() for tracking object creation. Essential for finding Python memory leaks.",
+  "use_cases": [
+    "Agent memory leak detection — import objgraph; objgraph.show_growth(limit=10) — show top 10 types with most growth; agent runs this before and after processing to find leaks; output: list type: 1234 (+567); repeated calls show only new growth since last call",
+    "Agent object count snapshot — import gc; gc.collect(); most_common = objgraph.most_common_types(limit=20) — garbage collect then count; agent health check shows which types dominate memory; compare across time to identify growing types",
+    "Agent reference chain — import io; buf = io.StringIO(); objgraph.show_backrefs(leaking_object, output=buf); print(buf.getvalue()) — text representation of what references object; agent finds why object isn't being garbage collected; show_backrefs() reveals unexpected references keeping objects alive",
+    "Agent leak finding — leaking = objgraph.get_leaking_objects(); print(f'{len(leaking)} objects with no referrers'); objgraph.show_most_common_types(objects=leaking) — objects with no referrers; agent identifies garbage-eligible objects stuck in cycles; combine with gc.collect() to distinguish cycles from leaks",
+    "Agent periodic monitoring — import objgraph; baseline = objgraph.typestats(); process_batch(); current = objgraph.typestats(); new_types = {t: current.get(t,0) - baseline.get(t,0) for t in current if current.get(t,0) > baseline.get(t,0)}; print(sorted(new_types.items(), key=lambda x: -x[1])[:10]) — manual growth tracking; agent monitors object growth per batch"
+  ],
+  "not_for": [
+    "Production monitoring — objgraph is development/debugging tool; add significant overhead; use psutil for production memory metrics",
+    "Memory size analysis — objgraph counts objects not their sizes; for memory size use sys.getsizeof() or pympler",
+    "Automated memory management — objgraph is analysis tool; for fixing leaks, fix code; gc module handles automatic collection"
+  ],
+  "best_when": "Diagnosing Python memory leaks during development — objgraph's show_growth() and show_backrefs() quickly identify what objects are leaking and what's keeping them alive.",
+  "avoid_when": "Production monitoring (use psutil), memory size analysis (use pympler), or automated garbage collection management (use gc module).",
+  "alternatives": ["memory-profiler-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — local memory analysis tool."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "objgraph is MIT licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Performance: most_common_types() is O(n) for n objects in memory — can be slow on large heaps. show_growth() stores snapshot of all objects — significant memory overhead. show_backrefs() with max_depth traverses reference graph — can be very slow for complex graphs.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 80,
+    "error_message_quality": 78,
+    "error_message_notes": "objgraph functions print results to stdout by default. output= parameter redirects to file/buffer. graphviz-based functions (show_backrefs) fail silently if graphviz not installed. No exceptions for invalid inputs — returns empty results.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "most_common_types() is idempotent — same memory state produces same results. show_growth() is stateful — first call establishes baseline; subsequent calls show growth since previous call. Not idempotent — call order matters.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "show_growth() first call always shows everything — objgraph.show_growth() baseline is zero on first call; first call output shows ALL objects as growth; call show_growth() once to establish baseline then again after the operation you're investigating: show_growth(); do_work(); show_growth() — second call shows true growth",
+      "gc.collect() required before analysis — Python garbage collector may not have run; agents must gc.collect() before objgraph analysis to ensure cycles are collected before counting; otherwise: objects in unreachable cycles appear as potential leaks but would be collected on next GC cycle",
+      "graphviz required for visual graphs — show_backrefs(obj) and show_refs(obj) generate dot graphs requiring graphviz installed; without graphviz: raises RuntimeError or generates empty output; install: brew install graphviz (macOS) or apt-get install graphviz (Linux); text output via output=io.StringIO() doesn't need graphviz",
+      "objgraph itself holds references — importing objgraph and calling functions adds objgraph's own objects to the heap; show_growth() shows growth including objgraph internals; agent code analyzing leaks should call gc.collect() and ignore objgraph types in results",
+      "get_leaking_objects() is slow for large heaps — traverses all Python objects to find those with no referrers; on heaps with millions of objects (ML models, large datasets): takes seconds; run only when debugging, not in normal operation; consider psutil.Process().memory_info() for production monitoring",
+      "show_most_common_types() counts all Python objects — includes Python internals (frames, cells, code objects); agent code reading output must distinguish application objects from interpreter overhead; focus on application types: dict, list, custom classes; 'frame' and 'function' type growth usually indicates call stack depth not leaks"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 80,
+    "error_handling_score": 78,
+    "auth_complexity_score": 99,
+    "rate_limit_clarity_score": 99
+  },
+  "security_score_components": {
+    "tls_enforcement": 92,
+    "auth_strength": 92,
+    "scope_granularity": 90,
+    "dependency_hygiene": 90,
+    "secret_handling": 78,
+    "security_notes": "Memory analysis tool that can inspect all Python objects in memory including those containing secrets. show_backrefs() output may include object reprs with sensitive data. Never run objgraph on production systems handling credentials — output may contain plaintext secrets. Development and debugging use only."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 80,
+    "version_stability": 82,
+    "breaking_changes_history": 85,
+    "error_recovery": 78
+  }
+}

@@ -1,0 +1,106 @@
+{
+  "id": "simplejson-python-api",
+  "name": "simplejson",
+  "version_evaluated": "3.x",
+  "homepage": "https://simplejson.readthedocs.io/",
+  "repo_url": "https://github.com/simplejson/simplejson",
+  "category": "developer-tools",
+  "subcategories": ["serialization", "python", "json", "utilities"],
+  "tags": ["python", "simplejson", "json", "serialization", "encoding", "decoding"],
+  "what_it_does": "Extended JSON encoder/decoder for Python — a faster, more feature-rich drop-in replacement for the stdlib json module. simplejson features: use_decimal=True for Decimal serialization, namedtuple_as_object for namedtuple handling, tuple_as_array, item_sort_key for sorted output, for_json protocol via __for_json__ method, JSONDecodeError with location info, encoding parameter for bytes handling, allow_nan flag, raw_json() for embedding pre-serialized JSON, C extension speedup, and full json module API compatibility (loads/dumps/load/dump).",
+  "use_cases": [
+    "Agent Decimal handling — import simplejson as json; from decimal import Decimal; data = {'price': Decimal('19.99'), 'tax': Decimal('1.80')}; json.dumps(data, use_decimal=True) — '{\"price\": 19.99, \"tax\": 1.80}' — Decimal serialization; agent financial data round-trips without floating point precision loss; stdlib json raises TypeError for Decimal",
+    "Agent sorted JSON output — import simplejson as json; json.dumps(config, sort_keys=True, indent=2) — deterministic output; agent generated JSON files are diff-friendly in version control; sorted keys ensure same dict always produces same JSON string",
+    "Agent custom object serialization — class AgentState: def __for_json__(self): return {'status': self.status, 'memory': self.memory}; json.dumps(state) — __for_json__ protocol; agent custom objects serialize without custom encoder class; simpler than json.JSONEncoder subclass",
+    "Agent JSON error location — try: simplejson.loads(bad_json); except simplejson.JSONDecodeError as e: print(f'Error at line {e.lineno}, col {e.colno}: {e.msg}') — error with location; agent parses user-provided JSON and reports error location; stdlib json also has location but simplejson's is more accurate for large documents",
+    "Agent raw JSON embedding — from simplejson import raw_json; data = {'metadata': raw_json(precomputed_json_string)}; simplejson.dumps(data) — embed pre-serialized JSON without re-parsing; agent embeds cached JSON blob into larger response without deserialize/re-serialize overhead"
+  ],
+  "not_for": [
+    "High-performance JSON — for maximum speed use orjson (Rust-based, 3-10x faster than simplejson)",
+    "Binary JSON formats — simplejson is text JSON only; for binary use MessagePack or CBOR",
+    "Schema validation — simplejson is encoding/decoding only; for validation use jsonschema or pydantic"
+  ],
+  "best_when": "JSON encoding with Decimal support, custom object protocols, or sorted deterministic output — simplejson is a drop-in json replacement for edge cases the stdlib json doesn't handle.",
+  "avoid_when": "Maximum performance (use orjson), binary formats (use msgpack), or schema validation (use pydantic/jsonschema).",
+  "alternatives": ["orjson-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — local JSON serialization library."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "simplejson is MIT licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Performance: C extension provides 2-3x speedup over pure Python mode. Faster than stdlib json in many cases when C extension compiled. For maximum speed: orjson (10x faster) or ujson. simplejson's main advantage is features, not raw speed.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 88,
+    "error_message_notes": "JSONDecodeError with lineno, colno, pos, and msg attributes. TypeError for non-serializable objects. Same error types as stdlib json but with more location detail. raw_json() wrapping doesn't raise — JSON validity only checked at parse time.",
+    "idempotency_support": "full",
+    "idempotency_notes": "dumps() is idempotent — same input always produces same output. sort_keys=True ensures deterministic output for same dict. loads() is idempotent. Both are pure functions with no side effects.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "import simplejson as json not required but conventional — simplejson is API-compatible with stdlib json; most code uses: import simplejson as json; then calls json.loads()/json.dumps() identically to stdlib; some packages check type(json).__name__ == 'json' — rare issue but possible with strict type checking",
+      "use_decimal=True changes loads() behavior too — simplejson.loads('19.99', use_decimal=True) returns Decimal('19.99') not float; agent code using use_decimal=True for dumps must also use it for loads() if round-trip Decimal fidelity is needed; mixing use_decimal in dumps but not loads converts Decimal to float on reload",
+      "C extension may not be compiled — pip install simplejson on systems without C compiler falls back to pure Python; agent Docker images using Alpine Linux need build tools: apk add gcc python3-dev musl-dev; pure Python mode is slower but correct; no warning is emitted about pure Python mode",
+      "JSONDecodeError is simplejson.JSONDecodeError not json.JSONDecodeError — agent code catching json.JSONDecodeError may miss simplejson.JSONDecodeError; import simplejson; except simplejson.JSONDecodeError: is correct; simplejson.JSONDecodeError is a subclass of ValueError like stdlib",
+      "raw_json() bypasses validation — simplejson.raw_json(invalid_json_string) creates wrapper without parsing; the invalid JSON is embedded as-is in output; resulting JSON document is invalid; agent code using raw_json() must pre-validate the string or risk producing malformed JSON",
+      "namedtuple_as_object default is False — simplejson.dumps(Point(1, 2)) serializes namedtuple as [1, 2] by default (list); simplejson.dumps(Point(1, 2), namedtuple_as_object=True) produces {'x': 1, 'y': 2}; agent code expecting dict-style namedtuple serialization must set namedtuple_as_object=True explicitly"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 88,
+    "auth_complexity_score": 99,
+    "rate_limit_clarity_score": 99
+  },
+  "security_score_components": {
+    "tls_enforcement": 92,
+    "auth_strength": 92,
+    "scope_granularity": 90,
+    "dependency_hygiene": 92,
+    "secret_handling": 90,
+    "security_notes": "JSON serialization library with no network calls. simplejson.loads() is not vulnerable to eval injection (unlike ast.literal_eval on malformed input). Large JSON documents can cause DoS via memory exhaustion — validate document size before parsing untrusted JSON. No deserialization vulnerabilities (unlike pickle/dill)."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 90,
+    "breaking_changes_history": 90,
+    "error_recovery": 88
+  }
+}

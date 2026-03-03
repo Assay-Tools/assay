@@ -1,0 +1,106 @@
+{
+  "id": "lz4-python-api",
+  "name": "lz4",
+  "version_evaluated": "4.x",
+  "homepage": "https://python-lz4.readthedocs.io/",
+  "repo_url": "https://github.com/python-lz4/python-lz4",
+  "category": "developer-tools",
+  "subcategories": ["compression", "python", "performance", "utilities"],
+  "tags": ["python", "lz4", "compression", "fast", "binary", "cache", "streaming"],
+  "what_it_does": "Python bindings for LZ4 compression algorithm — provides extremely fast compression and decompression with reasonable ratios. lz4 features: lz4.frame.compress()/decompress() for standard LZ4 frame format, lz4.block.compress()/decompress() for raw block compression, lz4.frame.open() for streaming compression, LZ4FrameCompressor/LZ4FrameDecompressor for incremental processing, compression_level parameter (0=fast, 9-16=high compression), block_size options, content_checksum for integrity, block_linked for better ratio, and store_size for size-prepended blocks. LZ4 is 2-5x faster than zlib/gzip at similar ratios.",
+  "use_cases": [
+    "Agent cache compression — import lz4.frame; data = json.dumps(large_response).encode(); compressed = lz4.frame.compress(data); cache.set(key, compressed); restored = lz4.frame.decompress(cache.get(key)).decode() — fast cache compression; agent Redis cache stores compressed data; LZ4 decompresses faster than gzip; reduces Redis memory with minimal CPU overhead",
+    "Agent binary data transfer — payload = lz4.frame.compress(serialized_data, compression_level=0); send_to_worker(payload); received = lz4.frame.decompress(payload) — fast compression for IPC; agent sends large data between processes with minimal compression overhead; level=0 maximizes speed over ratio",
+    "Agent log compression — with lz4.frame.open('agent.log.lz4', 'wb') as f: f.write(log_data.encode()) — streaming compressed log; agent writes compressed log files; lz4.frame.open() provides file-like interface; logs readable with: lz4.frame.open('agent.log.lz4', 'rb').read().decode()",
+    "Agent high-ratio compression — compressed = lz4.frame.compress(data, compression_level=16) — HC (High Compression) mode; agent archiving large datasets with better ratio; HC mode is slower to compress but faster to decompress than gzip; decompression speed always same regardless of compression level",
+    "Agent streaming decompression — decompressor = lz4.frame.LZ4FrameDecompressor(); for chunk in receive_stream(): output = decompressor.decompress(chunk); process(output) — incremental decompression; agent processes compressed streaming data without buffering entire payload; LZ4FrameDecompressor maintains internal state between chunks"
+  ],
+  "not_for": [
+    "Maximum compression ratio — LZ4 prioritizes speed over ratio; for best compression use zstd or brotli",
+    "Text compression for web — LZ4 frame format not supported in browsers; for web use gzip or brotli",
+    "Archive compatibility — LZ4 is a binary format; for tar/zip archives use tarfile or zipfile modules"
+  ],
+  "best_when": "Fast compression for agent caching, IPC, and binary data transfer — LZ4 provides 2-5x speed advantage over gzip with acceptable compression ratios, ideal for latency-sensitive agent data pipelines.",
+  "avoid_when": "Maximum compression (use zstd), web responses (use gzip/brotli), or standard archive formats (use zipfile).",
+  "alternatives": ["zstd-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — local compression library."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, BSD licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "python-lz4 is BSD licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Performance: compression ~400 MB/s, decompression ~1200 MB/s for typical data (level=0). Compared to gzip: 2-5x faster compression, 3-5x faster decompression. Compression ratio: typically 2:1 vs 3:1 for gzip. Memory: block mode is lower latency but requires known output size.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 82,
+    "error_message_notes": "lz4.frame.LZ4FrameError for frame format errors. ValueError for invalid compression parameters. RuntimeError for block decompression without known size. Error messages indicate what LZ4 operation failed but may not be fully descriptive.",
+    "idempotency_support": "full",
+    "idempotency_notes": "compress() is idempotent — same input with same parameters produces functionally equivalent (though not byte-identical for frame format) output. decompress() is fully idempotent. Round-trip is lossless.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "lz4.block vs lz4.frame — block.compress() is fast but requires knowing output size for decompression: block.decompress(data, uncompressed_size=N); frame.compress() includes size metadata — simpler API; agent code using block mode must store original size separately; frame mode recommended for most use cases",
+      "store_size=True default in block mode — lz4.block.compress(data, store_size=True) (default) prepends 4-byte size to compressed output; lz4.block.decompress() reads this automatically; lz4.block.compress(data, store_size=False) without size: must pass uncompressed_size=N to decompress; mixing store_size=True and False causes RuntimeError",
+      "LZ4 frame not same as LZ4 block — lz4.frame and lz4.block produce different binary formats; data compressed with frame.compress() must be decompressed with frame.decompress(); mixing frame and block functions raises LZ4FrameError; agent code must consistently use same mode",
+      "content_checksum=False by default — LZ4 frame has optional content checksum for integrity; disabled by default for speed; agent storing compressed data on unreliable storage should enable: lz4.frame.compress(data, content_checksum=True); decompress verifies checksum and raises LZ4FrameError on corruption",
+      "return_bytearray for reduced allocations — lz4.frame.compress(data, return_bytearray=True) returns bytearray instead of bytes; agent processing many compressed chunks allocates less memory with bytearray; can be passed directly to most I/O functions; minor optimization for high-throughput scenarios",
+      "Compression level 0 vs default — lz4.frame.compress(data) uses default level (0 = fast mode); lz4.frame.compress(data, compression_level=9) uses HC mode for better ratio; compression_level 1-8 is same as 0 (LZ4 only has fast and HC, not gradient); levels 9-16 are HC mode with increasing effort"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 82,
+    "auth_complexity_score": 99,
+    "rate_limit_clarity_score": 99
+  },
+  "security_score_components": {
+    "tls_enforcement": 92,
+    "auth_strength": 92,
+    "scope_granularity": 90,
+    "dependency_hygiene": 90,
+    "secret_handling": 90,
+    "security_notes": "Compression library with no network calls. LZ4 does not encrypt data — compress then encrypt separately for secure storage. content_checksum=True provides integrity but not authentication — use HMAC for authenticated integrity. Decompression of untrusted data: malicious LZ4 data can cause decompression bombs (large output) — validate uncompressed size before decompressing."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 85,
+    "version_stability": 88,
+    "breaking_changes_history": 88,
+    "error_recovery": 85
+  }
+}
