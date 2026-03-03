@@ -5,24 +5,24 @@
   "homepage": "https://immerjs.github.io/immer/",
   "repo_url": "https://github.com/immerjs/immer",
   "category": "developer-tools",
-  "subcategories": ["state-management", "immutability", "javascript", "utilities"],
-  "tags": ["immutability", "state", "draft", "produce", "react", "redux", "typescript", "structural-sharing"],
-  "what_it_does": "JavaScript library that lets you work with immutable state using mutable syntax. The produce() function creates a draft of the current state where you can apply direct mutations — Immer tracks changes and produces a new immutable state using structural sharing. Used extensively in Redux Toolkit (built-in), React state management, and anywhere immutable data structures need readable mutation syntax. Eliminates the need for spread operators and nested immutable updates.",
+  "subcategories": ["state-management", "immutability", "functional"],
+  "tags": ["immutable", "immer", "produce", "state", "redux", "react", "draft", "structural-sharing"],
+  "what_it_does": "Produces immutable state by writing mutable code using JavaScript Proxy. The 'produce' function creates a draft copy that captures mutations and returns a new immutable state with structural sharing — without deep cloning. Powers Redux Toolkit's immutable state updates. Won the React Open Source award. Simplest path to immutability in JavaScript: write mutable code, get immutable results.",
   "use_cases": [
-    "Update nested React or Redux state using direct mutations inside produce() instead of spreading nested objects",
-    "Simplify complex state updates in Redux reducers — Redux Toolkit uses Immer internally for all slice reducers",
-    "Create immutable updates for complex data structures (arrays of objects, deeply nested state) with readable code",
-    "Use useImmer hook as a drop-in replacement for useState that enables mutable syntax for complex state",
-    "Implement structural sharing in custom state managers where only changed nodes are replaced (not the entire tree)"
+    "Write clear, mutable-style state update logic in Redux reducers without complex spread operators",
+    "Implement immutable state updates in React's useReducer with intuitive mutation syntax via produce()",
+    "Build agent state machines where each state transition is written as simple mutations but produces new immutable state",
+    "Simplify deeply nested state updates: draft.user.preferences.theme = 'dark' vs spread-heavy alternatives",
+    "Implement copy-on-write data structures in agent pipelines where structural sharing is needed for performance"
   ],
   "not_for": [
-    "Performance-critical code paths with very large objects — Immer's proxy overhead adds cost for massive data structures",
-    "Simple flat state — spreading a flat object is as readable as Immer without the library overhead",
-    "Non-JavaScript environments — Immer is JavaScript/TypeScript only"
+    "Non-JavaScript environments — Immer requires ES6 Proxy; old environments need useProxies: false with less ergonomic API",
+    "Performance-critical hot paths — Proxy-based drafts have overhead; for maximum performance use manual immutable patterns",
+    "Circular reference structures — Immer doesn't support circular references in draft state"
   ],
-  "best_when": "You have deeply nested state that's painful to update immutably with spreads — Immer makes nested updates as readable as mutations.",
-  "avoid_when": "Your state is simple (1-2 levels deep) — spread operators are sufficient without Immer's overhead for flat state.",
-  "alternatives": ["zustand-api", "jotai-api"],
+  "best_when": "You're writing Redux reducers or React state updates with complex nested objects and want to write natural mutable code that produces correct immutable state.",
+  "avoid_when": "You need maximum performance in a hot path where Proxy overhead matters, or your environment doesn't support ES6 Proxy (IE11).",
+  "alternatives": ["immutable-api", "structuredClone"],
   "interface": {
     "has_rest_api": false,
     "has_graphql": false,
@@ -30,7 +30,7 @@
     "has_mcp_server": false,
     "mcp_server_url": null,
     "has_sdk": true,
-    "sdk_languages": ["javascript", "typescript"],
+    "sdk_languages": ["node", "browser"],
     "openapi_spec_url": null,
     "webhooks": false
   },
@@ -38,69 +38,69 @@
     "methods": ["none"],
     "oauth": false,
     "scopes": false,
-    "notes": "No authentication — utility library."
+    "notes": "Local library — no authentication required. MIT licensed."
   },
   "pricing": {
     "model": "open_source",
     "free_tier_exists": true,
-    "free_tier_limits": "Completely free, open source",
+    "free_tier_limits": "MIT licensed — completely free",
     "paid_tiers": "None",
     "requires_credit_card": false,
-    "notes": "MIT licensed. Completely free. Created by Michel Weststrate (MobX creator)."
+    "notes": "MIT licensed. Zero cost."
   },
   "performance": {
     "latency_p50_ms": 0,
     "latency_p99_ms": 1,
     "uptime_sla_percent": null,
-    "rate_limits": "No rate limits — in-process library.",
+    "rate_limits": "No rate limits. Proxy-based drafts are slightly slower than manual spreading for tiny objects but much faster for deeply nested updates. Structural sharing prevents full deep clones.",
     "data_source": "llm_estimated"
   },
   "requirements": {
     "requires_signup": false,
     "requires_credit_card": false,
     "domain_verification": false,
-    "data_residency": ["client-side"],
+    "data_residency": ["local"],
     "compliance": [],
     "min_contract": "none"
   },
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
-    "documentation_accuracy": 90,
+    "documentation_accuracy": 92,
     "error_message_quality": 85,
-    "error_message_notes": "Immer throws descriptive errors for common mistakes (returning new state from produce AND mutating draft, trying to use draft outside produce). TypeScript types infer correctly.",
+    "error_message_notes": "Excellent error messages — Immer throws descriptive errors for drafts used outside produce(), modifications to non-draft state, etc. Development mode provides enhanced error messages.",
     "idempotency_support": "full",
-    "idempotency_notes": "produce() is deterministic — same base state + same recipe function = same output state.",
+    "idempotency_notes": "produce() is deterministic — same base state and recipe always produce same new state.",
     "pagination_style": "none",
     "retry_guidance_documented": false,
     "known_agent_gotchas": [
-      "Cannot both mutate the draft AND return a new value from produce() — must either mutate (void return) or return a new value, not both",
-      "Cannot use async functions directly in produce() — use produceWithPatches for async state updates or restructure async logic",
-      "Proxy-based drafts cannot be passed to non-Immer-aware code that expects plain objects — finalize the draft first with produce()",
-      "Class instances in state require enabling setAutoFreeze(false) — Immer freezes state by default, breaking class instances with methods",
-      "Map and Set are supported but require special handling — Immer handles them but behavior differs from plain objects",
-      "Performance with very large arrays (10k+ items) can be slower than direct immutable updates — profile before using in hot paths"
+      "Do NOT mix returning a new value AND mutating draft in the same recipe — if recipe returns a value, Immer uses that value; if it mutates draft (and returns undefined), Immer uses draft; mixing causes errors",
+      "Draft state cannot be used outside the produce() recipe — storing draft in a closure or async callback outside recipe throws ImmutableStateException",
+      "Map and Set require enableMapSet() plugin: import { enableMapSet } from 'immer'; enableMapSet() — not enabled by default for bundle size reasons",
+      "Structural sharing only works for unmodified branches — modified paths create new objects; deeply nested large objects still create new parent objects up the tree",
+      "TypeScript: produce<State>((draft) => { draft.x = 1 }) — draft type is Draft<State> with writable properties; read-only types become writable in draft",
+      "produceWithPatches() generates JSON-Patch operations alongside the new state — useful for implementing undo/redo or sync operations"
     ]
   },
   "af_score_components": {
     "mcp_score": 0,
-    "api_doc_score": 90,
+    "api_doc_score": 92,
     "error_handling_score": 85,
     "auth_complexity_score": 100,
     "rate_limit_clarity_score": 100
   },
   "security_score_components": {
-    "tls_enforcement": 98,
-    "auth_strength": 95,
-    "scope_granularity": 92,
+    "tls_enforcement": 100,
+    "auth_strength": 100,
+    "scope_granularity": 100,
     "dependency_hygiene": 92,
-    "secret_handling": 98,
-    "security_notes": "In-memory state utility — no network calls. No security concerns. MIT licensed. State freezing prevents accidental mutations from external code."
+    "secret_handling": 100,
+    "security_notes": "MIT licensed. Zero dependencies. Proxy-based — no security concerns. Structural sharing means sensitive data may be shared between state versions; clear sensitive state explicitly."
   },
   "reliability_score_components": {
-    "uptime_documented": 92,
+    "uptime_documented": 100,
     "version_stability": 90,
-    "breaking_changes_history": 90,
-    "error_recovery": 90
+    "breaking_changes_history": 85,
+    "error_recovery": 92
   }
 }

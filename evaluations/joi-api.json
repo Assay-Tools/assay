@@ -2,27 +2,27 @@
   "id": "joi-api",
   "name": "Joi",
   "version_evaluated": "17.x",
-  "homepage": "https://joi.dev",
+  "homepage": "https://joi.dev/",
   "repo_url": "https://github.com/hapijs/joi",
   "category": "developer-tools",
-  "subcategories": ["validation"],
-  "tags": ["javascript", "typescript", "validation", "schema", "hapijs", "server"],
-  "what_it_does": "Powerful server-side JavaScript object schema validation library from the hapi.js ecosystem, with Joi.object().keys(), alternatives, and custom validators.",
+  "subcategories": ["validation", "schema", "api"],
+  "tags": ["validation", "schema", "joi", "hapi", "node", "object-validation", "typescript"],
+  "what_it_does": "The most downloaded JavaScript object schema validation library. Chainable API for defining schemas that validate JavaScript objects — supports string patterns, number ranges, nested objects, arrays, conditional validation, custom validators, and human-readable error messages. Originally part of hapi.js framework, now standalone. Used extensively for API request/response validation in Node.js.",
   "use_cases": [
-    "Validate incoming HTTP request payloads and query parameters in hapi.js or Express routes using Joi.object().keys() schemas",
-    "Define alternative valid shapes for a field with Joi.alternatives().try() to accept multiple data formats in agent inputs",
-    "Strip undeclared fields from inputs using { stripUnknown: true } to sanitize agent-received payloads before processing",
-    "Write custom validation logic with .custom() validators that receive the value and helpers object for complex business rules",
-    "Validate environment configuration objects at application startup to fail fast if required variables are missing or malformed"
+    "Validate API request bodies, headers, and query parameters in Express/Fastify/Hapi applications",
+    "Enforce data contracts at agent pipeline boundaries — validate data shape before processing",
+    "Validate configuration objects at agent startup with detailed error messages identifying invalid config keys",
+    "Build reusable validation schemas for shared domain objects across agent service boundaries",
+    "Validate environment variables with custom rules before application initialization"
   ],
   "not_for": [
-    "Frontend/browser form validation where bundle size matters — Joi is designed for server-side use and is large for client bundles",
-    "TypeScript projects requiring static type inference from schema — Joi's TypeScript support is weaker than Zod's",
-    "Projects outside the hapi.js ecosystem where lighter alternatives (Zod, Yup) offer better ergonomics with less overhead"
+    "TypeScript-first projects needing schema-derived types — Zod provides better TypeScript inference; Joi TypeScript support requires @hapi/joi types",
+    "JSON Schema standard compliance — Joi has its own DSL; use Ajv for standard JSON Schema validation",
+    "Browser-side validation — Joi is Node.js optimized; Yup or Zod are better for browser/React form validation"
   ],
-  "best_when": "Validating server-side data in Node.js applications, especially within the hapi.js ecosystem, where rich schema composition and alternatives are needed.",
-  "avoid_when": "You are building a TypeScript-first application where compile-time type safety derived from schemas is a design requirement.",
-  "alternatives": ["zod-api", "yup-api", "valibot-api"],
+  "best_when": "You need battle-tested, highly configurable object validation for Node.js APIs with excellent error messages and minimal TypeScript requirements.",
+  "avoid_when": "You're building TypeScript-first applications where schema-derived types matter — Zod is the modern choice. For browser forms, use Yup.",
+  "alternatives": ["zod-api", "yup-api", "ajv-api", "valibot-api"],
   "interface": {
     "has_rest_api": false,
     "has_graphql": false,
@@ -30,7 +30,7 @@
     "has_mcp_server": false,
     "mcp_server_url": null,
     "has_sdk": true,
-    "sdk_languages": ["javascript", "typescript"],
+    "sdk_languages": ["node"],
     "openapi_spec_url": null,
     "webhooks": false
   },
@@ -38,68 +38,69 @@
     "methods": ["none"],
     "oauth": false,
     "scopes": false,
-    "notes": "Library — no authentication required."
+    "notes": "Local library — no authentication required. BSD 3-Clause licensed."
   },
   "pricing": {
     "model": "open_source",
     "free_tier_exists": true,
-    "free_tier_limits": "Unlimited, open source BSD-3-Clause license",
+    "free_tier_limits": "BSD 3-Clause licensed — completely free",
     "paid_tiers": "None",
     "requires_credit_card": false,
-    "notes": "Open source under BSD-3-Clause license."
+    "notes": "BSD 3-Clause licensed. Zero cost."
   },
   "performance": {
-    "latency_p50_ms": null,
-    "latency_p99_ms": null,
+    "latency_p50_ms": 0,
+    "latency_p99_ms": 5,
     "uptime_sla_percent": null,
-    "rate_limits": "None (library)",
+    "rate_limits": "No rate limits. Synchronous validation — fast for most use cases. Schema compilation is incremental; reuse schema objects rather than redefining.",
     "data_source": "llm_estimated"
   },
   "requirements": {
     "requires_signup": false,
     "requires_credit_card": false,
     "domain_verification": false,
-    "data_residency": ["self_hosted"],
+    "data_residency": ["local"],
     "compliance": [],
     "min_contract": "none"
   },
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
-    "documentation_accuracy": 85,
-    "error_message_quality": 83,
-    "error_message_notes": "ValidationError includes details array with path, type, and message per violation — machine-parseable, though error codes are less standardized than Zod's.",
+    "documentation_accuracy": 88,
+    "error_message_quality": 90,
+    "error_message_notes": "Excellent error messages — specific field paths, constraint descriptions, and customizable messages. ValidationError.details array with path, message, type. Best-in-class error DX among validation libraries.",
     "idempotency_support": "full",
-    "idempotency_notes": "Pure validation function — deterministic output for any given input with no side effects.",
+    "idempotency_notes": "Validation is deterministic — same schema and data always produce same result.",
     "pagination_style": "none",
     "retry_guidance_documented": false,
     "known_agent_gotchas": [
-      "abortEarly defaults to true — agents must pass { abortEarly: false } to schema.validate() to receive all errors, not just the first",
-      "Joi.object() unknown keys are allowed by default; use .unknown(false) or { allowUnknown: false } to reject extra fields strictly",
-      "Joi.alternatives().try() matches the first passing schema and discards the rest — ordering of alternatives affects which shape is returned",
-      "Custom .custom() validators must call helpers.error() rather than throwing — throwing inside a custom validator produces an uncaught exception",
-      "Joi schemas are immutable — chaining methods returns a new schema object; agents that cache a base schema and mutate it will find their changes discarded"
+      "schema.validate() returns { error, value } not throwing — check for error object: const { error, value } = schema.validate(data); if (error) throw error",
+      "schema.validateAsync() returns Promise — for async custom validators use validateAsync(); synchronous validators work with validate()",
+      "abortEarly: true (default) stops at first error — set abortEarly: false for collecting all errors: schema.validate(data, { abortEarly: false })",
+      "Joi strips unknown keys by default depending on allowUnknown option — be explicit: schema.validate(data, { allowUnknown: true }) or .unknown(true) on schema",
+      "TypeScript types: @hapi/joi is the old package; current package is 'joi' with built-in TypeScript types via @types/joi — verify package name in package.json",
+      "Nested schema reuse: Joi schemas are immutable and composable — define base schemas and use .concat() or .keys() to extend without mutation"
     ]
   },
   "af_score_components": {
     "mcp_score": 0,
-    "api_doc_score": 85,
-    "error_handling_score": 83,
+    "api_doc_score": 88,
+    "error_handling_score": 90,
     "auth_complexity_score": 100,
     "rate_limit_clarity_score": 100
   },
   "security_score_components": {
-    "tls_enforcement": 0,
-    "auth_strength": 0,
-    "scope_granularity": 0,
-    "dependency_hygiene": 83,
-    "secret_handling": 85,
-    "security_notes": "Server-side library with no network access; ensure ValidationError details are not leaked in API responses, as they describe internal schema structure."
+    "tls_enforcement": 100,
+    "auth_strength": 100,
+    "scope_granularity": 100,
+    "dependency_hygiene": 88,
+    "secret_handling": 100,
+    "security_notes": "BSD 3-Clause licensed. Input validation reduces injection attack surface. Local computation. Widely audited as part of hapi.js ecosystem."
   },
   "reliability_score_components": {
-    "uptime_documented": 0,
-    "version_stability": 85,
+    "uptime_documented": 100,
+    "version_stability": 90,
     "breaking_changes_history": 82,
-    "error_recovery": 83
+    "error_recovery": 90
   }
 }
