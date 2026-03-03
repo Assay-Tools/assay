@@ -1,0 +1,106 @@
+{
+  "id": "amqplib-api",
+  "name": "amqplib (Node.js AMQP)",
+  "version_evaluated": "0.10+",
+  "homepage": "https://amqp-node.github.io/amqplib/",
+  "repo_url": "https://github.com/amqp-node/amqplib",
+  "category": "developer-tools",
+  "subcategories": ["messaging", "rabbitmq", "node"],
+  "tags": ["javascript", "node", "rabbitmq", "amqp", "messaging", "queue", "publish-subscribe", "open-source"],
+  "what_it_does": "AMQP 0-9-1 client library for Node.js — the standard protocol used by RabbitMQ. amqplib provides both callback and Promise-based APIs (amqplib/channel_api) for connecting to RabbitMQ, declaring exchanges and queues, publishing and consuming messages, and managing acknowledgments. The go-to Node.js library for RabbitMQ integration in agent messaging pipelines.",
+  "use_cases": [
+    "Publish agent task messages to RabbitMQ queues for distributed agent worker consumption with acknowledgment-based delivery",
+    "Implement topic-based agent event routing with exchange types (direct, topic, fanout, headers) for flexible message distribution",
+    "Build dead letter queue (DLQ) pipelines for failed agent task handling — messages rejected by agents routed to DLQ for inspection and retry",
+    "Create durable agent work queues with persistence (durable: true, persistent: true) — messages survive RabbitMQ restarts",
+    "Use consumer acknowledgments (ack/nack) for at-least-once agent message delivery — prevent message loss on agent crashes"
+  ],
+  "not_for": [
+    "High-throughput streaming scenarios — Kafka is better suited for ordered, replayed, high-throughput event streams",
+    "Simple job queues without complex routing — BullMQ (Redis-based) is simpler for job queues without RabbitMQ's routing complexity",
+    "Serverless functions — AMQP connections are long-lived; use SQS or event-driven alternatives for stateless serverless agents"
+  ],
+  "best_when": "You're integrating Node.js agent services with RabbitMQ for flexible message routing, reliable delivery, and complex exchange/queue topologies.",
+  "avoid_when": "You don't need RabbitMQ's routing complexity — BullMQ or SQS are simpler for basic job queues. Or if using Kafka for high-throughput streaming.",
+  "alternatives": ["bullmq-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["node"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Library — no external auth. RabbitMQ credentials in AMQP URL (amqp://user:pass@host/vhost). TLS support via amqps:// scheme."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Fully open source — MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "MIT-licensed open source. RabbitMQ server itself is also open source (MPL 2.0). CloudAMQP provides managed RabbitMQ with paid plans."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits on client — depends on RabbitMQ server capacity. Channel prefetch count controls consumer throughput.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 80,
+    "error_message_quality": 75,
+    "error_message_notes": "amqplib throws AMQP errors as JavaScript errors. Connection errors include RabbitMQ error codes. Channel errors cause channel closure — must re-create channel after errors.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Message publishing is not idempotent — duplicate messages can occur on connection failure before broker ACK. Use message IDs and deduplication at consumer side for idempotent agent processing.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Channel errors close the channel — after a channel error (reject, channel overflow) the channel is unusable; agent code must create a new channel and re-register consumers",
+      "Connection and channel are separate objects — connection loss closes all channels; implement reconnection with backoff for both connection and all channel/consumer registrations",
+      "consumer tag must be unique per connection — reusing consumer tags after reconnection causes 'PRECONDITION_FAILED' errors; use unique UUID or let RabbitMQ auto-assign",
+      "prefetch count (ch.prefetch()) limits unacknowledged messages per consumer — without prefetch, RabbitMQ sends all available messages to one consumer; configure based on agent processing capacity",
+      "amqplib is not fork-safe — in Node.js cluster mode or worker threads, each process needs its own AMQP connection; shared connections across workers causes channel corruption",
+      "Message delivery mode 2 (persistent) survives broker restart only if the queue is also durable — declaring a transient queue but sending persistent messages provides false durability"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 78,
+    "error_handling_score": 72,
+    "auth_complexity_score": 80,
+    "rate_limit_clarity_score": 78
+  },
+  "security_score_components": {
+    "tls_enforcement": 88,
+    "auth_strength": 82,
+    "scope_granularity": 78,
+    "dependency_hygiene": 82,
+    "secret_handling": 80,
+    "security_notes": "TLS/SSL via amqps://. RabbitMQ VHOST isolation for multi-tenant environments. Credentials in connection URL — use environment variables, not hardcoded strings."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 80,
+    "version_stability": 82,
+    "breaking_changes_history": 80,
+    "error_recovery": 75
+  }
+}
