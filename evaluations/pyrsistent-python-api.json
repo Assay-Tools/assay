@@ -1,0 +1,106 @@
+{
+  "id": "pyrsistent-python-api",
+  "name": "pyrsistent",
+  "version_evaluated": "0.20.x",
+  "homepage": "https://pyrsistent.readthedocs.io/",
+  "repo_url": "https://github.com/tobgu/pyrsistent",
+  "category": "developer-tools",
+  "subcategories": ["data-structures", "python", "immutable", "functional-programming"],
+  "tags": ["python", "pyrsistent", "immutable", "persistent", "pmap", "pvector", "pset", "functional"],
+  "what_it_does": "Persistent immutable data structures for Python — provides immutable dict, list, set, and record types that return new modified copies instead of mutating in place. pyrsistent features: pmap() for immutable dict, pvector() for immutable list, pset() for immutable set, PRecord for typed immutable records, freeze()/thaw() for converting to/from mutable types, evolve() for efficient updates returning new structures, PVector O(log32 n) update, m()/v()/s() for literal constructors, CheckedPMap/CheckedPVector for validated types, and structural sharing for memory efficiency on copies.",
+  "use_cases": [
+    "Agent immutable config — from pyrsistent import pmap; config = pmap({'host': 'localhost', 'port': 5432, 'debug': False}); prod_config = config.set('debug', False).set('host', 'prod.db'); config['host'] — 'localhost' (unchanged) — immutable config prevents accidental mutation; agent passes config to worker functions safely; original unchanged after workers update it",
+    "Agent state machine — from pyrsistent import PRecord, field; class AgentState(PRecord): status = field(mandatory=True); memory = field(initial=pmap); next_state = current_state.set(status='running', memory=current_state.memory.set('key', 'value')) — typed immutable state records; agent state transitions always produce new state; old states preserved for rollback",
+    "Agent history/undo — from pyrsistent import pvector; history = pvector(); state = pmap({'count': 0}); history = history.append(state); state = state.set('count', 1); history = history.append(state); old_state = history[0] — immutable vector of states; agent undo/redo stores all states without copying; structural sharing makes storage efficient",
+    "Agent freeze nested structures — from pyrsistent import freeze, thaw; raw = {'a': [1, 2], 'b': {'c': 3}}; immutable = freeze(raw); mutable = thaw(immutable) — convert nested dicts/lists to pyrsistent types recursively; agent receives JSON config and freezes it; thaw() for converting back to regular Python for JSON serialization",
+    "Agent validated record — from pyrsistent import PRecord, field, CheckedPVector; class Point(PRecord): x = field(type=float, mandatory=True); y = field(type=float, mandatory=True); p = Point(x=1.0, y=2.0); invalid = Point(x='bad') — raises TypeError — typed immutable record; agent validates data at construction time; PRecord enforces types and required fields"
+  ],
+  "not_for": [
+    "High-frequency mutations — pyrsistent creates new objects on every change; for mutable collections with frequent updates use regular dict/list",
+    "Large flat lists — PVector O(log32 n) updates; for large flat arrays use list or numpy array",
+    "Thread-safe concurrent reads/writes — pyrsistent immutability prevents corruption but doesn't synchronize; for concurrent producers/consumers use queues"
+  ],
+  "best_when": "Functional programming patterns requiring immutable state — agent state machines, history tracking, and config passing where accidental mutation causes bugs.",
+  "avoid_when": "High-frequency in-place mutations, large mutable arrays, or when regular dict/list performance is sufficient.",
+  "alternatives": ["bidict-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — pure Python data structure library."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "pyrsistent is MIT licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Performance: pmap get/set O(log32 n) ≈ O(1) for practical sizes. pvector append/update O(log32 n). Structural sharing: pmap.set() shares unchanged branches — memory efficient for large structures with small diffs. Freeze/thaw: O(n) traversal.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 85,
+    "error_message_notes": "AttributeError when trying to mutate pmap/pvector directly. TypeError for type violations in PRecord. InvariantException for custom invariant failures. Freeze raises TypeError if object is not serializable to pyrsistent types.",
+    "idempotency_support": "full",
+    "idempotency_notes": "All pyrsistent operations are idempotent — same input always produces identical output. pmap.set() creates new pmap without modifying original. evolve() creates new structure. Operations are pure functions.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "set() creates new object, does not mutate — pm = pmap({'a': 1}); pm.set('b', 2) returns new pmap; pm['b'] still raises KeyError; agent code assigning result: pm = pm.set('b', 2); common mistake: calling set() without reassigning; debug with: print(pm) — shows original unchanged",
+      "evolve() is more efficient for multiple updates — pmap.set('a', 1).set('b', 2).set('c', 3) creates 3 intermediate objects; from pyrsistent import evolve; evolve(pm, a=1, b=2, c=3) creates only 1 new object; agent code with many simultaneous updates should prefer evolve()",
+      "PRecord fields require explicit defaults — PRecord field without initial= is mandatory; PRecord field without type= accepts any type; field(initial=pmap) creates fresh pmap per instance (not shared); agent code: class State(PRecord): items = field(initial=pvector) — lambda ensures new pvector per instance",
+      "freeze() only handles basic Python types — freeze({'a': datetime.now()}) raises TypeError because datetime is not a supported type; agent code with custom objects must convert before freeze(); freeze handles: dict, list, set, tuple, and primitives; use thaw() to convert back for JSON/pickle",
+      "pset() is unordered like set() — pset([3, 1, 2]) has no guaranteed iteration order; agent code expecting sorted output must: sorted(pset(items)); pset.add() returns new pset with element; pset is useful for immutable membership testing but not ordered iteration",
+      "PRecord does not support __slots__ optimization — PRecord instances have __dict__ like regular objects; for thousands of agent state instances, memory usage is similar to dict-based classes; for large-scale agent fleets with memory constraints, consider attrs/dataclasses with slots=True instead"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 85,
+    "auth_complexity_score": 99,
+    "rate_limit_clarity_score": 99
+  },
+  "security_score_components": {
+    "tls_enforcement": 92,
+    "auth_strength": 92,
+    "scope_granularity": 90,
+    "dependency_hygiene": 92,
+    "secret_handling": 92,
+    "security_notes": "Immutable data structures prevent accidental state mutation — reduces certain classes of security bugs. No network calls. freeze() of user-controlled nested structures performs deep traversal — not a security risk but may be slow for deeply nested untrusted data."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 85,
+    "version_stability": 88,
+    "breaking_changes_history": 88,
+    "error_recovery": 90
+  }
+}

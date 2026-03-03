@@ -1,0 +1,106 @@
+{
+  "id": "bidict-python-api",
+  "name": "bidict",
+  "version_evaluated": "0.23.x",
+  "homepage": "https://bidict.readthedocs.io/",
+  "repo_url": "https://github.com/jab/bidict",
+  "category": "developer-tools",
+  "subcategories": ["data-structures", "python", "mapping", "utilities"],
+  "tags": ["python", "bidict", "bidirectional", "mapping", "dict", "inverse", "two-way"],
+  "what_it_does": "Bidirectional dictionary for Python — provides a dict-like mapping where both keys and values are unique and the inverse mapping (value-to-key) is always available. bidict features: bidict() for mutable bidirectional maps, frozenbidict() for immutable, OrderedBidict for insertion-ordered bidirectional maps, .inverse property for reversed view, putall() for batch updates, OnDup policy for duplicate handling (RAISE/DROP_OLD/DROP_NEW), full MutableMapping interface compatibility, and type-safe design where values are treated as keys in the inverse. Used for symbol tables, two-way lookup tables, and bijective mappings.",
+  "use_cases": [
+    "Agent two-way symbol table — from bidict import bidict; codes = bidict({'USD': 'US Dollar', 'EUR': 'Euro', 'GBP': 'British Pound'}); codes['USD'] — 'US Dollar'; codes.inverse['Euro'] — 'EUR' — bidirectional lookup; agent currency code translation looks up by code or by name; inverse always consistent with forward mapping",
+    "Agent enum-like mapping — from bidict import bidict; status = bidict({'pending': 0, 'running': 1, 'done': 2, 'failed': 3}); status[1] — KeyError; status.inverse[1] — 'running' — two-way status lookup; agent maps int status codes from database to string names for display; no separate reverse dict needed",
+    "Agent deduplication mapping — from bidict import bidict; from bidict import OnDup, RAISE; bd = bidict(); bd.put('key1', 'val1'); bd.put('key2', 'val1', on_dup=OnDup(val=RAISE)) — raises ValueDuplicationError; agent enforces bijective constraint; duplicate values rejected with configurable policy",
+    "Agent config key translation — from bidict import frozenbidict; ENV_MAP = frozenbidict({'DATABASE_URL': 'db_url', 'API_KEY': 'api_key'}); env_var = ENV_MAP.inverse['db_url'] — immutable bidirectional config map; agent translates between env var names and config field names; frozenbidict safe for module-level constants",
+    "Agent ordered two-way mapping — from bidict import OrderedBidict; pipeline = OrderedBidict([('step1', 'validate'), ('step2', 'transform'), ('step3', 'load')]); list(pipeline.keys()) — insertion order preserved; agent workflow step lookup by name or by action; iteration in definition order"
+  ],
+  "not_for": [
+    "Non-unique values — bidict requires both keys and values to be unique; for many-to-one mappings use regular dict",
+    "High-performance bulk operations — bidict maintains inverse on every mutation; for large batch transformations use dict comprehensions",
+    "Unhashable values — bidict values must be hashable (used as keys in inverse); for list/dict values use regular dict"
+  ],
+  "best_when": "Maintaining bijective mappings where both forward (key→value) and inverse (value→key) lookups are needed — bidict eliminates the need to maintain two synchronized dicts manually.",
+  "avoid_when": "Values are not unique (many-to-one), values are unhashable, or you only need one-directional lookup (use regular dict).",
+  "alternatives": ["bidict-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — pure Python data structure library."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MPL 2.0 licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "bidict is Mozilla Public License 2.0. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Performance: __getitem__ O(1), __setitem__ O(1) amortized, inverse lookup O(1). Memory: ~2x dict for same data (stores both forward and inverse maps). Mutation operations maintain two dicts simultaneously.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 90,
+    "error_message_quality": 88,
+    "error_message_notes": "KeyDuplicationError when inserting duplicate key. ValueDuplicationError when inserting duplicate value. KeyError for missing key on lookup. All errors are clear and specific to the bidirectional constraint violation.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "bidict[key] = value is idempotent if same key-value pair. bidict[key] = new_value replaces old value and removes old inverse entry. put() with OnDup policy controls idempotency behavior.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "ValueDuplicationError on duplicate values — bd['a'] = 1; bd['b'] = 1 raises ValueDuplicationError because bidict requires unique values; agent code assigning same value to multiple keys must use on_dup policy: bd.put('b', 1, on_dup=OnDup(val=DROP_OLD)) to replace old key; or restructure to use list values in regular dict",
+      "inverse is a view not a copy — bd.inverse is a live view of the bidict; modifying bd updates bd.inverse automatically; agent code storing bd.inverse = bd.inverse does not create snapshot; to snapshot: dict(bd.inverse) creates regular dict copy that won't update",
+      "frozenbidict is truly immutable — frozenbidict({}) raises TypeError on any mutation attempt; agent code trying to update frozenbidict at runtime must use regular bidict instead; frozenbidict safe for module constants and function signatures requiring Mapping",
+      "put() vs __setitem__ for duplicate handling — bd['key'] = value silently replaces existing key with same value; bd.put('key', value) with on_dup=OnDup(key=RAISE, val=RAISE) raises on any collision; agent code needing strict collision detection must use put() not item assignment",
+      "OrderedBidict deprecated in favor of plain bidict — Python 3.7+ dicts maintain insertion order; OrderedBidict still works but bidict() itself is ordered since Python 3.7; agent code using OrderedBidict for ordering should just use bidict() for simplicity",
+      "Not thread-safe for concurrent writes — multiple threads writing to same bidict concurrently can corrupt internal state; agent concurrent request handlers sharing a bidict must use threading.Lock(); reads without writes are safe; use module-level frozenbidict for read-only shared state"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 90,
+    "error_handling_score": 88,
+    "auth_complexity_score": 99,
+    "rate_limit_clarity_score": 99
+  },
+  "security_score_components": {
+    "tls_enforcement": 92,
+    "auth_strength": 92,
+    "scope_granularity": 90,
+    "dependency_hygiene": 92,
+    "secret_handling": 92,
+    "security_notes": "Pure data structure library with no network calls and minimal dependencies. No security concerns. Avoid using user-controlled strings as bidict values if inverse lookup results are used in security decisions."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 90,
+    "version_stability": 88,
+    "breaking_changes_history": 85,
+    "error_recovery": 90
+  }
+}

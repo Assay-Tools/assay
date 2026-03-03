@@ -1,0 +1,106 @@
+{
+  "id": "funcy-python-api",
+  "name": "funcy",
+  "version_evaluated": "2.x",
+  "homepage": "https://funcy.readthedocs.io/",
+  "repo_url": "https://github.com/Suor/funcy",
+  "category": "developer-tools",
+  "subcategories": ["functional-programming", "python", "utilities", "collections"],
+  "tags": ["python", "funcy", "functional", "fp", "decorators", "collections", "utilities"],
+  "what_it_does": "Fancy and practical functional tools for Python — extends itertools with practical FP utilities for collections, functions, and flow control. funcy features: chunks/partition/flatten for sequence manipulation, merge/merge_with/walk for dict operations, memoize/cached_property for caching, retry/silent/ignore decorators for error handling, juxt/compose/partial for function composition, select/reject/group_by/count_by for filtering/grouping, rpartial/curry for partial application, and imap/ifilter lazy generators. Focused on practical everyday FP patterns without requiring monad/type system overhead.",
+  "use_cases": [
+    "Agent collection processing — from funcy import chunks, flatten, distinct; data = [1, 2, 2, 3, [4, 5]]; flat = flatten(data); unique = distinct(flat); batches = list(chunks(3, unique)) — process nested collections; agent batch processing splits large datasets into fixed-size chunks; distinct removes duplicates while preserving order",
+    "Agent dict manipulation — from funcy import merge, walk_values, select_values; configs = merge(defaults, overrides); numbers_only = select_values(lambda v: isinstance(v, int), config); doubled = walk_values(lambda v: v * 2, numbers_only) — dict transformation; agent config merging walks values without explicit loops; merge is shallow (use deep_merge for nested)",
+    "Agent retry decorator — from funcy import retry; @retry(3, errors=Exception); def call_api(url): return requests.get(url) — automatic retry with count; agent API calls retry on transient failures; retry(5, timeout=30) for time-bounded retry; combine with @silent to suppress final failure",
+    "Agent grouping and counting — from funcy import group_by, count_by; events = [{'type': 'click', 'user': 'a'}, ...]; by_type = group_by(lambda e: e['type'], events); by_user = count_by(lambda e: e['user'], events) — group and count collections; agent analytics groups events by category and counts per user; returns dicts of lists or counts",
+    "Agent memoized computation — from funcy import memoize; @memoize; def expensive_compute(key): return fetch_and_process(key) — decorator-based caching; agent repeated computation with same arguments returns cached result; memoize caches by all args; @memoize(key=lambda *a, **kw: a[0]) for custom cache keys"
+  ],
+  "not_for": [
+    "Type-safe FP — funcy has no type system or monadic error handling; for typed FP use returns library",
+    "Performance-critical loops — funcy convenience functions add overhead vs direct loops; for hot paths use list comprehensions or numpy",
+    "Async operations — funcy functions are synchronous; for async FP use toolz with asyncio or custom async utilities"
+  ],
+  "best_when": "Practical functional programming in Python without type system overhead — funcy's collection utilities, decorators, and dict manipulation replace boilerplate loops with expressive one-liners.",
+  "avoid_when": "You need type-safe FP (use returns), async operations, or performance-critical tight loops (use comprehensions).",
+  "alternatives": ["toolz-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — pure Python utility library."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, BSD licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "funcy is BSD licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Performance: most functions O(n). Lazy variants (imap, ifilter, ichunks) return generators for memory efficiency. memoize uses dict — unbounded cache growth without explicit size limit.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 88,
+    "error_message_quality": 85,
+    "error_message_notes": "funcy raises standard Python exceptions. @retry raises the last exception after exhausting retries. @ignore and @silent suppress exceptions. Error messages come from underlying functions, not funcy wrappers.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Pure collection functions (chunks, flatten, merge) are idempotent — same input always produces same output. memoize caches results — subsequent calls with same args return cached value without re-execution. @retry is not idempotent — multiple retries have side effects.",
+    "pagination_style": "none",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "@retry retries on all exceptions by default — funcy.retry(3) catches all Exception types; agent code calling APIs where some errors are permanent (404 Not Found) should use: @retry(3, errors=requests.Timeout) to only retry timeout errors; retrying on 400 Bad Request wastes 3 API calls on invalid input",
+      "merge() is shallow not deep — funcy.merge({'a': {'x': 1}}, {'a': {'y': 2}}) produces {'a': {'y': 2}} overwriting nested dict; agent merging nested configs loses inner keys; use funcy.deep_merge() for recursive merging or dict.update() with custom deep merge logic",
+      "chunks() returns iterator not list — funcy.chunks(3, range(10)) returns generator; agent code accessing chunks multiple times must: batches = list(chunks(3, data)); generator is consumed on first iteration; same applies to imap, ifilter, and other lazy variants prefixed with 'i'",
+      "memoize is unbounded by default — @memoize caches all unique argument combinations forever; agent code with many unique inputs (URLs, user IDs) leaks memory; use @memoize(100) for LRU with max size or functools.lru_cache(maxsize=100) for stdlib alternative",
+      "group_by returns defaultdict(list) not dict — funcy.group_by() returns collections.defaultdict; agent code checking 'if key in result' works; but JSON serialization of defaultdict needs: dict(group_by(...)) to convert; also: missing keys return [] not KeyError",
+      "walk vs walk_keys vs walk_values — funcy.walk(f, d) applies f to each (k, v) pair and expects (new_k, new_v) return; walk_keys(f, d) transforms only keys; walk_values(f, d) transforms only values; agent code using walk() for value transformation gets TypeError expecting 2-tuple return from function"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 88,
+    "error_handling_score": 85,
+    "auth_complexity_score": 99,
+    "rate_limit_clarity_score": 99
+  },
+  "security_score_components": {
+    "tls_enforcement": 92,
+    "auth_strength": 92,
+    "scope_granularity": 90,
+    "dependency_hygiene": 92,
+    "secret_handling": 92,
+    "security_notes": "Pure utility library with no network calls. No security concerns. @silent and @ignore suppress exceptions — ensure they don't hide security-relevant errors (auth failures, permission errors) in agent code."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 88,
+    "breaking_changes_history": 88,
+    "error_recovery": 85
+  }
+}

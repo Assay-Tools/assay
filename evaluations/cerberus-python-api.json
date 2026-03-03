@@ -1,0 +1,106 @@
+{
+  "id": "cerberus-python-api",
+  "name": "cerberus",
+  "version_evaluated": "1.3.x",
+  "homepage": "https://docs.python-cerberus.org/",
+  "repo_url": "https://github.com/pyeve/cerberus",
+  "category": "developer-tools",
+  "subcategories": ["validation", "python", "schema", "data-quality"],
+  "tags": ["python", "cerberus", "validation", "schema", "data-validation", "document", "rules"],
+  "what_it_does": "Lightweight, extensible data validation library for Python — validates dicts against schemas with rich rule sets. cerberus features: Validator class with validate(document, schema), type checking (string, integer, float, boolean, list, dict, datetime), required/nullable/readonly fields, min/max/minlength/maxlength constraints, regex validation, allowed values whitelist, dependencies between fields, coercion (automatic type conversion), custom validators via _validate_* methods, schema inheritance, normalization rules, and detailed error reporting via validator.errors. Schema-based approach without decorators or class changes.",
+  "use_cases": [
+    "Agent input validation — from cerberus import Validator; schema = {'name': {'type': 'string', 'required': True, 'maxlength': 100}, 'age': {'type': 'integer', 'min': 0, 'max': 150}}; v = Validator(schema); v.validate({'name': 'Alice', 'age': 30}) — True; v.validate({'name': '', 'age': -1}) — False; v.errors — {'name': [...], 'age': [...]} — dict-based validation; agent validates API inputs before processing",
+    "Agent config validation — schema = {'host': {'type': 'string', 'required': True}, 'port': {'type': 'integer', 'min': 1, 'max': 65535, 'default': 8080}, 'debug': {'type': 'boolean', 'default': False}}; v = Validator(schema); v.normalized({'host': 'localhost'}) — {'host': 'localhost', 'port': 8080, 'debug': False} — config with defaults applied; agent configuration normalized and validated in one step",
+    "Agent coercion pipeline — schema = {'timestamp': {'type': 'datetime', 'coerce': lambda v: datetime.fromisoformat(v)}, 'count': {'type': 'integer', 'coerce': int}}; v = Validator(schema); v.validate({'timestamp': '2024-01-01', 'count': '42'}) — True; string inputs coerced to target types; agent receives string JSON values coerced to proper Python types",
+    "Agent nested document validation — schema = {'user': {'type': 'dict', 'schema': {'email': {'type': 'string', 'regex': r'^[^@]+@[^@]+$'}, 'roles': {'type': 'list', 'allowed': ['admin', 'user', 'viewer']}}}}; v = Validator(schema); nested schema validation; agent validates complex nested API payloads with field-specific rules",
+    "Agent custom validator — class AgentValidator(Validator): def _validate_is_positive(self, is_positive, field, value): if is_positive and value <= 0: self._error(field, 'Must be positive'); schema = {'score': {'type': 'float', 'is_positive': True}}; custom validation rule via method naming convention; agent extends cerberus with domain-specific constraints"
+  ],
+  "not_for": [
+    "Pydantic-style model classes — cerberus validates dicts, not dataclasses or ORM models; for class-based validation use pydantic",
+    "JSON Schema compatibility — cerberus has its own schema format; for JSON Schema standard use jsonschema library",
+    "High-performance bulk validation — cerberus is pure Python; for validating millions of records use pandera (dataframes) or pydantic with batch"
+  ],
+  "best_when": "Validating dict documents with complex interdependencies — cerberus's flexible rule system with coercion and normalization handles messy real-world data without requiring model class changes.",
+  "avoid_when": "You need class-based models (use pydantic), JSON Schema compatibility (use jsonschema), or async validation.",
+  "alternatives": ["pydantic-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — pure Python validation library."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, ISC licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "cerberus is ISC licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Performance: validation is O(n * rules) per document. Pure Python — slower than pydantic (which uses Rust). Validator instantiation has overhead — reuse Validator instances across requests. Suitable for hundreds to low thousands of validations per second.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 85,
+    "error_message_notes": "validator.errors returns dict mapping field names to lists of error messages. Nested errors are nested dicts. Error messages are human-readable strings. No exception raised on validation failure — must check validate() return value. SchemaError raised for invalid schema definition.",
+    "idempotency_support": "full",
+    "idempotency_notes": "validate() is idempotent — same document and schema always produces same result. normalized() returns new dict without modifying input. Validator instances can be safely reused across multiple validate() calls.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "validate() returns bool, does not raise — v.validate(doc) returns True/False; agent code must check: if not v.validate(doc): raise ValidationError(v.errors); cerberus never raises on validation failure; forgetting the return value check silently accepts invalid data",
+      "Validator instances are stateful — v.errors is populated after each validate() call and cleared on next call; agent code using v.errors after second validate() gets errors from second call only; for parallel validation, create separate Validator instances per thread/coroutine",
+      "Coerce runs before type validation — schema with 'type': 'integer', 'coerce': int: input '42' is coerced to 42 before type check passes; coerce failure raises TypeError silently and field fails type validation; agent code debugging coercion failures checks v.errors for type errors after coerce attempts",
+      "nullable requires explicit True — field with no value: {'field': None} fails validation unless 'nullable': True in schema; agent code accepting optional null fields must include nullable: True; not the same as 'required': False — required=False allows missing field, nullable=True allows None value",
+      "Schema in constructor vs validate() — Validator(schema) creates reusable validator for one schema; v.validate(doc, schema) overrides schema per call; agent code with dynamic schemas can pass schema to validate() directly; but mixing approaches is confusing — pick one pattern",
+      "dependencies field validates field presence not value — 'dependencies': ['field_a', 'field_b'] means field_a and field_b must be present when this field is present; it does NOT validate field_a's value; agent code needing conditional value validation must use custom _validate_* methods or check manually after cerberus validation"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 85,
+    "auth_complexity_score": 99,
+    "rate_limit_clarity_score": 99
+  },
+  "security_score_components": {
+    "tls_enforcement": 92,
+    "auth_strength": 92,
+    "scope_granularity": 90,
+    "dependency_hygiene": 90,
+    "secret_handling": 90,
+    "security_notes": "Validation library that helps enforce input constraints — good for security-oriented input validation. No network calls. Regex patterns in schema: avoid ReDoS-vulnerable patterns for user-controlled fields. Schema itself should be trusted — do not construct schemas from user input."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 85,
+    "version_stability": 85,
+    "breaking_changes_history": 85,
+    "error_recovery": 88
+  }
+}
