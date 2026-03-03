@@ -1,28 +1,28 @@
 {
   "id": "loguru-api",
   "name": "Loguru",
-  "version_evaluated": "current",
+  "version_evaluated": "0.7.x",
   "homepage": "https://loguru.readthedocs.io/",
   "repo_url": "https://github.com/Delgan/loguru",
   "category": "developer-tools",
-  "subcategories": ["logging"],
-  "tags": ["python", "library", "logging", "structured-logging", "debugging", "observability"],
-  "what_it_does": "Drop-in Python logging library that replaces the standard logging module with a simpler API, automatic colorized output, log rotation, structured serialization, and exception tracebacks with variable values.",
+  "subcategories": ["logging", "python", "observability"],
+  "tags": ["logging", "python", "loguru", "structured-logging", "async", "colorized", "simple"],
+  "what_it_does": "Simplified Python logging library designed to eliminate the complexity of Python's built-in logging module. Single global logger instance — no configuration boilerplate. Beautiful colorized output, structured logging, automatic exception formatting with variable inspection, async support, and file rotation. Drop-in replacement for the stdlib logging module with dramatically simpler API.",
   "use_cases": [
-    "Structured agent execution logging with automatic serialization to JSON for ingestion into log aggregation systems",
-    "Capturing full exception context including variable values in agent tracebacks for post-mortem debugging",
-    "Rotating log files by size or time for long-running agent processes without filesystem overflow",
-    "Filtering log output per sink so debug logs go to file while only warnings go to stdout in production",
-    "Intercepting standard library logging from third-party dependencies and routing through a unified Loguru pipeline"
+    "Replace Python's stdlib logging module in agent applications with zero-config colorized logging",
+    "Add structured JSON logging to FastAPI agent services: logger.bind(request_id=id).info('Processing')",
+    "Log exceptions with full context inspection (local variables) for debugging agent errors",
+    "Implement log rotation and retention policies with loguru's built-in sink rotation support",
+    "Add async-safe logging to async agent workers with loguru's native async support"
   ],
   "not_for": [
-    "Distributed tracing across microservices — Loguru logs local context only and does not emit spans or traces for OpenTelemetry",
-    "High-throughput applications where logging overhead matters — Loguru's rich formatting is heavier than raw stdlib logging",
-    "Teams that require strict compliance with Python logging ecosystem standards like structlog or OpenTelemetry SDK handlers"
+    "Enterprise logging infrastructure — loguru is optimized for simplicity; complex log aggregation setups may need Python's stdlib logging with handlers",
+    "Projects that must integrate with existing stdlib logging handlers — interoperability requires a bridge handler",
+    "Structured logging with strict schema enforcement — use structlog for schema-enforced structured logs"
   ],
-  "best_when": "You want zero-config, human-readable structured logging with rich exception context and log rotation for Python agents or scripts.",
-  "avoid_when": "Your stack requires full OpenTelemetry compatibility or you are integrating with an existing stdlib logging configuration that third-party libraries depend on.",
-  "alternatives": ["structlog-api", "python-stdlib-logging", "opentelemetry-sdk"],
+  "best_when": "You want the simplest possible logging setup for Python applications with beautiful output, automatic exception context, and zero configuration overhead.",
+  "avoid_when": "You need to integrate with existing stdlib logging infrastructure, use multiple named loggers, or need strict structured log schema enforcement — use structlog or stdlib logging.",
+  "alternatives": ["structlog-api", "python-logging"],
   "interface": {
     "has_rest_api": false,
     "has_graphql": false,
@@ -38,68 +38,69 @@
     "methods": ["none"],
     "oauth": false,
     "scopes": false,
-    "notes": "Local Python library, no auth required"
+    "notes": "Local library — no authentication required. MIT licensed."
   },
   "pricing": {
     "model": "open_source",
     "free_tier_exists": true,
-    "free_tier_limits": "Unlimited",
-    "paid_tiers": "none",
+    "free_tier_limits": "MIT licensed — completely free",
+    "paid_tiers": "None",
     "requires_credit_card": false,
-    "notes": "MIT license"
+    "notes": "MIT licensed. Zero cost."
   },
   "performance": {
-    "latency_p50_ms": null,
-    "latency_p99_ms": null,
+    "latency_p50_ms": 0,
+    "latency_p99_ms": 1,
     "uptime_sla_percent": null,
-    "rate_limits": "None — local library",
-    "data_source": "self_hosted"
+    "rate_limits": "No rate limits. Comparable performance to stdlib logging. File sinks can be async for non-blocking.",
+    "data_source": "llm_estimated"
   },
   "requirements": {
     "requires_signup": false,
     "requires_credit_card": false,
     "domain_verification": false,
-    "data_residency": ["self_hosted"],
+    "data_residency": ["local"],
     "compliance": [],
     "min_contract": "none"
   },
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
-    "documentation_accuracy": 91,
+    "documentation_accuracy": 90,
     "error_message_quality": 92,
-    "error_message_notes": "Loguru's exception formatting with local variable values is best-in-class for Python debugging; serialize=True produces clean JSON for log aggregators",
+    "error_message_notes": "Exceptional exception logging — shows local variable values in tracebacks via opt(exception=True). Colorized output in terminals. Sink errors are caught and logged to stderr.",
     "idempotency_support": "full",
-    "idempotency_notes": "Logging operations are append-only and side-effect free relative to application logic",
+    "idempotency_notes": "Logging calls are fire-and-forget. Each call produces exactly one log record.",
     "pagination_style": "none",
     "retry_guidance_documented": false,
     "known_agent_gotchas": [
-      "Global logger singleton means library code that imports loguru shares the same logger — use logger.bind() to add context without polluting library logs",
-      "Intercepting stdlib logging requires explicit logging.basicConfig + PropagateHandler setup or third-party library logs will bypass Loguru entirely",
-      "serialize=True outputs one JSON object per line but the format is not configurable — downstream parsers must handle Loguru's specific schema",
-      "logger.remove() removes ALL handlers including the default stderr sink — always call remove() with the handler ID, not bare remove()",
-      "Async logging sinks are not natively supported; heavy I/O sinks can block the event loop unless enqueue=True is set for background thread dispatch"
+      "Single global logger — from loguru import logger; logger.info() — no named loggers; use logger.bind(component='agent') for contextual metadata",
+      "logger.add() adds sinks — must call before logging; default sink is stderr; add file sink: logger.add('app.log', rotation='10 MB', retention='7 days')",
+      "Structuring for JSON output: logger.add(sys.stdout, serialize=True) produces NDJSON — useful for log aggregation; serialize=False (default) gives human-readable format",
+      "Exception context: logger.opt(exception=True).error('Failed') captures exception with variable values — significantly more informative than traceback.format_exc()",
+      "Thread-safe but not async-native by default — for asyncio use enqueue=True: logger.add('file.log', enqueue=True) for non-blocking async logging",
+      "Stdlib logging integration: from loguru import logger; import logging; logger.add(logging.getLogger('uvicorn'), format='{message}') — bridge to stdlib handlers"
     ]
   },
   "af_score_components": {
     "mcp_score": 0,
-    "api_doc_score": 91,
+    "api_doc_score": 90,
     "error_handling_score": 92,
     "auth_complexity_score": 100,
     "rate_limit_clarity_score": 100
   },
   "security_score_components": {
-    "tls_enforcement": 95,
-    "auth_strength": 95,
-    "scope_granularity": 90,
-    "dependency_hygiene": 90,
+    "tls_enforcement": 100,
+    "auth_strength": 100,
+    "scope_granularity": 100,
+    "dependency_hygiene": 92,
     "secret_handling": 85,
-    "security_notes": "No network layer; secure by default. Caution: serialize=True will log all local variables including secrets if exception occurs inside a secrets-handling function."
+    "security_notes": "MIT licensed. Exception logging with variable inspection may expose sensitive data — use filter functions to redact sensitive fields. Avoid logging secrets/PII."
   },
   "reliability_score_components": {
-    "uptime_documented": 85,
+    "uptime_documented": 100,
     "version_stability": 88,
-    "breaking_changes_history": 86,
-    "error_recovery": 88
+    "breaking_changes_history": 88,
+    "error_recovery": 90
   }
 }

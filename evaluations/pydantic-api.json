@@ -1,28 +1,28 @@
 {
   "id": "pydantic-api",
   "name": "Pydantic",
-  "version_evaluated": "current",
-  "homepage": "https://docs.pydantic.dev",
+  "version_evaluated": "2.x",
+  "homepage": "https://docs.pydantic.dev/",
   "repo_url": "https://github.com/pydantic/pydantic",
   "category": "developer-tools",
-  "subcategories": ["data-validation", "type-safety"],
-  "tags": ["python", "validation", "type-hints", "serialization", "json-schema", "dataclass", "fastapi"],
-  "what_it_does": "Python data validation library that uses type hints to define schemas and automatically validates, parses, and serializes data — the foundation of FastAPI's request/response validation and a standard for defining structured agent tool inputs and outputs.",
+  "subcategories": ["validation", "data-modeling", "python", "serialization"],
+  "tags": ["pydantic", "python", "validation", "data-models", "serialization", "typing", "fastapi"],
+  "what_it_does": "Data validation and settings management library for Python using type annotations. Define models as Python classes with type hints — Pydantic validates, coerces, and serializes data automatically. Core dependency of FastAPI, LangChain, and most modern Python AI frameworks. v2 is a complete Rust-backed rewrite with 5-50x performance improvements over v1.",
   "use_cases": [
-    "Defining strongly-typed input/output schemas for agent tools so agents can validate data before processing",
-    "Parsing and validating LLM-generated structured output (JSON) against a schema before use in agent pipelines",
-    "Serializing Python objects to JSON with type-safe field definitions for agent-to-agent data interchange",
-    "Generating JSON Schema from Python models so agents can introspect expected data structures dynamically",
-    "Building configuration models with environment variable parsing (pydantic-settings) for agent runtime configuration"
+    "Define typed, validated data models for agent API request/response bodies with automatic type coercion",
+    "Parse and validate LLM tool call parameters with schema generation compatible with OpenAI function calling format",
+    "Build validated settings/configuration classes from environment variables with BaseSettings",
+    "Serialize agent domain objects to/from JSON with custom field validators and serializers",
+    "Create typed agent tool schemas where model.model_json_schema() generates OpenAPI-compatible JSON Schema"
   ],
   "not_for": [
-    "Runtime schema validation of arbitrary untrusted data at web-scale throughput — consider marshmallow or cerberus for different trade-offs",
-    "Languages other than Python — Pydantic is Python-specific; use Zod (TypeScript) or Joi (JavaScript) for JS ecosystems",
-    "Simple scripts where Python's built-in dataclasses or TypedDict are sufficient without validation overhead"
+    "Non-Python environments — Pydantic is Python-only",
+    "Async validation pipelines — Pydantic validators are synchronous; add async validation separately",
+    "Complex cross-field validation requiring database lookups — Pydantic model validators work in-memory only"
   ],
-  "best_when": "You are building Python agent tools or FastAPI endpoints where you need automatic validation of structured inputs, JSON Schema generation, and type-safe data models with minimal boilerplate.",
-  "avoid_when": "You are in a non-Python stack or need validation logic that goes beyond type coercion and constraint checking — complex cross-field business rules are better handled in separate validation layers.",
-  "alternatives": ["marshmallow-api", "attrs-api", "dataclasses"],
+  "best_when": "You're building Python applications (especially FastAPI, LangChain, or AI tooling) that need runtime data validation with TypeScript-like type safety from Python annotations.",
+  "avoid_when": "You only need simple data containers without validation — Python dataclasses or attrs are simpler without Pydantic's overhead.",
+  "alternatives": ["attrs-api", "marshmallow-api"],
   "interface": {
     "has_rest_api": false,
     "has_graphql": false,
@@ -38,72 +38,69 @@
     "methods": ["none"],
     "oauth": false,
     "scopes": false,
-    "notes": "Library — no auth required to install or use. Pydantic is a local validation library with no network calls or authentication concepts."
+    "notes": "Local library — no authentication required. MIT licensed."
   },
   "pricing": {
     "model": "open_source",
     "free_tier_exists": true,
-    "free_tier_limits": "Free and open source — MIT licensed, no usage limits",
-    "paid_tiers": null,
+    "free_tier_limits": "MIT licensed — completely free",
+    "paid_tiers": "None",
     "requires_credit_card": false,
-    "notes": "Pydantic core library is MIT-licensed open source. Pydantic Logfire (observability service by the same team) is a separate commercial product; the validation library itself is completely free."
+    "notes": "MIT licensed. Zero cost."
   },
   "performance": {
-    "latency_p50_ms": 1,
-    "latency_p99_ms": 10,
+    "latency_p50_ms": 0,
+    "latency_p99_ms": 1,
     "uptime_sla_percent": null,
-    "rate_limits": "None — runs locally",
+    "rate_limits": "No rate limits. Pydantic v2 Rust core is 5-50x faster than v1. Model compilation is cached — first instantiation is slower.",
     "data_source": "llm_estimated"
   },
   "requirements": {
     "requires_signup": false,
     "requires_credit_card": false,
     "domain_verification": false,
-    "data_residency": ["self_hosted"],
+    "data_residency": ["local"],
     "compliance": [],
     "min_contract": "none"
   },
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
-    "documentation_accuracy": 93,
-    "error_message_quality": 92,
-    "error_message_notes": "Pydantic v2 produces structured ValidationError with a list of errors, each containing loc (field path as tuple), msg (human-readable), type (error code), and input (the bad value). This format is one of the best for agent consumption — agents can iterate errors and auto-correct LLM-generated JSON that fails validation.",
-    "idempotency_support": "partial",
-    "idempotency_notes": "Model validation is deterministic and side-effect-free — same input always produces same output or same error. Agents can safely retry validation without concern for idempotency.",
+    "documentation_accuracy": 92,
+    "error_message_quality": 90,
+    "error_message_notes": "ValidationError contains detailed error list with location (field path), type (error code), and message. Excellent for debugging. model.model_json_schema() generates JSON Schema for the model.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Model validation is deterministic — same data always produces same validated model or same errors.",
     "pagination_style": "none",
     "retry_guidance_documented": false,
     "known_agent_gotchas": [
-      "Pydantic v2 (2.0+) has significant breaking API changes from v1 — @validator is replaced by @field_validator, orm_mode becomes model_config with from_attributes=True; agent code targeting one version will fail on the other",
-      "model_validate() coerces types by default (string '123' to int 123) — agents must use model_validate(data, strict=True) if type coercion is not desired",
-      "model.dict() is deprecated in v2 in favor of model.model_dump() — agent code using the old method will get deprecation warnings that eventually become errors",
-      "Discriminated unions require a Literal type discriminator field — agents generating polymorphic schemas must include the discriminator field or validation silently matches the wrong variant",
-      "JSON Schema generated by model.model_json_schema() may differ between Pydantic versions — agents caching schemas must invalidate on library upgrades"
+      "Pydantic v2 is NOT backward compatible with v1 — .dict() is deprecated (use .model_dump()), .parse_obj() is .model_validate(), class Config is model_config; check migration guide",
+      "Field validation order matters: @field_validator runs before @model_validator; use mode='before' for pre-parsing transformation vs default 'after' for post-parsing validation",
+      "Optional[str] in Pydantic v2 means str | None but NOT optional — field is STILL required unless you set default=None: field: Optional[str] = None",
+      "JSON Schema generation: model.model_json_schema() returns OpenAPI-compatible schema — directly usable for OpenAI function calling or FastAPI route definitions",
+      "Circular model references require model_rebuild(): class A(BaseModel): b: 'B'; class B(BaseModel): a: Optional[A]; A.model_rebuild() — needed for forward references",
+      "BaseSettings reads from environment variables — field names case-insensitive by default: DATABASE_URL env var populates database_url field in Settings class"
     ]
   },
   "af_score_components": {
     "mcp_score": 0,
-    "api_doc_score": 93,
-    "error_handling_score": 92,
+    "api_doc_score": 92,
+    "error_handling_score": 90,
     "auth_complexity_score": 100,
     "rate_limit_clarity_score": 100
   },
   "security_score_components": {
-    "tls_enforcement": 85,
-    "auth_strength": 80,
-    "scope_granularity": 75,
-    "dependency_hygiene": 90,
-    "secret_handling": 82,
-    "security_notes": "Pydantic v2 core is implemented in Rust (pydantic-core) which eliminates entire classes of memory safety vulnerabilities present in pure-Python validation. No pickle deserialization. Secret fields (SecretStr, SecretBytes) prevent accidental logging of sensitive values. Validators run arbitrary Python so custom validators with user input could be vectors if not carefully reviewed. pydantic-settings handles environment variable secrets safely."
+    "tls_enforcement": 100,
+    "auth_strength": 100,
+    "scope_granularity": 100,
+    "dependency_hygiene": 92,
+    "secret_handling": 90,
+    "security_notes": "MIT licensed. Input validation via Pydantic significantly reduces injection risks. SecretStr type hides sensitive values from repr/logs. BaseSettings SecretStr prevents accidental logging of secrets."
   },
   "reliability_score_components": {
-    "uptime_documented": 88,
+    "uptime_documented": 100,
     "version_stability": 82,
     "breaking_changes_history": 72,
     "error_recovery": 90
-  },
-  "score_version": "1.0",
-  "evaluated_at": "2026-03-02",
-  "evaluator": "claude-sonnet-4-6",
-  "confidence": "high"
+  }
 }

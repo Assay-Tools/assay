@@ -5,24 +5,24 @@
   "homepage": "https://click.palletsprojects.com/",
   "repo_url": "https://github.com/pallets/click",
   "category": "developer-tools",
-  "subcategories": ["cli", "python", "argument-parsing"],
-  "tags": ["python", "cli", "argument-parsing", "decorators", "commands", "options", "arguments", "flask-ecosystem"],
-  "what_it_does": "Python CLI library using decorators to create command-line interfaces. Commands are Python functions decorated with @click.command(), arguments with @click.argument(), and options with @click.option(). Supports command groups, nested subcommands, shell completion, ANSI colors, file handling, progress bars, and interactive prompts. The foundational Python CLI library (Flask same org).",
+  "subcategories": ["cli", "python", "utilities"],
+  "tags": ["click", "cli", "python", "command-line", "decorators", "argument-parsing", "flask"],
+  "what_it_does": "Python package for creating beautiful command-line interfaces using decorators. Created by Armin Ronacher (Flask). Define CLI commands with @click.command(), arguments with @click.argument(), and options with @click.option(). Supports command groups, nested subcommands, auto-generated help text, shell completion, and rich prompt/confirmation utilities. The standard CLI framework for Python web tool authors.",
   "use_cases": [
-    "Build Python agent CLI tools with multiple subcommands using Click's @click.group() and @click.command() decorator pattern",
-    "Create interactive agent setup wizards with Click's prompt() and confirm() for guided configuration",
-    "Handle file input/output in agent CLI tools using Click's file type handling and path validation",
-    "Add shell completion to Python agent CLI tools using Click's shell completion generation",
-    "Build testable agent CLI commands using Click's CliRunner for automated CLI testing"
+    "Build agent CLI tools with nested subcommands: agent run, agent train, agent evaluate — each with their own options",
+    "Create management commands for agent services with typed arguments, options, and auto-generated --help",
+    "Implement interactive agent setup wizards with click.prompt() and click.confirm() for configuration",
+    "Build agent batch processing CLIs with progress bars via click.progressbar() for long operations",
+    "Create admin utilities for agent systems with environment variable fallback for CI/CD: option with envvar='MY_VAR'"
   ],
   "not_for": [
-    "TypeScript-first projects — Click is Python only; use Yargs or Commander for Node.js",
-    "Very simple single-argument scripts — argparse from stdlib is sufficient for trivial use",
-    "CLIs requiring type annotation-based argument parsing — Typer (built on Click) is more modern for type hint users"
+    "Rich TUI applications — Click is for line-by-line CLI interaction; use rich-click or Textual for rich terminal UIs",
+    "Argument parsing without Python decorators — argparse is built-in Python; Click requires dependency",
+    "Async CLI applications — Click's callbacks are synchronous; use asyncio.run() wrapper or typer for async support"
   ],
-  "best_when": "You're building a Python CLI agent tool with multiple commands, interactive prompts, and need battle-tested, stable foundation from the Flask ecosystem.",
-  "avoid_when": "You prefer type annotation syntax over decorators — Typer provides a more modern API built on Click; or you need the absolute lightest dependency.",
-  "alternatives": ["typer-api", "argparse-api", "fire-python-api"],
+  "best_when": "You're building a Python CLI tool or management command system and want decorator-based commands with automatic help generation and shell completion.",
+  "avoid_when": "You need a TUI (terminal user interface) with panels, tables, and live updates — use Rich or Textual. For simple scripts, argparse is built-in.",
+  "alternatives": ["typer-api", "argparse-api", "rich-api"],
   "interface": {
     "has_rest_api": false,
     "has_graphql": false,
@@ -38,21 +38,21 @@
     "methods": ["none"],
     "oauth": false,
     "scopes": false,
-    "notes": "CLI framework — no authentication required."
+    "notes": "Local library — no authentication required. BSD 3-Clause licensed."
   },
   "pricing": {
     "model": "open_source",
     "free_tier_exists": true,
-    "free_tier_limits": "BSD licensed, completely free",
+    "free_tier_limits": "BSD 3-Clause licensed — completely free",
     "paid_tiers": "None",
     "requires_credit_card": false,
-    "notes": "BSD license. Maintained by Pallets organization (Flask, Jinja2, Werkzeug)."
+    "notes": "BSD 3-Clause licensed. Zero cost."
   },
   "performance": {
-    "latency_p50_ms": null,
-    "latency_p99_ms": null,
+    "latency_p50_ms": 0,
+    "latency_p99_ms": 10,
     "uptime_sla_percent": null,
-    "rate_limits": "No rate limits — startup-time argument parsing only.",
+    "rate_limits": "No rate limits — local library for CLI applications.",
     "data_source": "llm_estimated"
   },
   "requirements": {
@@ -66,25 +66,25 @@
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
-    "documentation_accuracy": 90,
+    "documentation_accuracy": 92,
     "error_message_quality": 88,
-    "error_message_notes": "Type errors include expected type, received value, and option name. Missing required args name the missing option. UsageError provides user-friendly messages. CliRunner enables automated CLI testing.",
+    "error_message_notes": "Excellent user-facing error messages for wrong argument types, missing required args. click.BadParameter and click.UsageError for programmatic error handling. Auto-generated help text from docstrings.",
     "idempotency_support": "full",
-    "idempotency_notes": "CLI argument parsing — deterministic, no side effects from framework.",
+    "idempotency_notes": "CLI commands are application logic — idempotency depends on the command implementation.",
     "pagination_style": "none",
     "retry_guidance_documented": false,
     "known_agent_gotchas": [
-      "Click decorators are applied bottom-up — the lowest decorator is applied first; argument/option order in function signature should match decorator application order for clarity",
-      "Unicode/encoding issues on Windows with click.echo() — use click.get_text_stream() or ensure UTF-8 encoding in Windows environments for non-ASCII output in agent logs",
-      "@click.pass_context requires ctx as first argument — forgetting to add ctx or mixing up parameter positions causes cryptic errors; always use is_eager=True for --help to work before other options",
-      "CliRunner in tests does not capture stderr by default — use mix_stderr=False in CliRunner and invoke(..., catch_exceptions=False) for proper test isolation of stdout/stderr",
-      "Click's confirm() prompt blocks stdin — agent tests using CliRunner must provide input via input= parameter to avoid test hangs",
-      "Context objects created by @click.pass_obj share state across nested commands — mutable context objects require careful handling in concurrent or stateful agent commands"
+      "Click uses decorators — order matters: @click.command() must be outermost, then @click.option(), then @click.argument(); wrong order causes AttributeError",
+      "Testing Click commands: use CliRunner — from click.testing import CliRunner; result = CliRunner().invoke(cmd, ['--arg', 'value']); assert result.exit_code == 0",
+      "Async commands: Click callbacks are synchronous; wrap async logic with asyncio.run(): def cmd(): asyncio.run(async_func()) — or use Typer which has native async support",
+      "click.echo() vs print(): use click.echo() for CLI output — handles encoding, color stripping when piped, and works correctly on Windows",
+      "Multiple values: @click.option('--file', multiple=True) passes a tuple of values; iterate over it — common source of bugs when expecting a single value",
+      "Nested commands: @click.group() for command groups; subcommand functions are decorated with @group.command(), not @click.command()"
     ]
   },
   "af_score_components": {
     "mcp_score": 0,
-    "api_doc_score": 90,
+    "api_doc_score": 92,
     "error_handling_score": 88,
     "auth_complexity_score": 100,
     "rate_limit_clarity_score": 100
@@ -93,14 +93,14 @@
     "tls_enforcement": 100,
     "auth_strength": 100,
     "scope_granularity": 100,
-    "dependency_hygiene": 92,
-    "secret_handling": 85,
-    "security_notes": "CLI framework. Passwords/secrets passed as options appear in shell history — use prompt=True, hide_input=True for password prompts rather than command-line arguments."
+    "dependency_hygiene": 90,
+    "secret_handling": 92,
+    "security_notes": "BSD 3-Clause licensed. Pallets project (Flask maintainers). Excellent security posture. hide_input=True option for password prompts prevents terminal echo."
   },
   "reliability_score_components": {
     "uptime_documented": 100,
-    "version_stability": 95,
-    "breaking_changes_history": 92,
-    "error_recovery": 95
+    "version_stability": 92,
+    "breaking_changes_history": 88,
+    "error_recovery": 92
   }
 }

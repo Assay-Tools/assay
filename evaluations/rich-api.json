@@ -1,28 +1,28 @@
 {
   "id": "rich-api",
   "name": "Rich",
-  "version_evaluated": "current",
+  "version_evaluated": "13.x",
   "homepage": "https://rich.readthedocs.io/",
   "repo_url": "https://github.com/Textualize/rich",
   "category": "developer-tools",
-  "subcategories": ["developer-experience", "terminal-ui"],
-  "tags": ["python", "library", "terminal", "formatting", "tables", "syntax-highlighting", "progress-bars", "spinners", "logging"],
-  "what_it_does": "Python library for rich text and beautiful formatting in the terminal, providing tables, syntax-highlighted code, progress bars, spinners, markdown rendering, and structured logging output.",
+  "subcategories": ["cli", "terminal", "python", "formatting"],
+  "tags": ["rich", "python", "terminal", "formatting", "tables", "syntax-highlighting", "progress", "logging"],
+  "what_it_does": "Beautiful terminal text formatting library for Python. Renders rich text with markup, tables, syntax-highlighted code, progress bars, spinners, trees, panels, and live-updating displays. Created by Will McGuire (Textualize). Used by pip, Ansible, and hundreds of popular Python CLI tools. Automatic color detection and graceful degradation in non-color terminals.",
   "use_cases": [
-    "Rendering agent evaluation results as formatted tables with color-coded scores for human-readable terminal reports",
-    "Displaying real-time agent task progress with multi-column progress bars and status spinners in operator dashboards",
-    "Pretty-printing JSON, Python data structures, and tracebacks with syntax highlighting for agent debugging sessions",
-    "Building agent CLI operator interfaces with panels, rules, and markdown rendering for structured status output",
-    "Enhancing agent log output with Rich's logging handler for colorized, aligned, syntax-highlighted log display"
+    "Display agent progress with rich progress bars showing task status, ETA, and completion percentage",
+    "Format agent output with syntax-highlighted JSON/code, colored tables, and styled panels",
+    "Add structured logging with Rich's RichHandler for colorized, indented log output in agent development",
+    "Build interactive agent TUI layouts with Rich's Live display for real-time updating dashboards",
+    "Pretty-print agent data structures with rich.inspect() for debugging and development"
   ],
   "not_for": [
-    "Full-screen interactive TUI applications with keyboard navigation and focus management — use Textual (same author) instead",
-    "Non-interactive or headless environments where ANSI escape codes are not supported and will corrupt captured output",
-    "Minimal-dependency production containers where the library footprint and startup overhead matter"
+    "Full TUI applications requiring keyboard input — use Textual (also by Textualize) for interactive TUI with input widgets",
+    "Browser output — Rich outputs ANSI terminal codes; not compatible with HTML rendering",
+    "High-throughput logging in production — Rich's formatting has overhead; use structlog or loguru for production structured logging"
   ],
-  "best_when": "You want beautiful, feature-rich terminal output for agent operator tooling, evaluation reports, or developer-facing CLI tools with zero configuration.",
-  "avoid_when": "Your output is captured, piped, or logged to a file where ANSI escape sequences are not stripped — always detect TTY or set TERM=dumb in non-interactive environments.",
-  "alternatives": ["tqdm-api", "colorama", "blessed"],
+  "best_when": "You're building a Python CLI tool or developer tool and want beautiful, readable terminal output with minimal effort.",
+  "avoid_when": "You need interactive terminal input (forms, menus) — use Textual or prompt_toolkit. For production logging, use loguru or structlog.",
+  "alternatives": ["click-api", "typer-api", "loguru-api"],
   "interface": {
     "has_rest_api": false,
     "has_graphql": false,
@@ -38,68 +38,69 @@
     "methods": ["none"],
     "oauth": false,
     "scopes": false,
-    "notes": "Local Python library, no auth required"
+    "notes": "Local library — no authentication required. MIT licensed."
   },
   "pricing": {
     "model": "open_source",
     "free_tier_exists": true,
-    "free_tier_limits": "Unlimited",
-    "paid_tiers": "none",
+    "free_tier_limits": "MIT licensed — completely free",
+    "paid_tiers": "None",
     "requires_credit_card": false,
-    "notes": "MIT license"
+    "notes": "MIT licensed. Zero cost."
   },
   "performance": {
-    "latency_p50_ms": null,
-    "latency_p99_ms": null,
+    "latency_p50_ms": 1,
+    "latency_p99_ms": 50,
     "uptime_sla_percent": null,
-    "rate_limits": "None — local library",
-    "data_source": "self_hosted"
+    "rate_limits": "No rate limits. Some rendering overhead vs print() — negligible for human-readable output; use print() for high-throughput logging.",
+    "data_source": "llm_estimated"
   },
   "requirements": {
     "requires_signup": false,
     "requires_credit_card": false,
     "domain_verification": false,
-    "data_residency": ["self_hosted"],
+    "data_residency": ["local"],
     "compliance": [],
     "min_contract": "none"
   },
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
-    "documentation_accuracy": 92,
-    "error_message_quality": 90,
-    "error_message_notes": "Rich's own error messages are clear; its Traceback rendering with local variables is best-in-class for Python debugging",
+    "documentation_accuracy": 95,
+    "error_message_quality": 88,
+    "error_message_notes": "Rich's Console() and print() don't raise errors for malformed markup — invalid markup is rendered as-is. Well-documented exception handling in Rich tracebacks.",
     "idempotency_support": "full",
-    "idempotency_notes": "Rendering operations are stateless display side effects and do not affect application logic",
+    "idempotency_notes": "Rendering functions are stateless — same input always produces same output.",
     "pagination_style": "none",
     "retry_guidance_documented": false,
     "known_agent_gotchas": [
-      "Rich auto-detects TTY and disables color in non-interactive environments, but force_terminal=True overrides this and will send ANSI codes to log files and pipes",
-      "Rich markup uses [bold], [red] syntax that conflicts with content containing square brackets — always escape literal brackets with [[ in user-generated content",
-      "Console objects are not thread-safe by default — use Console(thread_safe=True) for multi-threaded agent workflows or output may interleave",
-      "Rich's Live display and Progress cannot be nested with print() — all output during a Live context must go through the Live object or rendering is corrupted",
-      "Rich Traceback install (rich.traceback.install()) affects all uncaught exceptions globally — in library code this can override the host application's exception handling"
+      "from rich import print overrides Python's built-in print — this is intentional and transparent but can surprise when debugging with basic print() calls",
+      "Rich markup uses [bold], [green], [link=url] syntax — if your content contains square brackets, escape them: '\\[literal bracket]' or use highlight=False",
+      "Console(file=sys.stderr) for stderr output — default Console writes to stdout; use stderr for logging to separate from data output",
+      "Progress bars must be used as context managers: with Progress() as progress: task = progress.add_task('...') — calling progress.update() outside context doesn't display",
+      "Live display updates: with Live(renderable, refresh_per_second=4) as live: — use live.update(new_renderable) to update; high refresh rates increase CPU usage",
+      "Console() captures=False by default — set Console(record=True) then console.export_text() or export_html() for capturing output programmatically"
     ]
   },
   "af_score_components": {
     "mcp_score": 0,
-    "api_doc_score": 92,
-    "error_handling_score": 90,
+    "api_doc_score": 95,
+    "error_handling_score": 88,
     "auth_complexity_score": 100,
     "rate_limit_clarity_score": 100
   },
   "security_score_components": {
-    "tls_enforcement": 95,
-    "auth_strength": 95,
-    "scope_granularity": 90,
-    "dependency_hygiene": 89,
-    "secret_handling": 85,
-    "security_notes": "No network layer; secure by default. Rich Traceback with show_locals=True will display all local variables in tracebacks — avoid in production as this can expose secrets."
+    "tls_enforcement": 100,
+    "auth_strength": 100,
+    "scope_granularity": 100,
+    "dependency_hygiene": 88,
+    "secret_handling": 90,
+    "security_notes": "MIT licensed. Terminal output only — no network. Avoid logging sensitive data through Rich's handlers in production."
   },
   "reliability_score_components": {
-    "uptime_documented": 85,
+    "uptime_documented": 100,
     "version_stability": 90,
-    "breaking_changes_history": 87,
-    "error_recovery": 88
+    "breaking_changes_history": 88,
+    "error_recovery": 92
   }
 }

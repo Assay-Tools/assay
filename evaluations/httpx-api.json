@@ -1,28 +1,28 @@
 {
   "id": "httpx-api",
   "name": "HTTPX",
-  "version_evaluated": "0.27+",
+  "version_evaluated": "0.27.x",
   "homepage": "https://www.python-httpx.org/",
   "repo_url": "https://github.com/encode/httpx",
   "category": "developer-tools",
-  "subcategories": ["http-client", "python", "async", "networking"],
-  "tags": ["python", "http-client", "async", "httpx", "rest", "http2", "requests-replacement", "asyncio"],
-  "what_it_does": "Modern Python HTTP client with both sync and async APIs. Drop-in requests replacement with async support, HTTP/2, connection pooling, streaming, and automatic content decoding. First-class async support via AsyncClient makes it the standard HTTP client for async Python agents and FastAPI applications.",
+  "subcategories": ["http-client", "async", "python"],
+  "tags": ["http", "async", "python", "requests-alternative", "httpx", "httpx-client", "http2"],
+  "what_it_does": "Modern, fully-featured HTTP client for Python with both sync and async APIs. Drop-in replacement for requests with async/await support, HTTP/2, connection pooling, streaming responses, timeout configuration, and HTTPX test client for ASGI apps (FastAPI, Starlette). The modern Python HTTP client for applications needing both sync and async HTTP support.",
   "use_cases": [
-    "Make async HTTP calls to LLM APIs and external services in FastAPI/async Python agent backends with AsyncClient",
-    "Replace requests with httpx in Python agents for HTTP/2 support and connection pooling improvements",
-    "Build Python agents that call multiple APIs concurrently using asyncio.gather() with AsyncClient",
-    "Stream LLM API responses in async Python agents using httpx's streaming response support",
-    "Write Python integration tests against HTTP APIs using httpx.Client for both sync and async test contexts"
+    "Make async HTTP requests in FastAPI agent services using the same API as the synchronous client",
+    "Build agent HTTP clients with connection pooling and HTTP/2 support for high-performance API consumers",
+    "Test FastAPI/Starlette agent APIs with HTTPX's TestClient without running an actual server",
+    "Stream large responses in agent download pipelines without loading full responses into memory",
+    "Replace requests in existing agent codebases with a drop-in async-capable alternative"
   ],
   "not_for": [
-    "Simple synchronous scripts where requests is already familiar — httpx adds complexity for pure sync use cases",
-    "High-volume web scraping — httpx is well-suited but aiohttp has lower overhead for extreme concurrency",
-    "gRPC calls — httpx is HTTP/REST only; use grpcio for gRPC communication"
+    "Simple one-off scripts where requests is already installed and async isn't needed",
+    "Browser automation — use Playwright or Selenium for browser-level HTTP interception",
+    "WebSocket connections — use websockets or aiohttp for WebSocket support"
   ],
-  "best_when": "You're building an async Python agent (FastAPI, asyncio) that needs HTTP calls — httpx's AsyncClient is the standard choice for async Python HTTP.",
-  "avoid_when": "You have a simple synchronous Python script with requests already installed — httpx adds no benefit over requests in purely sync contexts.",
-  "alternatives": ["aiohttp-api", "requests-api", "urllib3-api"],
+  "best_when": "You're building async Python services (FastAPI, async agent workers) and need a modern HTTP client with the same ergonomics as requests but with async/await support.",
+  "avoid_when": "You're in a fully synchronous codebase with no async requirements — requests is simpler and more widely documented. HTTPX shines in async contexts.",
+  "alternatives": ["aiohttp-api", "requests-api"],
   "interface": {
     "has_rest_api": false,
     "has_graphql": false,
@@ -38,21 +38,21 @@
     "methods": ["none"],
     "oauth": false,
     "scopes": false,
-    "notes": "HTTP client library — auth headers/tokens set by caller via auth parameter or headers."
+    "notes": "Local library — no authentication required. BSD 3-Clause licensed. Auth is configured per client instance."
   },
   "pricing": {
     "model": "open_source",
     "free_tier_exists": true,
-    "free_tier_limits": "BSD licensed, completely free",
+    "free_tier_limits": "BSD 3-Clause licensed — completely free",
     "paid_tiers": "None",
     "requires_credit_card": false,
-    "notes": "BSD license. Part of the encode organization (Starlette, Uvicorn, Django REST Framework maintainers)."
+    "notes": "BSD 3-Clause licensed. Zero cost."
   },
   "performance": {
-    "latency_p50_ms": null,
-    "latency_p99_ms": null,
+    "latency_p50_ms": 50,
+    "latency_p99_ms": 500,
     "uptime_sla_percent": null,
-    "rate_limits": "No rate limits — local HTTP client. Performance limited by network and connection pool size.",
+    "rate_limits": "No rate limits. Connection pooling improves performance for multiple requests. HTTP/2 multiplexing available.",
     "data_source": "llm_estimated"
   },
   "requirements": {
@@ -66,41 +66,41 @@
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
-    "documentation_accuracy": 90,
+    "documentation_accuracy": 92,
     "error_message_quality": 88,
-    "error_message_notes": "HTTPStatusError includes response body for debugging. ConnectError and TimeoutException are distinct. RequestError hierarchy allows catching all transport errors vs. HTTP errors separately.",
-    "idempotency_support": "partial",
-    "idempotency_notes": "GET requests are idempotent by HTTP spec. POST/PUT require application-level idempotency. httpx does not add idempotency keys.",
+    "error_message_notes": "Rich exception hierarchy — ConnectError, TimeoutException, HTTPStatusError. Response.raise_for_status() raises HTTPStatusError with response details. Excellent error messages with request/response context.",
+    "idempotency_support": "full",
+    "idempotency_notes": "HTTP client — idempotency depends on the API being called. Client itself makes exactly one request per call.",
     "pagination_style": "none",
-    "retry_guidance_documented": false,
+    "retry_guidance_documented": true,
     "known_agent_gotchas": [
-      "AsyncClient must be used as an async context manager (async with httpx.AsyncClient() as client:) to ensure connection pool cleanup — creating AsyncClient without context manager leaks connections",
-      "response.raise_for_status() raises HTTPStatusError — unlike requests which uses HTTPError; adjust exception handling when migrating from requests",
-      "HTTP/2 requires h2 package installed separately (pip install httpx[http2]) — not enabled by default; import fails silently without clear error",
-      "Timeout applies to the entire request by default — use httpx.Timeout(connect=5.0, read=30.0) for separate connect/read timeouts for streaming LLM responses",
-      "AsyncClient is not thread-safe — use one AsyncClient per async task context or protect with locks in multi-threaded async code",
-      "Redirects are followed by default (up to 20) — use follow_redirects=False for APIs that use 3xx semantically; check max_redirects parameter for redirect loop protection"
+      "Must use async with httpx.AsyncClient() as client: context manager for proper connection cleanup — not doing so leaks connections",
+      "HTTPX has strict timeout defaults (5 seconds) unlike requests (no timeout) — set httpx.Timeout(30.0) for slow APIs or use None for no timeout",
+      "Response content is NOT automatically decoded for streaming — use async for chunk in response.aiter_bytes(): for streaming; response.content for full response",
+      "TestClient for ASGI apps: from httpx import Client; from starlette.testclient import TestClient — HTTPX's AsyncClient with ASGITransport for async test patterns",
+      "HTTP/2 requires h2 package: pip install httpx[http2] — not included by default; worth enabling for high-concurrency API consumers",
+      "follow_redirects defaults to False unlike requests (True) — set follow_redirects=True explicitly if your API uses redirects"
     ]
   },
   "af_score_components": {
     "mcp_score": 0,
-    "api_doc_score": 90,
+    "api_doc_score": 92,
     "error_handling_score": 88,
     "auth_complexity_score": 100,
-    "rate_limit_clarity_score": 95
+    "rate_limit_clarity_score": 100
   },
   "security_score_components": {
     "tls_enforcement": 95,
-    "auth_strength": 95,
-    "scope_granularity": 95,
-    "dependency_hygiene": 92,
-    "secret_handling": 92,
-    "security_notes": "TLS verification enabled by default. Certificate verification on by default — disable only for development (verify=False). No ambient credential storage."
+    "auth_strength": 92,
+    "scope_granularity": 90,
+    "dependency_hygiene": 90,
+    "secret_handling": 90,
+    "security_notes": "BSD 3-Clause licensed. Enforces SSL certificate verification by default (verify=True). Supports client certificates, custom CA bundles. Auth helpers for Bearer, Basic, Digest auth."
   },
   "reliability_score_components": {
-    "uptime_documented": 95,
+    "uptime_documented": 100,
     "version_stability": 85,
-    "breaking_changes_history": 82,
-    "error_recovery": 90
+    "breaking_changes_history": 80,
+    "error_recovery": 88
   }
 }
