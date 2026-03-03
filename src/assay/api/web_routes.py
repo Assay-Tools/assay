@@ -65,13 +65,19 @@ def _community_stats(db: Session) -> dict:
 @router.get("/", response_class=HTMLResponse)
 def index(request: Request, db: Session = Depends(get_db)):
     """Landing page with stats and category grid."""
-    # Stats
-    total_packages = db.query(func.count(Package.id)).scalar() or 0
+    # Stats — distinguish evaluated vs cataloged
+    total_cataloged = db.query(func.count(Package.id)).scalar() or 0
+    total_evaluated = (
+        db.query(func.count(Package.id))
+        .filter(Package.af_score.isnot(None))
+        .scalar() or 0
+    )
     total_categories = db.query(func.count(Category.slug)).scalar() or 0
     avg_af = db.query(func.avg(Package.af_score)).filter(Package.af_score.isnot(None)).scalar()
 
     stats = {
-        "total_packages": total_packages,
+        "total_evaluated": total_evaluated,
+        "total_cataloged": total_cataloged,
         "total_categories": total_categories,
         "avg_af_score": round(avg_af, 1) if avg_af is not None else None,
     }
@@ -483,7 +489,12 @@ def contribute(request: Request, db: Session = Depends(get_db)):
 @router.get("/about", response_class=HTMLResponse)
 def about(request: Request, db: Session = Depends(get_db)):
     """About page with live stats."""
-    total_packages = db.query(func.count(Package.id)).scalar() or 0
+    total_cataloged = db.query(func.count(Package.id)).scalar() or 0
+    total_evaluated = (
+        db.query(func.count(Package.id))
+        .filter(Package.af_score.isnot(None))
+        .scalar() or 0
+    )
     total_categories = db.query(func.count(Category.slug)).scalar() or 0
     mcp_count = (
         db.query(func.count(Package.id))
@@ -495,7 +506,8 @@ def about(request: Request, db: Session = Depends(get_db)):
     avg_af = db.query(func.avg(Package.af_score)).filter(Package.af_score.isnot(None)).scalar()
 
     stats = {
-        "total_packages": total_packages,
+        "total_evaluated": total_evaluated,
+        "total_cataloged": total_cataloged,
         "total_categories": total_categories,
         "mcp_count": mcp_count,
         "avg_af_score": round(avg_af, 1) if avg_af is not None else None,

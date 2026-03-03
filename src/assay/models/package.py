@@ -412,7 +412,8 @@ class Category(Base):
 
     @property
     def package_count(self) -> int:
-        return len(self.packages)
+        """Count of evaluated packages (those with an AF score)."""
+        return sum(1 for p in self.packages if p.af_score is not None)
 
     def to_dict(self) -> dict:
         return {

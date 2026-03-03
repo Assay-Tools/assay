@@ -54,15 +54,14 @@ def load_evaluation(data: dict, db) -> str:
     pkg_id = data["id"]
     now = datetime.now(timezone.utc)
 
-    # Ensure category exists
+    # Normalize category to canonical list; unknown → "other"
+    from assay.evaluation.discovery import CATEGORIES
+
     cat_slug = data.get("category")
     if cat_slug:
-        existing_cat = db.query(Category).filter_by(slug=cat_slug).first()
-        if not existing_cat:
-            db.add(Category(
-                slug=cat_slug,
-                name=cat_slug.replace("-", " ").title(),
-            ))
+        cat_slug = cat_slug.lower().strip()
+        if cat_slug not in CATEGORIES:
+            cat_slug = "other"
 
     # Create or update package
     pkg = db.query(Package).filter_by(id=pkg_id).first()

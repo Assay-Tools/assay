@@ -330,6 +330,11 @@ def get_evaluation_queue(
 @router.get("/v1/stats", response_model=StatsResponse, tags=["stats"])
 def get_stats(db: Session = Depends(get_db)):
     total_packages = db.query(func.count(Package.id)).scalar() or 0
+    total_evaluated = (
+        db.query(func.count(Package.id))
+        .filter(Package.af_score.is_not(None))
+        .scalar() or 0
+    )
     total_categories = db.query(func.count(Category.slug)).scalar() or 0
     avg_af = db.query(func.avg(Package.af_score)).filter(Package.af_score.is_not(None)).scalar()
 
@@ -354,6 +359,7 @@ def get_stats(db: Session = Depends(get_db)):
 
     return StatsResponse(
         total_packages=total_packages,
+        total_evaluated=total_evaluated,
         total_categories=total_categories,
         avg_af_score=round(avg_af, 2) if avg_af is not None else None,
         score_distribution=ScoreDistribution(

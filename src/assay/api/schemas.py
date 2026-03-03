@@ -66,6 +66,7 @@ class ScoreDistribution(BaseModel):
 
 class StatsResponse(BaseModel):
     total_packages: int
+    total_evaluated: int = 0
     total_categories: int
     avg_af_score: float | None
     score_distribution: ScoreDistribution
