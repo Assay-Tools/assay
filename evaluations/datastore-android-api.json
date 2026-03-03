@@ -1,0 +1,106 @@
+{
+  "id": "datastore-android-api",
+  "name": "Jetpack DataStore",
+  "version_evaluated": "1.1.x",
+  "homepage": "https://developer.android.com/topic/libraries/architecture/datastore",
+  "repo_url": "https://github.com/androidx/datastore",
+  "category": "developer-tools",
+  "subcategories": ["storage", "android", "kotlin", "key-value", "jetpack"],
+  "tags": ["android", "kotlin", "storage", "preferences", "proto", "coroutines", "flow", "jetpack", "datastore"],
+  "what_it_does": "Modern Android Jetpack replacement for SharedPreferences. DataStore provides two APIs: Preferences DataStore (key-value pairs, no schema) and Proto DataStore (typed Protocol Buffer schema, requires .proto file). Key advantages over SharedPreferences: Kotlin coroutines and Flow for async access (no blocking main thread), ACID transactions, handles exceptions properly (SharedPreferences silently swallows IOExceptions), and Kotlin DSL API. Part of Android Jetpack, recommended by Google for all new Android key-value storage.",
+  "use_cases": [
+    "Store agent user preferences (theme, notification settings, API key) using Preferences DataStore — coroutine-based access prevents ANR from blocking main thread",
+    "Persist typed agent configuration using Proto DataStore — structured proto schema enforces type safety for agent settings vs string-keyed Preferences DataStore",
+    "React to agent preference changes using DataStore's Flow — dataStore.data.map { preferences -> preferences[AGENT_MODE] } emits updates as Flow for reactive UI",
+    "Replace SharedPreferences in agent Android apps — DataStore.updateData { } provides atomic updates; no more apply()/commit() confusion from SharedPreferences",
+    "Store agent authentication tokens using EncryptedDataStore — combine Jetpack DataStore with encrypted file for secure agent credential storage"
+  ],
+  "not_for": [
+    "Large datasets or complex queries — DataStore is for simple key-value settings; use Room for structured data with query needs",
+    "Server-side Kotlin or Kotlin Multiplatform (non-Android) — DataStore is Android-only; use DataStore only in Android modules",
+    "Legacy Java code — DataStore's coroutine API doesn't work well with Java; migrate to Kotlin before adopting DataStore, or keep SharedPreferences for Java-based components"
+  ],
+  "best_when": "You're replacing SharedPreferences in an Android Kotlin app — DataStore's coroutine/Flow API prevents main thread blocking, and Proto DataStore adds type safety for complex settings.",
+  "avoid_when": "You need relational data (use Room), you're in a multi-platform context (DataStore is Android-only), or your Java-only codebase makes DataStore's Kotlin API awkward.",
+  "alternatives": ["android-room-api", "mmkv-android-api", "encryptedsharedprefs-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["kotlin"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Local storage library — no auth concepts. Use EncryptedDataStore (custom wrapper with SQLCipher) for sensitive agent data like tokens."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, Apache 2.0 licensed, bundled with Android Jetpack",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Jetpack DataStore is Apache 2.0 licensed, maintained by Google. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 1,
+    "latency_p99_ms": 10,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — local storage library. Reads are fast (in-memory cache after first read). Writes persist to disk asynchronously.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["local"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 90,
+    "error_message_quality": 85,
+    "error_message_notes": "DataStore IO exceptions surface as Flow emissions of IOExceptions or via catch operator. updateData {} propagates transform exceptions. Proto DataStore schema mismatch causes IOException on read. Preferences DataStore returns default values for missing keys (no exception).",
+    "idempotency_support": "full",
+    "idempotency_notes": "updateData { } is atomic — concurrent updates are serialized. Same value set multiple times is idempotent. Flow-based reads are always consistent with latest written state.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "One DataStore instance per file — creating multiple DataStore instances pointing to the same file causes data corruption; use singleton pattern via Kotlin delegate or Hilt; multiple instances are a common migration mistake from SharedPreferences",
+      "DataStore is not a drop-in SharedPreferences replacement — DataStore API is async (suspend/Flow); code that called SharedPreferences.getString() synchronously must be refactored to suspend functions or collectAsState() in Compose",
+      "Proto DataStore requires .proto file and code generation — protobuf schema must be defined in src/main/proto/*.proto and protobuf Gradle plugin generates Kotlin classes; build setup more complex than Preferences DataStore",
+      "Migration from SharedPreferences — use SharedPreferencesMigration in DataStore builder to migrate existing SP data; without migration, SP data is lost and users see default values on first DataStore use",
+      "Coroutine scope for DataStore operations — dataStore.updateData { } is a suspend function requiring coroutine scope; calling from non-coroutine context (ViewModel init, BroadcastReceiver) requires runBlocking or scope.launch carefully",
+      "DataStore.data Flow emits on every preferences change — subscribing to dataStore.data emits on any key change in the file, not just the specific key watched; use .map { it[key] }.distinctUntilChanged() to filter to specific key changes"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 90,
+    "error_handling_score": 85,
+    "auth_complexity_score": 98,
+    "rate_limit_clarity_score": 98
+  },
+  "security_score_components": {
+    "tls_enforcement": 98,
+    "auth_strength": 90,
+    "scope_granularity": 85,
+    "dependency_hygiene": 92,
+    "secret_handling": 82,
+    "security_notes": "App sandbox protects DataStore file. No encryption by default — use EncryptedDataStore pattern for sensitive agent tokens. File stored in app's private storage. Proto DataStore provides schema validation vs arbitrary key-value."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 90,
+    "version_stability": 88,
+    "breaking_changes_history": 85,
+    "error_recovery": 90
+  }
+}

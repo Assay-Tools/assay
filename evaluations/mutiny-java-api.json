@@ -1,0 +1,106 @@
+{
+  "id": "mutiny-java-api",
+  "name": "Mutiny",
+  "version_evaluated": "2.x",
+  "homepage": "https://smallrye.io/smallrye-mutiny/",
+  "repo_url": "https://github.com/smallrye/smallrye-mutiny",
+  "category": "developer-tools",
+  "subcategories": ["reactive", "java", "async", "quarkus", "streams"],
+  "tags": ["java", "kotlin", "reactive", "async", "quarkus", "smallrye", "uni", "multi", "event-driven"],
+  "what_it_does": "Reactive programming library for Java — Quarkus's default reactive framework. Mutiny provides two reactive types: Uni<T> (single async result, like Mono in Project Reactor) and Multi<T> (stream of items, like Flux). Designed for readability over functional programming purity — method names like onItem().transform(), onFailure().retry(), onFailure().recoverWithItem() are readable English vs Reactor's flatMap/concatMap/mergeMap. Integrates with Quarkus reactive extensions (Hibernate Reactive, Reactive PanacheEntity, reactive Kafka client, RESTEasy Reactive).",
+  "use_cases": [
+    "Build reactive Quarkus agent APIs using Mutiny Uni — @GET returning Uni<Response> for non-blocking agent request handling in RESTEasy Reactive",
+    "Compose async agent workflows with Mutiny — Uni.combine().all().unis(llmCall(), dbQuery()).asTuple() for parallel async agent operations",
+    "Implement reactive agent database access with Hibernate Reactive + Mutiny — Uni<List<Agent>> = Agent.list(\"status\", \"active\") for non-blocking ORM queries",
+    "Stream agent event processing with Multi — Multi.createFrom().iterable(agentEvents).onItem().transform(process) for reactive agent event pipeline",
+    "Handle agent failure and retry using Mutiny's fluent API — uni.onFailure().retry().withBackOff(Duration.ofMillis(100)).atMost(3) for resilient agent operations"
+  ],
+  "not_for": [
+    "Non-Quarkus Java projects — Project Reactor (Spring WebFlux) is the standard outside Quarkus; Mutiny is less common in non-Quarkus contexts with smaller community/docs",
+    "Teams more familiar with RxJava/Reactor — Mutiny's API differs; teams with existing Reactor knowledge find context-switching costly; use Reactor if already proficient",
+    "Simple synchronous Quarkus apps — Quarkus supports blocking REST (@Blocking annotation); don't introduce Mutiny complexity for simple CRUD without actual concurrency benefits"
+  ],
+  "best_when": "You're building a Quarkus application and need reactive non-blocking code — Mutiny is Quarkus's native reactive library with deep integration throughout the Quarkus extension ecosystem.",
+  "avoid_when": "You're using Spring WebFlux (use Project Reactor), your team is familiar with RxJava patterns, or your Quarkus app doesn't need reactive IO.",
+  "alternatives": ["reactor-core-api", "rxjava-api", "spring-webflux-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["java", "kotlin"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Reactive programming library — no auth concepts. Auth for agent services handled by Quarkus security extensions (Quarkus OIDC, JWT)."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, Apache 2.0 licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Mutiny is Apache 2.0 licensed, maintained by SmallRye/Red Hat. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 1,
+    "latency_p99_ms": 5,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — reactive library. Non-blocking design allows high concurrency with small thread pool. Mutiny overhead is minimal event-loop overhead.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 82,
+    "error_message_quality": 82,
+    "error_message_notes": "Mutiny Uni failures emit via onFailure() callbacks or terminate the reactive chain. Uncaught Uni failures cause UnhandledFailureException. Multi subscription cancellation can be subtle — add onSubscription().cancel() handlers for debugging.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Mutiny reactive chains are description of computation, not execution — subscribing triggers execution; retrying creates a new subscription; design agent Uni operations to be re-subscribable for retry semantics.",
+    "pagination_style": "none",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Nothing happens without subscription — Mutiny is lazy; Uni and Multi don't execute until subscribed; in Quarkus REST endpoints, the framework subscribes automatically; in test code, use await().indefinitely() or uni.subscribe().withSubscriber()",
+      "Blocking code on event loop thread causes Quarkus warning — calling blocking operations (JDBC, file IO) in reactive context logs 'You have attempted to perform a blocking operation on the I/O event loop thread'; use Uni.createFrom().item(() -> ...).runSubscriptionOn(Infrastructure.getDefaultExecutor())",
+      "Context propagation — Quarkus RequestScoped beans and Vert.x context are not automatically propagated across Mutiny async boundaries; use @NonBlocking and context propagation extension; missing propagation causes CDI bean not found errors in async callbacks",
+      "Uni.combine() vs Uni.join() — Uni.combine().all().unis() waits for all unis; Uni.join() is for joining Multi streams; mixing API semantics causes runtime ClassCastException or unexpected stream behavior",
+      "onFailure().transform() vs onFailure().recoverWithItem() — transform() maps the exception to a different exception; recoverWithItem() provides a successful fallback value; using transform for fallback returns failure not success",
+      "Multi backpressure handling — Multi.createFrom().emitter() requires handling backpressure via BackPressureStrategy; BUFFER (default) can OOM for fast producers; use DROP or LATEST for lossy agent event streams"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 82,
+    "error_handling_score": 82,
+    "auth_complexity_score": 92,
+    "rate_limit_clarity_score": 92
+  },
+  "security_score_components": {
+    "tls_enforcement": 95,
+    "auth_strength": 88,
+    "scope_granularity": 82,
+    "dependency_hygiene": 88,
+    "secret_handling": 88,
+    "security_notes": "Reactive library — no network exposure. Security provided by Quarkus security extensions. Context propagation critical for proper auth scope in reactive chains. Blocking-in-reactive detection helps identify security-sensitive blocking auth operations."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 85,
+    "version_stability": 82,
+    "breaking_changes_history": 78,
+    "error_recovery": 88
+  }
+}
