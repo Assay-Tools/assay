@@ -1,0 +1,106 @@
+{
+  "id": "pytest-xdist-api",
+  "name": "pytest-xdist",
+  "version_evaluated": "3.x",
+  "homepage": "https://pytest-xdist.readthedocs.io/",
+  "repo_url": "https://github.com/pytest-dev/pytest-xdist",
+  "category": "developer-tools",
+  "subcategories": ["testing", "python", "parallel", "pytest", "ci-cd"],
+  "tags": ["python", "pytest", "parallel", "distributed-testing", "xdist", "performance", "ci-cd"],
+  "what_it_does": "Parallel and distributed testing plugin for pytest — runs tests concurrently across CPU cores or remote machines. pytest-xdist features: -n auto (use all CPU cores), -n 4 (specific worker count), looponfail mode (-f, rerun on file change), distributed mode across SSH remote workers, --dist=loadfile/loadscope/loadgroup scheduling strategies, test isolation via forked workers, and xfail/pytest.mark.xdist_group for grouping. Reduces large agent test suite runtime by 2-8x through parallelism.",
+  "use_cases": [
+    "Agent CI speedup — pytest -n auto runs agent test suite across all CPU cores; 100-test suite: 60s sequential → 15s with -n 4; CI machines with 8 cores run agent tests 4-6x faster",
+    "Agent isolated test workers — pytest -n 4 --dist=loadfile distributes tests from same file to same worker; agent tests accessing shared fixtures in same file run on one worker; reduces database contention in parallel agent test runs",
+    "Agent load-scope distribution — pytest -n 4 --dist=loadscope distributes tests from same module to same worker; agent module-level fixtures (database setup, agent initialization) created once per module per worker",
+    "Agent looponfail development — pytest -f watches source files; agent tests rerun automatically on file change; development loop: edit agent code → tests rerun in <5 seconds; faster than manual pytest invocation",
+    "pytest.mark.xdist_group grouping — @pytest.mark.xdist_group('agent-db') ensures all marked tests run on same worker; agent tests sharing transactional fixtures grouped explicitly; eliminates data races between parallel agent test processes"
+  ],
+  "not_for": [
+    "Tests with global shared state — parallel tests accessing same global variables, singletons, or shared files cause race conditions; fix test isolation before enabling xdist",
+    "Tests requiring specific order — xdist distributes tests without order guarantee; for ordered test sequences use pytest-ordering and -n1",
+    "Very fast test suites — xdist worker startup adds 1-5 seconds overhead; for test suites completing in <10 seconds, sequential is faster"
+  ],
+  "best_when": "Your agent pytest suite takes >30 seconds and tests are properly isolated — pytest-xdist's -n auto makes full suite 2-6x faster with zero code changes when tests don't share mutable state.",
+  "avoid_when": "Tests share global state, require specific execution order, or your suite is already fast enough.",
+  "alternatives": ["pytest-cov-api", "pytest-asyncio-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": false,
+    "sdk_languages": [],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — local parallel test execution. SSH remote workers use SSH credentials."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "pytest-xdist is MIT licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 0,
+    "latency_p99_ms": 0,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — local parallel execution. 2-5 second worker startup overhead. Speedup scales with available CPU cores and test isolation. DB-heavy tests may not scale linearly due to connection pool contention.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 80,
+    "error_message_notes": "Worker crash shows which test file and exception. Database connection errors show as connection pool exhaustion. Race conditions surface as intermittent test failures. -v output shows which worker (gw0, gw1) ran each test. --tb=short shows tracebacks from all workers.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Individual tests must be idempotent for xdist parallelism to be safe. xdist itself is idempotent — same test suite produces same results given isolated tests. Flaky tests become more obvious with parallel execution exposing race conditions.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Database session scope conflicts with -n > 1 — SQLAlchemy session-scoped fixtures create one DB session per module; with xdist multiple workers use same module fixture causing session conflicts; use function-scoped DB fixtures with xdist or use transaction rollback per test; agent DB tests need careful fixture scoping for parallelism",
+      "pytest-cov requires --cov-append with xdist — parallel workers write separate .coverage.gw0, .coverage.gw1 files; coverage combine required after parallel run; pytest-cov with xdist needs --cov-append or separate coverage combine step; agent CI coverage reports may be incomplete without proper xdist+cov setup",
+      "Random port fixtures conflict across workers — agent integration tests creating servers on fixed ports fail when multiple workers start servers on same port; use socket with port 0 (OS assigns) for dynamic port allocation: server_port = socket.bind(('', 0)); agent tests with fixed ports must use pytest.mark.xdist_group to serialize",
+      "-n auto may over-subscribe on hyperthreaded CPUs — -n auto uses os.cpu_count() which counts hyperthreads; 8-core/16-thread machine runs 16 workers but IO-bound agent tests benefit from ~8; try -n 8 explicitly for CPU-heavy agent test suites; too many workers causes memory pressure",
+      "Worker startup failure shows no tests run — if xdist worker fails to start (import error, fixture crash), pytest exits with 'no tests ran'; error message may be truncated in worker output; use -v or --workers-output-lines=100 to see full worker startup error; agent import errors in conftest.py crash all workers silently",
+      "Ordering-dependent tests become flaky with xdist — tests relying on setUp order (global cache populated by test A before test B runs) fail intermittently when xdist runs B before A; agent tests must be fully independent; use autouse fixtures for state setup instead of depending on test execution order"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 78,
+    "auth_complexity_score": 98,
+    "rate_limit_clarity_score": 98
+  },
+  "security_score_components": {
+    "tls_enforcement": 95,
+    "auth_strength": 95,
+    "scope_granularity": 92,
+    "dependency_hygiene": 90,
+    "secret_handling": 95,
+    "security_notes": "Local test execution — no security concerns for typical use. SSH remote workers use SSH credentials — store in CI secrets. Parallel agent tests may expose race conditions in production code — treat discovered races as security bugs (TOCTOU vulnerabilities)."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 90,
+    "breaking_changes_history": 88,
+    "error_recovery": 85
+  }
+}

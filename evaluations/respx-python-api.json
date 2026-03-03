@@ -1,0 +1,106 @@
+{
+  "id": "respx-python-api",
+  "name": "respx",
+  "version_evaluated": "0.2x",
+  "homepage": "https://lundberg.github.io/respx/",
+  "repo_url": "https://github.com/lundberg/respx",
+  "category": "developer-tools",
+  "subcategories": ["testing", "python", "http-mocking", "httpx", "async"],
+  "tags": ["python", "respx", "httpx", "http-mocking", "testing", "async", "mock", "fixtures"],
+  "what_it_does": "HTTP mocking library for httpx — intercepts httpx requests in tests and returns mock responses. respx features: respx.mock context manager, @respx.mock decorator for test functions, route matching by URL/method/headers/content, httpx.Response builder for mock responses, side_effect functions for dynamic responses, route patterns with wildcards, assert_all_called/assert_all_mocked, async support (works with pytest-asyncio), base_url mocking, and call inspection. The httpx equivalent of responses (for requests) or aioresponses (for aiohttp).",
+  "use_cases": [
+    "Agent httpx API mocking — with respx.mock: respx.get('https://api.openai.com/v1/chat/completions').mock(return_value=httpx.Response(200, json=mock_completion)); result = await agent.call_llm(prompt) — mock LLM API in async agent tests",
+    "Agent tool HTTP mocking — @respx.mock; def test_web_search(): respx.get('https://api.search.com/search', params={'q': 'test'}).mock(return_value=httpx.Response(200, json=search_results)); results = agent.search('test'); assert len(results) == 5",
+    "Agent error handling tests — respx.get('https://api.example.com/data').mock(return_value=httpx.Response(429, json={'error': 'rate_limited'})); with pytest.raises(AgentRateLimitError): agent.fetch_data() — test agent HTTP error handling",
+    "Dynamic mock responses — respx.post('https://api.llm.com/chat').mock(side_effect=lambda req: httpx.Response(200, json={'response': f'Mock: {req.content}'})) — dynamic response based on request; agent test validates request content",
+    "Agent mock assertion — route = respx.post('https://api.tool.com/execute'); agent.execute_tool('search', params); assert route.called; assert route.call_count == 1; assert json.loads(route.calls[0].request.content) == {'tool': 'search', 'params': params} — verify agent made correct API call"
+  ],
+  "not_for": [
+    "requests library mocking — respx only intercepts httpx; for requests-based code use responses library",
+    "aiohttp mocking — respx is httpx-specific; for aiohttp use aioresponses",
+    "VCR-style cassette recording — respx doesn't record/replay; for cassette-based mocking use VCR with httpx adapter"
+  ],
+  "best_when": "Your async Python agent uses httpx for HTTP calls (FastAPI test client, async agents) and you need mock HTTP responses in pytest tests — respx provides clean httpx-native mocking with async support.",
+  "avoid_when": "Your agent uses requests library (use responses) or aiohttp (use aioresponses).",
+  "alternatives": ["httpretty-api", "responses-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — test HTTP mocking library."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, BSD licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "respx is BSD licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 0,
+    "latency_p99_ms": 0,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — in-process HTTP interception. Near-zero latency for mock responses vs real network calls. Eliminates network dependency from agent tests.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 82,
+    "error_message_quality": 80,
+    "error_message_notes": "AllMockedError when real HTTP attempted without mock: 'RESPX: <method> <url> did not match any handler'. CallNotFoundError when route was expected to be called but wasn't. httpx.Response() constructors show clear parameter requirements. Route pattern mismatches show expected vs actual URL.",
+    "idempotency_support": "full",
+    "idempotency_notes": "respx mocking is idempotent — same mock setup produces same response. Route call counts reset per respx.mock context or per @respx.mock decorated test. assert_all_called verifies idempotency of expected agent API calls.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "respx blocks ALL httpx requests by default — respx.mock context raises AllMockedError for any unmocked URL; agent tests making incidental httpx calls (health checks, metrics) must mock all URLs; use respx.mock(assert_all_mocked=False) to allow unmocked requests through for agent tests with side-effect HTTP",
+      "Route order matters for overlapping patterns — respx matches routes in registration order; respx.get(re.compile('.*')) before specific routes matches everything; agent tests with wildcard fallback routes must register specific routes first; overlapping patterns produce unexpected mock responses",
+      "respx.mock as context manager vs decorator behave differently — @respx.mock resets routes between test functions; with respx.mock: creates new scope but outer routes may leak; agent test fixtures using context manager approach may have route pollution between tests; use @respx.mock decorator on test functions for cleanest isolation",
+      "side_effect functions must return httpx.Response — respx side_effect=lambda req: {'json': 'data'} raises TypeError; must return httpx.Response(200, json={'data': 'value'}); agent tests using side_effect for dynamic responses must build complete httpx.Response objects",
+      "Async agent code requires @pytest.mark.asyncio with respx — async def test_agent(): with respx.mock: ... needs @pytest.mark.asyncio (pytest-asyncio) and async respx.mock; agent async tests without asyncio mark run sync context and miss async intercepts; combine pytest-asyncio and respx correctly",
+      "respx doesn't mock httpx.Client transport directly — respx intercepts at transport level; if agent code bypasses transport (e.g., mounts custom transport), respx may not intercept; agent code using custom mTLS or proxy transports needs explicit respx transport mock setup"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 82,
+    "error_handling_score": 80,
+    "auth_complexity_score": 98,
+    "rate_limit_clarity_score": 98
+  },
+  "security_score_components": {
+    "tls_enforcement": 95,
+    "auth_strength": 95,
+    "scope_granularity": 92,
+    "dependency_hygiene": 88,
+    "secret_handling": 95,
+    "security_notes": "Test-only library — no network access, no security concerns. Mock responses should not contain real API credentials. respx assert_all_mocked ensures no real network calls leak from agent tests to external APIs."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 82,
+    "version_stability": 80,
+    "breaking_changes_history": 78,
+    "error_recovery": 82
+  }
+}
