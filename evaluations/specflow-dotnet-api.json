@@ -1,0 +1,106 @@
+{
+  "id": "specflow-dotnet-api",
+  "name": "SpecFlow",
+  "version_evaluated": "3.x",
+  "homepage": "https://specflow.org/",
+  "repo_url": "https://github.com/SpecFlowOSS/SpecFlow",
+  "category": "developer-tools",
+  "subcategories": ["testing", "dotnet", "csharp", "bdd", "acceptance-testing"],
+  "tags": ["dotnet", "csharp", "bdd", "specflow", "gherkin", "cucumber", "acceptance-testing", "reqnroll"],
+  "what_it_does": "BDD (Behavior-Driven Development) testing framework for .NET — uses Gherkin feature files to define acceptance tests in plain English, binding steps to C# code. SpecFlow features: .feature files with Given/When/Then scenarios, step definitions via [Given], [When], [Then] attributes, ScenarioContext and FeatureContext for state sharing, table parameters (DataTable), scenario outlines for parameterized tests, tags (@smoke, @agent) for test filtering, hooks (BeforeScenario, AfterFeature), and Living Documentation generation. Feature: Agent Creation / Scenario: Create agent with valid name / Given an authenticated user / When they create an agent named 'My Agent' / Then the agent appears in their list. Binds business requirements to automated test execution. Note: SpecFlow moved to Reqnroll for active OSS development in 2024.",
+  "use_cases": [
+    "Agent acceptance tests in plain English — Feature: Agent Management / Scenario: Activate agent / Given agent 'My Agent' exists in PENDING state / When admin activates agent / Then agent status is ACTIVE; non-technical stakeholders review and approve agent acceptance criteria written as Gherkin",
+    "Agent API BDD scenarios — Given I am authenticated as 'admin' / When I POST '/agents' with name 'Test Agent' / Then response status is 201 / And response body contains agent ID; step definitions call agent API client and assert responses",
+    "Data-driven agent testing — Scenario Outline: Validate agent name / Given agent name '<name>' / When I validate / Then validation result is '<valid>' / Examples: | name | valid | / | '' | false | / | 'My Agent' | true |; replaces repeated identical scenarios with parameterized table",
+    "Agent workflow integration tests — Given/When/Then maps agent business process steps to C# code; non-developers write scenarios; developers implement step bindings; business validates agent behavior matches written specifications",
+    "Tagged agent test suites — @smoke @agent-creation tags scenarios for selective CI execution; dotnet test --filter TestCategory=smoke runs subset for fast agent CI feedback; @ignore skips broken agent scenarios with pending notation"
+  ],
+  "not_for": [
+    "Unit tests — SpecFlow/Gherkin overhead is excessive for unit tests; use xUnit/NUnit/MSTest with standard C# for agent unit tests; BDD shines for acceptance/integration level",
+    "Teams without BDD stakeholder collaboration — SpecFlow value comes from non-developer scenario authoring; pure developer teams with no business stakeholder involvement get overhead without benefit; use xUnit directly",
+    "Performance tests — Gherkin scenarios are not suited for load/performance scenarios; use k6, NBomber, or BenchmarkDotNet for agent performance testing"
+  ],
+  "best_when": "Your .NET agent project has non-technical stakeholders (product owners, QA analysts) who write or review acceptance criteria — SpecFlow bridges the gap between business requirements and automated test execution.",
+  "avoid_when": "Your team is developer-only with no business stakeholder involvement in test authoring, or you're writing unit tests where BDD structure adds unnecessary ceremony.",
+  "alternatives": ["reqnroll-dotnet-api", "xunit-dotnet-api", "nunit-dotnet-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["csharp"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — testing framework. Agent under test authentication is implemented in step definition bindings."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, BSD licensed",
+    "paid_tiers": "SpecFlow+ Runner (commercial), SpecFlow+ LivingDoc (commercial) for report generation",
+    "requires_credit_card": false,
+    "notes": "SpecFlow core is open source. SpecFlow+ commercial products add enhanced test runner and living documentation. Reqnroll is the fully open source successor (2024)."
+  },
+  "performance": {
+    "latency_p50_ms": 0,
+    "latency_p99_ms": 0,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — test framework. Gherkin parsing and step matching add ~5-50ms overhead per scenario vs raw xUnit tests. Scenario count, not framework, determines agent test suite duration.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 82,
+    "error_message_quality": 80,
+    "error_message_notes": "Step definition not found produces 'No matching step definition found for step' with suggestion to generate binding. Ambiguous step (multiple matching [Given]) throws AmbiguousStepDefinitionException with matched definitions listed. ScenarioContext.ScenarioInfo shows current scenario context in failure output.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Gherkin scenarios are declarative and idempotent — same feature file produces same test execution. BeforeScenario/AfterScenario hooks ensure clean state per scenario. Step definitions should be stateless across scenario runs.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Step definitions must be in same project or referenced assembly — SpecFlow scans assemblies for [Binding] attribute; step definitions in separate class library need SpecFlow.Internal.Json NuGet and assembly added to specflow.json bindingAssemblies; agent BDD projects splitting steps across libraries fail with 'No matching step definition' without clear error",
+      "Reqnroll is the active successor — SpecFlow development slowed significantly in 2023; Reqnroll (reqnroll.net) is the community-maintained fork with .NET 8+ support; new agent BDD projects should use Reqnroll; SpecFlow may not receive updates for newer .NET features or runtime versions",
+      "Scenario context injection vs ScenarioContext.Current — ScenarioContext.Current is deprecated; use constructor injection with ScenarioContext parameter in step definition class; agent step definitions using static ScenarioContext.Current fail in parallel execution with incorrect state sharing",
+      "DataTable parameter requires explicit conversion — DataTable in step definition needs manual conversion: table.CreateInstance<AgentDto>() or table.CreateSet<AgentDto>(); raw DataTable without SpecFlow.Assist NuGet has no CreateInstance(); agent tests using table parameters get null or empty unless TechTalk.SpecFlow.Assist extension used",
+      "Parallel scenario execution requires thread-safe step definitions — SpecFlow 3.x supports parallel execution but step bindings marked [Binding] share instance; agent step definitions storing state in instance fields (not ScenarioContext) cause data races; inject ScenarioContext and store agent test state there",
+      "Feature file must have matching .cs generated file — SpecFlow MSBuild generator creates .feature.cs from .feature; missing generator (SpecFlow.Tools.MsBuild.Generation NuGet) means feature files compile but don't generate test methods; agent BDD tests silently skipped in CI without generator package"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 82,
+    "error_handling_score": 80,
+    "auth_complexity_score": 95,
+    "rate_limit_clarity_score": 98
+  },
+  "security_score_components": {
+    "tls_enforcement": 92,
+    "auth_strength": 92,
+    "scope_granularity": 88,
+    "dependency_hygiene": 85,
+    "secret_handling": 88,
+    "security_notes": "Testing framework — no production security concerns. Gherkin feature files are plain text and may be committed to version control; ensure agent scenarios don't contain real credentials or sensitive business logic. Step definitions that call real APIs must use test credentials, not production agent keys."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 80,
+    "version_stability": 75,
+    "breaking_changes_history": 72,
+    "error_recovery": 80
+  }
+}
