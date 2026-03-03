@@ -1,28 +1,28 @@
 {
   "id": "trio-python-api",
-  "name": "Trio",
-  "version_evaluated": "0.25+",
+  "name": "trio",
+  "version_evaluated": "0.26.x",
   "homepage": "https://trio.readthedocs.io/",
   "repo_url": "https://github.com/python-trio/trio",
   "category": "developer-tools",
-  "subcategories": ["async", "python", "concurrency", "networking"],
-  "tags": ["python", "async", "concurrency", "structured-concurrency", "networking", "trio", "asyncio-alternative"],
-  "what_it_does": "Python async library focused on usability and correctness, built around structured concurrency principles. Trio's nursery concept ensures all child tasks are cleaned up when the parent exits — prevents task leaks common in asyncio. Strict structured concurrency makes concurrent code easier to reason about. Alternative to asyncio for agents needing reliable task lifecycle management. AnyIO provides an abstraction layer over both asyncio and Trio.",
+  "subcategories": ["async", "python", "concurrency", "structured"],
+  "tags": ["python", "trio", "async", "structured-concurrency", "nursery", "cancellation"],
+  "what_it_does": "Friendly Python library for async concurrency using structured concurrency principles — nurseries replace callbacks/futures with scoped task management where parent waits for all children. trio features: trio.open_nursery() for task groups, automatic cancellation propagation, checkpoint system for cooperative multitasking, trio.sleep(), trio.move_on_after()/fail_after(), MemoryChannel for async communication, trio.to_thread.run_sync() for thread offloading, trio.from_thread utilities, atomic checkpoint guarantees (no partial execution), DTRT (Do The Right Thing) philosophy for error handling, and trio-asyncio bridge for asyncio compatibility.",
   "use_cases": [
-    "Build agent systems where reliable task cancellation and cleanup is critical — Trio's nursery guarantees no orphaned tasks",
-    "Write concurrent network code in Python where structured concurrency prevents the task leak bugs common in asyncio",
-    "Create robust agent pipelines where multiple concurrent operations must all complete or all be cancelled together",
-    "Develop Python servers and clients with Trio-native libraries (trio-websocket, httpx with anyio) for clean concurrency",
-    "Use AnyIO as an abstraction over asyncio and Trio for libraries that need to support both async backends"
+    "Agent nursery concurrency — async with trio.open_nursery() as nursery: nursery.start_soon(fetch, url1); nursery.start_soon(process, item) — structured; agent runs concurrent tasks where all complete or all cancel on exception; nursery is the fundamental concurrency primitive; exception in child cancels all siblings and propagates to parent",
+    "Agent timeout with cleanup — with trio.move_on_after(30) as cancel_scope: await slow_operation(); if cancel_scope.cancelled_caught: logger.warning('timed out') — timeout; agent wraps operations with deadline; move_on_after continues after timeout; fail_after raises trio.TooSlowError; cancellation triggers finally blocks for cleanup",
+    "Agent async channels — send_channel, receive_channel = trio.open_memory_channel(max_buffer_size=10); async with trio.open_nursery() as n: n.start_soon(producer, send_channel); n.start_soon(consumer, receive_channel) — channels; agent implements producer/consumer with bounded buffer; channel close propagates to receiver as EndOfChannel",
+    "Agent thread integration — await trio.to_thread.run_sync(blocking_io_fn, arg, cancellable=True) — thread offload; agent runs blocking functions in thread pool without blocking trio event loop; cancellable=True allows trio to cancel thread (SIGINT-safe); limiter= for concurrency control",
+    "Agent checkpointing — async def my_task(): for item in large_list: process(item); await trio.sleep(0) — yield point — periodic checkpoint; agent yields control to trio scheduler at regular intervals; trio.sleep(0) is minimal checkpoint; prevents task monopolizing scheduler for CPU-bound loops"
   ],
   "not_for": [
-    "Teams with large asyncio codebases — Trio is not compatible with asyncio libraries without AnyIO bridge",
-    "Projects requiring the full asyncio ecosystem (uvloop, aiohttp, asyncpg) — most async Python libraries target asyncio",
-    "Simple one-off async scripts — asyncio is sufficient and has broader tooling support"
+    "asyncio ecosystem — most Python async libraries (aiohttp, asyncpg, motor) require asyncio; trio requires trio-asyncio bridge for compatibility which adds overhead",
+    "Production asyncio services — FastAPI, Starlette, uvicorn all use asyncio; trio integration is via bridge",
+    "Simple scripts needing wide library compatibility — asyncio has much larger ecosystem of compatible libraries"
   ],
-  "best_when": "You're building a new async Python system from scratch and want structured concurrency with reliable task lifecycle management — correctness over ecosystem breadth.",
-  "avoid_when": "You need asyncio ecosystem compatibility (aiohttp, asyncpg, celery) or are adding async to an existing asyncio codebase.",
-  "alternatives": ["asyncio-api", "anyio-api", "curio-api"],
+  "best_when": "New async Python projects where correctness and structured concurrency matter most, especially when not relying on asyncio-specific libraries.",
+  "avoid_when": "asyncio ecosystem integration (use anyio for compat), FastAPI/Starlette applications, or projects needing wide async library compatibility.",
+  "alternatives": ["anyio-python-api"],
   "interface": {
     "has_rest_api": false,
     "has_graphql": false,
@@ -38,21 +38,21 @@
     "methods": ["none"],
     "oauth": false,
     "scopes": false,
-    "notes": "Python concurrency library. No authentication required."
+    "notes": "No auth — async concurrency library."
   },
   "pricing": {
     "model": "open_source",
     "free_tier_exists": true,
-    "free_tier_limits": "MIT/Apache dual-licensed. Completely free.",
+    "free_tier_limits": "Completely free, MIT/Apache dual licensed",
     "paid_tiers": "None",
     "requires_credit_card": false,
-    "notes": "MIT and Apache 2.0 dual license."
+    "notes": "trio is dual licensed MIT/Apache 2.0. Free for all use."
   },
   "performance": {
     "latency_p50_ms": null,
     "latency_p99_ms": null,
     "uptime_sla_percent": null,
-    "rate_limits": "No rate limits — concurrency library.",
+    "rate_limits": "No rate limits. Performance: checkpoint overhead minimal (~microseconds). Nursery task creation: O(1). trio enforces checkpoints — tasks must yield; no starvation. Thread pool for blocking I/O. Generally comparable to asyncio performance.",
     "data_source": "llm_estimated"
   },
   "requirements": {
@@ -68,37 +68,37 @@
     "mcp_security_score": null,
     "documentation_accuracy": 90,
     "error_message_quality": 88,
-    "error_message_notes": "Trio provides some of the best error messages and debugging support in the Python async ecosystem. Structured concurrency means errors propagate clearly. Trio's exception handling for multi-task errors uses ExceptionGroup (Python 3.11+).",
-    "idempotency_support": "full",
-    "idempotency_notes": "Concurrency library — idempotency is application-level concern. Trio nurseries clean up predictably.",
+    "error_message_notes": "trio.TooSlowError from fail_after(). trio.EndOfChannel from exhausted MemoryChannel. trio.Cancelled for cancelled operations. ExceptionGroup for multiple nursery exceptions. Excellent error messages — trio prioritizes debuggability. Introspection tools for finding checkpoint starvation.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "trio.sleep() is idempotent. Nursery is single-use. MemoryChannel send/receive is stateful. cancel_scope.cancel() is idempotent. Checkpoints are idempotent (just yield points).",
     "pagination_style": "none",
-    "retry_guidance_documented": true,
+    "retry_guidance_documented": false,
     "known_agent_gotchas": [
-      "Trio is not compatible with asyncio — cannot use asyncio libraries (aiohttp, asyncpg) directly; requires AnyIO bridge or trio-native equivalents",
-      "trio.run() is the entry point — cannot call Trio functions from synchronous code or asyncio context without explicit adaptation",
-      "Nurseries enforce structured concurrency strictly — background tasks must be inside a nursery scope; 'fire and forget' patterns require careful nursery design",
-      "Exception handling in nurseries uses ExceptionGroup (Python 3.11+) or trio's BaseExceptionGroup — handling multiple concurrent exceptions requires exceptiongroup library on older Python",
-      "Cancellation in Trio uses Cancelled exception and cancel scopes — code must be cancellation-safe; uncancellable operations use trio.CancelScope(shield=True)",
-      "Trio's strict structured concurrency prevents some common async patterns — tasks cannot be started outside nurseries which may require architectural changes"
+      "Nursery exceptions use ExceptionGroup — if multiple nursery children raise, trio raises ExceptionGroup; Python 3.11+ has native except*; older Python needs exceptiongroup backport (trio installs automatically); agent code: use except* SomeError: or handle ExceptionGroup.exceptions; single child exception unwrapped only in some cases",
+      "trio.run() cannot be called from inside trio — calling trio.run() inside running trio raises RuntimeError; agent code: use trio.from_thread.run_sync() or run() to enter from sync code once at top level; nested trio.run() not supported; use nurseries for nested task groups",
+      "Checkpoint required for cancellation to work — trio can only cancel tasks at checkpoint (trio.sleep(), socket operations, etc.); CPU-bound loops without checkpoints cannot be cancelled; agent code with long loops: add await trio.sleep(0) periodically; trio.testing.MockClock for testing time-based code",
+      "MemoryChannel is bounded — open_memory_channel(max_buffer_size=0) is unbuffered (send blocks until receive); max_buffer_size=math.inf is unbounded; agent code: choose buffer size carefully; unbuffered for tight producer/consumer; bounded for flow control; send() blocks when full (use nursery task for producer)",
+      "Cleanup must use finally or __aexit__ — trio cancellation triggers Cancelled exception in awaiting code; code in finally blocks runs during cancellation; agent code: use 'async with' and 'finally' for all cleanup; resource acquisition inside try: ... finally: resource.close() pattern; shield=True on cleanup scope if cleanup must complete",
+      "trio does not work with asyncio libraries directly — aiohttp, asyncpg, motor require asyncio event loop; trio has different event loop; agent code needing asyncio libs: use trio-asyncio (pip install trio-asyncio) bridge or switch to anyio for backend compatibility; anyio is preferred compatibility layer"
     ]
   },
   "af_score_components": {
     "mcp_score": 0,
     "api_doc_score": 90,
     "error_handling_score": 88,
-    "auth_complexity_score": 100,
-    "rate_limit_clarity_score": 100
+    "auth_complexity_score": 99,
+    "rate_limit_clarity_score": 99
   },
   "security_score_components": {
-    "tls_enforcement": 100,
-    "auth_strength": 100,
-    "scope_granularity": 100,
+    "tls_enforcement": 90,
+    "auth_strength": 90,
+    "scope_granularity": 90,
     "dependency_hygiene": 92,
-    "secret_handling": 100,
-    "security_notes": "Pure Python library. No external network calls. Security depends on how it's used, not the library itself."
+    "secret_handling": 90,
+    "security_notes": "Async concurrency library. Structured concurrency prevents resource leaks from cancelled tasks. Nursery ensures all child tasks complete or all cancel — no orphaned background tasks. Cancellation propagates correctly through finally blocks."
   },
   "reliability_score_components": {
-    "uptime_documented": 95,
+    "uptime_documented": 90,
     "version_stability": 85,
     "breaking_changes_history": 82,
     "error_recovery": 90

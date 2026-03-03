@@ -5,23 +5,23 @@
   "homepage": "https://anyio.readthedocs.io/",
   "repo_url": "https://github.com/agronholm/anyio",
   "category": "developer-tools",
-  "subcategories": ["async", "python", "concurrency", "asyncio", "trio"],
-  "tags": ["python", "anyio", "async", "asyncio", "trio", "structured-concurrency", "backend-agnostic"],
-  "what_it_does": "Backend-agnostic async library for Python — write async code once that runs on asyncio or trio backends. anyio features: create_task_group() for structured concurrency (nursery equivalent), move_on_after()/fail_after() for timeouts, anyio.sleep(), anyio.run() with backend selection, TCP/UDP/Unix socket primitives, file I/O (anyio.open_file()), event/lock/semaphore/condition primitives, to_thread.run_sync() for blocking code in thread pool, from_thread.run_sync() for calling async from sync, and pytest plugin (anyio pytest plugin). httpx uses anyio internally — learning anyio complements httpx usage.",
+  "subcategories": ["async", "python", "concurrency", "utilities"],
+  "tags": ["python", "anyio", "async", "asyncio", "trio", "compatibility", "concurrency", "structured"],
+  "what_it_does": "Async compatibility layer and structured concurrency library for Python — runs on both asyncio and trio backends, provides task groups, cancellation scopes, threading integration, and synchronization primitives. anyio features: TaskGroup for structured concurrency (similar to trio nurseries), CancelScope with deadline/cancel, from_thread.run_sync() for calling async from sync, to_thread.run_sync() for offloading to thread pool, async file I/O, sleep()/get_current_time(), move_on_after()/fail_after() context managers, Event/Lock/Semaphore/Condition for async synchronization, and socket/stream abstractions. Used by httpx, FastAPI, and Starlette internally.",
   "use_cases": [
-    "Agent backend-agnostic library — import anyio; async def fetch_all(urls): async with anyio.create_task_group() as tg: for url in urls: tg.start_soon(fetch, url) — library code using anyio works in both asyncio and trio applications; agent SDK authors write once and let users choose backend; httpx is built on anyio using this pattern",
-    "Agent blocking code in thread pool — from anyio import to_thread; result = await to_thread.run_sync(blocking_db_call, arg) — run sync blocking function without blocking event loop; agent database calls using sync ORMs (SQLAlchemy core) offloaded to thread pool; to_thread.run_sync is anyio's answer to asyncio.run_in_executor()",
-    "Agent timeout handling — from anyio import move_on_after, fail_after; async with fail_after(10): result = await critical_api_call() — fail_after raises TimeoutError after 10s; agent SLA enforcement fails fast on slow external APIs; move_on_after for optional operations: async with move_on_after(2) as scope: result = await fast_path(); if scope.cancelled_caught: result = fallback",
-    "Agent concurrent tasks with cancellation — async with anyio.create_task_group() as tg: tg.start_soon(task_a); tg.start_soon(task_b); tg.cancel_scope.cancel() — cancel_scope.cancel() cancels all child tasks; agent racing pattern: tg.start_soon(fast_path); tg.start_soon(slow_path) then cancel on first completion; structured cancellation prevents orphan tasks",
-    "Agent pytest async testing — import pytest; pytestmark = pytest.mark.anyio; async def test_agent_fetch(): result = await agent.fetch('data'); assert result is not None — pytest-anyio runs async tests on both backends; agent test suite validates behavior on asyncio and trio with same test code; parametrize backend for compatibility testing"
+    "Agent task group — async with anyio.create_task_group() as tg: tg.start_soon(fetch_data, url1); tg.start_soon(process, item1) — structured concurrency; agent runs multiple coroutines concurrently; all tasks complete or all cancelled on error; exception in any task cancels group; structured vs asyncio.gather() which doesn't propagate exceptions",
+    "Agent timeout — async with anyio.move_on_after(30) as cancel_scope: result = await slow_operation(); if cancel_scope.cancelled_caught: handle_timeout() — timeout handling; agent imposes deadline on operations; move_on_after() continues after timeout (cancelled_caught=True); fail_after() raises TimeoutError",
+    "Agent thread to async — from anyio import from_thread; def sync_callback(data): from_thread.run_sync(lambda: async_queue.put_nowait(data)) — thread bridge; agent runs async code from synchronous thread; from_thread.run() for awaiting coroutines; essential for integrating sync callbacks with async agent loops",
+    "Agent async to thread — async def process(): result = await anyio.to_thread.run_sync(blocking_function, arg1) — thread offload; agent offloads CPU-intensive or blocking operations to thread pool without blocking event loop; limiter parameter controls max concurrent threads; cancellable=True allows thread cancellation",
+    "Agent cancel scope — async with anyio.CancelScope() as scope: try: await operation(); finally: if scope.cancel_called: cleanup() — cancellation; agent implements fine-grained cancellation; scope.cancel() cancels contained code; deadline= sets absolute time limit; shield=True protects from outer cancellation"
   ],
   "not_for": [
-    "asyncio-specific features — anyio abstracts asyncio internals; for asyncio.Queue, asyncio.Event with asyncio-specific semantics use asyncio directly; anyio primitives are backend-agnostic",
-    "Maximum performance — anyio adds thin abstraction layer over asyncio/trio; for absolute minimum overhead use asyncio or trio directly; overhead is typically <1% for I/O-bound code",
-    "CPU parallelism — anyio is cooperative concurrency; for CPU parallelism use multiprocessing or concurrent.futures.ProcessPoolExecutor"
+    "Trio-specific features — anyio provides compatibility layer; code using Trio-specific APIs (trio.from_thread.run_in_worker_thread) won't work via anyio",
+    "Simple asyncio code — if targeting asyncio only, use asyncio directly; anyio adds abstraction overhead",
+    "CPU-bound parallelism — anyio threads work but for CPU parallelism use multiprocessing or concurrent.futures ProcessPoolExecutor"
   ],
-  "best_when": "Writing async library code that should work with both asyncio and trio backends, or using httpx/trio in asyncio applications — anyio's structured concurrency API is more ergonomic than raw asyncio tasks.",
-  "avoid_when": "You only target asyncio and don't need trio compatibility, need asyncio-specific APIs, or need absolute minimum overhead.",
+  "best_when": "Libraries and agents that must work with both asyncio and trio, or code needing structured concurrency (TaskGroup) with proper cancellation propagation.",
+  "avoid_when": "Asyncio-only code (use asyncio directly), trio-specific features, or when asyncio.gather() with gather(return_exceptions=True) is sufficient.",
   "alternatives": ["trio-python-api"],
   "interface": {
     "has_rest_api": false,
@@ -38,7 +38,7 @@
     "methods": ["none"],
     "oauth": false,
     "scopes": false,
-    "notes": "No auth — concurrency library. Network connections handle auth at application level."
+    "notes": "No auth — async concurrency library."
   },
   "pricing": {
     "model": "open_source",
@@ -52,7 +52,7 @@
     "latency_p50_ms": null,
     "latency_p99_ms": null,
     "uptime_sla_percent": null,
-    "rate_limits": "No rate limits. Abstraction overhead: negligible for I/O-bound code (<1%). to_thread.run_sync adds thread pool overhead (~0.1ms per call). create_task_group() is equivalent to asyncio.TaskGroup (Python 3.11).",
+    "rate_limits": "No rate limits. Performance: thin abstraction layer over asyncio/trio. TaskGroup overhead: negligible vs asyncio.create_task(). to_thread.run_sync: thread pool overhead (~1ms). CancelScope: O(1) setup. anyio 4.x significantly faster than 3.x for task group operations.",
     "data_source": "llm_estimated"
   },
   "requirements": {
@@ -68,39 +68,39 @@
     "mcp_security_score": null,
     "documentation_accuracy": 88,
     "error_message_quality": 85,
-    "error_message_notes": "TimeoutError on fail_after timeout. ExceptionGroup on multiple task failures. anyio.get_cancelled_exc_class() returns backend-specific cancel exception. Error messages are clear and include backend context. anyio 4.x moved to standard Python ExceptionGroup (3.11+) or exceptiongroup backport.",
+    "error_message_notes": "anyio.get_cancelled_exc_class() returns backend-specific cancellation exception. ExceptionGroup (Python 3.11+) or anyio's ExceptionGroup for multiple task errors. TimeoutError from fail_after(). Backend errors wrapped with context.",
     "idempotency_support": "partial",
-    "idempotency_notes": "Task execution is not inherently idempotent — depends on underlying async operations. create_task_group() creates fresh task group each call. to_thread.run_sync() calls are idempotent for pure functions. Network I/O results depend on external state.",
+    "idempotency_notes": "anyio.sleep() is idempotent. CancelScope cancellation is idempotent. TaskGroup is single-use. Event.set() is idempotent (subsequent sets no-op). Lock is stateful.",
     "pagination_style": "none",
     "retry_guidance_documented": false,
     "known_agent_gotchas": [
-      "Backend must be specified or inherited — anyio.run(main) uses asyncio backend by default; to use trio: anyio.run(main, backend='trio'); pytest-anyio runs both backends by default unless configured; agent code assuming asyncio internals (asyncio.get_event_loop()) breaks on trio backend; use anyio.get_event_loop() for backend-agnostic loop access",
-      "ExceptionGroup requires Python 3.11 or exceptiongroup backport — anyio 4.x uses ExceptionGroup for multiple task failures; Python 3.10 and below need: pip install exceptiongroup; agent code catching task group exceptions must use: except* ValueError: in Python 3.11 or from exceptiongroup import catch; except clause on ExceptionGroup doesn't catch individual exceptions",
-      "to_thread.run_sync blocks until completion — await to_thread.run_sync(blocking_fn) runs blocking function in thread pool but awaits completion; calling expensive blocking function frequently creates many threads; agent code with many concurrent blocking calls must set limiter: limiter = anyio.CapacityLimiter(10); await to_thread.run_sync(fn, limiter=limiter)",
-      "Task group exit waits for all tasks — async with anyio.create_task_group() as tg: tg.start_soon(task) does not exit until task completes; agent fire-and-forget pattern impossible with task group; long-running background tasks must be managed at application scope not request scope; use application-level task group started at startup",
-      "cancel_scope.deadline vs timeout — anyio uses absolute deadlines internally; move_on_after(5) sets deadline = current_time + 5; nested scopes use minimum deadline; agent code with nested timeouts: outer 30s, inner 5s — inner scope wins for its duration; checking scope.cancel_called vs scope.cancelled_caught distinguishes cancellation source",
-      "from_thread.run_sync for sync-to-async calls — calling async functions from sync threads (inside to_thread.run_sync) requires: from anyio.from_thread import run_sync_in_worker_thread; or anyio.from_thread.run(async_fn); agent code mixing sync and async must use from_thread module not asyncio.run() which creates new event loop in thread"
+      "TaskGroup errors use ExceptionGroup — if multiple tasks raise, anyio raises ExceptionGroup containing all exceptions; Python 3.11+ has native ExceptionGroup; older Python uses anyio's backport; agent code: use except* SomeError: handlers or anyio.abc.TaskGroup.start() with explicit error collection; single exception still wrapped in ExceptionGroup",
+      "move_on_after vs fail_after — move_on_after(5) cancels and CONTINUES execution after timeout (no exception); fail_after(5) raises TimeoutError; agent code: use fail_after() when timeout should stop processing; use move_on_after() when timeout is acceptable and should continue; check cancel_scope.cancelled_caught for move_on_after",
+      "from_thread.run() requires anyio event loop — from_thread.run(coro) works only inside thread started by anyio (to_thread.run_sync); not for arbitrary threads; agent code with external threads: use from_thread.run_sync() for sync functions; for arbitrary threads calling into anyio: use anyio.from_thread.start_blocking_portal() context manager",
+      "Backend selection happens at startup — anyio.run(main, backend='asyncio') or backend='trio'; cannot switch backend mid-execution; agent code: set backend at top-level anyio.run() call; libraries using anyio work on either backend; FastAPI/Starlette use asyncio backend by default",
+      "CancelScope.shield=True prevents cancellation propagation — scope inside shielded scope cannot be cancelled from outside; used for cleanup code that must complete; agent code: use shield=True in finally blocks for resource cleanup; shielded scope can still be cancelled by its own cancel() call",
+      "to_thread.run_sync limiter controls concurrency — anyio.to_thread.run_sync(fn, limiter=limiter) where limiter=anyio.CapacityLimiter(10) limits concurrent threads; default: 40 threads; agent code with many concurrent thread offloads: create shared CapacityLimiter; pass same limiter to all to_thread.run_sync calls"
     ]
   },
   "af_score_components": {
     "mcp_score": 0,
     "api_doc_score": 88,
     "error_handling_score": 85,
-    "auth_complexity_score": 98,
-    "rate_limit_clarity_score": 98
+    "auth_complexity_score": 99,
+    "rate_limit_clarity_score": 99
   },
   "security_score_components": {
-    "tls_enforcement": 88,
-    "auth_strength": 88,
-    "scope_granularity": 85,
+    "tls_enforcement": 90,
+    "auth_strength": 90,
+    "scope_granularity": 88,
     "dependency_hygiene": 90,
     "secret_handling": 90,
-    "security_notes": "Concurrency library with no inherent security concerns. TLS for TCP via anyio.connect_tcp(ssl_context=ctx). Structured concurrency prevents resource leaks. to_thread.run_sync executes in thread pool — blocking functions must be thread-safe."
+    "security_notes": "Async concurrency library. No network calls. Proper cancellation handling prevents resource leaks. to_thread.run_sync with user-controlled callables: validate inputs. CancelScope can interfere with cleanup if not properly shielded."
   },
   "reliability_score_components": {
     "uptime_documented": 88,
-    "version_stability": 82,
-    "breaking_changes_history": 80,
+    "version_stability": 85,
+    "breaking_changes_history": 82,
     "error_recovery": 88
   }
 }

@@ -1,0 +1,106 @@
+{
+  "id": "scrapy-python-api",
+  "name": "scrapy",
+  "version_evaluated": "2.11.x",
+  "homepage": "https://scrapy.org/",
+  "repo_url": "https://github.com/scrapy/scrapy",
+  "category": "developer-tools",
+  "subcategories": ["web-scraping", "python", "crawler", "data-extraction"],
+  "tags": ["python", "scrapy", "scraping", "crawling", "spider", "xpath", "css", "pipeline"],
+  "what_it_does": "Full-featured web crawling and scraping framework for Python — provides Spider classes, async Twisted reactor, item pipelines, middleware, and built-in request scheduling. scrapy features: Spider subclasses with parse() callback, Selector for CSS/XPath extraction, Item and ItemLoader for data modeling, pipeline for processing (deduplication, validation, DB storage), downloader middleware (rotating proxies, user agents), CrawlerProcess for programmatic control, crawl rules for link following (CrawlSpider), sitemap crawling, feed exporters (JSON, CSV, XML), AutoThrottle, robots.txt compliance, and scrapy-splash for JS rendering.",
+  "use_cases": [
+    "Agent spider — import scrapy; class ProductSpider(scrapy.Spider): name = 'products'; start_urls = ['https://shop.example.com']; def parse(self, response): for product in response.css('.product'): yield {'name': product.css('h2::text').get(), 'price': product.css('.price::text').get()} — spider class; agent scrapes structured data from paginated site; yield dict for each item",
+    "Agent link following — class LinkSpider(CrawlSpider): name = 'site'; start_urls = [start]; rules = (Rule(LinkExtractor(allow=r'/products/'), callback='parse_product'),); def parse_product(self, response): yield extract(response) — link crawler; agent follows links matching pattern and scrapes each matching page",
+    "Agent pipeline storage — class DatabasePipeline: def process_item(self, item, spider): db.insert(item); return item; ITEM_PIPELINES = {'myspider.pipelines.DatabasePipeline': 300} — pipeline; agent stores scraped items in database via pipeline; pipeline can filter, validate, deduplicate items",
+    "Agent programmatic run — from scrapy.crawler import CrawlerProcess; from scrapy.utils.project import get_project_settings; process = CrawlerProcess(get_project_settings()); process.crawl(MySpider); process.start() — run from script; agent triggers scrape programmatically; blocks until complete; use CrawlerRunner for non-blocking",
+    "Agent selector extraction — response.css('div.product > h2::text').getall(); response.xpath('//div[@class=\"price\"]/text()').get(); response.css('a::attr(href)').getall() — selectors; agent extracts text, attributes, and links using CSS and XPath selectors; getall() returns list; get() returns first or None"
+  ],
+  "not_for": [
+    "JavaScript-heavy sites — scrapy makes plain HTTP requests; for JS-rendered content use playwright or scrapy-playwright extension",
+    "One-off simple scraping — scrapy requires project structure; for simple one-page scraping use requests + BeautifulSoup",
+    "Real-time scraping — scrapy is batch-oriented; for real-time web monitoring use playwright or direct HTTP polling"
+  ],
+  "best_when": "Large-scale web crawling and scraping with site-wide coverage — scrapy's async architecture, middleware system, and pipelines make it the best for scraping 1000s of pages with rate limiting and retries.",
+  "avoid_when": "JavaScript-heavy sites without scrapy-playwright (use playwright), simple one-page scraping (use requests+BS4), or when scrapy's project structure is overkill.",
+  "alternatives": ["playwright-python-api", "mechanize-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth for the library. Supports HTTP auth, cookies, and custom headers for target sites."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, BSD licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "scrapy is BSD 3-Clause licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits (framework). Performance: async Twisted reactor — concurrent downloads by default (CONCURRENT_REQUESTS=16). AutoThrottle adapts to server response times. Typical throughput: 100-1000 pages/minute depending on site. DOWNLOAD_DELAY=1 adds politeness.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 88,
+    "error_message_quality": 82,
+    "error_message_notes": "scrapy.exceptions.DropItem to discard items in pipeline. HttpError in errback for HTTP errors. Request/Response logged with DEBUG. Error messages in spider logs. Twisted reactor errors can be cryptic. CLOSESPIDER_ERRORCOUNT for error rate limits.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "DUPEFILTER_CLASS deduplicates URLs by default. Spider parse() should be idempotent (same response = same items). Pipeline process_item() should handle duplicates. Scrapy requests are retried automatically (RETRY_TIMES=2).",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "scrapy uses Twisted reactor — scrapy runs on Twisted async framework, NOT asyncio; cannot use await inside parse() callbacks; use yield for requests and items; agent code: no async/await in spiders unless using scrapy 2.x async support (experimental); Python generators (yield) are the scrapy idiom",
+      "parse() must yield not return — def parse(self, response): items = []; items.append(extract(response)); return items — WRONG; must yield: for item in extract(response): yield item; or yield from extract(); scrapy collects yielded items and requests; returning list is ignored; yield scrapy.Request(url, callback=self.parse_page) for link following",
+      "CrawlerProcess.start() blocks — process.start() blocks until crawl complete; agent code needing non-blocking: use CrawlerRunner with reactor.run() in separate thread; or use twisted's deferred API; Scrapy's programmatic API documentation is sparse — CrawlerRunner example in docs shows deferred pattern",
+      "Selectors: getall() returns list, get() returns first or None — response.css('h1::text').get() returns None if not found (not exception); response.css('h1::text').getall() returns [] if not found; agent code: use get(default='') for safe default; check None before using: title = response.css('h1::text').get() or 'Unknown'",
+      "Settings require scrapy project or explicit dict — scrapy.Settings() with SCRAPY_SETTINGS_MODULE env; or pass custom_settings={'DOWNLOAD_DELAY': 1} to Spider class attribute; CrawlerProcess(settings={...}); agent code without full scrapy project: use CrawlerProcess({'USER_AGENT': 'mybot', 'LOG_LEVEL': 'INFO'}) dict directly",
+      "ROBOTSTXT_OBEY=True by default in projects — scrapy respects robots.txt; set ROBOTSTXT_OBEY=False to disable; agent code scraping sites with restrictive robots.txt: check legal/ethical implications; ROBOTSTXT_OBEY=True is the ethical default; custom_settings={'ROBOTSTXT_OBEY': False} to override; always check terms of service"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 88,
+    "error_handling_score": 82,
+    "auth_complexity_score": 95,
+    "rate_limit_clarity_score": 95
+  },
+  "security_score_components": {
+    "tls_enforcement": 88,
+    "auth_strength": 85,
+    "scope_granularity": 85,
+    "dependency_hygiene": 88,
+    "secret_handling": 85,
+    "security_notes": "Web scraping framework. Respect robots.txt and ToS. Do not scrape personal data without consent/authorization. Rotate user agents and IPs ethically. Downloaded content may contain malicious payloads — sanitize before processing. DOWNLOAD_HANDLERS can execute code from remote."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 85,
+    "version_stability": 85,
+    "breaking_changes_history": 82,
+    "error_recovery": 85
+  }
+}
