@@ -1,0 +1,106 @@
+{
+  "id": "faster-whisper-api",
+  "name": "faster-whisper",
+  "version_evaluated": "1.x",
+  "homepage": "https://github.com/SYSTRAN/faster-whisper",
+  "repo_url": "https://github.com/SYSTRAN/faster-whisper",
+  "category": "ai-ml",
+  "subcategories": ["speech-recognition", "python", "asr", "local-ai", "transcription"],
+  "tags": ["python", "faster-whisper", "whisper", "asr", "transcription", "speech-to-text", "ctranslate2", "local"],
+  "what_it_does": "Fast local speech recognition — CTranslate2-optimized implementation of OpenAI Whisper. faster-whisper features: WhisperModel class (model_size_or_path, device, compute_type), model.transcribe() returning (segments, info), word-level timestamps, language detection, beam_size parameter, VAD filter (voice activity detection) to skip silence, int8/float16/float32 quantization, CPU and GPU inference, batch transcription, and compatible models from HuggingFace Hub (ctranslate2-based). 4x faster than openai-whisper with 2x less memory. Primary library for high-throughput local speech transcription in agent pipelines.",
+  "use_cases": [
+    "Agent audio transcription — model = WhisperModel('large-v3', device='cuda', compute_type='float16'); segments, info = model.transcribe('audio.wav') — transcribe audio 4x faster than openai-whisper; agent processes meeting recordings, voice notes, or call center audio locally without OpenAI API",
+    "Agent streaming transcription — segments, info = model.transcribe('audio.wav', beam_size=5, vad_filter=True, vad_parameters={'min_silence_duration_ms': 500}); for segment in segments: print(segment.text) — streaming segment output; VAD removes silence; agent transcription service returns text progressively",
+    "Agent word-level timestamps — segments, info = model.transcribe('audio.wav', word_timestamps=True); for segment in segments: for word in segment.words: print(word.word, word.start, word.end) — precise word timing for agent subtitle generation or speaker alignment; timestamps accurate to ~50ms",
+    "Agent language detection — segments, info = model.transcribe('audio.wav', language=None); print(info.language, info.language_probability) — detect language of audio automatically; agent multilingual pipeline routes transcription to appropriate language model; supports 99 languages",
+    "Agent batch server — from faster_whisper import BatchedInferencePipeline; model = WhisperModel('large-v3'); pipeline = BatchedInferencePipeline(model=model); segments, info = pipeline.transcribe('audio.wav', batch_size=16) — batched inference for agent transcription services; higher GPU utilization with multiple audio files"
+  ],
+  "not_for": [
+    "Real-time streaming from microphone — faster-whisper transcribes audio files or byte arrays; for real-time streaming use pyaudio chunks with manual VAD",
+    "Very short audio clips (<1 second) — Whisper models are optimized for 30-second chunks; short clips get poor results; use dedicated keyword spotting models for sub-second agent wake words",
+    "Highest accuracy at any cost — faster-whisper trades some quality for speed; for maximum accuracy use openai/whisper directly or cloud APIs (Deepgram, AssemblyAI)"
+  ],
+  "best_when": "High-throughput local speech transcription for agent pipelines where OpenAI API costs or latency are prohibitive — faster-whisper provides Whisper-quality transcription 4x faster with 2x less memory.",
+  "avoid_when": "You need real-time microphone streaming, sub-second keyword detection, or maximum transcription accuracy at any compute cost.",
+  "alternatives": ["whisper-api", "deepgram-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — local inference library. HuggingFace Hub model download requires HF_TOKEN for gated models."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "faster-whisper is MIT licensed. Whisper model weights from OpenAI (MIT licensed). Compute costs are your own hardware."
+  },
+  "performance": {
+    "latency_p50_ms": 500,
+    "latency_p99_ms": 5000,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. 4x faster than openai-whisper. large-v3 on GPU: ~5s to transcribe 60s audio. medium on CPU int8: ~15s for 60s audio. Batched pipeline increases GPU utilization for multiple concurrent transcriptions.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 82,
+    "error_message_quality": 78,
+    "error_message_notes": "ValueError for unsupported compute_type on device. RuntimeError for CUDA OOM on large audio. FileNotFoundError for missing audio file. Language detection returns probability along with language code. VAD filter errors show min_silence_duration parameter hints.",
+    "idempotency_support": "full",
+    "idempotency_notes": "model.transcribe() is deterministic for same audio, same parameters. beam_size=1 (greedy) is fastest and deterministic. temperature=0 for deterministic beam search. Same audio file always produces same transcription.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "compute_type must match device — WhisperModel(device='cpu', compute_type='float16') fails; CPU supports int8 and float32; GPU supports float16 and int8_float16; agent Docker images must set correct compute_type: int8 for CPU, float16 for GPU; wrong compute_type raises ValueError",
+      "transcribe() returns generator not list — segments, info = model.transcribe('audio.wav'); segments is a generator; agent code doing len(segments) fails; must iterate: transcript = ' '.join([s.text for s in segments]); consuming generator is one-pass — store list(segments) if multiple passes needed",
+      "Audio must be 16kHz mono for best results — faster-whisper resamples internally but quality is better with pre-resampled 16kHz mono WAV; agent audio pipeline should resample before transcription using ffmpeg or torchaudio.functional.resample(); stereo audio converted to mono on load",
+      "vad_filter silences short utterances — vad_filter=True with default parameters skips audio shorter than 250ms; agent pipelines transcribing single words or very short commands may get empty transcription; set vad_parameters={'min_speech_duration_ms': 100} for short utterance agent applications",
+      "Model download on first use — WhisperModel('large-v3') downloads 1.5GB model weights from HuggingFace Hub on first call; agent production containers must pre-download models during Docker build; set download_root parameter to control cache location; use HUGGINGFACE_HUB_CACHE env var for container volume mount",
+      "CTranslate2 version must match faster-whisper — faster-whisper 1.0 requires ctranslate2 4.x; pip dependency resolution may install incompatible ctranslate2; agent Docker images must pin both: pip install faster-whisper==1.0.0 — or use official Docker image with compatible versions pre-installed"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 80,
+    "error_handling_score": 75,
+    "auth_complexity_score": 95,
+    "rate_limit_clarity_score": 98
+  },
+  "security_score_components": {
+    "tls_enforcement": 88,
+    "auth_strength": 88,
+    "scope_granularity": 85,
+    "dependency_hygiene": 82,
+    "secret_handling": 88,
+    "security_notes": "Local inference — audio never leaves the server, strong privacy for agent voice data. Model weights from HuggingFace Hub over HTTPS. Audio files processed in memory — ensure temp files cleaned up after transcription in agent pipelines handling sensitive voice data."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 80,
+    "version_stability": 78,
+    "breaking_changes_history": 75,
+    "error_recovery": 78
+  }
+}

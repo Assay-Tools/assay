@@ -1,0 +1,106 @@
+{
+  "id": "netmiko-api",
+  "name": "Netmiko",
+  "version_evaluated": "4.x",
+  "homepage": "https://netmiko.readthedocs.io/",
+  "repo_url": "https://github.com/ktbyers/netmiko",
+  "category": "developer-tools",
+  "subcategories": ["networking", "python", "ssh", "automation", "network-devices"],
+  "tags": ["python", "netmiko", "ssh", "network-automation", "cisco", "juniper", "arista", "paramiko"],
+  "what_it_does": "Multi-vendor SSH library for network device automation — connects to routers, switches, and firewalls via SSH. Netmiko features: ConnectHandler for device connections (device_type, host, username, password), send_command() for show commands, send_config_set() for configuration, enable() for privileged mode, save_config(), textfsm/genie integration for structured output, connection pooling, timeout handling, expect_string patterns, 50+ vendor device types (cisco_ios, cisco_nxos, juniper_junos, arista_eos, paloalto_panos, linux), BaseConnection context manager, and SSH key auth. Python SSH automation for network infrastructure management in agent network operations.",
+  "use_cases": [
+    "Agent network inventory — with ConnectHandler(device_type='cisco_ios', host='10.0.0.1', username='admin', password=creds) as net_connect: output = net_connect.send_command('show version') — connect and collect device info; agent parses software version, serial number, model from CLI output; network inventory automation",
+    "Agent configuration push — net_connect.send_config_set(['interface Gi0/0', 'description Agent-Managed', 'ip address 10.1.1.1 255.255.255.0', 'no shutdown']) — push config lines to device; agent applies network configuration changes via SSH; send_config_set handles config mode entry/exit",
+    "Agent structured data parsing — output = net_connect.send_command('show ip interface brief', use_textfsm=True) — TextFSM parses CLI output into structured dict/list; agent processes interface status without regex; use_textfsm=True returns list of dicts with interface, ip, status fields",
+    "Agent bulk device management — from netmiko import ConnectHandler; devices = [{'device_type': 'cisco_ios', 'host': f'10.0.{i}.1'} for i in range(10)]; for device in devices: with ConnectHandler(**device, password=creds) as conn: conn.send_config_set(acl_config) — agent pushes ACL to 10 switches in sequence",
+    "Agent config backup — with ConnectHandler(**device_params) as conn: config = conn.send_command('show running-config'); Path(f'backups/{conn.host}.cfg').write_text(config) — agent saves device running config to file; network change management with pre/post backup workflow"
+  ],
+  "not_for": [
+    "NETCONF/RESTCONF — Netmiko is SSH/CLI focused; for NETCONF use ncclient; for RESTCONF use requests with device REST APIs",
+    "High-frequency polling — SSH connection overhead (1-5 seconds) makes Netmiko too slow for metrics polling; use SNMP or streaming telemetry (gNMI) for monitoring",
+    "Modern API-enabled devices — newer network devices have REST APIs; for Cisco DNA Center or Meraki use their Python SDKs; Netmiko for legacy CLI-only devices"
+  ],
+  "best_when": "Automating configuration management, inventory collection, or compliance checks on SSH-accessible network devices — Netmiko abstracts vendor SSH differences and provides structured command execution for agent network operations workflows.",
+  "avoid_when": "Devices support REST/NETCONF APIs (use those instead), you need high-frequency polling (use SNMP/gNMI), or you need concurrent device automation at scale (use Nornir with Netmiko).",
+  "alternatives": ["paramiko-api", "ansible-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["password", "ssh_key"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Password auth (username/password) or SSH key auth (use_keys=True, key_file=path). Password stored in script — use environment variables or secrets manager. SSH host key verification configurable."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Netmiko is MIT licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 2000,
+    "latency_p99_ms": 10000,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits from library. Network device SSH limits (max sessions, rate limiting) apply. SSH connection setup: 1-5 seconds. Command execution: 0.5-5 seconds depending on device load and output size.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 82,
+    "error_message_quality": 80,
+    "error_message_notes": "NetmikoTimeoutException for connection timeout. NetmikoAuthenticationException for wrong credentials. ssh_exception.SSHException for SSH errors. ReadTimeout for command output taking too long. ValueError for unsupported device_type.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "send_command() is idempotent (read-only). send_config_set() is idempotent for declarative configs but some commands (no shutdown) are safe to repeat. save_config() is idempotent. Agent config automation should check current state before applying changes.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "device_type must exactly match vendor/OS — ConnectHandler(device_type='cisco') fails; must use exact string like 'cisco_ios', 'cisco_nxos', 'cisco_xe'; netmiko.ssh_dispatcher.CLASS_MAPPER.keys() lists all valid device types; agent automation must identify device OS before connecting",
+      "Passwords must not be logged — ConnectHandler(password=os.environ['DEVICE_PASS']) stores password in object; Netmiko debug logging (logging.DEBUG) may log SSH negotiation including credentials; agent network automation must use INFO level logging, never DEBUG in production with real credentials",
+      "send_command() has default timeout of 100s — ConnectHandler default read_timeout=100 seconds; long-running show commands (show tech-support) may exceed timeout; agent code for large outputs must set read_timeout=300; NetmikoTimeoutException means output still coming, not device unresponsive",
+      "enable() required for privileged commands — many devices require 'enable' before configuration; net_connect.enable() enters privileged mode; send_config_set() calls enable() automatically on most platforms; explicitly call enable() if send_config_set() returns PermissionError or prompt shows '>'",
+      "SSH host key checking disabled by default — ConnectHandler by default accepts any SSH host key; agent code connecting to unknown devices should enable SSH key verification for security; use strict_host_key_checking=True for production agent deployments in known network environments",
+      "Connection not thread-safe — single Netmiko ConnectHandler cannot be shared across threads; agent code using ThreadPoolExecutor must create separate ConnectHandler per thread; connection pool available via netmiko.utilities.ConnectHandler in context manager per thread"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 80,
+    "error_handling_score": 78,
+    "auth_complexity_score": 75,
+    "rate_limit_clarity_score": 88
+  },
+  "security_score_components": {
+    "tls_enforcement": 85,
+    "auth_strength": 80,
+    "scope_granularity": 75,
+    "dependency_hygiene": 82,
+    "secret_handling": 72,
+    "security_notes": "Network device SSH automation with privileged access — highest security risk category. Credentials must come from secrets manager (HashiCorp Vault, AWS Secrets Manager), never hardcoded. SSH host key verification should be enabled for production. Network device access logs all commands — ensure agent action audit trail. Limit agent account to required privilege level."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 82,
+    "version_stability": 80,
+    "breaking_changes_history": 78,
+    "error_recovery": 75
+  }
+}

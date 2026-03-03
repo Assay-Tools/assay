@@ -1,0 +1,106 @@
+{
+  "id": "scapy-python-api",
+  "name": "Scapy",
+  "version_evaluated": "2.5.x",
+  "homepage": "https://scapy.net/",
+  "repo_url": "https://github.com/secdev/scapy",
+  "category": "developer-tools",
+  "subcategories": ["networking", "python", "security", "packet-analysis", "network-testing"],
+  "tags": ["python", "scapy", "packet-crafting", "network-security", "pcap", "sniffing", "penetration-testing"],
+  "what_it_does": "Interactive packet manipulation library — creates, sends, captures, and dissects network packets. Scapy features: packet layer construction (IP()/TCP()/UDP()/ICMP()/DNS()), send() and sendp() for packet injection, sniff() for packet capture with filters, rdpcap()/wrpcap() for PCAP file I/O, traceroute() and arping() built-in, packet dissection (ls(IP()), show()), fuzzing with fuzz(), sr() for send-receive with matching, AsyncSniffer for non-blocking capture, and support for 300+ protocols (Ethernet, WiFi, TLS, DHCP, BGP). Primary Python library for network security testing, protocol analysis, and custom packet generation for agent network intelligence tools.",
+  "use_cases": [
+    "Agent network scanning — answered, unanswered = sr(IP(dst='10.0.0.0/24')/ICMP(), timeout=2, verbose=0) — ICMP ping sweep of /24 subnet; agent discovers live hosts; sr() returns matched request-response pairs; ARP scan: Ether(dst='ff:ff:ff:ff:ff:ff')/ARP(pdst='10.0.0.0/24')",
+    "Agent PCAP analysis — pkts = rdpcap('capture.pcap'); dns_queries = [p for p in pkts if p.haslayer(DNS) and p[DNS].qr == 0] — parse network capture file; agent analyzes DNS queries from traffic; Scapy dissects all protocol layers including nested protocols",
+    "Agent traceroute — ans, unans = traceroute(['8.8.8.8'], maxttl=30) — identify network path; agent maps route to target; ans.show() displays hop-by-hop RTT; traceroute returns both answered and unanswered probes",
+    "Agent protocol fuzzing — fuzz(IP()/TCP(dport=80)/HTTP()) — generate random valid packet fields; agent tests service robustness with malformed packets; fuzz() replaces fields with random valid values while maintaining protocol structure",
+    "Agent packet sniffing — def process_packet(pkt): if pkt.haslayer(HTTP): print(pkt[HTTP].Host); sniff(iface='eth0', prn=process_packet, filter='tcp port 80', store=False) — live packet capture with callback; agent monitors HTTP traffic; filter uses BPF syntax; store=False prevents memory accumulation"
+  ],
+  "not_for": [
+    "High-speed packet capture — Scapy Python overhead limits to ~10K pps; for high-speed use libpcap directly or dpdk",
+    "Production network monitoring — use tshark, Zeek, or Suricata for production-scale packet analysis; Scapy for targeted analysis and testing",
+    "Passive monitoring without root — Scapy requires root/admin privileges for raw socket access; agent code without elevated privileges cannot send or capture packets"
+  ],
+  "best_when": "Security testing, protocol research, or network troubleshooting requiring custom packet creation and analysis — Scapy's Python API enables agent network intelligence tools to craft, send, receive, and dissect packets with full protocol awareness.",
+  "avoid_when": "You need high-throughput packet processing (>10K pps), production-scale monitoring, or don't have root privileges.",
+  "alternatives": ["paramiko-api", "netmiko-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — local packet manipulation. Requires root/admin OS privileges for raw socket access."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, GPL-2.0 licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Scapy is GPL-2.0 licensed. Free for all use. GPL may affect distribution of closed-source tools that import Scapy."
+  },
+  "performance": {
+    "latency_p50_ms": 1,
+    "latency_p99_ms": 100,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Packet send rate limited by OS raw socket throughput (~10K pps). Python GIL limits parallel packet processing. sniff() with store=False runs indefinitely. Large PCAP files (>1GB) load slowly — use rdpcap with count parameter.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 75,
+    "error_message_quality": 70,
+    "error_message_notes": "PermissionError when running without root. socket.error for interface not found. Scapy warnings about missing libpcap. No BPF filter errors at packet level — invalid BPF silently captures nothing. Layer not found raises IndexError on p[Layer].",
+    "idempotency_support": "partial",
+    "idempotency_notes": "rdpcap() is idempotent. sniff() captures different packets each call (network state changes). send() injects packets — not idempotent by nature. Packet construction is idempotent for same parameters.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Scapy requires root privileges — from scapy.all import * works without root but send(), sniff(), sr() raise PermissionError; agent security tools must run as root or with CAP_NET_RAW capability; Docker containers need --cap-add=NET_RAW,NET_ADMIN for agent Scapy containers",
+      "p.haslayer() vs p[Layer] differ — p.haslayer(DNS) safely checks if layer present; p[DNS] raises IndexError if DNS not in packet; agent code must use p.haslayer(DNS) before p[DNS] access; alternatively use p.getlayer(DNS) which returns None if absent",
+      "sniff() blocks by default — sniff(count=10) returns after 10 packets; sniff() without count/timeout runs forever; agent code must set count=N or timeout=T; for non-blocking use AsyncSniffer: sniffer = AsyncSniffer(iface='eth0', prn=callback); sniffer.start(); ...; sniffer.stop()",
+      "Interface names are OS-specific — sniff(iface='eth0') on Linux; sniff(iface='en0') on macOS; sniff(iface='Ethernet') on Windows; agent cross-platform code must detect interface name dynamically with conf.iface for default or get_if_list() for available interfaces",
+      "Scapy import loads all protocols — from scapy.all import * imports hundreds of protocol modules and takes 2-5 seconds; agent code starting frequently must use selective imports: from scapy.layers.inet import IP, TCP, ICMP; selective import starts in <100ms",
+      "GPL-2.0 license requires source disclosure — Scapy is GPL-2.0; agent tools that import Scapy and are distributed to users must release source code under GPL; closed-source agent security tools must use alternative (libpcap via ctypes, dpkt for PCAP parsing) or obtain commercial permission"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 72,
+    "error_handling_score": 65,
+    "auth_complexity_score": 90,
+    "rate_limit_clarity_score": 92
+  },
+  "security_score_components": {
+    "tls_enforcement": 80,
+    "auth_strength": 80,
+    "scope_granularity": 75,
+    "dependency_hygiene": 78,
+    "secret_handling": 80,
+    "security_notes": "Dual-use security tool — requires explicit authorization for use on networks you don't own. Raw socket access and packet injection can cause network disruption. Agent Scapy tools must validate target scope before packet injection. GPL license requires source disclosure for distributed tools. Store PCAP captures securely as they may contain sensitive data."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 75,
+    "version_stability": 78,
+    "breaking_changes_history": 75,
+    "error_recovery": 72
+  }
+}
