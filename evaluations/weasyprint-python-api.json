@@ -1,0 +1,106 @@
+{
+  "id": "weasyprint-python-api",
+  "name": "weasyprint",
+  "version_evaluated": "61.x",
+  "homepage": "https://weasyprint.org/",
+  "repo_url": "https://github.com/Kozea/WeasyPrint",
+  "category": "developer-tools",
+  "subcategories": ["pdf-generation", "python", "html-to-pdf", "reporting"],
+  "tags": ["python", "weasyprint", "pdf", "html", "css", "print", "report", "invoice"],
+  "what_it_does": "HTML/CSS to PDF converter for Python — renders HTML documents with full CSS support (including print media queries, flexbox, grid, paged media) to PDF. weasyprint features: HTML(string=)/HTML(filename=)/HTML(url=) input, document.write_pdf(target)/write_png(), @page CSS rules for margins/headers/footers, CSS counter() for page numbers, multi-column layouts, proper page breaks, font embedding, image support, running elements for headers/footers, CSS @media print support, and command-line usage. Produces publication-quality PDFs from HTML templates.",
+  "use_cases": [
+    "Agent PDF from HTML — from weasyprint import HTML; HTML(string='<html><body><h1>Report</h1></body></html>').write_pdf('report.pdf') — string input; agent generates PDF from HTML string; minimal setup; full CSS supported including web fonts if available",
+    "Agent template-based PDF — from jinja2 import Template; from weasyprint import HTML; template = Template(open('invoice.html').read()); html = template.render(invoice=data); HTML(string=html).write_pdf('invoice.pdf') — Jinja2 template; agent generates professional PDFs from HTML templates with dynamic data",
+    "Agent PDF with CSS — css = weasyprint.CSS(string='@page { size: A4; margin: 2cm; } body { font-family: Arial; }'); HTML(string=html).write_pdf('styled.pdf', stylesheets=[css]) — custom CSS; agent applies custom styles including page size, margins, headers/footers; CSS(filename=) for external stylesheet file",
+    "Agent PDF bytes — pdf_bytes = HTML(string=html_content).write_pdf(); response.headers['Content-Type'] = 'application/pdf'; return pdf_bytes — bytes output; agent generates PDF bytes for HTTP response without writing to disk; write_pdf() without target returns bytes",
+    "Agent URL to PDF — HTML(url='https://example.com').write_pdf('snapshot.pdf') — URL conversion; agent converts web page to PDF; fetches HTML and all referenced CSS/images; network requests required; useful for archiving or printing remote pages"
+  ],
+  "not_for": [
+    "Complex interactive PDFs — weasyprint generates static PDFs; for fillable forms and JavaScript PDF use reportlab or PyPDF2",
+    "Environments without Cairo/Pango — weasyprint requires system graphics libraries (Cairo, Pango, GDK-PixBuf); not usable in minimal containers without setup",
+    "High-throughput PDF generation — weasyprint is designed for quality not volume; for high-volume PDF use reportlab PLATYPUS or server-side puppeteer"
+  ],
+  "best_when": "Generating PDF reports, invoices, and documents from HTML/CSS templates — weasyprint produces the highest-quality PDFs from HTML with proper CSS paged media support.",
+  "avoid_when": "Interactive/fillable PDFs (use reportlab), minimal environments without system graphics libs, high-throughput PDF generation, or when WeasyPrint's heavy dependencies are a concern.",
+  "alternatives": ["reportlab-python-api", "fpdf2-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — PDF generation library. URL input may require authentication headers for protected resources."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, BSD licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "WeasyPrint is BSD 3-Clause licensed. Free for all use. Requires system Cairo/Pango libraries."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Performance: simple HTML page to PDF: 500ms-2s. Complex multi-page document: 2-10s. Font loading is cached. External URL resources add network latency. Not suitable for >10 PDFs/second without horizontal scaling.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 82,
+    "error_message_quality": 78,
+    "error_message_notes": "weasyprint.document.DocumentError for render failures. OSError for missing system libraries. Warnings logged for unsupported CSS properties. Errors for missing fonts. Debug output via logging at WARNING level.",
+    "idempotency_support": "full",
+    "idempotency_notes": "HTML rendering is deterministic. Same HTML+CSS input produces same PDF output. write_pdf() is pure conversion. URL input adds non-determinism from network content.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "System libraries required — weasyprint needs Cairo, Pango, GDK-PixBuf, and libffi; installation: macOS: brew install cairo pango gdk-pixbuf libffi; Ubuntu: apt-get install libpango-1.0-0 libharfbuzz0b libpangoft2-1.0-0; Debian Docker: python:3.x-slim + apt installs; agent Docker images: include library installs in Dockerfile; pip install alone is insufficient",
+      "Fonts must be installed — web fonts via @font-face require font files accessible to the system; Google Fonts URLs work only if network accessible; agent code for consistent PDF: bundle font files and use CSS @font-face with local paths; system fonts (Arial, Times) may not exist on minimal servers; use fonttools to verify font availability",
+      "write_pdf() target argument — HTML(string=html).write_pdf('file.pdf') writes to file; HTML(string=html).write_pdf() returns bytes; HTML(string=html).write_pdf(target=io.BytesIO()) writes to buffer; agent code: use write_pdf() for bytes (web response); write_pdf('path') for file; do not pass None to target",
+      "External resources resolve relative to base URL — HTML(string=html).write_pdf() has no base URL — relative CSS/image paths fail; HTML(string=html, base_url='file:///app/templates/').write_pdf() resolves relatives from that directory; agent code with relative paths: always set base_url to template directory",
+      "CSS @page for page size and margins — default page size is A4; change: CSS(string='@page { size: Letter landscape; margin: 1in; }') as stylesheet; @top-center { content: 'Header'; } for headers; counter(page) for page numbers; agent code: add stylesheets parameter not inline style for @page rules: HTML(string=html).write_pdf(stylesheets=[CSS(string='@page {...}')])",
+      "URL input fetches external resources — HTML(url=url) makes HTTP requests for CSS, images, fonts; slow for pages with many resources; agent code processing untrusted HTML: use string= not url= to avoid SSRF; HTML(string=user_html, base_url=None) prevents external requests; validate HTML source before passing to weasyprint"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 82,
+    "error_handling_score": 78,
+    "auth_complexity_score": 99,
+    "rate_limit_clarity_score": 99
+  },
+  "security_score_components": {
+    "tls_enforcement": 88,
+    "auth_strength": 88,
+    "scope_granularity": 85,
+    "dependency_hygiene": 85,
+    "secret_handling": 88,
+    "security_notes": "HTML-to-PDF converter. External URL input can trigger SSRF — validate URLs and HTML source. User-controlled HTML can embed external resources during rendering. PDF output may contain embedded content from untrusted sources. System library vulnerabilities (Cairo/Pango) affect security."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 78,
+    "version_stability": 80,
+    "breaking_changes_history": 78,
+    "error_recovery": 78
+  }
+}

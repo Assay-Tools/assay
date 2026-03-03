@@ -1,0 +1,106 @@
+{
+  "id": "selenium-python-api",
+  "name": "selenium",
+  "version_evaluated": "4.x",
+  "homepage": "https://selenium-python.readthedocs.io/",
+  "repo_url": "https://github.com/SeleniumHQ/selenium",
+  "category": "developer-tools",
+  "subcategories": ["browser-automation", "testing", "python", "web-scraping"],
+  "tags": ["python", "selenium", "browser", "automation", "webdriver", "chromium", "firefox", "testing"],
+  "what_it_does": "Browser automation library via WebDriver protocol — controls Chrome, Firefox, Edge, Safari through their respective WebDriver implementations. selenium 4.x features: webdriver.Chrome/Firefox/Edge with options, driver.get(url), driver.find_element(By.CSS_SELECTOR/XPATH/ID/NAME), WebDriverWait + expected_conditions for dynamic content, ActionChains for complex interactions (drag-drop, hover, keyboard), execute_script() for JavaScript, frame switching, alert handling, window management, network conditions (via BiDi), and selenium-manager for automatic driver downloads. Long-established standard for web automation.",
+  "use_cases": [
+    "Agent web automation — from selenium import webdriver; from selenium.webdriver.common.by import By; driver = webdriver.Chrome(); driver.get(url); driver.find_element(By.ID, 'search').send_keys(query); driver.find_element(By.CSS_SELECTOR, 'button[type=submit]').click(); result = driver.find_element(By.CSS_SELECTOR, '.result').text; driver.quit() — basic automation; agent controls browser",
+    "Agent wait for dynamic content — from selenium.webdriver.support.ui import WebDriverWait; from selenium.webdriver.support import expected_conditions as EC; wait = WebDriverWait(driver, 30); element = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, '.loaded'))); text = element.text — explicit wait; agent waits for JS-rendered content",
+    "Agent JavaScript execution — result = driver.execute_script('return document.querySelector(\".data\").innerText'); driver.execute_script('arguments[0].scrollIntoView()', element); driver.execute_script('window.scrollTo(0, document.body.scrollHeight)') — JS execution; agent runs arbitrary JavaScript; useful for scroll, click hidden elements, extract computed values",
+    "Agent headless Chrome — options = webdriver.ChromeOptions(); options.add_argument('--headless=new'); options.add_argument('--no-sandbox'); options.add_argument('--disable-dev-shm-usage'); driver = webdriver.Chrome(options=options) — headless; agent runs browser without display; --no-sandbox required in Docker/CI; --disable-dev-shm-usage for container memory",
+    "Agent complex interaction — from selenium.webdriver.common.action_chains import ActionChains; actions = ActionChains(driver); actions.move_to_element(menu).click(submenu).perform() — action chains; agent performs hover, drag-drop, right-click, and multi-step interactions; actions.perform() executes entire chain"
+  ],
+  "not_for": [
+    "New automation projects — playwright has better auto-wait, more reliable locators, and faster execution; prefer playwright for new work",
+    "High-volume scraping — selenium is slow per request; use scrapy or direct HTTP for scale",
+    "Static HTML scraping — selenium launches full browser (1-2s startup); for static HTML use requests + BeautifulSoup"
+  ],
+  "best_when": "Maintaining existing selenium test suites or when specific browser features require WebDriver protocol — selenium remains viable for cross-browser testing infrastructure already built on it.",
+  "avoid_when": "New projects (use playwright), high-volume scraping (use scrapy/httpx), static pages (use requests+BS4), or Python 3.11+ with modern async (use playwright).",
+  "alternatives": ["playwright-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "java", "javascript", "csharp", "ruby"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth for the library. Supports cookies and HTTP auth for target websites."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, Apache 2.0 licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "selenium is Apache 2.0 licensed. Selenium Manager (4.x+) handles driver downloads automatically."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits (local library). Performance: browser startup: 1-3s. Navigation: network-dependent. element.find() with implicit wait can block up to IMPLICIT_WAIT seconds. Explicit waits (WebDriverWait) preferred over implicit. Headless mode faster than headed.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 80,
+    "error_message_notes": "NoSuchElementException when element not found. ElementClickInterceptedException when element blocked. StaleElementReferenceException when DOM updated after find_element. TimeoutException from WebDriverWait. Error messages include locator strategy and value.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "driver.get() is idempotent for same URL. find_element results go stale after page updates. driver.quit() should always be called. Browser state is session-persistent.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "StaleElementReferenceException after page change — finding element before navigate, then using after navigate raises StaleElementReferenceException; element reference invalidated by DOM changes; agent code: re-find elements after navigation; never store element references across page loads; find_element every time needed",
+      "driver.quit() vs driver.close() — driver.close() closes current window only; driver.quit() closes all windows AND kills WebDriver process; agent code: always call driver.quit() in try/finally; missing quit() leaves chromedriver process running; use: try: ... finally: driver.quit()",
+      "Implicit vs explicit waits — driver.implicitly_wait(10) makes all find_element calls wait up to 10s; mixing implicit and explicit waits causes unpredictable timeouts; agent code: use WebDriverWait (explicit) only; set implicit_wait to 0; explicit: wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '.btn')))",
+      "selenium-manager vs chromedriver — selenium 4.6+ includes selenium-manager that auto-downloads matching chromedriver; older setups need webdriver-manager package or manual chromedriver; agent code with selenium 4.x: no driver setup needed; older selenium: from webdriver_manager.chrome import ChromeDriverManager; driver = webdriver.Chrome(ChromeDriverManager().install())",
+      "find_element vs find_elements — find_element(By.CSS, '.item') raises NoSuchElementException if not found; find_elements(By.CSS, '.item') returns [] if not found; agent code: use find_elements for presence check (if elements: ...); use find_element when element guaranteed to exist; both return stale after DOM update",
+      "Headless Chrome flags differ by version — Chrome 112+ uses --headless=new (modern headless); older Chrome uses --headless (deprecated); agent code: options.add_argument('--headless=new') for Chrome 112+; Docker containers need --no-sandbox and --disable-dev-shm-usage; CI may need --disable-gpu; user-data-dir conflicts in parallel"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 80,
+    "auth_complexity_score": 95,
+    "rate_limit_clarity_score": 98
+  },
+  "security_score_components": {
+    "tls_enforcement": 85,
+    "auth_strength": 82,
+    "scope_granularity": 82,
+    "dependency_hygiene": 85,
+    "secret_handling": 78,
+    "security_notes": "Browser automation. Passwords typed via send_keys() appear in logs if not suppressed. Remote WebDriver connections should use HTTPS. Browser profile/cookies contain session tokens — protect temporary directories. Headless browsers can be detected by sophisticated sites."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 82,
+    "version_stability": 82,
+    "breaking_changes_history": 78,
+    "error_recovery": 80
+  }
+}

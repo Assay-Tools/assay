@@ -1,0 +1,106 @@
+{
+  "id": "cairosvg-python-api",
+  "name": "cairosvg",
+  "version_evaluated": "2.7.x",
+  "homepage": "https://cairosvg.org/",
+  "repo_url": "https://github.com/Kozea/CairoSVG",
+  "category": "developer-tools",
+  "subcategories": ["graphics", "svg", "python", "conversion"],
+  "tags": ["python", "cairosvg", "svg", "png", "pdf", "conversion", "cairo", "vector"],
+  "what_it_does": "SVG to PNG/PDF/PS/EPS converter for Python — uses Cairo graphics library to render SVG files to raster and vector formats. cairosvg features: svg2png(), svg2pdf(), svg2ps(), svg2eps() conversion functions, file or bytes input/output, DPI control, scale factor, background color, custom width/height, URL stylesheet support, and full SVG 1.1 specification support including CSS, filters, gradients, and transforms. Requires Cairo C library installed on system.",
+  "use_cases": [
+    "Agent SVG to PNG — import cairosvg; png_bytes = cairosvg.svg2png(url='logo.svg', output_width=200, output_height=200); with open('logo.png', 'wb') as f: f.write(png_bytes) — file conversion; agent converts SVG to PNG for display in web apps or embedding in documents; output_width/height control dimensions",
+    "Agent high-DPI render — png_bytes = cairosvg.svg2png(url='chart.svg', scale=2.0) — retina; agent renders SVG at 2x scale for high-DPI displays; scale= multiplies base dimensions; dpi= controls dots-per-inch for print output",
+    "Agent SVG string to PNG — svg_code = '<svg>...</svg>'; png_bytes = cairosvg.svg2png(bytestring=svg_code.encode()) — string input; agent converts programmatically generated SVG (from matplotlib/svgwrite) to PNG bytes; bytestring= accepts bytes; url= accepts file paths or URLs",
+    "Agent SVG to PDF — cairosvg.svg2pdf(url='report.svg', write_to='report.pdf') — PDF conversion; agent converts SVG graphics to PDF for reports; write_to= writes to file; without write_to= returns bytes; svg2pdf() preserves vector quality",
+    "Agent batch conversion — import cairosvg; from pathlib import Path; for svg_file in Path('icons').glob('*.svg'): png_bytes = cairosvg.svg2png(url=str(svg_file)); Path('png').joinpath(svg_file.stem + '.png').write_bytes(png_bytes) — batch; agent converts multiple SVG icons to PNG"
+  ],
+  "not_for": [
+    "Environments without Cairo C library — cairosvg requires libcairo system package; not available in minimal containers without apt/brew install libcairo2",
+    "Complex SVG animations — cairosvg renders static SVG; animated SVGs (SMIL/CSS animations) produce single frame",
+    "SVG editing — cairosvg is converter only; for SVG manipulation use svgwrite or svgpathtools"
+  ],
+  "best_when": "Server-side SVG to PNG/PDF conversion where Cairo is available — cairosvg produces high-quality vector rendering with full CSS and filter support.",
+  "avoid_when": "Environments without Cairo C library (use wand/Pillow with rsvg), SVG animations (static only), or when Inkscape CLI is already available.",
+  "alternatives": ["svgwrite-python-api", "reportlab-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — local conversion library."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, LGPL licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "cairosvg is LGPL 3.0 licensed. Free for all use. Requires libcairo system library."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Performance: simple SVG to PNG: 50-200ms. Complex SVG with filters: 500ms-2s. Scales with SVG complexity and output resolution. Cairo C library is fast for vector rendering. High-DPI output (scale=4): proportionally slower.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 80,
+    "error_message_quality": 72,
+    "error_message_notes": "cairo.Error when Cairo library not found. cairosvg.parser.ParseError for invalid SVG. Errors can be cryptic when SVG has unsupported features. Silent partial rendering for some unsupported SVG features.",
+    "idempotency_support": "full",
+    "idempotency_notes": "svg2png/svg2pdf are pure conversion functions. Same input always produces same output. No state maintained between calls.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "libcairo must be system-installed — pip install cairosvg does NOT install Cairo; must install system package: macOS: brew install cairo; Ubuntu/Debian: apt-get install libcairo2; Alpine: apk add cairo; agent Docker images: use python:3.x-slim and apt-get install libcairo2 libpango-1.0-0 libpangocairo-1.0-0; without Cairo: OSError on import",
+      "url= vs bytestring= vs file_obj= — three ways to provide SVG input; url='path/to/file.svg' for local files; url='https://...' fetches remote SVG (network call); bytestring=b'<svg>...</svg>' for in-memory SVG bytes; file_obj=open('file.svg', 'rb') for file objects; agent code: use bytestring= for programmatically generated SVG",
+      "output_width/height vs scale — output_width=200 sets absolute pixel width (height auto-scales to maintain aspect ratio); scale=2.0 multiplies viewBox dimensions; both cannot be used simultaneously; agent code: use output_width= for fixed display size; use scale= for relative resolution increase (retina); default is viewBox size at 96 DPI",
+      "Remote URL in SVG can make network calls — SVG files referencing external resources (images, stylesheets, fonts) trigger HTTP requests during conversion; untrusted SVG from user input: disable with unsafe=True but review implications; agent code processing user SVG: validate SVG content before conversion to prevent SSRF",
+      "write_to= vs return value — cairosvg.svg2png(url='f.svg', write_to='out.png') writes to file AND returns None; cairosvg.svg2png(url='f.svg') returns bytes; agent code: do not use write_to= if you need bytes; check return value: if write_to set, return is None not bytes",
+      "Cairo rendering differs from browser rendering — cairosvg may render SVG differently from Chrome/Firefox; CSS feature support is limited; web fonts may not load; text metrics differ; agent code generating SVGs intended for browser: test cairosvg output; simple shapes/paths render correctly; complex CSS/text may differ"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 80,
+    "error_handling_score": 72,
+    "auth_complexity_score": 99,
+    "rate_limit_clarity_score": 99
+  },
+  "security_score_components": {
+    "tls_enforcement": 88,
+    "auth_strength": 88,
+    "scope_granularity": 85,
+    "dependency_hygiene": 85,
+    "secret_handling": 90,
+    "security_notes": "SVG conversion library. SVG files can trigger external resource loading (SSRF risk) — validate SVG source. External URL in url= parameter fetches from network — validate in agent code. Cairo C library vulnerabilities affect cairosvg — keep system library updated."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 75,
+    "version_stability": 78,
+    "breaking_changes_history": 78,
+    "error_recovery": 75
+  }
+}
