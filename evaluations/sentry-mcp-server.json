@@ -1,0 +1,106 @@
+{
+  "id": "sentry-mcp-server",
+  "name": "Sentry MCP Server",
+  "version_evaluated": "current",
+  "homepage": "https://sentry.io",
+  "repo_url": "https://github.com/getsentry/sentry-mcp",
+  "category": "monitoring",
+  "subcategories": ["error-tracking", "performance-monitoring", "debugging"],
+  "tags": ["error-tracking", "monitoring", "mcp", "sentry", "debugging", "performance"],
+  "what_it_does": "Official Sentry MCP server providing agent-native access to Sentry error tracking and performance monitoring. Enables agents to query issues, stack traces, releases, projects, and performance data directly from the MCP protocol without wrapping the REST API.",
+  "use_cases": [
+    "Fetch recent errors and full stack traces for debugging workflows",
+    "List performance regressions and N+1 query detections across releases",
+    "Check release health (crash-free sessions, error rates) before or after deployments",
+    "Triage and assign issues programmatically based on error patterns",
+    "Query projects and teams to understand organizational Sentry structure"
+  ],
+  "not_for": [
+    "Real-time log streaming (Sentry is event-based, not a log aggregator)",
+    "Non-Sentry monitoring backends (Datadog, New Relic, etc.)",
+    "High-frequency polling for live error feeds (use Sentry webhooks instead)"
+  ],
+  "best_when": "An agent needs to investigate errors, understand crash patterns, or verify release health as part of a debugging or deployment workflow.",
+  "avoid_when": "You need real-time log streaming, are using a monitoring platform other than Sentry, or need sub-second error alerting.",
+  "alternatives": ["datadog-api", "new-relic-api", "honeycomb-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": true,
+    "mcp_server_url": "https://github.com/getsentry/sentry-mcp",
+    "has_sdk": true,
+    "sdk_languages": ["python", "javascript", "java", "ruby", "go", "csharp", "php", "rust"],
+    "openapi_spec_url": "https://docs.sentry.io/api/",
+    "webhooks": true
+  },
+  "auth": {
+    "methods": ["api_key"],
+    "oauth": true,
+    "scopes": true,
+    "notes": "MCP server uses Sentry API token authentication. Tokens are scoped (e.g., project:read, event:read, org:read). OAuth2 supported for user-delegated access. Tokens created in Sentry account settings with minimum required scopes."
+  },
+  "pricing": {
+    "model": "tiered",
+    "free_tier_exists": true,
+    "free_tier_limits": "Free: 10K errors/month, 1 project, 30-day data retention",
+    "paid_tiers": "Team from $26/month (100K errors), Business from $80/month, Enterprise custom",
+    "requires_credit_card": false,
+    "notes": "Free tier is genuinely useful for small projects. Paid tiers scale by event volume and data retention. Performance monitoring, profiling, and session replay are add-ons on some plans."
+  },
+  "performance": {
+    "latency_p50_ms": 200,
+    "latency_p99_ms": 1000,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "100 requests/second per token; burst limits apply",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["US", "EU"],
+    "compliance": ["SOC2", "GDPR", "CCPA", "ISO27001"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": 82,
+    "mcp_security_score": 80,
+    "documentation_accuracy": 88,
+    "error_message_quality": 82,
+    "error_message_notes": "Sentry API returns structured JSON errors with detail messages. MCP server surfaces Sentry API errors directly. Rate limit errors include clear messaging. Auth errors (missing scopes) clearly indicate which scope is required.",
+    "idempotency_support": "full",
+    "idempotency_notes": "All MCP operations are read-only queries — fully idempotent by nature. Write operations (update issue status) are deterministic.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Organization slug is required for almost all queries — agents must know the org slug before making most requests",
+      "Issue vs event distinction matters: an Issue groups many Events; fetching an Issue gives aggregate data, fetching Events gives individual occurrences",
+      "Sentry query filter syntax is specific to Sentry (e.g., is:unresolved, assigned:me, has:commit) — not generic SQL",
+      "Data retention limits per plan affect historical queries — queries beyond retention window return empty results silently",
+      "MCP server requires running sentry-mcp as a local process or via npx — not a hosted cloud MCP endpoint",
+      "API token scopes must include the specific data types being queried — missing scopes return 403 without detail on which scope is needed"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 82,
+    "api_doc_score": 88,
+    "error_handling_score": 82,
+    "auth_complexity_score": 80,
+    "rate_limit_clarity_score": 78
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 82,
+    "scope_granularity": 85,
+    "dependency_hygiene": 80,
+    "secret_handling": 80,
+    "security_notes": "HTTPS enforced. API tokens have fine-grained scope controls. Tokens can be rotated in settings. MCP server runs locally, so credentials stay on the user's machine. SOC2 Type II certified. EU data residency available for GDPR compliance. Token exposure in MCP config files is a risk — use environment variables."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 85,
+    "breaking_changes_history": 82,
+    "error_recovery": 85
+  }
+}

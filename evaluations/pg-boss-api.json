@@ -1,0 +1,106 @@
+{
+  "id": "pg-boss-api",
+  "name": "pg-boss",
+  "version_evaluated": "9+",
+  "homepage": "https://github.com/timgit/pg-boss",
+  "repo_url": "https://github.com/timgit/pg-boss",
+  "category": "developer-tools",
+  "subcategories": ["job-queue", "postgresql", "background-jobs"],
+  "tags": ["job-queue", "postgresql", "background-jobs", "worker", "scheduling", "node"],
+  "what_it_does": "Job queue for Node.js that uses PostgreSQL as the backing store. pg-boss leverages PostgreSQL's SKIP LOCKED for efficient job dequeuing and uses the same database as your application — no separate Redis infrastructure required. Supports job scheduling, delayed jobs, recurring jobs (cron), job completion callbacks, retry with exponential backoff, and concurrency control. Ideal for applications already using PostgreSQL.",
+  "use_cases": [
+    "Implement background job queues in agent backends that already use PostgreSQL without adding Redis infrastructure",
+    "Schedule one-time and recurring agent tasks using the same PostgreSQL database as application data",
+    "Process agent work items with reliable delivery guarantees — pg-boss uses SKIP LOCKED for exactly-once processing across workers",
+    "Implement delayed job execution for agent workflows that need to fire actions after a time delay",
+    "Build fan-out patterns where agent jobs spawn multiple child jobs tracked in the same database"
+  ],
+  "not_for": [
+    "High-volume job processing (millions of jobs/second) — BullMQ with Redis is faster for extreme throughput",
+    "Non-PostgreSQL databases — pg-boss is PostgreSQL only",
+    "Real-time job processing with sub-second latency — pg-boss polling has configurable but minimum latency overhead"
+  ],
+  "best_when": "You're using PostgreSQL and want reliable background job processing without Redis — pg-boss turns your existing DB into a job queue with proper transactional semantics.",
+  "avoid_when": "You need extreme job throughput, multi-database support, or sub-second job processing latency — BullMQ with Redis is faster.",
+  "alternatives": ["bullmq-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["node"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["username_password"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "PostgreSQL connection string auth — same as your existing database connection. pg-boss creates its own schema in the specified database."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Fully free and open source (MIT)",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "MIT-licensed open source library. Uses your existing PostgreSQL costs."
+  },
+  "performance": {
+    "latency_p50_ms": 100,
+    "latency_p99_ms": 1000,
+    "uptime_sla_percent": null,
+    "rate_limits": "Throughput limited by PostgreSQL capacity — typically 1000s of jobs/second",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted", "cloud"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 80,
+    "error_message_notes": "Job failures captured with error message and stack trace in the pgboss.job table. Boss startup errors describe schema or connection issues. Comprehensive API for job state inspection.",
+    "idempotency_support": "full",
+    "idempotency_notes": "SKIP LOCKED ensures each job is processed exactly once across workers. Job IDs are stable — idempotent job creation with send() checks for duplicates.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "pg-boss creates tables in the 'pgboss' schema — ensure the database role has CREATE SCHEMA permissions; first start fails without schema creation rights",
+      "Job workers must call work() which starts polling — jobs sent before calling work() are queued in the database but not processed until workers start",
+      "Maintenance (archiving old jobs) runs on a schedule — configure maintenanceIntervalSeconds; databases with many jobs may have maintenance overhead",
+      "pg-boss v9 changed job batching API — batch sends use sendBatch() instead of multiple send() calls; older code patterns may not batch efficiently",
+      "Connection pooling — pg-boss uses its own internal pool; don't share your application's pg Pool with pg-boss to avoid connection exhaustion",
+      "Cron scheduling uses pg-boss's internal format, not standard 5-field cron — verify expression format in documentation for the version you're using"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 80,
+    "auth_complexity_score": 88,
+    "rate_limit_clarity_score": 85
+  },
+  "security_score_components": {
+    "tls_enforcement": 90,
+    "auth_strength": 85,
+    "scope_granularity": 82,
+    "dependency_hygiene": 85,
+    "secret_handling": 85,
+    "security_notes": "PostgreSQL TLS support. Job data stored in database — apply column-level encryption for sensitive job payloads. Database credentials in connection string."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 85,
+    "version_stability": 80,
+    "breaking_changes_history": 75,
+    "error_recovery": 85
+  }
+}

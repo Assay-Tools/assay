@@ -1,29 +1,28 @@
 {
   "id": "aws-lambda-api",
-  "name": "AWS Lambda API",
+  "name": "AWS Lambda",
   "version_evaluated": "current",
-  "homepage": "https://docs.aws.amazon.com/lambda/",
-  "repo_url": "https://github.com/boto/boto3",
+  "homepage": "https://docs.aws.amazon.com/lambda/latest/api/",
+  "repo_url": null,
   "category": "cloud-infrastructure",
-  "subcategories": ["serverless", "compute", "functions-as-a-service", "aws"],
-  "tags": ["aws", "lambda", "serverless", "compute", "functions", "rest-api", "sdk", "event-driven", "faas"],
-  "what_it_does": "AWS Lambda's API for deploying, invoking, and managing serverless compute functions across all AWS runtimes with tight integration into the AWS ecosystem.",
+  "subcategories": ["serverless", "functions", "event-driven", "compute"],
+  "tags": ["serverless", "aws", "functions", "event-driven", "compute"],
+  "what_it_does": "Amazon Web Services' serverless compute platform. Provides REST Invoke API for triggering functions and a Management API for deploying, configuring, and monitoring Lambda functions. Integrates natively with the entire AWS ecosystem.",
   "use_cases": [
-    "Deploying and updating Lambda function code from agent pipelines",
-    "Invoking Lambda functions programmatically as part of agent workflows",
-    "Managing function configuration, layers, and environment variables",
-    "Monitoring Lambda performance metrics and error rates via CloudWatch",
-    "Building event-driven architectures with Lambda triggers from agents"
+    "Invoke serverless functions synchronously or asynchronously via REST API",
+    "Deploy and update Lambda function code and configuration programmatically",
+    "Manage event source mappings (SQS, Kinesis, DynamoDB Streams triggers)",
+    "Monitor function health and logs via CloudWatch integration",
+    "Orchestrate complex workflows by chaining Lambda invocations via Step Functions"
   ],
   "not_for": [
-    "Long-running jobs beyond 15-minute timeout",
-    "Teams not on AWS (tight AWS ecosystem coupling)",
-    "Simple scripting without cloud infrastructure",
-    "GPU compute (use SageMaker or EC2 instead)"
+    "Functions requiring more than 15 minutes of execution time",
+    "Stateful workloads needing persistent in-memory state between invocations",
+    "Non-AWS environments where AWS SDK/IAM dependencies are impractical"
   ],
-  "best_when": "An agent needs to deploy, invoke, or manage AWS Lambda functions as part of an AWS-native DevOps or automation workflow.",
-  "avoid_when": "You're not on AWS, or your use case doesn't require Lambda's AWS ecosystem integration.",
-  "alternatives": ["gcp-functions-api", "cloudflare-workers-api", "vercel-api"],
+  "best_when": "An agent needs to invoke or manage serverless compute within the AWS ecosystem, especially when other AWS services (S3, DynamoDB, SQS) are also involved.",
+  "avoid_when": "Your workload exceeds 15 minutes, you need stateful compute, or you want to avoid AWS vendor lock-in.",
+  "alternatives": ["firebase-functions-api", "cloudflare-workers-ai-v2", "azure-functions-api"],
   "interface": {
     "has_rest_api": true,
     "has_graphql": false,
@@ -31,60 +30,77 @@
     "has_mcp_server": false,
     "mcp_server_url": null,
     "has_sdk": true,
-    "sdk_languages": ["python", "javascript", "java", "go", "ruby", "dotnet", "rust"],
+    "sdk_languages": ["python", "javascript", "java", "go", "ruby", "csharp", "cpp", "rust"],
     "openapi_spec_url": null,
     "webhooks": false
   },
   "auth": {
-    "methods": ["api_key"],
+    "methods": ["aws_signature_v4", "iam"],
     "oauth": false,
     "scopes": true,
-    "notes": "AWS IAM credentials (access key + secret key) with fine-grained IAM policies. SigV4 request signing for all API calls. IAM roles are the recommended auth approach for agents running in AWS. Temporary credentials via STS supported."
+    "notes": "AWS Signature Version 4 signing required for all API calls. IAM roles and policies control access to invoke, create, update, and delete functions. Lambda resource-based policies can grant cross-account invocation. Recommend using IAM roles (not static access keys) for agents running on AWS compute."
   },
   "pricing": {
-    "model": "pay-as-you-go",
+    "model": "consumption",
     "free_tier_exists": true,
-    "free_tier_limits": "Free tier: 1M requests/month and 400,000 GB-seconds/month permanently",
-    "paid_tiers": "$0.20 per 1M requests, $0.0000166667 per GB-second",
+    "free_tier_limits": "1M requests/month free, 400,000 GB-seconds compute free (always free, not 12-month trial)",
+    "paid_tiers": "$0.20/million requests, $0.0000166667/GB-second of compute",
     "requires_credit_card": true,
-    "notes": "Lambda is extremely cost-effective for event-driven workloads. Free tier never expires. Credit card required for AWS account. Pricing scales linearly with usage."
+    "notes": "Free tier is permanent (not 12-month). Duration billed in 1ms increments. Provisioned concurrency and additional features have separate pricing. Data transfer out of AWS incurs additional egress costs."
   },
   "performance": {
-    "latency_p50_ms": 5,
+    "latency_p50_ms": 10,
     "latency_p99_ms": 1000,
     "uptime_sla_percent": 99.95,
-    "rate_limits": "1,000 concurrent executions by default (adjustable)",
+    "rate_limits": "1000 concurrent executions per account per region by default (soft limit, can be increased); burst limit varies by region",
     "data_source": "llm_estimated"
   },
   "requirements": {
     "requires_signup": true,
     "requires_credit_card": true,
     "domain_verification": false,
-    "data_residency": ["global-regions"],
-    "compliance": ["SOC1", "SOC2", "SOC3", "ISO27001", "PCI-DSS", "HIPAA", "FedRAMP"],
+    "data_residency": ["US", "EU", "APAC", "multi-region"],
+    "compliance": ["SOC1", "SOC2", "SOC3", "PCI-DSS", "HIPAA", "FedRAMP", "ISO27001", "GDPR"],
     "min_contract": "none"
   },
   "agent_readiness": {
     "mcp_server_quality": null,
-    "mcp_security_score": 85,
+    "mcp_security_score": null,
     "documentation_accuracy": 90,
-    "error_message_quality": 80,
-    "error_message_notes": "AWS error responses include ErrorCode and Message. SDK adds context to raw API errors. Error codes are well-documented. IAM policy errors can be cryptic without proper understanding.",
+    "error_message_quality": 82,
+    "error_message_notes": "AWS SDK errors are structured with error code, message, and HTTP status. Invoke errors distinguish function errors (200 with X-Amz-Function-Error header) from service errors (4xx/5xx). Error codes are well-documented in AWS docs.",
     "idempotency_support": "partial",
-    "idempotency_notes": "Lambda invocations support ClientContext for tracking. Function deployments are idempotent by function name + version. Event source mappings use UUIDs.",
+    "idempotency_notes": "ClientContext can pass idempotency tokens. Async invocations may execute more than once — functions must be idempotent. Step Functions provides idempotent orchestration on top of Lambda.",
     "pagination_style": "cursor",
     "retry_guidance_documented": true,
     "known_agent_gotchas": [
-      "IAM permission complexity is high — agents need correct Lambda:InvokeFunction, Lambda:CreateFunction etc. permissions",
-      "SigV4 request signing is required — not just a bearer token",
-      "Cold starts add 100ms-10s latency for infrequently used functions",
-      "Function deployment requires uploading zip to S3 first for large packages",
-      "Concurrent execution limits can throttle agent-orchestrated workloads",
-      "15-minute maximum execution timeout — long-running agent tasks need different approach"
-    ],
-    "error_message_score": 80,
-    "auth_complexity_score": 55,
-    "rate_limit_score": 72,
-    "security_score": 85
+      "AWS Signature V4 signing is complex — always use the AWS SDK (boto3, aws-sdk-js) rather than hand-rolling HTTP calls",
+      "Cold starts are unavoidable without Provisioned Concurrency — Java and .NET runtimes have the worst cold starts (500ms-2s+)",
+      "15-minute hard timeout limit — no exceptions; long-running agents must checkpoint and resume via SQS/Step Functions",
+      "Synchronous invoke payload limit is 6MB request/response; async limit is 256KB — large payloads must go via S3",
+      "IAM permission errors (403 AccessDeniedException) can be difficult to debug — use IAM Policy Simulator",
+      "Throttling (429 TooManyRequestsException) happens when concurrency limit is hit — implement exponential backoff"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": null,
+    "api_doc_score": 88,
+    "error_handling_score": 82,
+    "auth_complexity_score": 65,
+    "rate_limit_clarity_score": 80
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 95,
+    "scope_granularity": 95,
+    "dependency_hygiene": 88,
+    "secret_handling": 90,
+    "security_notes": "HTTPS mandatory. IAM provides extremely fine-grained access control at the resource, action, and condition level. Secrets should use AWS Secrets Manager or Parameter Store — avoid environment variables for sensitive values. VPC integration available for private network access. Lambda execution role follows least-privilege principle. SOC2, PCI-DSS, HIPAA, and FedRAMP certified."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 95,
+    "version_stability": 92,
+    "breaking_changes_history": 90,
+    "error_recovery": 92
   }
 }
