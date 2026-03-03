@@ -1,0 +1,106 @@
+{
+  "id": "polyfactory-python-api",
+  "name": "polyfactory",
+  "version_evaluated": "2.x",
+  "homepage": "https://polyfactory.litestar.dev/",
+  "repo_url": "https://github.com/litestar-org/polyfactory",
+  "category": "developer-tools",
+  "subcategories": ["testing", "python", "factories", "pydantic", "dataclasses"],
+  "tags": ["python", "polyfactory", "testing", "factory", "pydantic", "dataclasses", "attrs", "mock-data"],
+  "what_it_does": "Python test data factory library for Pydantic, dataclasses, and attrs models — generates realistic mock data based on type annotations. polyfactory features: ModelFactory for Pydantic BaseModel, DataclassFactory for dataclasses, AttrsFactory for attrs classes, TypedDictFactory, build() for single instance, batch() for multiple, __faker__ for locale-aware data, __random_seed__ for reproducible data, field overrides in build() call, __set_as_default_factory_for_type__ for global registration, and constrained types (constr, conint) respected. Successor to pydantic-factories. Generates valid test data from type annotations without manual fixture construction.",
+  "use_cases": [
+    "Agent Pydantic model test data — class AgentFactory(ModelFactory): __model__ = Agent; agent = AgentFactory.build() — generates valid Agent with random name, id, status; no manual fixture construction; agent unit tests have realistic data without hardcoded values",
+    "Agent batch test data — agents = AgentFactory.batch(100) creates 100 valid Agent instances; agent load testing with realistic data; batch with overrides: AgentFactory.batch(10, status='idle') — all 10 agents with idle status",
+    "Agent nested model factories — Task has agent: Agent; TaskFactory.build() automatically creates nested Agent; agent complex object graphs built recursively from type annotations",
+    "Agent reproducible test data — class AgentFactory(ModelFactory): __random_seed__ = 42; AgentFactory.build() produces identical data every run; agent snapshot testing with deterministic factory output",
+    "Agent field overrides — AgentFactory.build(name='SpecificAgent', status='error', created_at=datetime(2026, 1, 1)) overrides specific fields while generating others; agent targeted test scenarios with mixed real/generated values"
+  ],
+  "not_for": [
+    "Database-backed factories — polyfactory creates Python objects, not DB records; for DB insertion use SQLAlchemy session or pytest fixtures with commit",
+    "Production data seeding — polyfactory is test-only; use realistic seeding scripts for production",
+    "Non-typed code — polyfactory relies on type annotations; for untyped Python dicts use Faker directly"
+  ],
+  "best_when": "Your Python agent project uses Pydantic models and you need test data without manually constructing every field — polyfactory reads type annotations and generates valid random data that passes Pydantic validation.",
+  "avoid_when": "You need database-backed factories (use factory_boy), production seeding, or work with untyped dicts.",
+  "alternatives": ["factory-boy-api", "faker-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — local test data generation library."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "polyfactory is MIT licensed, maintained by the Litestar organization. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 0,
+    "latency_p99_ms": 0,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — in-process factory generation. batch(10000) may take 1-5 seconds for complex models. Factory class creation cached — build() after first call is faster.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 80,
+    "error_message_quality": 78,
+    "error_message_notes": "ParameterException when factory can't generate value for type. Pydantic ValidationError if generated value fails model validation (rare but possible with complex constraints). MissingBuildKwargException if required arg not provided. Type not supported raises FactoryException with type name.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "ModelFactory.build() is random by default (not idempotent). __random_seed__ = N makes build() deterministic/idempotent for same seed. batch() idempotent with same seed. Override values in build(field=value) are idempotent.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Validators may reject generated values — Pydantic validators (field_validator, model_validator) may reject polyfactory-generated random values; agent models with complex validators (email format, URL validation, custom business rules) cause FactoryException; add __faker__ overrides or use build() with explicit valid values for validated fields",
+      "Literal types generate one of the options randomly — Agent with status: Literal['idle', 'running', 'error'] generates random choice; agent tests checking specific status must override: AgentFactory.build(status='error'); not a bug but commonly missed by developers expecting deterministic Literal values",
+      "Nested Optional fields sometimes generate None — Optional[Agent] fields have ~50% chance of None generation; agent tests with Optional associations get None and fail with AttributeError; explicitly provide nested objects: TaskFactory.build(agent=AgentFactory.build()) for required nested agent",
+      "datetime fields generate arbitrary past/future dates — polyfactory generates random valid datetimes; agent tests checking date ranges get dates far in past or future; constrain with build(created_at=datetime.now()) for current-time tests; or use __faker__ = Faker() with faker.date_time_between('-1y', 'now')",
+      "Factory not isolated between tests — class AgentFactory(ModelFactory): __model__ = Agent; factory is module-level singleton; state set in one test (__random_seed__, __faker__ locale) affects other tests; use local factory class per test function or reset state in teardown for agent test isolation",
+      "Union types default to first type — Union[str, int, None] generates str by default; agent models with complex Union types may not get diverse test coverage; use explicit type in build() override or multiple test cases for different Union branches"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 78,
+    "error_handling_score": 72,
+    "auth_complexity_score": 98,
+    "rate_limit_clarity_score": 98
+  },
+  "security_score_components": {
+    "tls_enforcement": 95,
+    "auth_strength": 95,
+    "scope_granularity": 92,
+    "dependency_hygiene": 88,
+    "secret_handling": 95,
+    "security_notes": "Test-only library — no security concerns. Generated data may look realistic (emails, names, URLs) — ensure test data clearly marked as synthetic in test databases. Don't persist polyfactory data to production systems."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 78,
+    "version_stability": 78,
+    "breaking_changes_history": 75,
+    "error_recovery": 80
+  }
+}
