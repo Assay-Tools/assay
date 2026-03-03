@@ -1,0 +1,106 @@
+{
+  "id": "memray-python-api",
+  "name": "memray",
+  "version_evaluated": "1.x",
+  "homepage": "https://bloomberg.github.io/memray/",
+  "repo_url": "https://github.com/bloomberg/memray",
+  "category": "developer-tools",
+  "subcategories": ["profiling", "python", "memory", "debugging", "performance"],
+  "tags": ["python", "memray", "memory-profiling", "bloomberg", "profiling", "debugging", "performance", "flamegraph"],
+  "what_it_does": "Memory profiler for Python by Bloomberg — tracks memory allocations and identifies memory leaks with flamegraph visualization. memray features: command-line memray run script.py, memray flamegraph output.bin, @memray.profile() decorator, live mode (memray run --live), memray stats for summary statistics, native mode for C extension tracking (--native), tracking of Python + native (C/C++) allocations, aggregated allocations view, temporal allocation timeline, thread-specific tracking, pytest plugin (pytest-memray), and Docker-friendly design. Finds memory leaks, unexpected allocations, and OOM root causes in Python services.",
+  "use_cases": [
+    "Agent memory leak detection — memray run --output=output.bin agent_script.py; memray flamegraph output.bin — generates interactive HTML flamegraph; agent developer identifies which function accumulates memory across 1000 agent iterations; Bloomberg-developed, production-tested on large Python services",
+    "Agent pytest memory regression — @pytest.mark.limit_memory('100 MB'); def test_agent_processing(): result = run_agent_on_large_dataset() — pytest-memray plugin enforces memory limit in test; agent CI pipeline fails if processing 10K records exceeds 100MB memory budget; catches memory regressions before production",
+    "Agent live memory monitoring — memray run --live agent_service.py — opens terminal dashboard showing real-time memory allocation by function; agent developer watches which function grows during load test; identifies leak source without stopping process",
+    "Agent native extension profiling — memray run --native ml_agent.py — tracks allocations in C extensions (numpy, torch) not just Python objects; agent ML pipeline OOM during inference tracked to PyTorch tensor buffer not Python objects; native mode essential for ML workloads",
+    "Agent programmatic profiling — with memray.Tracker('output.bin'): heavy_agent_function() — profile specific code section without full script; agent inline profiling wraps specific suspicious functions for targeted analysis without profiling entire agent startup"
+  ],
+  "not_for": [
+    "CPU profiling — memray is memory-only; for CPU profiling use py-spy or cProfile/viztracer",
+    "Windows — memray is Linux/macOS only; for Windows memory profiling use memory-profiler or tracemalloc",
+    "Production always-on profiling — memray overhead (10-30%) is too high for always-on production; use for targeted profiling sessions"
+  ],
+  "best_when": "Diagnosing Python memory leaks, OOM errors, or unexpected memory growth in agents, ML pipelines, and data processing scripts — memray's flamegraph visualization makes it immediately obvious which allocation path causes the problem.",
+  "avoid_when": "You need CPU profiling (use py-spy), are on Windows, or need zero-overhead always-on production monitoring.",
+  "alternatives": ["scalene-api", "py-spy-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — local profiling tool."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, Apache 2.0 licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "memray is Apache 2.0 licensed by Bloomberg. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. memray overhead: 10-30% CPU and memory overhead during profiling. Output file size grows with allocation count — large applications generate GB output files. Use --aggregate for reduced file size (loses temporal info).",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 80,
+    "error_message_notes": "FileNotFoundError for missing output file. OSError when output file not writable. ImportError on Windows (not supported). Permissions error for --native mode on some Linux kernels. Error messages are clear and actionable.",
+    "idempotency_support": "full",
+    "idempotency_notes": "memray run produces output file from each run. flamegraph generation from same bin file is idempotent. Profiling results may vary slightly between runs due to OS memory allocation patterns.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Output file grows large for long-running agents — memray run long_running_agent.py creates binary output tracking every allocation; 1-hour agent run can create 10GB+ output file; use memray run --aggregate for aggregated stats (no temporal data, smaller file) or memray run --trace-python-allocators only",
+      "Native mode requires ptrace permissions — memray run --native script.py on Linux may fail with 'Permission denied' if ptrace_scope > 1; agent Docker containers need --cap-add=SYS_PTRACE or run as root; native tracking essential for diagnosing OOM in PyTorch/NumPy C extensions",
+      "Live mode terminal requires TTY — memray run --live script.py requires interactive terminal; agent CI/CD systems without TTY raise error; use memray run without --live in CI and analyze output file separately with memray flamegraph",
+      "pytest-memray limit_memory is total not peak — @pytest.mark.limit_memory('50 MB') checks total bytes allocated not peak memory in use; agent tests with heavy allocate/deallocate cycles may fail limit even if peak RSS is low; use memray stats to distinguish peak from total allocations",
+      "Context manager requires explicit file path — with memray.Tracker('out.bin'): ... writes to file; without explicit path raises TypeError; agent inline profiling must specify output path: with memray.Tracker(f'/tmp/agent_profile_{time.time()}.bin'): run_agent()",
+      "flamegraph is localhost HTML not CLI — memray flamegraph output.bin opens browser or generates HTML file; agent CI pipeline must use memray flamegraph output.bin --output report.html for file output; default behavior opens browser which fails in headless CI"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 80,
+    "auth_complexity_score": 98,
+    "rate_limit_clarity_score": 98
+  },
+  "security_score_components": {
+    "tls_enforcement": 92,
+    "auth_strength": 92,
+    "scope_granularity": 90,
+    "dependency_hygiene": 88,
+    "secret_handling": 88,
+    "security_notes": "memray output files contain allocation traces that may include memory content snapshots — treat output files as sensitive if profiling agents that handle secrets. --native mode requires elevated privileges (ptrace). No network calls during profiling."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 85,
+    "version_stability": 82,
+    "breaking_changes_history": 80,
+    "error_recovery": 82
+  }
+}

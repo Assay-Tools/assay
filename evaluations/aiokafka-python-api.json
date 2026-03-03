@@ -1,0 +1,106 @@
+{
+  "id": "aiokafka-python-api",
+  "name": "aiokafka",
+  "version_evaluated": "0.10.x",
+  "homepage": "https://aiokafka.readthedocs.io/",
+  "repo_url": "https://github.com/aio-libs/aiokafka",
+  "category": "developer-tools",
+  "subcategories": ["messaging", "kafka", "python", "asyncio", "streaming"],
+  "tags": ["python", "aiokafka", "kafka", "asyncio", "async", "producer", "consumer", "event-driven", "aio-libs"],
+  "what_it_does": "Async Kafka client for Python using asyncio — native async/await Kafka producer and consumer. aiokafka features: AIOKafkaProducer for async message publishing (await producer.send_and_wait()), AIOKafkaConsumer for async consumption (async for msg in consumer), SSL/SASL auth, consumer groups, manual offset commit (await consumer.commit()), seek(), transaction support, batch sending, compression, and asyncio event loop integration. Drop-in async replacement for kafka-python's sync API. Part of aio-libs ecosystem (same as aiohttp, aiomysql). Required for async web frameworks (FastAPI, aiohttp) that cannot block on Kafka I/O.",
+  "use_cases": [
+    "Agent async event publishing — producer = AIOKafkaProducer(bootstrap_servers='kafka:9092', value_serializer=lambda v: json.dumps(v).encode()); await producer.start(); await producer.send_and_wait('agent-events', {'task': 'done'}); await producer.stop() — non-blocking Kafka publish in async agent; FastAPI endpoint produces Kafka events without blocking request thread; 10x throughput vs sync in async context",
+    "Agent async event consumption — consumer = AIOKafkaConsumer('tasks', bootstrap_servers='kafka:9092', group_id='agent-pool', auto_offset_reset='earliest'); await consumer.start(); async for msg in consumer: await process_task(json.loads(msg.value)) — async Kafka consumer in event-loop; agent aiohttp/FastAPI service consumes tasks without blocking I/O loop; concurrent processing via asyncio.gather",
+    "Agent batch async processing — producer = AIOKafkaProducer(bootstrap_servers='kafka:9092'); await producer.start(); batch = producer.create_batch(); batch.append(key=None, value=b'msg', timestamp=None); await producer.send_batch(batch, 'topic', partition=0) — batch produce for throughput; agent data pipeline batches events before flushing to Kafka for reduced overhead",
+    "Agent async exactly-once — consumer = AIOKafkaConsumer(enable_auto_commit=False, ...); msg = await consumer.getone(); await process(msg); await consumer.commit({TopicPartition(msg.topic, msg.partition): OffsetAndMetadata(msg.offset+1, '')}) — manual commit after processing; agent reliable pipeline commits offset only after confirmed processing",
+    "Agent transactional producer — producer = AIOKafkaProducer(bootstrap_servers='kafka:9092', transactional_id='agent-txn-1'); await producer.begin_transaction(); await producer.send('topic', value=b'msg'); await producer.commit_transaction() — transactional Kafka writes; agent atomic multi-topic publish where all succeed or all fail"
+  ],
+  "not_for": [
+    "Sync Python codebases — use kafka-python for synchronous Kafka access; aiokafka requires asyncio event loop",
+    "High-throughput without async — confluent-kafka with threading is faster than aiokafka for pure throughput scenarios",
+    "Kafka Streams processing — for stream processing use Faust (async) or Bytewax"
+  ],
+  "best_when": "Async Python services (FastAPI, aiohttp, asyncio microservices) that need non-blocking Kafka I/O — aiokafka integrates naturally into async event loops while sync kafka-python would block the loop.",
+  "avoid_when": "Your codebase is synchronous (use kafka-python), you need maximum throughput (use confluent-kafka), or you need stream processing (use Faust).",
+  "alternatives": ["kafka-python-api", "confluent-kafka-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["ssl", "sasl"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "SSL/TLS for transport. SASL/PLAIN, SASL/SCRAM-SHA-256, SASL/GSSAPI for authentication. Async-compatible auth setup."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, Apache 2.0 licensed",
+    "paid_tiers": "Kafka broker hosting costs are separate",
+    "requires_credit_card": false,
+    "notes": "aiokafka is Apache 2.0 licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 10,
+    "latency_p99_ms": 100,
+    "uptime_sla_percent": null,
+    "rate_limits": "No client-side rate limits. Performance: ~50K-100K async msg/sec producer with batching. Consumer throughput limited by processing speed. Non-blocking I/O enables high concurrency without threads.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted", "cloud"],
+    "compliance": ["SOC2", "GDPR"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 78,
+    "error_message_quality": 72,
+    "error_message_notes": "KafkaConnectionError when broker unreachable. CommitFailedError during rebalance. IllegalStateError when using producer/consumer before start() or after stop(). RuntimeError if called outside asyncio context. Error messages similar to kafka-python but surfaced through asyncio task exceptions.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Same as kafka-python — at-least-once with acks='all'. Manual commit provides exactly-once with idempotent processing. Transactional producer enables exactly-once across multiple topics.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Must call await producer.start() and await producer.stop() — AIOKafkaProducer() constructor doesn't connect; await producer.start() establishes connection; without stop(), connections leak; agent code must use async context manager: async with AIOKafkaProducer(...) as producer: await producer.send_and_wait(...)",
+      "Consumer lifespan must span request handler — creating AIOKafkaConsumer per request and calling start/stop is expensive; agent FastAPI apps should create one consumer at startup (lifespan event) and share across handlers; one consumer per app not per request",
+      "async for consumer loop blocks event loop — async for msg in consumer: await slow_task(msg) processes messages sequentially; agent high-throughput consumers must: msgs = [await consumer.getmany(max_records=100)]; await asyncio.gather(*[process(m) for m in msgs]); or run consumer in background asyncio.Task",
+      "Rebalance cancels inflight commits — CommitFailedError during consumer group rebalance is expected; agent consumer must handle: try: await consumer.commit() except CommitFailedError: pass — offset will be re-committed after rebalance completes; don't re-process, just retry the commit",
+      "send_and_wait vs send differ — await producer.send_and_wait('topic', b'msg') waits for broker acknowledgment; await producer.send('topic', b'msg') returns Future immediately; agent fire-and-forget code should still await f = await producer.send(...); await f to catch send failures",
+      "SSL configuration in async context — ssl_context = ssl.create_default_context() must be created before event loop or in asyncio.run(); passing ssl=True for self-signed certs requires: ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT); ctx.check_hostname = False; ctx.verify_mode = ssl.CERT_NONE; AIOKafkaProducer(security_protocol='SSL', ssl_context=ctx)"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 75,
+    "error_handling_score": 70,
+    "auth_complexity_score": 82,
+    "rate_limit_clarity_score": 88
+  },
+  "security_score_components": {
+    "tls_enforcement": 85,
+    "auth_strength": 82,
+    "scope_granularity": 80,
+    "dependency_hygiene": 80,
+    "secret_handling": 85,
+    "security_notes": "Same security posture as kafka-python — use SSL, SASL, and env vars for credentials. Async nature means connection pooling — ensure TLS context reuse is correct. Kafka ACLs control access at broker level independent of client library."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 75,
+    "version_stability": 72,
+    "breaking_changes_history": 72,
+    "error_recovery": 75
+  }
+}

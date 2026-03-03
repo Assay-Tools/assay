@@ -1,0 +1,106 @@
+{
+  "id": "nevergrad-python-api",
+  "name": "Nevergrad",
+  "version_evaluated": "1.0.x",
+  "homepage": "https://facebookresearch.github.io/nevergrad/",
+  "repo_url": "https://github.com/facebookresearch/nevergrad",
+  "category": "ai-ml",
+  "subcategories": ["optimization", "python", "evolutionary", "gradient-free", "hyperparameter-optimization"],
+  "tags": ["python", "nevergrad", "optimization", "gradient-free", "evolutionary", "CMA-ES", "hyperparameter", "facebook", "meta"],
+  "what_it_does": "Gradient-free optimization library by Meta (Facebook Research) — optimizes functions that don't have accessible gradients using evolutionary, Bayesian, and quasi-random methods. Nevergrad features: ng.optimizers.registry for 70+ optimizers (CMA-ES, DE, NGOpt, PSO, SQPCMA), ng.p.Scalar/Array/Choice/Dict for parameter spaces, instrumentation for complex mixed-type spaces, optimizer.ask()/tell() suggest-update API, budget parameter for evaluation count, multi-objective optimization, parallelism, and constraint support. NGOpt is the recommended adaptive meta-optimizer. Used for ML hyperparameter tuning, prompt optimization, neural architecture search, and any black-box optimization problem.",
+  "use_cases": [
+    "Agent black-box optimization — import nevergrad as ng; def objective(lr, momentum): return train_loss(lr=lr, momentum=momentum); optimizer = ng.optimizers.NGOpt(parametrization=ng.p.Dict(lr=ng.p.Log(lower=1e-4, upper=1e-1), momentum=ng.p.Scalar(lower=0.8, upper=0.99)), budget=100); recommendation = optimizer.minimize(objective); print(recommendation.value) — gradient-free hyperparameter tuning; agent tunes learning rate without gradient information",
+    "Agent LLM prompt optimization — def score_prompt(prompt_variant): return -evaluate_on_benchmark(prompt_variant); param = ng.p.Choice(['be concise', 'be detailed', 'use examples']); optimizer = ng.optimizers.OnePlusOne(parametrization=param, budget=20); best = optimizer.minimize(score_prompt) — discrete choice optimization for agent prompt engineering; nevergrad selects best prompt variant via evolutionary search",
+    "Agent ask/tell parallel optimization — optimizer = ng.optimizers.CMA(parametrization=ng.p.Array(shape=(10,)), budget=500, num_workers=8); candidates = [optimizer.ask() for _ in range(8)]; results = parallel_evaluate(candidates); [optimizer.tell(c, r) for c, r in zip(candidates, results)] — parallel evaluation of multiple candidates; agent distributes evaluations across workers and reports results",
+    "Agent mixed parameter space — param = ng.p.Dict(n_layers=ng.p.TransitionChoice([1, 2, 3, 4]), dropout=ng.p.Scalar(lower=0.0, upper=0.5), optimizer_type=ng.p.Choice(['adam', 'sgd', 'rmsprop'])); optimizer = ng.optimizers.NGOpt(parametrization=param, budget=200) — mixed integer/continuous/categorical space; agent neural architecture search over combined hyperparameter and architecture choices",
+    "Agent multi-objective optimization — optimizer = ng.optimizers.DE(parametrization=ng.p.Array(shape=(5,)), budget=1000); for _ in range(1000): x = optimizer.ask(); loss1, loss2 = evaluate(x.value); optimizer.tell(x, (loss1, loss2)) — Pareto-front multi-objective; agent finds trade-off between accuracy and inference speed across model configurations"
+  ],
+  "not_for": [
+    "Gradient-available optimization — if gradients accessible, use PyTorch Adam/SGD or scipy.optimize for 100x faster convergence; Nevergrad's strength is gradient-free scenarios",
+    "Convex optimization — use CVXPY for convex problems; guaranteed optimal solution vs Nevergrad's approximate",
+    "LP/MIP problems — use PuLP or OR-Tools for linear/integer programming; Nevergrad is for general black-box functions"
+  ],
+  "best_when": "Optimizing black-box functions (ML hyperparameters, simulation parameters, prompt engineering, physical experiments) where gradients are unavailable — Nevergrad's NGOpt adaptive optimizer handles both continuous and discrete spaces without manual algorithm selection.",
+  "avoid_when": "Gradients are available (use autograd optimizers), problem is convex (use CVXPY), or problem is LP/MIP (use PuLP/OR-Tools).",
+  "alternatives": ["optuna-api", "hyperopt-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — local optimization library."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Nevergrad is MIT licensed by Meta Research. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 10,
+    "latency_p99_ms": 1000,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Optimization speed depends entirely on objective function evaluation time. Optimizer overhead per call: <1ms. budget parameter controls total evaluations. Parallel evaluation via num_workers.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 75,
+    "error_message_quality": 70,
+    "error_message_notes": "ValueError for parameter space violations. RuntimeError when budget exhausted. ng.p parameter violations raise descriptive errors. minimize() wraps objective exceptions. Nevergrad errors are generally clear but docs are research-paper style.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Evolutionary algorithms are stochastic — same budget gives different recommendation each run. Set random seed: ng.p.Array(shape=(n,)).set_standardized_data(...) or use np.random.seed() before optimization. Results are approximate by design.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Use NGOpt not specific optimizer for new problems — ng.optimizers.registry lists 70+ optimizers; choosing wrong one (CMA for discrete, DE for small budget) gives poor results; agent code should default to NGOpt which adapts to problem: ng.optimizers.NGOpt(parametrization=param, budget=budget) — NGOpt selects internally based on problem type",
+      "objective function return must be scalar (minimize) — optimizer.minimize(f) minimizes; negative values work for maximization: minimize(lambda x: -score(x)); multi-objective via tell() takes tuple; agent code returning dict or array from objective causes TypeError",
+      "ask/tell separates suggestion from evaluation — optimizer.minimize(f) is convenient for sequential; for parallel: x = optimizer.ask(); result = parallel_eval(x.value); optimizer.tell(x, result); ask() returns Candidate not value — use x.value for parameters; never pass raw float to tell() without associated Candidate",
+      "Budget is total evaluations not iterations — budget=100 with num_workers=8 runs 100 total evaluations (not 100 iterations of 8 parallel); set budget = desired_parallel_batches * num_workers; agent parallel optimization must account for parallelism in budget calculation",
+      "Parametrization types matter for optimizer selection — ng.p.Choice for categorical (like dict keys); ng.p.TransitionChoice for ordered discrete; ng.p.Scalar for continuous; ng.p.Log for log-scale (learning rate); using wrong parameter type for log-scale hyperparameters causes optimizer to search linearly, finding poor solutions",
+      "Candidate value shapes depend on parametrization — ng.p.Array(shape=(10,)).value is numpy array; ng.p.Dict(...).value is dict; ng.p.Scalar().value is float; agent code must extract x.value and handle correct type for each parametrization; type changes when nesting parametrizations"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 72,
+    "error_handling_score": 68,
+    "auth_complexity_score": 98,
+    "rate_limit_clarity_score": 98
+  },
+  "security_score_components": {
+    "tls_enforcement": 90,
+    "auth_strength": 90,
+    "scope_granularity": 88,
+    "dependency_hygiene": 85,
+    "secret_handling": 90,
+    "security_notes": "Local optimization library — no network calls. Objective function may make external API calls — secure those separately. No data exfiltration risk from Nevergrad itself."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 72,
+    "version_stability": 70,
+    "breaking_changes_history": 68,
+    "error_recovery": 72
+  }
+}
