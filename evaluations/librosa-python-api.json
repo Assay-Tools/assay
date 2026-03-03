@@ -1,0 +1,106 @@
+{
+  "id": "librosa-python-api",
+  "name": "librosa",
+  "version_evaluated": "0.10.x",
+  "homepage": "https://librosa.org/",
+  "repo_url": "https://github.com/librosa/librosa",
+  "category": "ai-ml",
+  "subcategories": ["audio-processing", "python", "music-analysis", "signal-processing", "numpy"],
+  "tags": ["python", "librosa", "audio", "music", "signal-processing", "mel-spectrogram", "beat-tracking", "mfcc"],
+  "what_it_does": "Python audio and music analysis library — NumPy-based audio feature extraction and signal processing. librosa features: librosa.load() (audio loading with resampling), librosa.feature.melspectrogram(), librosa.feature.mfcc(), librosa.feature.chroma_stft(), librosa.beat.beat_track() (tempo and beats), librosa.onset.onset_detect(), librosa.effects.pitch_shift() and time_stretch(), librosa.stft() and librosa.istft(), librosa.display for visualization, harmonic/percussive source separation, and 50+ audio feature functions. NumPy-based — integrates with matplotlib for visualization and scikit-learn for ML. Standard audio analysis library for music information retrieval and audio ML feature extraction.",
+  "use_cases": [
+    "Agent audio feature extraction — y, sr = librosa.load('audio.wav', sr=22050); mel = librosa.feature.melspectrogram(y=y, sr=sr, n_mels=128, fmax=8000); mel_db = librosa.power_to_db(mel, ref=np.max) — mel spectrogram in dB for agent audio classifier; standard preprocessing for music genre classification",
+    "Agent MFCC features — mfcc = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=13); mfcc_delta = librosa.feature.delta(mfcc) — 13 MFCC coefficients + deltas for agent speech/audio classification; standard features for keyword spotting and audio event detection",
+    "Agent beat analysis — tempo, beats = librosa.beat.beat_track(y=y, sr=sr); beat_times = librosa.frames_to_time(beats, sr=sr) — detect tempo (BPM) and beat positions; agent music analysis pipeline extracts rhythmic structure; music-synchronized agent actions",
+    "Agent pitch shifting — shifted = librosa.effects.pitch_shift(y, sr=sr, n_steps=2) — shift audio pitch by 2 semitones; agent audio augmentation for voice/instrument training data; librosa.effects.time_stretch(y, rate=1.2) changes speed without pitch change",
+    "Agent harmonic separation — y_harmonic, y_percussive = librosa.effects.hpss(y) — separate harmonic (melodic) and percussive (rhythm) components; agent music analysis isolates melody from rhythm; harmonic component used for pitch/chord analysis, percussive for beat tracking"
+  ],
+  "not_for": [
+    "Real-time audio processing — librosa is offline analysis; for real-time use sounddevice or torchaudio.io.StreamReader",
+    "GPU-accelerated processing — librosa is CPU/NumPy only; for GPU audio transforms use torchaudio",
+    "Professional audio production — librosa is analysis-focused; for production audio editing use soundfile, pydub, or DAW software"
+  ],
+  "best_when": "Extracting audio features for ML model training (MFCC, mel spectrograms, chroma, beat features) or analyzing music/audio with NumPy-based pipelines — librosa is the standard Python audio analysis library with the richest feature extraction API.",
+  "avoid_when": "You need GPU acceleration (use torchaudio), real-time processing, or are training PyTorch models (use torchaudio for better DataLoader integration).",
+  "alternatives": ["torchaudio-api", "whisper-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — local audio processing library."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, ISC licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "librosa is ISC licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 50,
+    "latency_p99_ms": 500,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. CPU-based NumPy processing. librosa.load with sr=22050 resamples audio on load. MelSpectrogram computation for 30s audio takes ~50-200ms CPU. No GPU support — torchaudio faster for large batches.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 82,
+    "error_message_notes": "NoBackendError if soundfile/audioread not installed for audio format. UserWarning for deprecated function calls. ValueError for incompatible parameter combinations. ParameterError with descriptive message for invalid function arguments.",
+    "idempotency_support": "full",
+    "idempotency_notes": "librosa.load and all feature extraction functions are deterministic for same inputs. Fixed random seed not needed for analysis (no stochastic elements in feature extraction). Results are identical across calls with same parameters.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "librosa.load returns float32 normalized to [-1, 1] — unlike soundfile which preserves original int16; agent code doing arithmetic on librosa-loaded audio may overflow if expecting int16 range; librosa output is always float32 normalized; don't multiply by 32768 expecting int16 range from librosa.load",
+      "Default sr=22050 resamples audio — librosa.load('audio.wav') resamples to 22050 Hz regardless of source; pass sr=None to preserve original sample rate: y, sr = librosa.load('audio.wav', sr=None); agent code comparing features from different-rate audio must use consistent sr",
+      "Mono conversion is default — librosa.load('stereo.wav') returns mono by default (averaged channels); librosa.load('audio.wav', mono=False) returns (2, samples) for stereo; agent code expecting stereo gets mono; be explicit about mono=True/False for agent audio pipelines",
+      "STFT frame/sample unit confusion — librosa.feature.melspectrogram returns (n_mels, n_frames); n_frames depends on hop_length; librosa.frames_to_time(frames, sr=sr, hop_length=512) converts frames to seconds; agent code mixing frame and sample indices in time calculations gets wrong timestamps",
+      "librosa.load of MP3 requires audioread or soundfile with MPEG support — pure soundfile doesn't read MP3; librosa falls back to audioread (requires ffmpeg/libav); agent environments without ffmpeg cannot load MP3 with librosa; install ffmpeg or convert to WAV before agent processing",
+      "power_to_db should use ref=np.max not ref=1.0 for visualization — librosa.power_to_db(mel, ref=np.max) scales relative to max value giving nice 0 to -80dB range; ref=1.0 gives absolute dB values often large negative numbers; agent mel spectrogram visualizations use ref=np.max for interpretable display"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 82,
+    "auth_complexity_score": 98,
+    "rate_limit_clarity_score": 98
+  },
+  "security_score_components": {
+    "tls_enforcement": 95,
+    "auth_strength": 95,
+    "scope_granularity": 90,
+    "dependency_hygiene": 85,
+    "secret_handling": 95,
+    "security_notes": "Local audio analysis — no network access, no data exfiltration. Audio file loading via soundfile/audioread — validate audio file sources for agent pipelines handling user-uploaded content. No known security concerns beyond standard Python dependency hygiene."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 85,
+    "version_stability": 82,
+    "breaking_changes_history": 80,
+    "error_recovery": 82
+  }
+}

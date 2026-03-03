@@ -1,0 +1,106 @@
+{
+  "id": "torchaudio-api",
+  "name": "torchaudio",
+  "version_evaluated": "2.4.x",
+  "homepage": "https://pytorch.org/audio/",
+  "repo_url": "https://github.com/pytorch/audio",
+  "category": "ai-ml",
+  "subcategories": ["audio-processing", "python", "pytorch", "deep-learning", "speech"],
+  "tags": ["python", "torchaudio", "pytorch", "audio", "speech", "signal-processing", "mel-spectrogram", "waveform"],
+  "what_it_does": "PyTorch audio processing library — audio I/O, signal transforms, and pretrained models for speech and audio ML. torchaudio features: torchaudio.load() and save() for audio files (WAV, FLAC, MP3, OGG), torchaudio.transforms (MelSpectrogram, MFCC, Spectrogram, Resample, AmplitudeToDB, FrequencyMasking, TimeMasking), torchaudio.functional for signal processing ops, torchaudio.datasets (LibriSpeech, SPEECHCOMMANDS, VoxCeleb), pretrained models (Wav2Vec2, HuBERT via torchaudio.pipelines), StreamReader for streaming audio, and GPU-accelerated transforms. PyTorch audio companion — pairs with Whisper and HuggingFace speech models for agent audio pipelines.",
+  "use_cases": [
+    "Agent audio loading — waveform, sample_rate = torchaudio.load('agent_recording.wav'); resampled = torchaudio.functional.resample(waveform, sample_rate, 16000) — load audio and resample to 16kHz for Whisper/Wav2Vec2; agent audio pipeline normalizes sample rate before model inference",
+    "Agent mel spectrogram features — transform = torchaudio.transforms.MelSpectrogram(sample_rate=16000, n_mels=80, n_fft=400, hop_length=160); mel = transform(waveform) — extract mel spectrogram for agent audio classifier or speech model; GPU-accelerated transform in DataLoader",
+    "Agent speech augmentation — transform = torch.nn.Sequential(torchaudio.transforms.FrequencyMasking(freq_mask_param=80), torchaudio.transforms.TimeMasking(time_mask_param=120)) — SpecAugment for speech model training; agent ASR model training with frequency and time masking augmentation; standard augmentation for Conformer/Transformer ASR",
+    "Agent streaming audio — streamer = torchaudio.io.StreamReader('microphone:0'); streamer.add_audio_stream(frames_per_chunk=1600); for chunk, in streamer.stream(): process(chunk) — real-time audio streaming from microphone; agent voice interface processes 100ms audio chunks in real-time",
+    "Agent pretrained speech — bundle = torchaudio.pipelines.WAV2VEC2_BASE; model = bundle.get_model(); emissions, _ = model(waveform) — pretrained Wav2Vec2 speech features; agent extracts robust speech representations for speaker verification or emotion recognition"
+  ],
+  "not_for": [
+    "Music production-quality audio — torchaudio is ML-focused; for production audio editing use librosa or soundfile",
+    "Non-PyTorch workflows — torchaudio requires PyTorch tensors; for NumPy-based audio processing use librosa",
+    "Real-time low-latency audio (<10ms) — Python audio processing has latency; for real-time agent audio use native C++ pipelines"
+  ],
+  "best_when": "Building PyTorch-based agent audio/speech pipelines — torchaudio provides GPU-accelerated transforms, audio I/O, and pretrained speech models that integrate directly with PyTorch training loops.",
+  "avoid_when": "You need NumPy-based audio analysis (use librosa), non-PyTorch frameworks, or sub-10ms real-time audio.",
+  "alternatives": ["librosa-api", "whisper-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — local ML library. Pretrained models download automatically from PyTorch Hub."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, BSD licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "torchaudio is BSD licensed by Meta/PyTorch Foundation. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 5,
+    "latency_p99_ms": 50,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. GPU-accelerated transforms 5-20x faster than CPU. MelSpectrogram on GPU processes 1 second of audio in <1ms. torchaudio.load is CPU-bound via libsox — fast for WAV, slower for MP3.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 78,
+    "error_message_quality": 75,
+    "error_message_notes": "RuntimeError for unsupported audio format (needs ffmpeg backend for MP3). ValueError for mismatched sample rates in transforms. CUDA OOM for large audio batches. torchaudio version must match torch version or import fails.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Deterministic transforms (MelSpectrogram, Resample) are fully idempotent. Random augmentation (FrequencyMasking with random mask width) uses torch.manual_seed() for reproducibility. torchaudio.load on same file returns identical waveform.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "torchaudio version must match PyTorch exactly — torchaudio 2.4 requires torch 2.4; mismatched versions cause ImportError: cannot import name; agent Docker images must install matching: pip install torch==2.4.0 torchaudio==2.4.0 together using PyTorch install matrix",
+      "MP3 loading requires ffmpeg backend — torchaudio.load('audio.mp3') fails with RuntimeError if soundfile backend active and ffmpeg not installed; set torchaudio.set_audio_backend('sox_io') or install ffmpeg; agent audio pipelines handling MP3 files must verify backend availability",
+      "Waveform is [channels, samples] not [samples] — torchaudio.load returns (waveform, sr) where waveform.shape = (1, 44100) for mono; agent code expecting (44100,) tensor gets shape mismatch; use waveform.squeeze(0) for mono or waveform.mean(0) for stereo-to-mono conversion",
+      "Resample quality affects model accuracy — torchaudio.functional.resample(waveform, orig_freq=44100, new_freq=16000) uses sinc resampling; low resampling_method quality degrades speech model accuracy; use default (sinc_interp_hann) for agent speech pipelines; don't use nearest-neighbor resampling for speech",
+      "MelSpectrogram parameters must match model training — WhisperModel expects n_mels=80, hop_length=160, n_fft=400 at 16kHz; incorrect parameters produce wrong mel bins that trained model can't interpret; agent pipelines must match transform parameters exactly to model's expected spectrogram format",
+      "StreamReader requires ffmpeg — torchaudio.io.StreamReader for microphone input requires ffmpeg with audio device support; on macOS requires AVFoundation device string; agent voice interface code is platform-specific for StreamReader device specification"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 78,
+    "error_handling_score": 72,
+    "auth_complexity_score": 98,
+    "rate_limit_clarity_score": 98
+  },
+  "security_score_components": {
+    "tls_enforcement": 90,
+    "auth_strength": 90,
+    "scope_granularity": 85,
+    "dependency_hygiene": 82,
+    "secret_handling": 90,
+    "security_notes": "Local audio processing — no network access. Audio files loaded via libsox/ffmpeg — validate audio file sources for agent pipelines handling user-uploaded audio. Pretrained models downloaded over HTTPS from PyTorch Hub."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 78,
+    "version_stability": 75,
+    "breaking_changes_history": 72,
+    "error_recovery": 78
+  }
+}
