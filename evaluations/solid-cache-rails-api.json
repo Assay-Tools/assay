@@ -1,0 +1,106 @@
+{
+  "id": "solid-cache-rails-api",
+  "name": "Solid Cache",
+  "version_evaluated": "1.x",
+  "homepage": "https://github.com/rails/solid_cache",
+  "repo_url": "https://github.com/rails/solid_cache",
+  "category": "developer-tools",
+  "subcategories": ["caching", "ruby", "rails", "database-backed", "active-support"],
+  "tags": ["ruby", "rails", "solid-cache", "caching", "active-support", "database", "sqlite", "redis-alternative"],
+  "what_it_does": "Database-backed cache store for Rails — replaces Redis/Memcached with SQL database (SQLite, PostgreSQL, MySQL) for Rails.cache. Solid Cache features: ActiveSupport::Cache::SolidCacheStore adapter, automatic LRU-style expiry via background trimming, configurable max_age and max_size limits, encryption support via Active Record encryption, multi-database support (dedicated cache DB), expiry worker process, and Rails 8 default cache store for apps without existing Redis. Eliminates Redis operational overhead for agent apps that use caching only for Rails.cache — session data, fragment caching, low-churn data.",
+  "use_cases": [
+    "Agent response caching — Rails.cache.fetch('agent-#{agent_id}-response', expires_in: 1.hour) { compute_agent_response(agent_id) } caches expensive agent LLM responses in database; no Redis required; cache hits reduce agent API costs",
+    "Fragment caching without Redis — cache do ... end in agent ERB views stores rendered HTML in Solid Cache; Rails 8 default; agent teams get fragment caching for free on SQLite apps without Redis setup",
+    "Rails 8 default cache store — config.cache_store = :solid_cache_store in production.rb; new Rails 8 apps get database-backed caching with zero Redis infrastructure; agent MVPs ship with caching enabled from day one",
+    "Encrypted agent cache — Solid Cache supports Active Record encryption; sensitive agent context data cached with encryption at rest; CACHE_ENCRYPTION_KEY env var protects agent cached responses in shared database",
+    "Multi-DB cache isolation — config.solid_cache.connects_to = { database: { writing: :cache } } in database.yml uses dedicated SQLite file for cache; isolates agent cache data from main application data; separate trimming and size management"
+  ],
+  "not_for": [
+    "High-churn cache workloads — Solid Cache SQL writes have higher latency than Redis SETEX; for sub-millisecond cache writes with thousands of keys/second use Redis or Memcached",
+    "Pub/sub and sessions — Solid Cache is key-value store only; for ActionCable pub/sub use Solid Cable; for session storage use ActiveRecord::SessionStore or cookie sessions",
+    "Cross-process locks — Solid Cache doesn't provide distributed locking; for agent distributed locks use Redis with Redlock or database-backed advisory locks"
+  ],
+  "best_when": "Your Rails 8 agent app wants fragment caching and Rails.cache without adding Redis — Solid Cache uses your existing database with LRU-style expiry and optional encryption, fitting naturally into the Rails 8 no-Redis stack.",
+  "avoid_when": "You need high-throughput cache writes, pub/sub functionality, or cross-process locking — use Redis for those capabilities.",
+  "alternatives": ["redis-cache-rails-api", "memcache-rails-api", "kredis-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["ruby"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No external auth — uses existing database connection. Cache data access controlled by database connection credentials."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Solid Cache is MIT licensed, maintained by the Rails core team. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 5,
+    "latency_p99_ms": 50,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Cache read latency: 2-10ms (DB query). Cache write latency: 5-50ms depending on DB. Redis cache reads are 10x faster; use Solid Cache for infrequent cache patterns, Redis for hot paths.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 78,
+    "error_message_quality": 75,
+    "error_message_notes": "Cache misses are silent (returns nil). Database connection errors raise ActiveRecord::StatementInvalid. Trimmer worker failures logged to Rails log. Max size enforcement is eventual — cache may temporarily exceed max_size before background trimming runs.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Rails.cache.fetch is idempotent — returns cached value or computes and stores. Rails.cache.write overwrites existing keys. Cache expiry is automatic via max_age and background trimming. Safe for concurrent agent cache writes.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "bin/rails solid_cache:trim worker needed for expiry — Solid Cache background trimming requires separate process or Solid Queue job; without trimmer, cache grows unbounded up to max_size; agent production deployments need solid_cache:trim in Procfile or Kamal accessory; Rails 8 sets up trimmer via SolidCache::CleanupJob if Solid Queue is configured",
+      "max_size is approximate not hard limit — Solid Cache enforces max_size via background trimming, not on every write; cache can temporarily exceed max_size between trim runs; agent systems caching large payloads (LLM responses) may see DB grow larger than configured limit during trim intervals",
+      "SQLite WAL mode required for concurrent writes — Solid Cache with SQLite under concurrent agent cache writes needs WAL mode; default journal mode causes write lock contention; enable in database.yml: adapter: sqlite3, pragmas: {journal_mode: wal}; PostgreSQL and MySQL don't require this",
+      "Cache key size limit — Solid Cache stores keys as SHA256 hash of cache key string; original key not stored; agent debugging with Rails.cache.read('agent-key') requires exact key match; no way to list/enumerate cached agent keys by pattern unlike Redis SCAN",
+      "Encryption adds DB overhead — Solid Cache with Active Record encryption stores encrypted values; each cache read/write decrypts/encrypts; agent response caching with encryption doubles latency for large cached values; benchmark against Redis if cache hit rate is high and latency matters",
+      "Cold start DB migration required — bin/rails solid_cache:install creates solid_cache_entries table migration; forgetting to run migration after adding solid-cache gem causes RuntimeError on first cache access; agent deployments with automated DB migration (Kamal) pick this up automatically"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 75,
+    "error_handling_score": 72,
+    "auth_complexity_score": 90,
+    "rate_limit_clarity_score": 88
+  },
+  "security_score_components": {
+    "tls_enforcement": 85,
+    "auth_strength": 82,
+    "scope_granularity": 78,
+    "dependency_hygiene": 88,
+    "secret_handling": 85,
+    "security_notes": "Cache stores are accessible to anyone with database access — restrict DB credentials appropriately. Sensitive agent data in cache should use Active Record encryption (CACHE_ENCRYPTION_KEY). Cache poisoning risk if cache keys are user-controlled; sanitize agent IDs used in cache keys."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 75,
+    "version_stability": 75,
+    "breaking_changes_history": 78,
+    "error_recovery": 78
+  }
+}

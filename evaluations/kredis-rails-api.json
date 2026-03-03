@@ -1,0 +1,106 @@
+{
+  "id": "kredis-rails-api",
+  "name": "Kredis",
+  "version_evaluated": "1.x",
+  "homepage": "https://github.com/rails/kredis",
+  "repo_url": "https://github.com/rails/kredis",
+  "category": "developer-tools",
+  "subcategories": ["caching", "ruby", "rails", "redis", "active-model"],
+  "tags": ["ruby", "rails", "kredis", "redis", "active-model", "typed-redis", "data-structures"],
+  "what_it_does": "Higher-level Redis data structures for Active Model — provides typed Redis primitives as model attributes via Active Model integration. Kredis features: kredis_string, kredis_integer, kredis_flag, kredis_list, kredis_unique_list, kredis_set, kredis_slot, kredis_slots, kredis_hash, kredis_json, kredis_counter, kredis_enum, kredis_scalar, and kredis_cycle types; automatic key namespacing (model:id:attribute); expiry support on any type; multi-connection configuration; and cycle/slot primitives for rate limiting and worker coordination. Replaces manual Redis key construction with Ruby-native attribute access on Active Record models.",
+  "use_cases": [
+    "Agent state machine — kredis_enum :status, values: %w[idle running error], default: 'idle' on Agent model; agent.status.value returns current state; agent.status.running! transitions to running; persisted in Redis without DB column",
+    "Agent rate limiting — kredis_slot :api_calls, available: 10, expires_in: 1.minute throttles concurrent agent API calls; agent.api_calls.reserve { call_external_api } blocks if 10 slots used; auto-releases after block completes or expiry",
+    "Agent recent activity list — kredis_unique_list :recent_tools, limit: 20, expires_in: 1.week on Agent; agent.recent_tools.prepend('web-search'); agent.recent_tools.elements returns last 20 unique tools; Redis LPUSH under the hood",
+    "Agent feature flags — kredis_flag :beta_features on AgentConfig; agent.beta_features.mark if user opts in; agent.beta_features.marked? checks flag; automatic expiry with expires_in for time-limited agent feature rollouts",
+    "Agent counter tracking — kredis_counter :task_count expires_in: 1.day on Agent; agent.task_count.increment; agent.task_count.value returns daily task total; Redis INCR with automatic midnight reset via expiry"
+  ],
+  "not_for": [
+    "Durable persistent data — Kredis data lives in Redis and expires; for permanent agent record data use Active Record DB columns; Redis data loss on flush loses all Kredis state",
+    "Complex Redis operations — Kredis wraps simple Redis types; for Redis pipelines, scripting (EVAL), streams (XADD), or pubsub use redis-rb directly",
+    "Teams not already using Redis — Kredis requires Redis; if avoiding Redis for agent app use Solid Cache/Solid Cable instead"
+  ],
+  "best_when": "Your Rails agent app uses Redis and wants typed, namespaced Redis attributes on Active Record models — Kredis eliminates manual Redis key construction and provides enum, slot, flag primitives for agent state and rate limiting.",
+  "avoid_when": "You're not using Redis, need durable persistence, or need complex Redis operations beyond simple data structures.",
+  "alternatives": ["solid-cache-rails-api", "redis-cache-rails-api", "hiredis-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["ruby"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth on Kredis itself — inherits Redis connection credentials from config/redis/shared.yml or ENV['REDIS_URL']. Redis AUTH configured at connection level."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Kredis is MIT licensed, maintained by the Rails core team (DHH). Requires Redis server (not included)."
+  },
+  "performance": {
+    "latency_p50_ms": 1,
+    "latency_p99_ms": 5,
+    "uptime_sla_percent": null,
+    "rate_limits": "No Kredis rate limits. Each Kredis method call is one Redis round-trip (1-5ms). kredis_slots uses EVAL Lua script for atomic reservation. kredis_unique_list with limit uses Redis LLEN + LTRIM which is O(N) for large lists.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 78,
+    "error_message_quality": 75,
+    "error_message_notes": "Redis connection failures raise Redis::CannotConnectError surfacing through Kredis calls. Type mismatches (e.g., calling .elements on kredis_string) raise NoMethodError. kredis_slots exhaustion returns false from reserve — no exception; agent code must check return value.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "kredis_flag.mark is idempotent. kredis_counter.increment is not idempotent (each call increments). kredis_unique_list.prepend is idempotent (unique). kredis_list.append is not idempotent. Design agent workflows around the specific Kredis type semantics.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Redis connection required at boot — Kredis connects to Redis when first accessed; if Redis is down at agent startup, first kredis call raises Redis::CannotConnectError; agent services must handle Redis unavailability gracefully; wrap Kredis calls in rescue Redis::CannotConnectError for critical agent paths",
+      "kredis_slots reserve returns false on exhaustion — agent.api_calls.reserve { ... } returns false (not exception) when all slots are used; agent code that ignores the return value silently skips the block; always check reserve return or use kredis_slot? boolean to test before reserving in agent rate limiting",
+      "No atomic read-then-write — Kredis doesn't support Redis multi/exec transactions; agent workflows needing read-then-conditionally-write must use redis-rb directly with MULTI/EXEC or Lua EVAL; concurrent agent processes can race on kredis_counter/kredis_enum without transactions",
+      "Data loss on Redis flush — kredis attributes exist only in Redis; redis-cli FLUSHDB or Redis restart with no persistence wipes all agent kredis_flag, kredis_counter, kredis_enum state; agent systems relying on kredis_enum for state machine must resync from DB on Redis restart",
+      "kredis_enum requires all enum values at declaration — values: %w[idle running error] at class definition time; adding new enum values requires code deploy + Redis key doesn't need migration; but if agent code reads old Redis value with new valid values list, old value is valid; removing values from list makes existing Redis values invalid causing errors",
+      "Key namespace collision between model instances — Kredis auto-namespaces as 'ModelName:id:attribute'; custom models with same class name in different modules collide; agent microservices sharing same Redis instance need explicit kredis_key_prefix if model names clash across services"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 78,
+    "error_handling_score": 72,
+    "auth_complexity_score": 85,
+    "rate_limit_clarity_score": 82
+  },
+  "security_score_components": {
+    "tls_enforcement": 80,
+    "auth_strength": 78,
+    "scope_granularity": 72,
+    "dependency_hygiene": 85,
+    "secret_handling": 80,
+    "security_notes": "Kredis data in Redis is unencrypted at rest by default; don't store agent PII or credentials in kredis attributes. Redis connection should use TLS (rediss://) and AUTH for production agent deployments. Key enumeration via Redis SCAN can expose agent model IDs — restrict Redis access to app servers only."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 75,
+    "version_stability": 78,
+    "breaking_changes_history": 80,
+    "error_recovery": 72
+  }
+}

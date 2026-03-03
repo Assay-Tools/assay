@@ -1,0 +1,106 @@
+{
+  "id": "solid-cable-rails-api",
+  "name": "Solid Cable",
+  "version_evaluated": "1.x",
+  "homepage": "https://github.com/rails/solid_cable",
+  "repo_url": "https://github.com/rails/solid_cable",
+  "category": "developer-tools",
+  "subcategories": ["websockets", "ruby", "rails", "database-backed", "action-cable"],
+  "tags": ["ruby", "rails", "solid-cable", "action-cable", "websockets", "database", "pub-sub", "redis-alternative"],
+  "what_it_does": "Database-backed Action Cable adapter for Rails — replaces Redis as the Action Cable pub/sub backend using the application database (SQLite, PostgreSQL, MySQL). Solid Cable features: SolidCable::Server Action Cable adapter, polling-based message delivery (configurable polling_interval), automatic message cleanup via message_retention config, multi-database support, and Rails 8 default for Action Cable without Redis. Enables real-time WebSocket features in agent apps without Redis infrastructure — particularly valuable for SQLite-based Rails 8 applications on single-server VPS deployments.",
+  "use_cases": [
+    "Agent notification WebSockets without Redis — ActionCable.server.broadcast('agent-#{id}', payload) delivers real-time agent status updates via Solid Cable database pub/sub; agent dashboard shows live status without Redis setup",
+    "Rails 8 no-Redis real-time — config.action_cable.cable = {adapter: 'solid_cable'} in cable.yml; Rails 8 agent apps get WebSocket broadcasting using existing SQLite database; eliminates Redis as operational requirement for moderate-traffic agent platforms",
+    "SQLite VPS agent deployment — single-server agent app with SQLite database uses Solid Cable for real-time features; no Redis subscription, no additional process; agent WebSocket events stored and polled from solid_cable_messages table",
+    "Agent chat channels — ApplicationCable::Channel with stream_from 'agent-chat-#{session_id}' broadcasts agent conversation messages via Solid Cable; browser WebSocket receives messages within polling_interval milliseconds",
+    "Development WebSocket testing — Solid Cable works identically in development and production without Docker Redis service; agent developers get working WebSockets from rails new without docker-compose setup"
+  ],
+  "not_for": [
+    "High-frequency broadcasting — Solid Cable polls DB for messages; Redis BLPOP delivers in <1ms; for agent systems broadcasting >100 messages/second use Redis Action Cable adapter or Pusher",
+    "Horizontal scaling with many dynos — Solid Cable's polling works across processes on same DB; for large clusters (>10 processes) Redis adapter is more efficient for Action Cable pub/sub",
+    "Sub-100ms message delivery — polling_interval default is 100ms; for agent real-time requiring immediate delivery use Redis Action Cable adapter"
+  ],
+  "best_when": "Your Rails 8 agent app uses SQLite or wants to eliminate Redis — Solid Cable provides Action Cable pub/sub from your existing database with no additional infrastructure for low-to-moderate WebSocket traffic.",
+  "avoid_when": "You need high-frequency broadcasting (>100 msg/sec), sub-50ms WebSocket delivery, or are already running Redis for Solid Queue.",
+  "alternatives": ["action-cable-rails-api", "pusher-api", "ably-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["ruby"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No external auth — uses existing database connection. Action Cable channel authentication uses Rails session or token via ApplicationCable::Connection."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Solid Cable is MIT licensed, maintained by the Rails core team. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 100,
+    "latency_p99_ms": 500,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Message delivery latency equals polling_interval (default 100ms). Messages older than message_retention are auto-deleted. For sub-100ms delivery use Redis Action Cable adapter.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 72,
+    "error_message_quality": 70,
+    "error_message_notes": "WebSocket connection errors appear in browser console. Solid Cable polling failures logged to Rails log. DB connection pool exhaustion raises ActiveRecord::ConnectionTimeoutError in Action Cable threads. Messages not delivered surface as silent misses (no error — polling just doesn't find them).",
+    "idempotency_support": "partial",
+    "idempotency_notes": "ActionCable.server.broadcast is fire-and-forget — no delivery guarantee. Clients that disconnect miss messages during gap; no replay on reconnect. For reliable agent event delivery combine WebSocket notifications with REST API for missed-message catch-up.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "cable.yml adapter must be solid_cable not async — development defaults to async adapter; production needs adapter: solid_cable in config/cable.yml; deploying Rails 8 agent without updating cable.yml falls back to async (in-process only, doesn't work with Puma multi-process); agent WebSocket broadcasts silently fail across processes",
+      "polling_interval tuning required — default polling_interval of 100ms means 100ms broadcast latency; agent real-time features needing faster updates require polling_interval: 50 (or lower) at cost of increased DB load; SQLite with high polling creates contention; benchmark for your agent's traffic pattern",
+      "solid_cable_messages table grows unbounded without retention — message_retention: 1.day in solid_cable.yml required; without retention config, every broadcast accumulates in DB forever; agent apps with frequent broadcasts fill disk; Rails 8 default sets retention but verify your cable.yml has it",
+      "SQLite WAL mode required for concurrent cable connections — multiple Puma threads each polling solid_cable_messages table need WAL journal mode; default SQLite journal mode causes read-write lock conflicts under load; enable WAL: pragma journal_mode: wal in database.yml for agent production deployments",
+      "Action Cable DB connections count against pool — each Puma thread running Action Cable polling uses a DB connection; config.action_cable.worker_pool_size (default 4) plus Puma threads must fit within database pool size; agent apps with many concurrent WebSocket connections exhaust connection pool without tuning",
+      "Not horizontally scalable without shared DB — Solid Cable works across multiple Puma processes on same DB server; for multi-server agent deployments (load balanced), all processes must share same database; SQLite is per-file (single server only); PostgreSQL or MySQL Solid Cable works across multiple servers sharing same DB"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 70,
+    "error_handling_score": 68,
+    "auth_complexity_score": 90,
+    "rate_limit_clarity_score": 85
+  },
+  "security_score_components": {
+    "tls_enforcement": 82,
+    "auth_strength": 80,
+    "scope_granularity": 75,
+    "dependency_hygiene": 85,
+    "secret_handling": 85,
+    "security_notes": "Solid Cable messages stored unencrypted in DB — don't broadcast sensitive agent data (credentials, PII) via Action Cable. Channel subscription auth via ApplicationCable::Connection#connect must validate agent identity. solid_cable_messages table accessible to anyone with DB read access."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 70,
+    "version_stability": 72,
+    "breaking_changes_history": 75,
+    "error_recovery": 72
+  }
+}
