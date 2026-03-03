@@ -1,0 +1,106 @@
+{
+  "id": "resque-ruby-api",
+  "name": "Resque",
+  "version_evaluated": "2.x",
+  "homepage": "https://github.com/resque/resque",
+  "repo_url": "https://github.com/resque/resque",
+  "category": "developer-tools",
+  "subcategories": ["background-jobs", "ruby", "rails", "redis", "queue"],
+  "tags": ["ruby", "rails", "background-jobs", "redis", "queue", "async", "worker", "activejob"],
+  "what_it_does": "Redis-backed background job library for Ruby — one of the original Ruby background job systems, uses Redis lists to store job queues and forks a new process per job. Resque features: Resque.enqueue(AgentWorker, agent_id) enqueues job, `def self.perform(agent_id)` class method processes job, named queues (@queue = :agents), Resque web UI (Sinatra dashboard) for job monitoring, retry via resque-retry plugin, and scheduler via resque-scheduler. Jobs are forked processes (memory-isolated but slower startup than Sidekiq threads). Sidekiq has largely superseded Resque for new projects but Resque is still widely deployed in mature Rails applications.",
+  "use_cases": [
+    "Legacy agent background job processing — existing Rails agent apps on Resque can add new AgentWorker classes to process agent tasks; @queue = :agent_tasks; def self.perform(task_id) handles agent job execution on dedicated queue",
+    "Memory-isolated agent jobs with Resque fork model — each agent job runs in separate forked process; memory leaks in agent job code don't accumulate in worker process unlike Sidekiq threads; useful for agent jobs with native extensions that leak memory",
+    "Resque-scheduler for agent cron jobs — Resque.enqueue_in(1.hour, AgentReportWorker, agent_id) schedules future agent tasks; resque-scheduler extension adds cron-like agent job scheduling without separate process",
+    "Resque web UI for agent job monitoring — Resque::Server mounted at /resque provides dashboard showing queued, working, and failed agent jobs with retry and delete capabilities",
+    "ActiveJob with Resque adapter — config.active_job.queue_adapter = :resque uses Resque as ActiveJob backend; migrate existing ActiveJob agent code between Resque and Sidekiq without changing job classes"
+  ],
+  "not_for": [
+    "New projects — Sidekiq's thread-based model provides higher throughput with less memory than Resque forks; choose Sidekiq for new agent projects requiring background jobs with Redis",
+    "High-frequency agent jobs — Resque's fork-per-job model has ~100ms job startup overhead; for agent jobs that run hundreds per second, Sidekiq threads are 10x more efficient",
+    "Non-Redis backends — Resque requires Redis; for PostgreSQL-backed agent job queues (simpler infrastructure), use GoodJob or Solid Queue"
+  ],
+  "best_when": "You're maintaining an existing Rails agent application already using Resque — continue with Resque rather than migrating to Sidekiq unless performance requires it. For new projects, choose Sidekiq.",
+  "avoid_when": "Starting a new project (use Sidekiq or GoodJob), you need very high job throughput, or you want to avoid Redis infrastructure.",
+  "alternatives": ["sidekiq-api", "good-job-ruby-api", "delayed-job-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["ruby"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Resque connects to Redis via REDIS_URL env var or Resque.redis = Redis.new. Secure Resque web UI with HTTP basic auth or Devise in production to prevent unauthorized agent job access."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed. Redis hosting costs separate.",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Resque is MIT licensed. Free for all use. Redis infrastructure costs are separate."
+  },
+  "performance": {
+    "latency_p50_ms": 200,
+    "latency_p99_ms": 1000,
+    "uptime_sla_percent": null,
+    "rate_limits": "No library rate limits. Job throughput limited by worker process count; each worker processes one job at a time (fork model). Scale by running more Resque worker processes for agent job parallelism.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 80,
+    "error_message_quality": 78,
+    "error_message_notes": "Resque job failures stored in Redis failed queue with error class, message, and backtrace. Resque web UI displays failed agent jobs with retry button. Resque::Failure.all returns failed job hashes. resque-retry gem adds configurable retry with exponential backoff.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Job enqueue is atomic Redis LPUSH. Job processing is not inherently idempotent — implement idempotency in AgentWorker.perform using Redis locks or database unique constraints. Failed jobs can be retried via Resque web UI.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Resque fork loads entire Rails environment per job — Resque worker forks and each fork re-loads Rails app for first job on that fork; Rails environment stays loaded for subsequent jobs in same fork (fork reuse mode); agent jobs with large gem dependencies increase worker memory significantly beyond base Rails memory",
+      "@queue class variable required in worker class — Resque jobs must define @queue = :my_queue as class instance variable; without @queue, Enqueue raises Resque::NoQueueError; naming multiple agent queues with different priorities requires separate Resque worker processes per queue",
+      "Job arguments must be JSON-serializable — Resque serializes job arguments to JSON in Redis; ActiveRecord objects, Symbols, and custom classes cannot be enqueued directly; always pass IDs (agent_id) not objects (agent instance); deserialize in perform method with Agent.find(agent_id)",
+      "Resque web UI requires separate mount and auth — Resque::Server is Sinatra app; mount with require 'resque/server'; mount Resque::Server, at: '/resque' in routes.rb; unprotected Resque web UI exposes all agent job data; add authentication: map('/resque') { use Rack::Auth::Basic ... }",
+      "SIGQUIT for graceful shutdown vs SIGKILL — send SIGQUIT to Resque worker to wait for current agent job to finish before shutdown; SIGKILL immediately kills worker mid-job; during deployments, use SIGQUIT to prevent interrupted agent job execution; Capistrano Resque tasks use SIGQUIT by default",
+      "resque-scheduler requires separate process — Resque::Scheduler runs as separate process (bundle exec resque-scheduler); agent scheduled jobs won't run if scheduler process crashes or isn't started; schedule.yml defines cron schedules but requires monitoring scheduler process separately from Resque workers"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 78,
+    "error_handling_score": 78,
+    "auth_complexity_score": 85,
+    "rate_limit_clarity_score": 90
+  },
+  "security_score_components": {
+    "tls_enforcement": 85,
+    "auth_strength": 80,
+    "scope_granularity": 78,
+    "dependency_hygiene": 75,
+    "secret_handling": 82,
+    "security_notes": "Resque stores job arguments in Redis as JSON — never include sensitive agent credentials in job arguments; store in database or secrets manager and fetch by ID in perform. Secure Resque web UI — it shows job payloads and can retry/delete jobs; unauthorized access exposes agent job data. Use Redis AUTH and TLS for agent production Redis."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 80,
+    "version_stability": 75,
+    "breaking_changes_history": 78,
+    "error_recovery": 80
+  }
+}

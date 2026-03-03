@@ -1,0 +1,106 @@
+{
+  "id": "searchkick-ruby-api",
+  "name": "Searchkick",
+  "version_evaluated": "5.x",
+  "homepage": "https://github.com/ankane/searchkick",
+  "repo_url": "https://github.com/ankane/searchkick",
+  "category": "developer-tools",
+  "subcategories": ["search", "ruby", "rails", "elasticsearch", "opensearch"],
+  "tags": ["ruby", "rails", "elasticsearch", "opensearch", "full-text-search", "search", "autocomplete", "facets"],
+  "what_it_does": "Intelligent search for Ruby on Rails using Elasticsearch or OpenSearch — provides full-text search with relevance ranking, typo tolerance, autocomplete, and faceted filtering with a clean ActiveRecord-like API. Searchkick features: `searchkick` macro on models, `Agent.search('query')` for full-text search, `Agent.search('query', fields: [:name, :description], boost_by: [:usage_count])` for weighted search, `Agent.search('q', aggs: [:category, :status])` for facets, `Agent.search('ag', match: :word_start)` for autocomplete. Handles Elasticsearch index management (reindex, zero-downtime reindex), search analytics (track clicks and conversions), and personalization. Much simpler than raw Elasticsearch client for Rails.",
+  "use_cases": [
+    "Full-text agent catalog search — Agent.search(params[:q], fields: [:name, :description, :capabilities], operator: 'or') provides ranked full-text search across agent content with typo tolerance for agent marketplace search",
+    "Agent autocomplete suggestions — Agent.search(params[:q], match: :word_start, limit: 5, load: false) returns fast autocomplete suggestions without loading ActiveRecord objects for agent search input component",
+    "Faceted agent filtering — Agent.search('assistant', aggs: [:category, :language, :pricing_model], where: { active: true }) returns both results and category counts for agent catalog facet sidebar",
+    "Zero-downtime agent index updates — Agent.reindex runs async Searchkick background reindex without downtime; adding new searchkick fields doesn't break live agent search during deployment",
+    "Agent search analytics — Searchkick.search_model.track({ user_id: current_user.id, searched_id: result.id }) tracks agent search impressions and clicks for relevance tuning"
+  ],
+  "not_for": [
+    "Simple SQL LIKE queries — if agent search only needs case-insensitive name matching, PostgreSQL pg_trgm or Ransack contains predicate avoids Elasticsearch infrastructure overhead",
+    "Non-Elasticsearch backends — Searchkick requires Elasticsearch or OpenSearch; for Algolia-backed agent search, use algoliasearch-rails; for Typesense, use typesense-rails",
+    "Geospatial search — while Searchkick supports geo_point fields, complex geographic agent search (radius queries, routing) is better served by raw Elasticsearch geo queries or PostGIS"
+  ],
+  "best_when": "Your Rails agent platform needs production-grade full-text search with relevance ranking, typo tolerance, facets, and autocomplete — Searchkick delivers Elasticsearch power with ActiveRecord simplicity.",
+  "avoid_when": "You only need simple SQL search, you don't want to maintain Elasticsearch infrastructure, or your search requirements are better served by Algolia or Typesense.",
+  "alternatives": ["ransack-ruby-api", "pg-search-api", "algolia-rails-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["ruby"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["api_key"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Searchkick connects to Elasticsearch/OpenSearch via ELASTICSEARCH_URL env var. Production clusters require auth (API key or basic auth in URL). Use Elastic Cloud credentials via ENV for agent production search."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed. Elasticsearch/OpenSearch hosting costs are separate.",
+    "paid_tiers": "None for the gem",
+    "requires_credit_card": false,
+    "notes": "Searchkick gem is MIT licensed, maintained by Andrew Kane. Elasticsearch hosting (Elastic Cloud, AWS OpenSearch) has separate costs."
+  },
+  "performance": {
+    "latency_p50_ms": 20,
+    "latency_p99_ms": 200,
+    "uptime_sla_percent": null,
+    "rate_limits": "No library rate limits. Elasticsearch cluster capacity determines throughput. Agent search indexes should be sized appropriately (shards, replicas) for expected query volume.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted", "cloud"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 90,
+    "error_message_quality": 85,
+    "error_message_notes": "Searchkick raises Searchkick::Error for configuration issues. Elasticsearch connection failures raise Faraday::Error with connection details. Index not found raises Searchkick::ImportError. Search syntax errors raise Elasticsearch::Transport::Transport::Errors::BadRequest with Elasticsearch query parse error.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Search queries are read-only and idempotent. Reindex is safe to run multiple times — creates new index, swaps alias atomically. Callbacks-based auto-reindex on model save is atomic per record.",
+    "pagination_style": "offset",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "searchkick_index must be rebuilt after schema changes — adding new fields to searchkick_data or changing field types requires Agent.reindex; existing index doesn't automatically pick up new agent document fields; search returns nil for new fields until reindex completes",
+      "where: conditions use Elasticsearch filter, not SQL — Agent.search('assistant', where: { user_id: current_user.id }) is NOT a SQL WHERE; it's an Elasticsearch term filter on indexed data; agent model must include user_id in searchkick_data or filter silently returns empty results",
+      "load: false avoids N+1 DB queries for autocomplete — Agent.search(q, load: false) returns Searchkick::Results with indexed data but no ActiveRecord objects; accessing attributes not in searchkick_data returns nil; for agent search results needing only name+id, load: false is 10x faster than default load: true",
+      "Callbacks cause ES write on every model save — searchkick enables after_commit callbacks by default; every agent model update triggers Elasticsearch document update adding ~50-100ms latency; for high-frequency agent updates, use callbacks: :async or callbacks: false with scheduled batch reindex",
+      "reindex in production needs zero-downtime mode — Agent.reindex uses alias-based zero-downtime reindex by default; if Elasticsearch alias doesn't exist (first run), reindex creates and aliases correctly; on version upgrades requiring mapping changes, always test reindex on staging before production agent search index migration",
+      "Multi-word query behavior differs by match type — Agent.search('fast agent') with default match: :word returns agents matching 'fast' OR 'agent'; match: :phrase requires exact phrase 'fast agent'; match: :text uses full-text analysis; choose carefully based on agent search UX requirements and test with real queries"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 90,
+    "error_handling_score": 85,
+    "auth_complexity_score": 82,
+    "rate_limit_clarity_score": 88
+  },
+  "security_score_components": {
+    "tls_enforcement": 85,
+    "auth_strength": 82,
+    "scope_granularity": 80,
+    "dependency_hygiene": 88,
+    "secret_handling": 85,
+    "security_notes": "Agent search indexes may contain PII — searchkick_data method controls what gets indexed; never index passwords, API keys, or sensitive agent credentials. Elasticsearch cluster should require auth in production (ELASTICSEARCH_URL with credentials). Consider field-level security for multi-tenant agent search indexes."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 85,
+    "version_stability": 88,
+    "breaking_changes_history": 85,
+    "error_recovery": 82
+  }
+}
