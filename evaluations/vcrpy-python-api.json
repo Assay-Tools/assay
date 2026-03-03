@@ -1,0 +1,106 @@
+{
+  "id": "vcrpy-python-api",
+  "name": "VCR.py",
+  "version_evaluated": "6.x",
+  "homepage": "https://vcrpy.readthedocs.io/",
+  "repo_url": "https://github.com/kevin1024/vcrpy",
+  "category": "developer-tools",
+  "subcategories": ["testing", "python", "http-mocking", "test-fixtures"],
+  "tags": ["python", "vcrpy", "vcr", "http-mock", "cassette", "testing", "fixtures", "replay"],
+  "what_it_does": "HTTP interaction recording and replay library for Python — record real HTTP requests to 'cassette' YAML files and replay them in tests without network access. VCR.py features: @vcr.use_cassette() decorator, vcr.VCR() for configuration, cassette recording (record_mode: none/new_episodes/all/once), request matching (URI, method, body, headers), response filtering for sensitive data (filter_headers, filter_query_parameters), support for requests, httpx, urllib3, aiohttp, and httplib backends, cassette inspection, and pytest plugin (pytest-recording). Eliminates network dependencies in tests — record once, replay forever.",
+  "use_cases": [
+    "Agent API test with cassette — @vcr.use_cassette('fixtures/github_api.yaml'); def test_get_repos(): repos = github_client.get_repos('myorg'); assert len(repos) > 0 — first run records real GitHub API response; subsequent runs replay from cassette; agent API integration tests run without network and with deterministic responses",
+    "Agent HTTP test with pytest-recording — @pytest.mark.vcr; def test_weather_api(): result = weather_client.get_current('London'); assert result['temp'] == 15.2 — pytest-recording plugin auto-names cassette from test function; agent test suite records all external HTTP during first run, replays deterministically in CI",
+    "Agent sensitive data filtering — with vcr.VCR(filter_headers=['Authorization', 'X-API-Key'], filter_query_parameters=['api_key']).use_cassette('cassette.yaml'): response = requests.get(url, headers={'Authorization': 'Bearer secret'}) — strips secrets from saved cassette; agent test suite records API interactions without committing credentials to git",
+    "Agent cassette inspection — with vcr.use_cassette('test.yaml', record_mode='none') as cass: make_api_call(); assert cass.play_count == 1; assert cass.requests[0].uri == expected_uri — assert cassette was fully consumed and correct endpoints called; agent test verifies HTTP calls made without checking network traffic directly",
+    "Agent new episodes mode — with vcr.use_cassette('cassette.yaml', record_mode='new_episodes'): result = api_client.call() — records new requests not in cassette, replays existing ones; agent tests for growing APIs add new interactions without re-recording existing ones; mix of real and cached responses"
+  ],
+  "not_for": [
+    "Mocking without recording — VCR.py is record/replay not manual mock definition; for explicit request mocking use responses or respx libraries",
+    "Async-first testing — VCR.py async support (aiohttp) is less mature than sync; for async HTTP testing use respx with httpx",
+    "Streaming responses — VCR.py records complete response bodies; for streaming API testing use manual mocking"
+  ],
+  "best_when": "Testing code that makes real HTTP requests to external APIs — VCR.py records real responses once and replays them deterministically in CI, giving realistic test data without network flakiness or API costs.",
+  "avoid_when": "You need to define mock responses manually (use responses/respx), test async-heavy code (use respx), or handle streaming responses.",
+  "alternatives": ["respx-python-api", "responses-py-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — local test utility. Cassette files store recorded HTTP interactions as YAML."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "VCR.py is MIT licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 1,
+    "latency_p99_ms": 5,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Cassette playback is near-instant (file read). Recording depends on real API latency. Large cassette files (binary responses) load slowly — use cassette_library_dir to organize by test.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 78,
+    "error_message_quality": 72,
+    "error_message_notes": "CannotSendRequest when cassette in 'none' mode and no matching cassette entry (clear error). ConnectionError on unmatched requests in record_mode='none'. CassetteNotFoundError for missing cassette file. Helpful message shows which request didn't match existing cassette.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Cassette playback is fully deterministic — same request always gets same recorded response. record_mode='none' ensures no network calls in CI. Cassette files are human-readable YAML.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Cassettes record in order by default — VCR.py matches requests by URI+method and replays in order; if test makes same request twice, cassette must have two entries; agent tests making multiple identical API calls need cassette with repeated entries or use record_mode='new_episodes'",
+      "Secrets in cassettes committed to git — cassette YAML files contain full request/response including auth headers by default; agent test suites MUST configure: vcr = VCR(filter_headers=['Authorization', 'Cookie'], filter_query_parameters=['api_key', 'token']) before recording; review cassettes before git commit",
+      "Record mode must be set explicitly for CI — @vcr.use_cassette('x.yaml') without record_mode defaults to 'none' if cassette exists; in CI without cassette, raises CannotSendRequest; agent CI pipeline must commit cassette files OR use record_mode='new_episodes' for auto-recording; never leave record_mode unset",
+      "Request matching is strict by default — cassette recorded with ?foo=bar&baz=qux won't match ?baz=qux&foo=bar (different order); agent code with dynamic query parameter ordering must customize: vcr.VCR(match_on=['method', 'host', 'path', 'body']) to ignore query string order",
+      "YAML cassettes are large for binary responses — cassette files for APIs returning binary/base64 data grow large quickly; agent test suites with image/file download tests should use cassette_library_dir per test module and exclude large cassettes from git with .gitignore",
+      "httpx requires explicit backend configuration — VCR.py works with requests by default; httpx requires: import vcr; my_vcr = vcr.VCR(); my_vcr.register_uri_matcher(httpx_matcher) or use pytest-recording which handles httpx automatically; agent tests using httpx without configuration silently bypass VCR cassette recording"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 75,
+    "error_handling_score": 72,
+    "auth_complexity_score": 95,
+    "rate_limit_clarity_score": 98
+  },
+  "security_score_components": {
+    "tls_enforcement": 85,
+    "auth_strength": 82,
+    "scope_granularity": 80,
+    "dependency_hygiene": 82,
+    "secret_handling": 75,
+    "security_notes": "CRITICAL: Cassette YAML files record ALL request headers including Authorization/Cookie by default. Always configure filter_headers and filter_query_parameters before recording. Review cassette files for secrets before committing to git. Use .gitignore for cassettes containing non-filtered sensitive data."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 78,
+    "version_stability": 75,
+    "breaking_changes_history": 72,
+    "error_recovery": 78
+  }
+}
