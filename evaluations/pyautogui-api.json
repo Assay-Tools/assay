@@ -1,0 +1,106 @@
+{
+  "id": "pyautogui-api",
+  "name": "PyAutoGUI",
+  "version_evaluated": "0.9.x",
+  "homepage": "https://pyautogui.readthedocs.io/",
+  "repo_url": "https://github.com/asweigart/pyautogui",
+  "category": "developer-tools",
+  "subcategories": ["automation", "python", "gui-automation", "desktop", "testing"],
+  "tags": ["python", "pyautogui", "gui-automation", "mouse", "keyboard", "screenshot", "desktop-automation"],
+  "what_it_does": "Cross-platform GUI automation library — controls mouse, keyboard, and takes screenshots programmatically. PyAutoGUI features: pyautogui.moveTo(x, y), pyautogui.click(), pyautogui.typewrite('text'), pyautogui.press('enter'), pyautogui.screenshot(), pyautogui.locateOnScreen() (image template matching), pyautogui.hotkey('ctrl', 'c'), pyautogui.scroll(), drag and drop, window management, PAUSE between actions, FAILSAFE (move mouse to corner to abort), and cross-platform support (Windows, macOS, Linux). Primary Python library for desktop GUI automation for agent computer-use tasks.",
+  "use_cases": [
+    "Agent desktop automation — pyautogui.click(500, 300); pyautogui.typewrite('agent task input', interval=0.05); pyautogui.press('enter') — agent clicks UI element and types text; desktop automation without Playwright or Selenium for non-browser apps; legacy application automation",
+    "Agent screenshot and OCR — screenshot = pyautogui.screenshot(); screenshot.save('agent_view.png') — agent captures current screen state; combined with Tesseract/EasyOCR for text extraction; agent perceives screen content for decision making",
+    "Agent image-based clicking — location = pyautogui.locateOnScreen('button.png', confidence=0.9); pyautogui.click(location) — click button by visual template matching; agent finds UI elements by screenshot without coordinate hardcoding; confidence parameter for fuzzy matching",
+    "Agent hotkey sequences — pyautogui.hotkey('ctrl', 'alt', 't'); pyautogui.sleep(0.5); pyautogui.typewrite('ls -la\n') — agent opens terminal and runs command; keyboard shortcut automation for agent desktop workflows",
+    "Agent failsafe automation — pyautogui.PAUSE = 0.5; pyautogui.FAILSAFE = True — 0.5 second pause between all pyautogui calls; move mouse to corner aborts automation; agent automation with safety mechanisms to prevent runaway actions"
+  ],
+  "not_for": [
+    "Browser automation — use Playwright or Selenium; pyautogui can control browsers but lacks DOM access, wait conditions, and proper web automation",
+    "Fast precise automation — pyautogui.PAUSE slows all actions; for high-frequency automation use platform-specific APIs (win32api on Windows, Quartz on macOS)",
+    "Headless environments — pyautogui requires a display; for headless agent automation use virtual framebuffer (Xvfb on Linux) or Playwright headless"
+  ],
+  "best_when": "Automating desktop applications (non-browser) for agent computer-use tasks — PyAutoGUI provides simple cross-platform mouse/keyboard control for legacy applications, desktop GUIs, and screen-based automation where Playwright/Selenium don't apply.",
+  "avoid_when": "You're automating web browsers (use Playwright), need headless operation without Xvfb, or require precise timing for fast UI interactions.",
+  "alternatives": ["anthropic-computer-use-api", "playwright-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — local desktop automation library."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, BSD licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "PyAutoGUI is BSD licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 500,
+    "latency_p99_ms": 2000,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. pyautogui.PAUSE=0.1 default adds 100ms between calls. locateOnScreen() is slow (PIL image matching) — 100-500ms per call. screenshot() 10-50ms. TypeWrite speed controlled by interval parameter.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 80,
+    "error_message_quality": 75,
+    "error_message_notes": "FailSafeException when mouse reaches corner with FAILSAFE=True. ImageNotFoundException when locateOnScreen fails to find template. OSError for missing screenshot dependencies. Platform-specific display errors on headless Linux.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Mouse/keyboard actions have side effects on screen state — not idempotent by nature. Agent automation must account for current screen state before acting. locateOnScreen is idempotent given same screenshot content.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "PyAutoGUI requires display — running on headless Linux server (Docker, CI) fails with 'Cannot connect to X server'; agent GUI automation in CI must use Xvfb: Xvfb :99 -screen 0 1280x720x24 & export DISPLAY=:99; Docker agent containers need --privileged and Xvfb startup",
+      "locateOnScreen fails on HiDPI displays — macOS Retina/Windows HiDPI scales screenshots at 2x; pyautogui.locateOnScreen('button.png') fails because screenshot coordinates don't match physical pixels; agent automation on HiDPI must use pyautogui.locateOnScreen with correct scale or use pyautogui.screenshot() then scale template",
+      "pyautogui.PAUSE slows all operations — default pyautogui.PAUSE=0.1 adds 100ms after every mouse/keyboard call; 100 actions = 10 seconds minimum; agent automation loops with many actions must set pyautogui.PAUSE=0 and add explicit waits only where needed; never set to 0 without understanding risk",
+      "typewrite() only accepts ASCII — pyautogui.typewrite('hello') works; pyautogui.typewrite('héllo') silently skips non-ASCII characters; agent automation typing Unicode must use pyperclip.copy() + pyautogui.hotkey('ctrl', 'v') for clipboard paste as workaround",
+      "FAILSAFE moves mouse to (0,0) not corner — pyautogui.FAILSAFE=True triggers on mouse in top-left corner; agent automation on multi-monitor setups where top-left is not primary monitor origin may accidentally trigger FAILSAFE; set FAILSAFE=True and test on target display configuration",
+      "Screen resolution changes break coordinate-based automation — pyautogui.click(800, 600) hardcodes pixel coordinates; resolution changes or window repositioning break agent automation; use pyautogui.locateOnScreen() for visual element finding or pygetwindow for window-relative coordinates"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 78,
+    "error_handling_score": 70,
+    "auth_complexity_score": 98,
+    "rate_limit_clarity_score": 98
+  },
+  "security_score_components": {
+    "tls_enforcement": 88,
+    "auth_strength": 88,
+    "scope_granularity": 80,
+    "dependency_hygiene": 82,
+    "secret_handling": 75,
+    "security_notes": "Full desktop control — pyautogui can control any application including password managers, banking apps, and system dialogs. Agent automation must not log or expose keystrokes containing credentials. FAILSAFE provides emergency stop but doesn't sandbox agent actions. Run in dedicated user account for sensitive automation."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 72,
+    "version_stability": 75,
+    "breaking_changes_history": 78,
+    "error_recovery": 65
+  }
+}

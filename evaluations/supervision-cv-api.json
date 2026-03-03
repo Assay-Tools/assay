@@ -1,0 +1,106 @@
+{
+  "id": "supervision-cv-api",
+  "name": "Supervision",
+  "version_evaluated": "0.x",
+  "homepage": "https://supervision.roboflow.com/",
+  "repo_url": "https://github.com/roboflow/supervision",
+  "category": "ai-ml",
+  "subcategories": ["computer-vision", "python", "object-detection", "annotation", "tracking"],
+  "tags": ["python", "supervision", "roboflow", "object-detection", "tracking", "annotation", "video", "computer-vision"],
+  "what_it_does": "Computer vision utility library — post-processing, annotation, and tracking for detection/segmentation models. Supervision features: sv.Detections dataclass (unified format for YOLO, SAM, DETR outputs), annotators (BoundingBoxAnnotator, LabelAnnotator, MaskAnnotator, HeatMapAnnotator), object tracking (ByteTrack, SORT), zone analysis (PolygonZone for counting objects in regions), sv.VideoInfo and VideoSink for video processing, dataset utilities (sv.DetectionDataset), COCO/Pascal VOC format conversion, sv.FPSMonitor, line zone crossing detection, and sv.process_video() helper. Framework-agnostic post-processing layer that works with YOLO, SAM, CLIP, Grounding DINO, and any detection model.",
+  "use_cases": [
+    "Agent detection annotation — annotator = sv.BoundingBoxAnnotator(); annotated = annotator.annotate(scene=frame.copy(), detections=sv.Detections.from_ultralytics(results)) — convert YOLO results to supervision Detections; annotate frame with bounding boxes; sv.Detections unified format works across detection frameworks",
+    "Agent object tracking — tracker = sv.ByteTrack(); detections = tracker.update_with_detections(detections) — persistent object IDs across video frames; agent tracks people/vehicles through scene; ByteTrack handles occlusion and fast-moving objects better than SORT",
+    "Agent zone analysis — zone = sv.PolygonZone(polygon=np.array([[100,100],[400,100],[400,400],[100,400]])); zone.trigger(detections=detections); count = zone.current_count — count objects in defined region; agent counts pedestrians crossing intersection zone; PolygonZone converts detections to zone entries",
+    "Agent video processing — sv.process_video(source_path='input.mp4', target_path='output.mp4', callback=process_frame) — process video frame-by-frame with callback; agent applies detection + annotation + tracking in single pass; VideoSink handles output encoding",
+    "Agent dataset conversion — dataset = sv.DetectionDataset.from_yolo('data/', ['class1']); dataset.as_pascal_voc('output/') — convert between detection annotation formats; agent ML pipeline converts YOLO-format dataset to Pascal VOC for detectron2 training"
+  ],
+  "not_for": [
+    "Model training — supervision is post-processing and annotation; for training use YOLO, Detectron2, or Transformers",
+    "Classification tasks — supervision focuses on detection and segmentation output processing; for classification use torchvision or timm directly",
+    "Real-time sub-5ms processing — supervision Python annotation adds per-frame overhead; for ultra-low latency use C++ pipelines"
+  ],
+  "best_when": "Building agent computer vision pipelines that need to aggregate detection results across frameworks, track objects across frames, count objects in zones, or annotate video — supervision provides framework-agnostic utilities that work with any detection model output.",
+  "avoid_when": "You need model training, classification-only tasks, or are implementing simple single-frame detection without tracking or zone analysis.",
+  "alternatives": ["torchvision-api", "ultralytics-yolo-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — local CV library. Roboflow API integration (optional) requires API key."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Supervision is MIT licensed by Roboflow. Free for all use including commercial."
+  },
+  "performance": {
+    "latency_p50_ms": 2,
+    "latency_p99_ms": 20,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — local processing. Annotation overhead 1-5ms per frame. ByteTrack tracking O(N) per frame. VideoSink encoding CPU-bound — set codec appropriately for throughput.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 82,
+    "error_message_notes": "TypeError when passing wrong tensor type to from_ultralytics(). ValueError for incompatible polygon shapes in PolygonZone. AttributeError if supervision version doesn't have feature (rapid development). Clear error messages with suggestions for most common mistakes.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Stateless annotation functions are idempotent. ByteTrack tracker maintains state across frames — reset tracker between clips. PolygonZone count is cumulative — reset between analysis windows.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "supervision has rapid minor version API changes — sv.Detections.from_ultralytics() added in 0.14; sv.BoundingBoxAnnotator constructor changed in 0.18; agent code written for supervision 0.14 may fail on 0.20; always pin supervision version; check changelog between minor versions before upgrading",
+      "from_ultralytics() returns CPU-only numpy — sv.Detections.from_ultralytics(results) converts YOLO GPU tensors to CPU numpy arrays; subsequent annotate() calls work on CPU; agent pipelines doing GPU computation after annotation need to re-upload to GPU explicitly",
+      "ByteTrack IDs are not persistent across video files — ByteTrack assigns sequential integer IDs; resetting tracker (new ByteTrack()) for each video restarts IDs from 0; agent multi-video analysis comparing track IDs must use different ID namespaces per video",
+      "PolygonZone trigger() mutates zone state — zone.trigger(detections) updates zone.current_count in-place; calling trigger twice on same detections double-counts; agent code must call trigger once per frame, not once per detection batch; use separate zone instances for concurrent agent zones",
+      "annotator.annotate() modifies scene in-place — sv.BoundingBoxAnnotator().annotate(scene=frame, detections=dets) draws directly on scene; passing same frame to multiple annotators stacks annotations; agent code needing separate annotation layers must copy frame: scene=frame.copy() before each annotator",
+      "sv.VideoInfo.from_video_path requires OpenCV — VideoInfo.from_video_path('video.mp4') requires opencv-python; not included in supervision base install; agent video processing pipelines must pip install opencv-python alongside supervision; missing cv2 raises ImportError only when VideoInfo is first called"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 80,
+    "auth_complexity_score": 98,
+    "rate_limit_clarity_score": 98
+  },
+  "security_score_components": {
+    "tls_enforcement": 95,
+    "auth_strength": 95,
+    "scope_granularity": 90,
+    "dependency_hygiene": 85,
+    "secret_handling": 95,
+    "security_notes": "Local CV library — no network access. Roboflow API integration is optional and uses API key. No data sent externally during local annotation and tracking operations."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 80,
+    "version_stability": 70,
+    "breaking_changes_history": 65,
+    "error_recovery": 78
+  }
+}

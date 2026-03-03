@@ -1,0 +1,106 @@
+{
+  "id": "fiftyone-api",
+  "name": "FiftyOne",
+  "version_evaluated": "0.24.x",
+  "homepage": "https://docs.voxel51.com/",
+  "repo_url": "https://github.com/voxel51/fiftyone",
+  "category": "ai-ml",
+  "subcategories": ["computer-vision", "python", "dataset-management", "ml-ops", "annotation"],
+  "tags": ["python", "fiftyone", "computer-vision", "dataset", "ml-ops", "annotation", "model-evaluation", "active-learning"],
+  "what_it_does": "Computer vision dataset management and model evaluation platform — explore, evaluate, and curate CV datasets. FiftyOne features: fo.Dataset for loading images/videos with labels, fo.launch_app() interactive web UI (tags, filtering, similarity search), model evaluation (evaluate_detections, evaluate_classifications), dataset zoo (fo.zoo.load_zoo_dataset), label studio integration, COCO/YOLO/VOC import/export, brain plugins (compute_similarity for duplicate finding, compute_uniqueness, compute_hardness), active learning workflows, find_duplicates(), and dataset slices. Used for pre-training data curation, model failure analysis, and active learning for agent computer vision.",
+  "use_cases": [
+    "Agent dataset exploration — dataset = fo.Dataset.from_dir('images/', dataset_type=fo.types.ImageDirectory); session = fo.launch_app(dataset) — interactive web UI to explore agent training images; filter by label, tag mislabeled samples, visualize predictions vs ground truth; dataset curation before agent model training",
+    "Agent model evaluation — results = dataset.evaluate_detections(pred_field='predictions', gt_field='ground_truth', eval_key='eval'); results.print_report() — per-class precision/recall; agent identifies which object classes model struggles with; mAP, AP per class, confusion matrix in interactive UI",
+    "Agent duplicate detection — results = fob.compute_similarity(dataset, model='clip-vit-base32-torch'); view = dataset.sort_by_similarity(results.key, k=10, reverse=True) — find near-duplicate images using CLIP embeddings; agent removes duplicates from training data that bias model; visual similarity search",
+    "Agent active learning — view = dataset.sort_by(fo.ViewField('uniqueness'), reverse=True).limit(1000) — select most unique/informative samples for annotation; agent active learning loop curates next annotation batch; harder samples get labeled first for maximum model improvement per annotation dollar",
+    "Agent COCO export — dataset.export(export_dir='output/', dataset_type=fo.types.COCODetectionDataset) — export curated dataset with annotations in COCO format; agent training pipeline receives clean COCO dataset after FiftyOne curation; round-trip import/export preserves all label metadata"
+  ],
+  "not_for": [
+    "Production model serving — FiftyOne is for data/model analysis; for serving use ONNX Runtime or vLLM",
+    "Real-time processing — FiftyOne is for dataset analysis workflows; for real-time inference use supervision or YOLO directly",
+    "Non-CV ML — FiftyOne is computer vision focused; for tabular ML dataset management use Pandas/Lakeformation"
+  ],
+  "best_when": "Managing and curating computer vision datasets for agent model training — FiftyOne's interactive UI enables rapid dataset exploration, label quality assessment, duplicate removal, and model failure analysis that manual inspection cannot scale to.",
+  "avoid_when": "You need real-time inference, production model serving, or non-image/video ML dataset management.",
+  "alternatives": ["supervision-cv-api", "roboflow-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth for local use. FiftyOne Teams (cloud) uses org authentication. Local app serves on localhost:5151 without auth."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free for local use, Apache 2.0 licensed",
+    "paid_tiers": "FiftyOne Teams (cloud collaboration) starts at $X/month",
+    "requires_credit_card": false,
+    "notes": "FiftyOne OSS is Apache 2.0 licensed. FiftyOne Teams is paid. Local use is completely free."
+  },
+  "performance": {
+    "latency_p50_ms": 100,
+    "latency_p99_ms": 1000,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits for local use. Dataset size limited by local disk and MongoDB (local). Large datasets (1M+ images) require index optimization. Web app response time scales with dataset size.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 80,
+    "error_message_quality": 78,
+    "error_message_notes": "DatasetNotFoundError for non-existent dataset names. FieldNotFoundError for missing label fields. MongoDB connection errors on startup. Import format mismatch errors show expected vs actual format. Plugin dependency errors when brain plugins missing.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Dataset.from_dir() is idempotent for same source directory. evaluate_detections() with same eval_key overwrites previous results. Export is idempotent — overwrites output directory. Dataset operations are MongoDB-backed and transactional.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "FiftyOne uses local MongoDB — fo.launch_app() starts a local MongoDB process in ~/.fiftyone/; agent environments without write access to home directory fail; Docker containers must mount persistent volume at /root/.fiftyone/ or agent datasets don't persist between container restarts",
+      "Dataset names must be unique — fo.Dataset('my-agent-data') fails if dataset with same name exists; agent code must check fo.dataset_exists('my-agent-data') before creating; or use fo.load_dataset('my-agent-data') to open existing; use fo.delete_dataset('name') to remove",
+      "Brain plugins installed separately — fob.compute_similarity() requires fiftyone-brain package; fo.zoo requires fiftyone-zoo; agent code using brain features must pip install fiftyone[brain]; base fiftyone install doesn't include brain plugins",
+      "fo.launch_app() blocks in scripts — fo.launch_app(dataset) opens browser but blocks script; use fo.launch_app(dataset, auto=False) to launch without blocking; agent scripts must use session = fo.launch_app(auto=False) and access session.dataset programmatically",
+      "Image paths must be absolute — FiftyOne stores absolute image paths in MongoDB; relative paths in fo.Dataset.from_dir() work but break if working directory changes; agent datasets created with relative paths don't load correctly in different working directory; use os.path.abspath() when creating datasets",
+      "evaluate_detections requires matching label format — evaluate_detections(pred_field='preds', gt_field='gt') requires both fields use fo.Detections format; mixing fo.Detections and fo.Detection (singular) raises SchemaError; agent evaluation pipeline must ensure consistent label schema before evaluation"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 80,
+    "error_handling_score": 75,
+    "auth_complexity_score": 90,
+    "rate_limit_clarity_score": 95
+  },
+  "security_score_components": {
+    "tls_enforcement": 82,
+    "auth_strength": 78,
+    "scope_granularity": 75,
+    "dependency_hygiene": 80,
+    "secret_handling": 82,
+    "security_notes": "Local app serves on localhost:5151 without auth — do not expose to network. Sensitive training images stored in local MongoDB without encryption. FiftyOne Teams provides org-level auth for team collaboration. Docker deployments must restrict port binding."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 78,
+    "version_stability": 72,
+    "breaking_changes_history": 68,
+    "error_recovery": 75
+  }
+}
