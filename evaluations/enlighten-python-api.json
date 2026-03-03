@@ -1,0 +1,106 @@
+{
+  "id": "enlighten-python-api",
+  "name": "enlighten",
+  "version_evaluated": "1.12.x",
+  "homepage": "https://python-enlighten.readthedocs.io/",
+  "repo_url": "https://github.com/Rockhopper-Technologies/enlighten",
+  "category": "developer-tools",
+  "subcategories": ["terminal-ui", "python", "progress", "cli"],
+  "tags": ["python", "enlighten", "progress", "bar", "terminal", "multi-bar", "logging"],
+  "what_it_does": "Enlightened console progress bar library for Python — multi-bar terminal progress tracking with logging integration. enlighten features: Manager for multi-bar coordination, Counter for simple progress bars, Bar class for custom formatting, StatusBar for dynamic status display, multiple simultaneous progress bars without visual conflicts, logging integration (log messages scroll above bars), scroll_offset for preserving output, context manager interface, custom bar format strings, color support via curses, rate display, and ETA calculation. Designed for multi-threaded agents with parallel progress bars.",
+  "use_cases": [
+    "Agent multi-progress tracking — import enlighten; manager = enlighten.get_manager(); pbar = manager.counter(total=100, desc='Processing', unit='items'); for item in items: process(item); pbar.update() — single bar; agent displays progress for long processing; update() increments by 1; pbar.close() when done",
+    "Agent parallel progress bars — manager = enlighten.get_manager(); bars = [manager.counter(total=n, desc=f'Task {i}') for i in range(3)]; for i, task in enumerate(tasks): process(task); bars[i].update() — multiple bars; agent shows simultaneous progress for parallel operations without bars overwriting each other",
+    "Agent with logging — import logging; manager = enlighten.get_manager(); logging.basicConfig(handlers=[enlighten.logging.EnlightenHandler()]); logger.info('Processing started'); pbar = manager.counter(total=100) — integrated logging; agent combines progress bars with logging without visual conflicts; log messages scroll above progress bars",
+    "Agent status bar — status = manager.status_bar('Status: Initializing', color='cyan_on_black'); pbar = manager.counter(total=len(urls)); for url in urls: status.update('Status: Fetching ' + url); fetch(url); pbar.update() — status display; agent shows current operation status alongside progress count",
+    "Agent print with progress — manager = enlighten.get_manager(); pbar = manager.counter(total=100); for i, item in enumerate(items): process(item); manager.print(f'Completed: {item}'); pbar.update() — safe print; agent uses manager.print() to output messages without disrupting progress bars"
+  ],
+  "not_for": [
+    "Simple single-bar progress — for single progress bar, tqdm is simpler and more widely used",
+    "Non-terminal environments — enlighten requires TTY/curses; in Jupyter notebooks use ipywidgets; in CI use tqdm with dynamic_ncols=False",
+    "Indeterminate spinners — enlighten shows determinate progress bars; for spinners use yaspin"
+  ],
+  "best_when": "Multiple simultaneous progress bars with logging integration — enlighten is the best choice when multiple parallel tasks each need their own progress indicator and logging must coexist.",
+  "avoid_when": "Single progress bar (use tqdm), non-terminal environments, indeterminate progress (use yaspin), or when tqdm's simplicity is sufficient.",
+  "alternatives": [],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — terminal progress library."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MPL 2.0 licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "enlighten is Mozilla Public License 2.0. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Performance: progress bar update: <1ms. Manager coordinates all bars via single curses context. Thread-safe updates via internal lock. High-frequency updates (>100/s) may cause flickering — throttle with min_delta parameter.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 80,
+    "error_message_quality": 75,
+    "error_message_notes": "curses.error when terminal doesn't support required features. ValueError for invalid format strings. Most errors are silent fallbacks when not in TTY. Manager.stop() required for clean terminal restoration.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Counter.update() is additive — idempotent in direction. Manager state is isolated per process. Context manager handles cleanup.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Manager must be closed for terminal restoration — enlighten.get_manager() acquires terminal; manager.stop() or context manager exit restores terminal; agent code without proper cleanup leaves terminal in altered state after script exit; always use: with enlighten.get_manager() as manager: ...; or try/finally: manager.stop()",
+      "Counter.close() required when done — pbar.close() marks bar as complete and removes it from display; bars that are not closed remain visible; agent code in loops: pbar = manager.counter(total=n); for ...: pbar.update(); pbar.close() — must close each bar after completion",
+      "print() disrupts display — using print() inside enlighten context causes visual corruption; use manager.print() for thread-safe output above progress bars; or use enlighten's logging handler for log messages; agent code: replace all print() inside progress sections with manager.print()",
+      "total=None creates indeterminate bar — manager.counter(total=None) shows count without percentage; bar moves but no ETA; agent code processing unknown-length iterables: use total=None; once length known: bar.total = len(data); triggers completion percentage",
+      "Thread safety requires one manager — all threads should share one Manager instance; multiple managers create conflicting terminal state; agent multi-threaded code: create manager in main thread; pass bars to worker threads; workers call bar.update() which is thread-safe via internal lock",
+      "enlighten not available in all environments — falls back gracefully in non-TTY but curses import fails on some minimal environments (Docker scratch, some CI); agent code: try: import enlighten except ImportError: use tqdm as fallback; enlighten requires curses which is usually bundled but may be missing"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 80,
+    "error_handling_score": 75,
+    "auth_complexity_score": 99,
+    "rate_limit_clarity_score": 99
+  },
+  "security_score_components": {
+    "tls_enforcement": 92,
+    "auth_strength": 92,
+    "scope_granularity": 90,
+    "dependency_hygiene": 90,
+    "secret_handling": 92,
+    "security_notes": "Terminal progress library with no network calls. No security concerns. Progress bar format strings from user input: validate format string to prevent information disclosure in formatted output."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 78,
+    "version_stability": 80,
+    "breaking_changes_history": 80,
+    "error_recovery": 78
+  }
+}
