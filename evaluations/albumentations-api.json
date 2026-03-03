@@ -1,0 +1,106 @@
+{
+  "id": "albumentations-api",
+  "name": "Albumentations",
+  "version_evaluated": "1.x",
+  "homepage": "https://albumentations.ai/",
+  "repo_url": "https://github.com/albumentations-team/albumentations",
+  "category": "ai-ml",
+  "subcategories": ["computer-vision", "python", "data-augmentation", "image-processing", "deep-learning"],
+  "tags": ["python", "albumentations", "augmentation", "computer-vision", "image", "pytorch", "object-detection", "segmentation"],
+  "what_it_does": "Fast image augmentation library for computer vision — extends torchvision transforms with bbox/mask-aware augmentations. Albumentations features: 70+ augmentation transforms (RandomCrop, HorizontalFlip, RandomBrightnessContrast, ShiftScaleRotate, CoarseDropout, GridDistortion, OpticalDistortion, CLAHE, Blur, Noise, Weather effects), A.Compose for pipelines, bounding box transforms (bbox_params=A.BboxParams('yolo'/'pascal_voc'/'coco')), segmentation mask transforms (mask and masks params), keypoint augmentation, albumentation.ReplayCompose for deterministic replay, multi-GPU safe, 3-10x faster than torchvision due to OpenCV backend. Standard augmentation library for detection and segmentation agent models.",
+  "use_cases": [
+    "Agent detection augmentation — transform = A.Compose([A.HorizontalFlip(), A.RandomBrightnessContrast(), A.Normalize()], bbox_params=A.BboxParams(format='pascal_voc', label_fields=['labels'])); result = transform(image=img, bboxes=boxes, labels=labels) — bounding boxes transform consistently with image; agent detection training augmentation preserves label-box alignment",
+    "Agent segmentation augmentation — transform = A.Compose([A.RandomCrop(512, 512), A.GridDistortion(), A.ElasticTransform()]); result = transform(image=image, mask=mask) — segmentation mask deforms identically to image; agent semantic segmentation training augmentation maintains pixel-perfect label alignment",
+    "Agent weather augmentation — transform = A.Compose([A.RandomRain(p=0.3), A.RandomFog(p=0.2), A.RandomSunFlare(p=0.1)]) — simulate weather conditions in agent training data; autonomous agent vision robust to rain/fog/sun; weather augmentation improves outdoor scene understanding",
+    "Agent hard negative mining augmentation — transform = A.Compose([A.CoarseDropout(max_holes=8, max_height=32, max_width=32), A.MotionBlur(blur_limit=15), A.GaussNoise()]) — augmentations that challenge agent perception; agent models trained with hard augmentations generalize better to real-world noise and occlusion",
+    "Agent deterministic replay — transform = A.ReplayCompose([A.HorizontalFlip(), A.RandomCrop(256, 256)]); result = transform(image=img); replay_result = A.ReplayCompose.replay(result['replay'], image=another_img) — apply identical augmentation to paired multi-modal data; agent training with RGB + depth + thermal uses ReplayCompose to apply same spatial transforms to all modalities"
+  ],
+  "not_for": [
+    "NLP or tabular augmentation — Albumentations is image/video-only; for text augmentation use nlpaug or TextAttack",
+    "3D volumetric data — Albumentations handles 2D images; for medical imaging (CT/MRI volumes) use MONAI",
+    "Online augmentation without PyTorch DataLoader — Albumentations is most useful integrated in Dataset.__getitem__; for simple one-time augmentation, torchvision transforms.v2 is sufficient"
+  ],
+  "best_when": "Training PyTorch agent models for object detection or segmentation where augmentations must consistently transform images AND their annotations (bounding boxes, masks, keypoints) — Albumentations handles annotation-aware spatial transforms that torchvision v1 transforms don't.",
+  "avoid_when": "You only need simple augmentations without annotation transforms (use torchvision.transforms.v2), you're working with 3D volumes (use MONAI), or you don't need spatial augmentations.",
+  "alternatives": ["torchvision-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — local image processing library."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Albumentations is MIT licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 2,
+    "latency_p99_ms": 20,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. 3-10x faster than torchvision transforms due to OpenCV backend. CPU-based — GPU not used for augmentation. Bottleneck for DataLoader is typically CPU augmentation workers; use num_workers=4-8 for parallel augmentation.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 82,
+    "error_message_quality": 80,
+    "error_message_notes": "ValueError when bounding box coordinates outside [0, 1] range in normalized format. TypeError for wrong numpy array dtype (expects uint8 for image). BboxProcessorError when bboxes extend outside image boundary. KeyError if label_fields not specified for bbox transform.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Deterministic with explicit seed. A.Compose(transforms, seed=42) for reproducible augmentation. ReplayCompose enables exact replay of augmentation sequence. Random transforms produce different results without seed.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Input must be numpy uint8 array — A.HorizontalFlip()(image=img) requires img as numpy array with dtype uint8 (0-255); passing PyTorch tensors or float32 arrays raises TypeError; agent DataLoader must convert PIL image to numpy before applying Albumentations transforms",
+      "BboxParams format must match your annotation format — A.BboxParams(format='pascal_voc') expects [x_min, y_min, x_max, y_max]; format='coco' expects [x_min, y_min, width, height]; format='yolo' expects [cx, cy, w, h] normalized 0-1; wrong format silently produces incorrect transformed boxes in agent detection training",
+      "label_fields required for bboxes — A.Compose([...], bbox_params=A.BboxParams(format='pascal_voc', label_fields=['class_labels'])) requires passing class_labels to transform(); omitting label_fields causes labels to be dropped silently; agent detection training loses class labels without error",
+      "Probability p=0.5 default requires explicit setting — A.HorizontalFlip() has p=0.5 default; A.Normalize() has p=1.0 default; inconsistent defaults confuse agent pipeline authors; explicitly set p for all transforms: A.HorizontalFlip(p=0.5), A.Normalize(p=1.0)",
+      "Normalization values must match model training — A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]) are ImageNet stats for PyTorch models; Albumentations Normalize divides by 255 then normalizes; passing already-normalized float32 image causes double normalization; apply Normalize only after converting uint8 to float",
+      "Albumentations 1.x API changed from 0.x — A.CenterCrop(height=224, width=224) in 1.x vs A.CenterCrop(224, 224) in 0.x; some transforms renamed; agent code from tutorials using 0.x API gets TypeError on positional args; always use keyword arguments for crop/resize transforms"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 82,
+    "error_handling_score": 78,
+    "auth_complexity_score": 98,
+    "rate_limit_clarity_score": 98
+  },
+  "security_score_components": {
+    "tls_enforcement": 95,
+    "auth_strength": 95,
+    "scope_granularity": 90,
+    "dependency_hygiene": 85,
+    "secret_handling": 95,
+    "security_notes": "Local image processing — no network access, no data exfiltration. OpenCV-based image processing with standard security properties. No security concerns beyond standard Python dependency hygiene."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 82,
+    "version_stability": 80,
+    "breaking_changes_history": 75,
+    "error_recovery": 82
+  }
+}
