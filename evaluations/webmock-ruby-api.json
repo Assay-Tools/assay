@@ -1,0 +1,106 @@
+{
+  "id": "webmock-ruby-api",
+  "name": "WebMock",
+  "version_evaluated": "3.x",
+  "homepage": "https://github.com/bblimke/webmock",
+  "repo_url": "https://github.com/bblimke/webmock",
+  "category": "developer-tools",
+  "subcategories": ["testing", "ruby", "http-mocking", "network", "rails"],
+  "tags": ["ruby", "rails", "testing", "http", "mock", "stub", "network", "vcr", "rspec"],
+  "what_it_does": "Ruby library for stubbing HTTP requests in tests — intercepts Net::HTTP, HTTParty, Faraday, RestClient, and other HTTP adapters to prevent real network calls and return controlled responses. WebMock: disables real HTTP connections by default in tests, stubs specific URLs with custom responses (stub_request(:post, 'https://api.openai.com/v1/chat/completions').to_return(body: '...')), verifies requests were made (have_requested(:get, /agent-api/)), and supports request body/header matching. Essential for testing agent services that call external APIs without making real API calls in unit/integration tests.",
+  "use_cases": [
+    "Stub LLM API calls in agent unit tests — stub_request(:post, 'https://api.openai.com/v1/chat/completions').with(body: hash_including(model: 'gpt-4')).to_return(body: fixture('llm_response.json'), headers: {'Content-Type' => 'application/json'})",
+    "Test agent error handling — stub_request(:post, agent_api_url).to_return(status: 429, body: 'Rate limit exceeded') for testing agent retry logic without hitting real API rate limits",
+    "Verify agent makes expected API calls — after agent execution, assert_requested(:post, tool_api_url, times: 2) verifies agent called tool API exactly twice",
+    "Stub external agent tool APIs — stub MCP server HTTP calls, web scraping endpoints, or third-party service APIs that agent uses for tool calling",
+    "Test agent webhook handling — stub outbound webhook delivery confirmation calls; test that agent sends webhook to expected URL with correct payload"
+  ],
+  "not_for": [
+    "Integration tests against real APIs — WebMock blocks all HTTP by default; use VCR to record and replay real API responses for semi-integration agent tests",
+    "Non-Ruby HTTP testing — use nock (Node.js), responses (Python), or WireMock (Java) for HTTP mocking in other language agent services",
+    "System tests running in browser — WebMock stubs Ruby HTTP calls, not browser network requests; use Cypress intercept or Playwright route for browser-level agent UI network mocking"
+  ],
+  "best_when": "You're writing Ruby tests for agent services that make external HTTP calls (LLM APIs, tool APIs, webhooks) — WebMock prevents real API calls and gives you controlled responses for reliable agent test suites.",
+  "avoid_when": "You need to test with real API calls (use VCR for record/replay), you're testing browser network requests, or you're using a non-Ruby HTTP stack.",
+  "alternatives": ["vcr-ruby-api", "faraday-adapter-test-api", "rack-test-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["ruby"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "HTTP mocking library — no auth concepts. Stubs intercept agent HTTP calls regardless of auth headers; test auth header presence with .with(headers: {}) matchers."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "WebMock is MIT licensed, maintained by Bartosz Blimke. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 0,
+    "latency_p99_ms": 1,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — local mock library. Stubbed HTTP calls complete instantly; real network latency eliminated in agent tests.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["local"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 90,
+    "error_message_quality": 90,
+    "error_message_notes": "WebMock raises WebMock::NetConnectNotAllowedError with request URL and available stubs when unstubbed HTTP call is made — excellent for catching missing agent API stubs. assert_requested failures show expected vs actual request count. Request body mismatch shows expected and actual body.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Stubs are reset between tests via WebMock.reset! or RSpec before/after hooks. Each test starts with clean stub state.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "WebMock blocks all external HTTP by default — after require 'webmock/rspec', any unstubbed HTTP call raises WebMock::NetConnectNotAllowedError; test failures can look like agent logic errors; check for missing stub when agent test fails with network error",
+      "Stub URL must match exactly including query params — stub_request(:get, 'https://api.example.com/agents?status=active') only stubs that exact URL; missing query param or extra param causes real HTTP call (blocked); use URI template or regex matchers for flexible agent URL matching",
+      "Body matching with hash_including is partial — .with(body: hash_including(model: 'gpt-4')) matches any body containing {model: 'gpt-4'}; without hash_including, exact body match is required; use hash_including for agent request body matchers that allow extra fields",
+      "Stub resets between tests but not within — stub_request().to_return multiple times returns same response; .to_return multiple times raises WebMock::MultipleResponses for sequential responses (first call, second call different responses); use .to_return().then.to_return() for agent retry test sequences",
+      "WebMock must be configured before HTTP calls — require 'webmock/rspec' in spec_helper; require 'webmock' without /rspec integration doesn't auto-reset stubs between tests; manual WebMock.disable_net_connect! required without RSpec integration",
+      "allow_localhost: true for integration tests — WebMock.disable_net_connect!(allow_localhost: true) allows local agent service calls (test server, Capybara) while blocking external; missing allow_localhost blocks Rails system test HTTP calls to test server"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 90,
+    "error_handling_score": 90,
+    "auth_complexity_score": 100,
+    "rate_limit_clarity_score": 100
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 100,
+    "scope_granularity": 95,
+    "dependency_hygiene": 90,
+    "secret_handling": 95,
+    "security_notes": "Testing library — no production security concerns. WebMock prevents agent tests from leaking real API keys to external services. Ensure WebMock is test-only dependency; production agent code must not stub HTTP calls."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 92,
+    "version_stability": 90,
+    "breaking_changes_history": 88,
+    "error_recovery": 92
+  }
+}
