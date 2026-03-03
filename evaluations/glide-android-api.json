@@ -1,0 +1,106 @@
+{
+  "id": "glide-android-api",
+  "name": "Glide",
+  "version_evaluated": "4.x",
+  "homepage": "https://bumptech.github.io/glide/",
+  "repo_url": "https://github.com/bumptech/glide",
+  "category": "developer-tools",
+  "subcategories": ["images", "android", "kotlin", "cache", "media"],
+  "tags": ["android", "kotlin", "java", "image-loading", "cache", "glide", "media", "gif", "bitmap"],
+  "what_it_does": "Fast Android image loading and caching library developed by Bumptech (Google) — handles image downloading, decoding, caching (memory + disk), and display in Android views. Glide API: Glide.with(context).load(url).into(imageView) for URL loading, .placeholder(R.drawable.loading) for loading state, .error(R.drawable.error) for failure state, .override(200, 200) for resizing before decode, .circleCrop() for circular images. Memory cache uses LRU; disk cache configurable. Supports GIF, WebP, custom decoders. RequestOptions for reusable config. Generated API via AppGlideModule for compile-time safe Glide extensions. Widely used alternative to Picasso with better GIF support.",
+  "use_cases": [
+    "Agent avatar loading with Glide — Glide.with(context).load(agent.avatarUrl).circleCrop().placeholder(R.drawable.agent_placeholder).into(avatarImageView) loads agent profile images with circular crop and placeholder",
+    "Agent thumbnail grid with disk cache — Glide.with(context).load(url).diskCacheStrategy(DiskCacheStrategy.ALL).override(128, 128).into(thumbnailView) caches resized agent thumbnails efficiently for agent catalog RecyclerView",
+    "Animated agent status indicators — Glide.with(context).asGif().load(R.raw.agent_thinking).into(statusView) loads GIF animation for agent processing state without separate GIF library",
+    "Agent document preview images — Glide.with(context).load(pdfThumbnailUrl).apply(RequestOptions().transform(RoundedCorners(16))).into(previewView) loads agent document thumbnails with rounded corners",
+    "Preload agent images for smooth scrolling — Glide.with(context).load(url).preload(200, 200) preloads next agent list items before user scrolls to them for lag-free agent catalog browsing"
+  ],
+  "not_for": [
+    "Vector SVG images — Glide handles raster images (JPEG, PNG, WebP, GIF); for SVG agent icons, use AndroidSVG or convert SVG to Vector Drawable; Glide has no native SVG support",
+    "Video streaming — Glide loads video thumbnails but not streaming playback; use ExoPlayer for agent video content playback",
+    "Image editing beyond resizing/transforms — Glide applies transforms during decode; complex image editing (filters, drawing) requires Canvas API or dedicated image processing library for agent content creation"
+  ],
+  "best_when": "You're building an Android agent app with image-heavy UI (agent avatars, content thumbnails, document previews) — Glide handles the full image lifecycle with optimal memory management for Android.",
+  "avoid_when": "You need SVG support, video playback, or complex real-time image processing beyond what Glide's transform pipeline handles.",
+  "alternatives": ["coil-android-api", "picasso-android-api", "fresco-android-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["kotlin", "java"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — Glide loads images from URLs. For authenticated image URLs (presigned S3, token-based), implement custom OkHttpGlideModule to inject auth headers."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, BSD/Apache licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Glide is BSD-style licensed, developed by Bumptech/Google. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 100,
+    "latency_p99_ms": 2000,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — image loading latency depends on cache hit rate and network. Memory cache (default 1/8 device RAM) serves cached agent images in <5ms; disk cache in ~50ms; network depends on image size and connection.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 88,
+    "error_message_quality": 82,
+    "error_message_notes": "Glide image load failures shown via .error() drawable fallback. RequestListener provides onLoadFailed(GlideException) with root cause chain for logging. GlideException.getRootCauses() lists all failure causes for agent image debug. OOM errors during decode logged to Logcat with Glide tag.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Image loading is idempotent — calling load() multiple times for same URL returns cached result. Glide automatically handles request deduplication for same URL in same view.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Context must be Activity or Fragment, not Application — Glide.with(applicationContext) causes Glide to ignore lifecycle and potentially load into destroyed views; use Glide.with(activity) or Glide.with(fragment) so Glide pauses/resumes with agent screen lifecycle; Application context causes memory leaks and exceptions",
+      "AppGlideModule requires kapt/annotation processing — Generated API (GlideApp.with()) requires annotationProcessor or kapt dependency in build.gradle; without annotation processing, GlideApp class doesn't generate and agent builds fail with ClassNotFoundException; add kapt 'com.github.bumptech.glide:compiler:4.x' to build.gradle",
+      "Glide disk cache size defaults to 250MB — DiskCache.Factory.DEFAULT_DISK_CACHE_SIZE is 250MB; for agent apps with many high-res images, this fills quickly; configure GlideBuilder with diskCacheFactory for custom size; large cache causes Android low-storage warnings on constrained agent devices",
+      "Custom OkHttpGlideModule required for auth headers — Glide uses HttpURLConnection by default; to add agent API authorization headers (Bearer token for private image CDN), must implement OkHttpGlideModule with custom OkHttpClient interceptor and register in AndroidManifest; default Glide cannot inject headers",
+      "Transforms invalidate disk cache keys — adding .transform(CircleCrop()) creates different cache key than .transform(CenterCrop()); changing transform on cached agent images means all cached entries are invalid; use signature() to explicitly control cache invalidation for agent image transform changes",
+      "RecyclerView target must use clear() on rebind — in RecyclerView.Adapter onBindViewHolder, always call Glide.with(context).clear(imageView) before new load(); without clear, previous agent image load may complete after rebind and display wrong image in recycled view for agent list"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 88,
+    "error_handling_score": 82,
+    "auth_complexity_score": 85,
+    "rate_limit_clarity_score": 95
+  },
+  "security_score_components": {
+    "tls_enforcement": 88,
+    "auth_strength": 80,
+    "scope_granularity": 78,
+    "dependency_hygiene": 85,
+    "secret_handling": 80,
+    "security_notes": "Glide disk cache stores decoded images as files — sensitive agent images (documents, private content) cached to disk may be accessible on rooted devices; use DiskCacheStrategy.NONE for private agent content or encrypt disk cache location. Implement certificate pinning in custom OkHttpGlideModule for agent CDN security."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 90,
+    "version_stability": 88,
+    "breaking_changes_history": 85,
+    "error_recovery": 85
+  }
+}

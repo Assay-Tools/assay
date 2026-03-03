@@ -1,0 +1,106 @@
+{
+  "id": "exoplayer-android-api",
+  "name": "ExoPlayer (Media3)",
+  "version_evaluated": "1.x (Media3)",
+  "homepage": "https://developer.android.com/media/media3/exoplayer",
+  "repo_url": "https://github.com/androidx/media",
+  "category": "developer-tools",
+  "subcategories": ["media", "android", "kotlin", "video", "streaming"],
+  "tags": ["android", "kotlin", "java", "video", "audio", "streaming", "hls", "dash", "exoplayer", "media3"],
+  "what_it_does": "Android media playback library (now part of AndroidX Media3) — handles audio and video playback with support for progressive download, HLS, DASH, and SmoothStreaming. ExoPlayer/Media3 features: ExoPlayer instance with MediaItem.fromUri() for playback, PlayerView for built-in UI controls, MediaSession integration for background audio, track selection (quality, subtitle, audio language), adaptive bitrate streaming (HLS/DASH auto quality), DRM (Widevine, ClearKey), and offline download. Replaced Android's MediaPlayer for complex media requirements. Media3 unifies ExoPlayer, MediaSession, and UI components under androidx.media3 namespace. Used for agent video tutorials, voice recording playback, and media-rich agent applications.",
+  "use_cases": [
+    "Agent tutorial video playback — Media3 ExoPlayer with PlayerView plays HLS agent onboarding videos with adaptive quality; MediaItem.fromUri(hlsUrl) with HlsMediaSource handles m3u8 playlists for agent tutorial streaming",
+    "Background agent audio playback — MediaSessionService with ExoPlayer enables agent podcast/audio playback to continue when user backgrounds app; MediaSession integration provides lock screen controls for agent audio content",
+    "Agent voice message playback — ExoPlayer.Builder(context).build(); player.setMediaItem(MediaItem.fromUri(voiceMessageUrl)); player.prepare(); player.play() plays agent voice responses with minimal boilerplate",
+    "Adaptive bitrate agent video — HLS DASH source with DefaultTrackSelector adjusts agent video quality automatically based on network conditions; no manual quality switching code required",
+    "Offline agent content — DownloadManager with DownloadService downloads agent video lessons for offline playback; DownloadHelper prepares HLS/DASH streams for offline caching"
+  ],
+  "not_for": [
+    "Simple audio playback — if playing a single MP3 file, MediaPlayer is simpler than ExoPlayer; ExoPlayer complexity justified for streaming, multiple sources, or advanced features in agent apps",
+    "Image display or GIF animation — ExoPlayer is audio/video only; use Glide or Coil for agent image loading including GIF",
+    "WebRTC or live streaming — ExoPlayer handles recorded content and HLS/DASH streams; for real-time WebRTC agent communication, use libwebrtc or Agora SDK"
+  ],
+  "best_when": "Your Android agent app needs video streaming (HLS/DASH), adaptive bitrate playback, background audio, or DRM-protected content — Media3 ExoPlayer is the production-grade solution for complex Android media.",
+  "avoid_when": "You only need simple audio file playback (use MediaPlayer), you're playing WebRTC streams, or you're building image-based content without audio/video.",
+  "alternatives": ["android-mediaplayer-api", "vlc-android-api", "ijkplayer-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["kotlin", "java"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — ExoPlayer loads media URLs. For authenticated media streams, use DefaultHttpDataSource.Factory with custom headers for agent CDN auth tokens. DRM uses Widevine license server credentials."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, Apache 2.0 licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "ExoPlayer/Media3 is Apache 2.0 licensed, maintained by Google/Android team. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 500,
+    "latency_p99_ms": 3000,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — playback startup latency depends on network and buffer size. HLS agent video typically starts in 1-3 seconds on 4G. Configure DefaultLoadControl buffer sizes for agent content type (low-latency vs quality priority).",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 82,
+    "error_message_notes": "ExoPlayer errors surface via Player.Listener.onPlayerError(PlaybackException). PlaybackException.errorCode identifies category (SOURCE, RENDERER, UNEXPECTED). getDebuggingString() provides detailed error chain. Common: ERROR_CODE_IO_NETWORK_CONNECTION_FAILED (network), ERROR_CODE_PARSING_CONTAINER_UNSUPPORTED (codec).",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Player state is sequential (IDLE → BUFFERING → READY → ENDED). prepare() is idempotent if called before READY state. seekTo() is idempotent for same position. Multiple prepare() calls on same MediaItem are safe.",
+    "pagination_style": "none",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "ExoPlayer must be created and accessed on main thread — all ExoPlayer methods are not thread-safe; creating player or calling play()/pause() from background thread causes IllegalStateException; use Looper.getMainLooper() for player creation in non-Activity contexts for agent background playback",
+      "release() must be called to free resources — ExoPlayer holds audio focus, surface, and codec resources; failing to call player.release() in onStop() or onDestroy() causes audio focus lock, surface leaks, and MediaCodec resource exhaustion on agent screens with video",
+      "Media3 namespace vs standalone ExoPlayer — legacy com.google.android.exoplayer2 and new androidx.media3.exoplayer are different artifacts; mixing imports from both causes ClassNotFoundException at runtime; migrate fully to Media3 for new agent projects; legacy ExoPlayer is deprecated",
+      "PlayerView must be attached before setPlayer — calling playerView.player = exoPlayer before playerView is laid out causes surface attachment failures and black screen; set player in onViewCreated or after layout inflation for agent video fragment; check playerView.isAttachedToWindow if uncertain",
+      "Background playback requires foreground service — Android 8+ kills background media playback without foreground service; agent audio apps need MediaSessionService implementation with notification to continue playback in background; PlaybackService extending MediaSessionService handles Android foreground service requirements",
+      "HLS token URLs expire during playback — for agent authenticated video streams with short-lived presigned URLs, tokens expire mid-playback causing ERROR_CODE_IO_NETWORK_CONNECTION_FAILED after initial buffering; use DefaultHttpDataSource.Factory with RequestHeaders provider that refreshes tokens; static URL approach fails for long agent video sessions"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 82,
+    "auth_complexity_score": 85,
+    "rate_limit_clarity_score": 92
+  },
+  "security_score_components": {
+    "tls_enforcement": 90,
+    "auth_strength": 82,
+    "scope_granularity": 80,
+    "dependency_hygiene": 88,
+    "secret_handling": 82,
+    "security_notes": "ExoPlayer downloads and caches media locally — cached agent video content may contain sensitive training data; use encrypted offline storage with DownloadManager configured with CacheDataSource.Factory pointing to encrypted cache directory. DRM (Widevine) provides content protection for premium agent video content."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 90,
+    "version_stability": 85,
+    "breaking_changes_history": 78,
+    "error_recovery": 85
+  }
+}

@@ -1,0 +1,106 @@
+{
+  "id": "moya-ios-api",
+  "name": "Moya",
+  "version_evaluated": "15.x",
+  "homepage": "https://github.com/Moya/Moya",
+  "repo_url": "https://github.com/Moya/Moya",
+  "category": "developer-tools",
+  "subcategories": ["networking", "swift", "ios", "api-client", "alamofire"],
+  "tags": ["swift", "ios", "networking", "rest", "api", "alamofire", "type-safe", "endpoint", "reactive"],
+  "what_it_does": "Network abstraction layer for Swift iOS/macOS built on top of Alamofire — provides type-safe API endpoint definitions using enums and protocol-based routing. Moya TargetType protocol: each API endpoint is an enum case with associated path, method, task (parameters), headers, and sampleData (for testing). MoyaProvider<AgentAPI> wraps Alamofire session and handles requests. Supports RxSwift (RxMoya), Combine (CombineMoya), and callback-based async. Plugin system for logging, auth token injection, activity indicators. Makes API calls testable by stubbing sampleData without network. Removes boilerplate of manual URLRequest construction.",
+  "use_cases": [
+    "Type-safe agent API client — enum AgentAPI: TargetType { case listAgents; case createAgent(params: [String: Any]); case getAgent(id: String) } defines all agent endpoints in one file with compile-time safety",
+    "Moya plugin for agent auth token injection — AccessTokenPlugin(tokenClosure: { _ in authToken }) automatically adds Authorization header to all agent API requests without manual header management in each call",
+    "Unit test agent networking without mock server — provider.stubbing(.immediate) with sampleData in TargetType returns fake agent API responses in tests; no network required for agent UI unit tests",
+    "Combine-based agent API calls — provider.requestPublisher(.listAgents).map(AgentListResponse.self).sink handles agent API responses in reactive Combine pipeline for agent SwiftUI views",
+    "Moya logging plugin for agent debug — NetworkLoggerPlugin(configuration: .init(logOptions: .verbose)) logs all agent API requests and responses to console; disable in production with conditional plugin registration"
+  ],
+  "not_for": [
+    "Simple single-endpoint apps — if your agent app only makes 1-2 API calls, Moya's TargetType protocol adds unnecessary structure; use URLSession or Alamofire directly for simple agent network calls",
+    "Non-Alamofire networking stacks — Moya is tightly coupled to Alamofire; for agent apps using URLSession directly or other networking libraries, build a thin wrapper without Moya overhead",
+    "REST APIs only — Moya handles REST well but GraphQL, WebSocket, or gRPC agent APIs need supplementary libraries or a different architecture"
+  ],
+  "best_when": "Your iOS agent app makes calls to multiple REST API endpoints and you want type-safe, testable, organized networking code — Moya's TargetType enum pattern makes API contracts explicit and mockable.",
+  "avoid_when": "You only make 1-2 API calls, you're using SwiftUI with async/await URLSession directly, or you need non-REST protocols (GraphQL, WebSocket).",
+  "alternatives": ["alamofire-api", "urlsession-api", "apollo-ios-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["swift"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["bearer_token", "api_key"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Moya auth via AccessTokenPlugin for Bearer tokens, or custom PluginType for API key injection. Token refresh requires custom plugin with Alamofire RequestInterceptor."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Moya is MIT licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 200,
+    "latency_p99_ms": 2000,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits in library. Network latency depends on agent API server and connection. Moya adds ~1ms overhead over raw Alamofire for request construction.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 82,
+    "error_message_quality": 80,
+    "error_message_notes": "Moya wraps errors in MoyaError enum: .statusCode (non-2xx), .jsonMapping (decode failure), .underlying (Alamofire/network error). Error handling via result closure or Combine sink(receiveCompletion:). Response.mapJSON() throws MoyaError.jsonMapping on invalid JSON.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "GET requests are idempotent. POST/PUT idempotency is developer responsibility. Moya's stub mode is deterministic — same sampleData returned for same endpoint.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "MoyaProvider must be retained strongly — MoyaProvider<AgentAPI>() as local variable gets deallocated before request completes; store provider as property on ViewModel/Controller; weak provider causes agent API calls to silently cancel mid-request",
+      "sampleData must be non-empty for stub mode — stubbing returns sampleData immediately; empty sampleData (Data()) causes MoyaError.jsonMapping when response is mapped; always provide realistic sample JSON in TargetType.sampleData for agent API test stubs",
+      "Token refresh with AccessTokenPlugin is not automatic — AccessTokenPlugin injects static token at request time; expired tokens require custom RequestInterceptor wrapping Alamofire session to handle 401 → refresh → retry flow; Moya does not handle token refresh automatically for agent auth",
+      "Reactive subscriptions need disposeBag retention — RxMoya: provider.rx.request(.listAgents).subscribe() disposable must be added to disposeBag; without disposeBag, subscription cancels immediately on method return; store disposeBag on ViewModel for agent reactive networking",
+      "multipart upload via .uploadMultipart task — file upload to agent API requires task: .uploadMultipart([MultipartFormData(...)]) not .requestParameters; using wrong task type for file uploads causes request to send without file body; check task enum carefully for agent document upload endpoints",
+      "Plugin order matters for auth + logging — plugins are called in array order; [NetworkLoggerPlugin(), AccessTokenPlugin(...)] logs before token injection (missing auth header in log); reverse order [AccessTokenPlugin(), NetworkLoggerPlugin()] logs actual request with auth header; order plugins intentionally for agent API debugging accuracy"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 82,
+    "error_handling_score": 80,
+    "auth_complexity_score": 82,
+    "rate_limit_clarity_score": 90
+  },
+  "security_score_components": {
+    "tls_enforcement": 88,
+    "auth_strength": 82,
+    "scope_granularity": 80,
+    "dependency_hygiene": 85,
+    "secret_handling": 82,
+    "security_notes": "Never hardcode agent API keys in TargetType headers; use Keychain or environment config. Moya's NetworkLoggerPlugin logs all request headers in debug builds — ensure it's disabled in production to prevent agent auth token exposure in logs. sampleData files should not contain real API credentials."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 82,
+    "version_stability": 80,
+    "breaking_changes_history": 78,
+    "error_recovery": 82
+  }
+}
