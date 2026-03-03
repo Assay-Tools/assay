@@ -1,0 +1,106 @@
+{
+  "id": "jax-python-api",
+  "name": "JAX",
+  "version_evaluated": "0.4.x",
+  "homepage": "https://jax.readthedocs.io/",
+  "repo_url": "https://github.com/google/jax",
+  "category": "ai-ml",
+  "subcategories": ["ml-framework", "gpu-computing", "python", "autograd", "jit"],
+  "tags": ["python", "jax", "autograd", "jit", "gpu", "tpu", "numpy", "ml", "google"],
+  "what_it_does": "High-performance ML research framework — NumPy-compatible array library with autograd, JIT compilation, and hardware acceleration. JAX features: jax.grad() for automatic differentiation, jax.jit() for XLA compilation (10-100x speedup), jax.vmap() for vectorization, jax.pmap() for multi-device parallelism, jax.numpy (jnp) NumPy-compatible API, functional programming model (pure functions required), random number via jax.random.PRNGKey (not stateful), and TPU/GPU/CPU backends. Preferred framework for ML research — neural network libraries Flax and Optax build on JAX. Used by Google DeepMind for research.",
+  "use_cases": [
+    "Agent JIT-compiled inference — @jax.jit; def forward(params, x): return jnp.dot(params['W'], x) + params['b']; jit_forward = jax.jit(forward); first call traces, subsequent calls run compiled XLA — agent inference 10-100x faster than pure NumPy",
+    "Agent gradient computation — grad_fn = jax.grad(loss_fn); grads = grad_fn(params, x, y) — automatic differentiation of agent loss function; jax.value_and_grad returns both loss and gradients in one call; agent optimization loops use jax.grad without manual backward passes",
+    "Agent vectorized batch processing — batched_fn = jax.vmap(single_sample_fn); results = batched_fn(batch) — vmap transforms single-sample function to batch function; agent processes batch without explicit batch dimension in code; automatic vectorization without loops",
+    "Agent multi-GPU training — @functools.partial(jax.pmap, axis_name='batch'); def train_step(params, batch): ... — pmap replicates function across GPU devices; agent training across 8 GPUs with gradient synchronization via jax.lax.pmean; linear scaling with device count",
+    "Agent functional state management — params, opt_state = train_step(params, opt_state, batch) — JAX pure function model requires explicit state threading; agent training loop passes all state as arguments and returns updated state; enables jit compilation of stateful training loops"
+  ],
+  "not_for": [
+    "Mutable state or side effects — JAX requires pure functions for jit; stateful agent patterns (global variables, in-place mutation) break jit; refactor to functional style first",
+    "Simple numpy scripts — JAX adds complexity (PRNGKey, pure functions, functional transforms) not worth it for simple scripts; use NumPy for non-ML computation",
+    "Production serving inference — use ONNX export or TensorFlow Serving; JAX is a research framework optimized for training not production inference APIs"
+  ],
+  "best_when": "Building custom ML models, implementing novel research algorithms, or running neural networks on TPUs — JAX's composable transforms (grad, jit, vmap, pmap) and XLA compilation provide unmatched flexibility for ML research and high-performance agent model training.",
+  "avoid_when": "You need mutable state, are building production serving infrastructure, or prefer an eager-by-default framework (use PyTorch instead).",
+  "alternatives": ["torch-api", "tensorflow-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — local computation library. TPU usage via Google Cloud requires GCP auth."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, Apache 2.0 licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "JAX is Apache 2.0 licensed by Google. TPU access requires GCP account (separate cost). GPU hardware costs are user's own."
+  },
+  "performance": {
+    "latency_p50_ms": 1,
+    "latency_p99_ms": 50,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — local computation. jit compilation on first call adds 1-30 seconds; subsequent calls use compiled XLA code. vmap removes Python loops. pmap scales linearly with GPU count.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 80,
+    "error_message_quality": 72,
+    "error_message_notes": "TracingError when side effects inside jit (print, mutation). UnexpectedTracerError for leaked tracers from jit scope. ConcretizationTypeError for control flow on jit-traced values. XLA compilation errors are cryptic C++ stack traces. Shape errors show as jax.errors.UnexpectedTracerError.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Pure functions with explicit PRNGKey are deterministic. jit-compiled functions produce identical outputs for same inputs. Random functions require explicit key splitting — jax.random.split(key) — to avoid reusing same random state.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Pure functions required for jit — jax.jit requires no side effects (no print, no global mutation, no I/O) inside jitted functions; agent code with logging or mutable state inside @jax.jit silently fails or raises TracingError; move side effects outside jit boundary and use jax.debug.print() for debug output inside jit",
+      "PRNGKey must be explicit and split — jax.random.normal(key, shape) requires explicit PRNG key; reusing same key generates same 'random' numbers; agent code must split keys: key, subkey = jax.random.split(key); never pass same key to multiple random calls in agent loops",
+      "Python control flow on traced values fails — if x > 0: inside @jax.jit where x is a JAX array raises ConcretizationTypeError; agent conditional logic must use jax.lax.cond(condition, true_fn, false_fn) or jnp.where for branching inside jit-compiled agent functions",
+      "Install jax[cuda12] not jax — pip install jax installs CPU-only version; agent GPU code requires pip install jax[cuda12_pip] -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html; wrong install silently runs on CPU 100x slower than GPU",
+      "jit retraces on new shapes — @jax.jit recompiles when array shapes change; agent code processing variable-length sequences gets recompiled every time shape changes; pad sequences to fixed length or use jax.jit(fn, static_argnums=(0,)) to mark shape arguments as static",
+      "Gradient checkpointing needed for long sequences — jax.grad traces full computation graph and stores intermediates; agent models with long context windows OOM during backward pass; use jax.checkpoint (jax.remat) to recompute intermediates during backward pass instead of storing them"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 78,
+    "error_handling_score": 68,
+    "auth_complexity_score": 98,
+    "rate_limit_clarity_score": 98
+  },
+  "security_score_components": {
+    "tls_enforcement": 92,
+    "auth_strength": 92,
+    "scope_granularity": 88,
+    "dependency_hygiene": 85,
+    "secret_handling": 92,
+    "security_notes": "Local computation — no network access during inference. XLA compilation runs locally. No data exfiltration risk. TPU usage via GCP requires standard GCP IAM security practices."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 80,
+    "version_stability": 72,
+    "breaking_changes_history": 68,
+    "error_recovery": 75
+  }
+}

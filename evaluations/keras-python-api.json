@@ -1,0 +1,106 @@
+{
+  "id": "keras-python-api",
+  "name": "Keras",
+  "version_evaluated": "3.x",
+  "homepage": "https://keras.io/",
+  "repo_url": "https://github.com/keras-team/keras",
+  "category": "ai-ml",
+  "subcategories": ["ml-framework", "deep-learning", "python", "neural-networks"],
+  "tags": ["python", "keras", "deep-learning", "neural-networks", "tensorflow", "jax", "pytorch", "multi-backend"],
+  "what_it_does": "High-level deep learning API — builds and trains neural networks with a clean, consistent interface. Keras 3 features: multi-backend support (TensorFlow, JAX, PyTorch — switch with KERAS_BACKEND env var), Sequential and Functional model APIs, Model subclassing, built-in layers (Dense, Conv2D, LSTM, Transformer, MultiHeadAttention), compile/fit/evaluate/predict workflow, callbacks (ModelCheckpoint, EarlyStopping, TensorBoard), preprocessing layers, KerasHub pretrained models, and keras.ops for backend-agnostic operations. Keras 2 was TensorFlow-only; Keras 3 runs on any backend. Designed for accessibility with maximum developer productivity.",
+  "use_cases": [
+    "Agent neural network training — model = keras.Sequential([keras.layers.Dense(128, activation='relu'), keras.layers.Dense(10, activation='softmax')]); model.compile(optimizer='adam', loss='categorical_crossentropy'); model.fit(X_train, y_train, epochs=10) — agent classifier trained in 5 lines",
+    "Agent transfer learning — base = keras.applications.EfficientNetV2B0(include_top=False, weights='imagenet'); x = base.output; output = keras.layers.Dense(num_classes, activation='softmax')(x); model = keras.Model(base.input, output) — agent fine-tunes pretrained vision model on custom dataset",
+    "Agent custom training loop — @keras.saving.register_keras_serializable(); class AgentModel(keras.Model): def train_step(self, data): ... — override train_step for custom agent training with GAN losses, contrastive learning, or multi-task objectives while keeping model.fit() API",
+    "Agent multi-backend deployment — KERAS_BACKEND=jax python agent_train.py trains on JAX backend for TPUs; KERAS_BACKEND=torch python agent_infer.py runs same model on PyTorch for production serving; same Keras model code runs on any backend without modification",
+    "Agent callback-driven training — model.fit(X, y, callbacks=[keras.callbacks.EarlyStopping(patience=5), keras.callbacks.ModelCheckpoint('best_agent.keras'), keras.callbacks.ReduceLROnPlateau()]) — agent training auto-stops on plateau, saves best checkpoint, reduces LR adaptively"
+  ],
+  "not_for": [
+    "Low-level GPU kernel development — use CuPy or CUDA C directly; Keras operates at layer/model level",
+    "Custom autograd beyond standard backprop — use JAX or PyTorch for novel gradient algorithms; Keras compile/fit assumes standard backprop",
+    "Ultra-performance inference serving — use ONNX, TensorRT, or torch.compile for production serving optimization; Keras is for model development not serving optimization"
+  ],
+  "best_when": "Building and training deep learning models quickly with clean API — Keras is ideal for agent ML tasks needing rapid experimentation, transfer learning from pretrained models, and readable model code that works across TensorFlow/JAX/PyTorch backends.",
+  "avoid_when": "You need highly custom training loops beyond train_step override, production-optimized inference, or are doing ML research that requires framework-level customization.",
+  "alternatives": ["torch-api", "tensorflow-api", "jax-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — local ML library. KerasHub pretrained model downloads from HuggingFace Hub may require HF token for gated models."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, Apache 2.0 licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Keras is Apache 2.0 licensed. Backend (TensorFlow/JAX/PyTorch) must be separately installed. No API costs — runs locally."
+  },
+  "performance": {
+    "latency_p50_ms": 10,
+    "latency_p99_ms": 100,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — local ML training. Performance depends on backend and hardware. JAX backend often fastest for training via XLA. PyTorch backend good for production inference. CPU training 10-100x slower than GPU.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 83,
+    "error_message_quality": 80,
+    "error_message_notes": "ValueError for shape mismatches in layer outputs. AttributeError if mixing Keras 2 and Keras 3 APIs. Backend-specific errors bubble up from TF/JAX/PyTorch. ModelCheckpoint saves .keras format in Keras 3 (not .h5 of Keras 2). Import errors if backend not installed.",
+    "idempotency_support": "full",
+    "idempotency_notes": "model.predict() is deterministic for same input and weights. Training is stochastic — use keras.utils.set_random_seed(42) for reproducibility. ModelCheckpoint saves exact weights for resumable training.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "KERAS_BACKEND must be set before import — import keras triggers backend selection; setting os.environ['KERAS_BACKEND'] = 'jax' after import keras has no effect; agent code must set backend via environment variable or keras.config.set_backend() before first keras import; wrong order causes silent fallback to default backend",
+      "Keras 3 saves .keras not .h5 — model.save('model.h5') in Keras 3 raises warning and saves .keras format anyway; agent code loading Keras 2 .h5 checkpoints with Keras 3 may fail; use model.save('model.keras') and keras.saving.load_model('model.keras') in Keras 3",
+      "model.fit() validation_split shuffles data — model.fit(X, y, validation_split=0.2) takes last 20% as validation before shuffling; agent time-series models with sequential data get data leakage; use validation_data=(X_val, y_val) with explicit pre-split data for agent time-series training",
+      "Layer input_shape vs input are different — keras.layers.Dense(64, input_shape=(128,)) is Keras 2 style; Keras 3 prefers explicit Input layer: inputs = keras.Input(shape=(128,)); x = keras.layers.Dense(64)(inputs); agent code mixing styles causes shape inference warnings or errors",
+      "compile() metrics must match task — model.compile(metrics=['accuracy']) on regression task computes accuracy on continuous values meaninglessly; agent regression models must use metrics=['mae', 'mse']; mismatched metrics don't error but produce misleading training output",
+      "Callbacks reference model via self.model — custom callback def on_epoch_end(self, epoch, logs): self.model.get_layer('output').weights — self.model is set by model.fit(); agent custom callbacks accessing model before fit completes get None; don't access self.model in __init__ of callback"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 78,
+    "auth_complexity_score": 98,
+    "rate_limit_clarity_score": 98
+  },
+  "security_score_components": {
+    "tls_enforcement": 90,
+    "auth_strength": 90,
+    "scope_granularity": 85,
+    "dependency_hygiene": 82,
+    "secret_handling": 90,
+    "security_notes": "Local ML library — no network access during training. Pretrained model downloads from HuggingFace verified via checksums. Model files (.keras) are zip archives of weights and config — verify source before loading agent models from untrusted sources."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 82,
+    "version_stability": 75,
+    "breaking_changes_history": 68,
+    "error_recovery": 80
+  }
+}

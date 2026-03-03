@@ -1,0 +1,106 @@
+{
+  "id": "cupy-python-api",
+  "name": "CuPy",
+  "version_evaluated": "13.x",
+  "homepage": "https://cupy.dev/",
+  "repo_url": "https://github.com/cupy/cupy",
+  "category": "ai-ml",
+  "subcategories": ["gpu-computing", "numerical", "python", "cuda", "numpy"],
+  "tags": ["python", "cupy", "gpu", "cuda", "numpy", "numerical", "scientific-computing", "rocm"],
+  "what_it_does": "GPU-accelerated NumPy/SciPy drop-in replacement — runs array operations on NVIDIA CUDA or AMD ROCm GPUs. CuPy features: numpy-compatible API (cp.array, cp.dot, cp.fft), cupy.ndarray on GPU memory, cp.asnumpy() / cp.asarray() for CPU↔GPU transfer, element-wise custom kernels (cp.ElementwiseKernel), reduction kernels, cupy.RawKernel for CUDA C, sparse matrix support (cupyx.scipy.sparse), linear algebra (cupyx.scipy.linalg), and DLPack interop with PyTorch/JAX. 10-100x speedup over NumPy for large arrays on GPU. Used for signal processing, image processing, and scientific computing without PyTorch/TensorFlow overhead.",
+  "use_cases": [
+    "Agent GPU array computation — import cupy as cp; x = cp.array([1, 2, 3]); result = cp.fft.fft(x) — FFT on GPU 50x faster than NumPy; agent signal processing runs in milliseconds not seconds; cp.asnumpy(result) converts back to CPU for downstream processing",
+    "Agent large matrix operations — A = cp.random.randn(10000, 10000); B = cp.random.randn(10000, 1000); C = cp.dot(A, B) — GPU matrix multiply of 10K×10K matrix; agent numerical computations on large datasets run on GPU without PyTorch dependency",
+    "Agent custom CUDA kernel — kernel = cp.ElementwiseKernel('float32 x, float32 y', 'float32 z', 'z = x * x + y'); agent applies element-wise custom math to GPU arrays; ElementwiseKernel compiles once and reuses across calls",
+    "Agent sparse GPU computation — from cupyx.scipy.sparse import csr_matrix; sparse_gpu = csr_matrix(cpu_sparse); result = sparse_gpu.dot(vector_gpu) — agent graph or embedding operations on sparse GPU matrices; cupyx.scipy.sparse mirrors scipy.sparse API",
+    "Agent PyTorch interop — cp_array = cp.asarray(torch_tensor) — zero-copy conversion via DLPack; agent pipelines mixing CuPy preprocessing with PyTorch inference avoid CPU round-trips; torch.as_tensor(cp_array) converts back to PyTorch tensor on same GPU"
+  ],
+  "not_for": [
+    "CPU-only machines — CuPy requires NVIDIA CUDA or AMD ROCm GPU; no CPU fallback; agent deployments without GPU cannot use CuPy",
+    "General ML model training — use PyTorch or JAX for neural networks; CuPy is for array/numerical computation not autograd",
+    "Small arrays — GPU transfer overhead makes CuPy slower than NumPy for small arrays (<10K elements); only beneficial at scale"
+  ],
+  "best_when": "Your agent needs GPU-accelerated numerical computation (FFT, linear algebra, signal processing) without full PyTorch/TensorFlow framework overhead — CuPy provides a near-identical NumPy API running on GPU.",
+  "avoid_when": "You don't have a CUDA/ROCm GPU, your arrays are small, or you need neural network autograd (use PyTorch instead).",
+  "alternatives": ["numpy-api", "torch-api", "jax-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — local GPU library."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "CuPy is MIT licensed. Requires NVIDIA CUDA toolkit (free) or ROCm (free). GPU hardware required."
+  },
+  "performance": {
+    "latency_p50_ms": 1,
+    "latency_p99_ms": 10,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — local GPU computation. 10-100x faster than NumPy for large arrays. GPU memory is the limiting factor — monitor with cp.cuda.Device().mem_info. First operation triggers JIT compilation — warm up before benchmarking.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 82,
+    "error_message_quality": 78,
+    "error_message_notes": "cupy.cuda.runtime.CUDARuntimeError for GPU errors. OutOfMemoryError when GPU VRAM exhausted. ImportError if CUDA toolkit version mismatches CuPy wheel. ValueError for shape mismatches mirroring NumPy errors.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Deterministic for same inputs. Random operations use cp.random.seed() for reproducibility. GPU floating point may differ slightly from CPU NumPy due to FMA operations.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Install cupy-cuda12x not cupy — pip install cupy installs base without CUDA bindings; agent CI must install cupy-cuda11x, cupy-cuda12x, or cupy-rocm-5-0 matching GPU driver; wrong wheel causes ImportError: cannot import name 'ndarray' from 'cupy'",
+      "GPU memory not freed automatically — cupy arrays live on GPU until garbage collected; agent loops creating many cp.arrays without del or cp.get_default_memory_pool().free_all_blocks() cause GPU OOM; use mempool.free_all_blocks() between agent tasks",
+      "cp.asnumpy() is synchronous transfer — converting GPU array to NumPy blocks until GPU computation completes; agent pipelines doing cp.asnumpy() after every operation lose GPU parallelism; batch GPU ops then single asnumpy() at pipeline end",
+      "CuPy version must match CUDA toolkit exactly — cupy-cuda12x requires CUDA 12.x; agent Docker images with CUDA 11 cannot use cupy-cuda12x wheel; pin both CuPy version and CUDA base image version in agent Dockerfiles",
+      "Multi-GPU requires explicit device context — cp.cuda.Device(1).use() switches GPU; without it all agent operations default to GPU 0; agent multi-GPU code must use 'with cp.cuda.Device(n):' context manager to isolate operations per GPU",
+      "First kernel call triggers JIT compilation — first cp.ElementwiseKernel call compiles CUDA C and takes seconds; agent benchmarks without warmup show misleadingly slow first-call times; always warm up kernels with dummy call before benchmarking agent workloads"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 82,
+    "error_handling_score": 75,
+    "auth_complexity_score": 98,
+    "rate_limit_clarity_score": 98
+  },
+  "security_score_components": {
+    "tls_enforcement": 92,
+    "auth_strength": 92,
+    "scope_granularity": 88,
+    "dependency_hygiene": 82,
+    "secret_handling": 90,
+    "security_notes": "Local GPU computation — no network access, no data exfiltration risk. CUDA kernel compilation runs locally. Ensure cupy wheel comes from PyPI (not unofficial sources) for supply chain safety."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 82,
+    "version_stability": 80,
+    "breaking_changes_history": 78,
+    "error_recovery": 80
+  }
+}
