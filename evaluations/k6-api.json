@@ -1,66 +1,66 @@
 {
   "id": "k6-api",
   "name": "k6",
-  "version_evaluated": "current",
-  "homepage": "https://k6.io",
+  "version_evaluated": "0.50+",
+  "homepage": "https://k6.io/docs/",
   "repo_url": "https://github.com/grafana/k6",
   "category": "developer-tools",
-  "subcategories": ["load-testing"],
-  "tags": ["load-testing", "performance", "javascript", "k6", "grafana"],
-  "what_it_does": "JavaScript-scripted load testing tool using a virtual user (VU) model with scenarios, thresholds, and Grafana Cloud integration for performance benchmarking.",
+  "subcategories": ["performance-testing", "load-testing", "testing"],
+  "tags": ["load-testing", "performance-testing", "javascript", "grafana", "k6", "http", "websockets", "metrics"],
+  "what_it_does": "Modern load testing tool written in Go with JavaScript test scripts. Write test scenarios in JavaScript (TypeScript supported), run them against HTTP endpoints, WebSockets, or gRPC services. Outputs performance metrics (response times, throughput, error rates) to stdout, Grafana Cloud, InfluxDB, or Prometheus. Used for performance benchmarking agent APIs and LLM endpoints.",
   "use_cases": [
-    "Write load test scripts in ES6 JavaScript to simulate user flows against HTTP APIs and measure latency, error rate, and throughput",
-    "Define scenarios with multiple executors (constant-vus, ramping-vus, constant-arrival-rate) to model ramp-up, sustained load, and spike patterns",
-    "Set thresholds (e.g., http_req_duration p(95)<500) that cause the test to fail automatically when performance SLOs are breached",
-    "Use k6 Cloud for distributed load generation from multiple geographic regions without managing infrastructure",
-    "Extend tests with xk6 extensions (e.g., xk6-browser for browser-based load, xk6-kafka for message queue testing)"
+    "Load test agent HTTP API endpoints to measure throughput, latency percentiles, and error rates under realistic concurrent load",
+    "Performance benchmark LLM API response times under simulated multi-user agent workloads",
+    "Verify agent service SLOs under load with k6 thresholds that fail if response times or error rates exceed limits",
+    "Stress test agent WebSocket connections and streaming endpoints at scale",
+    "Integrate performance tests into agent CI/CD pipelines with k6 cloud or local execution with pass/fail thresholds"
   ],
   "not_for": [
-    "Unit or functional correctness testing — k6 measures performance, not behavioral correctness",
-    "Full browser E2E test suites — xk6-browser exists but k6's strength is protocol-level HTTP load generation",
-    "Python or non-JavaScript scripting environments where Locust offers a more natural workflow"
+    "Functional E2E browser testing — use Playwright or Cypress for browser-based functional testing",
+    "Protocol testing beyond HTTP/WebSocket/gRPC — k6 is focused on these protocols",
+    "Very high-scale distributed load testing without k6 Cloud — single-machine k6 has memory limits; k6 Cloud distributes load"
   ],
-  "best_when": "Benchmarking HTTP API performance under load with declarative thresholds and CI-friendly pass/fail outcomes.",
-  "avoid_when": "You need to validate business logic correctness or need a Python-native load testing workflow.",
-  "alternatives": ["locust-api", "artillery-api"],
+  "best_when": "You need to performance test HTTP APIs, agent backends, or LLM endpoints with realistic concurrent load and metrics integration with Grafana/Prometheus.",
+  "avoid_when": "You need browser-based load testing or multi-protocol support — use Locust for Python-native load tests or Gatling for JVM-based testing.",
+  "alternatives": ["locust-api", "artillery-io-api", "gatling-api", "jmeter-api"],
   "interface": {
-    "has_rest_api": false,
+    "has_rest_api": true,
     "has_graphql": false,
-    "has_grpc": true,
+    "has_grpc": false,
     "has_mcp_server": false,
     "mcp_server_url": null,
     "has_sdk": true,
-    "sdk_languages": ["javascript"],
+    "sdk_languages": ["node"],
     "openapi_spec_url": null,
     "webhooks": false
   },
   "auth": {
-    "methods": ["none"],
+    "methods": ["api_key"],
     "oauth": false,
     "scopes": false,
-    "notes": "Local tool — no auth needed. k6 Cloud uses API token authentication for distributed runs."
+    "notes": "k6 Cloud requires API token. Local k6 execution is free with no auth. k6 extension ecosystem for cloud backends."
   },
   "pricing": {
     "model": "open_source",
     "free_tier_exists": true,
-    "free_tier_limits": "Unlimited local runs; k6 Cloud free tier has limited VUh per month",
-    "paid_tiers": "k6 Cloud paid tiers for higher VUh, longer tests, and team features",
+    "free_tier_limits": "Open source k6 CLI: free, unlimited local tests. k6 Cloud: 50 cloud test minutes/month free",
+    "paid_tiers": "k6 Cloud from $49/month for additional cloud minutes and distributed load",
     "requires_credit_card": false,
-    "notes": "Open source (AGPL-3.0). k6 Cloud (Grafana Cloud k6) is separately priced."
+    "notes": "Apache 2.0 license for k6 CLI. k6 Cloud is Grafana Labs' managed service for distributed load testing."
   },
   "performance": {
     "latency_p50_ms": null,
     "latency_p99_ms": null,
-    "uptime_sla_percent": null,
-    "rate_limits": "None (local tool)",
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "Local: limited by machine resources (handles 100K+ VUs on large machines). k6 Cloud: per plan.",
     "data_source": "llm_estimated"
   },
   "requirements": {
     "requires_signup": false,
     "requires_credit_card": false,
     "domain_verification": false,
-    "data_residency": ["self_hosted"],
-    "compliance": [],
+    "data_residency": ["local", "US", "EU"],
+    "compliance": ["SOC2"],
     "min_contract": "none"
   },
   "agent_readiness": {
@@ -68,38 +68,39 @@
     "mcp_security_score": null,
     "documentation_accuracy": 90,
     "error_message_quality": 85,
-    "error_message_notes": "k6 outputs structured end-of-test summaries with metric values and threshold results; script errors include line numbers from the JS source.",
+    "error_message_notes": "Threshold failures clearly identify which metric exceeded the limit. HTTP error responses are captured in metrics. Script errors (JavaScript exceptions) stop the test with clear messages.",
     "idempotency_support": "full",
-    "idempotency_notes": "Load tests are repeatable when the target system is in a consistent state; results will vary with system load and network conditions.",
+    "idempotency_notes": "Load test scripts are declarative — same script produces reproducible load patterns. Each VU iteration is independent.",
     "pagination_style": "none",
-    "retry_guidance_documented": false,
+    "retry_guidance_documented": true,
     "known_agent_gotchas": [
-      "k6 runs scripts in a custom JS runtime (Goja), NOT Node.js — npm packages that use Node.js built-ins (fs, path, crypto) or CommonJS require() will fail; only ES6 modules and k6 built-ins are available",
-      "The default function must export a function, not an async function — k6 handles async via its own event loop; using async/await in the default function body requires the experimental async support flag",
-      "VU code runs in parallel across virtual users, but init code (top-level module scope) runs once per VU — agents must not place shared state mutations in init code expecting them to be visible across VUs",
-      "Thresholds are evaluated at the end of the test by default — a threshold breach does not stop the test mid-run unless abortOnFail: true is set in the threshold config",
-      "check() in k6 does not throw on failure and does not stop test execution — it records a pass/fail metric; agents must combine checks with thresholds to make test failures visible in CI output"
+      "k6 uses a custom JavaScript runtime (goja, not Node.js) — many Node.js APIs (fs, process.env, require) are unavailable in k6 scripts; use k6 modules (k6/http, k6/metrics) instead",
+      "Virtual Users (VUs) are goroutines, not processes — each VU runs the same script concurrently; shared state between VUs requires k6's SharedArray for efficient data sharing",
+      "k6 metrics are summarized after the test — real-time streaming requires k6 cloud or an output destination (influxdb, prometheus); local stdout only shows end-of-test summary",
+      "HTTP keep-alive is enabled by default — connections are reused between requests which is realistic for most APIs but may not represent stateless API call patterns",
+      "k6 thresholds abort the test if exceeded only when abortOnFail: true is set — by default thresholds mark the test as failed but don't stop execution early",
+      "sleep() calls are required in VU scripts to simulate realistic user think time — without sleep(), k6 hammers the endpoint as fast as possible which may not reflect realistic usage"
     ]
   },
   "af_score_components": {
     "mcp_score": 0,
     "api_doc_score": 90,
     "error_handling_score": 85,
-    "auth_complexity_score": 100,
-    "rate_limit_clarity_score": 100
+    "auth_complexity_score": 90,
+    "rate_limit_clarity_score": 88
   },
   "security_score_components": {
-    "tls_enforcement": 0,
-    "auth_strength": 0,
-    "scope_granularity": 0,
-    "dependency_hygiene": 83,
-    "secret_handling": 80,
-    "security_notes": "Auth tokens for load-tested services should be passed via __ENV variables; k6 scripts committed to version control must not contain hardcoded credentials."
+    "tls_enforcement": 95,
+    "auth_strength": 85,
+    "scope_granularity": 82,
+    "dependency_hygiene": 90,
+    "secret_handling": 85,
+    "security_notes": "Load testing tool that generates high traffic — only run against systems you own or have permission to test. k6 Cloud results may contain sensitive response data — review data retention policy."
   },
   "reliability_score_components": {
-    "uptime_documented": 0,
-    "version_stability": 85,
-    "breaking_changes_history": 82,
-    "error_recovery": 83
+    "uptime_documented": 90,
+    "version_stability": 88,
+    "breaking_changes_history": 85,
+    "error_recovery": 88
   }
 }

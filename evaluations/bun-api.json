@@ -2,35 +2,35 @@
   "id": "bun-api",
   "name": "Bun",
   "version_evaluated": "1.x",
-  "homepage": "https://bun.sh",
+  "homepage": "https://bun.sh/docs",
   "repo_url": "https://github.com/oven-sh/bun",
   "category": "developer-tools",
-  "subcategories": ["runtime", "javascript", "bundler", "package-manager"],
-  "tags": ["bun", "javascript", "typescript", "runtime", "fast", "bundler", "test-runner", "npm-compatible"],
-  "what_it_does": "All-in-one JavaScript toolkit that replaces Node.js, npm, Webpack, and Jest — featuring a fast runtime, bundler, package manager, and test runner in a single binary.",
+  "subcategories": ["runtime", "javascript", "package-manager", "bundler"],
+  "tags": ["javascript", "typescript", "runtime", "bundler", "package-manager", "fast", "zig", "node-compatible", "hot"],
+  "what_it_does": "All-in-one JavaScript runtime, package manager, bundler, and test runner built with Zig. Aims to be a faster Node.js drop-in replacement with native TypeScript support, JSX transpilation, and Node.js API compatibility. bun install is 10-25x faster than npm. Includes a built-in HTTP server, SQLite client, test runner, and .env loader. An emerging alternative to the Node.js ecosystem.",
   "use_cases": [
-    "Speed up agent CI pipelines by replacing npm install + ts-node with bun install + bun run for 10-20x faster cold starts",
-    "Run agent HTTP servers using Bun.serve() with built-in WebSocket support for streaming agent responses",
-    "Bundle agent tool distributions as optimized single-file ESM outputs using bun build with tree-shaking",
-    "Execute agent test suites using bun test with Jest-compatible matchers and near-instant startup",
-    "Use Bun's SQLite driver (bun:sqlite) for zero-dependency local agent state storage without installing better-sqlite3"
+    "Run TypeScript agent scripts without a separate transpilation step using Bun's native TS execution",
+    "Speed up agent project setup and CI dependency installation with bun install (10-25x faster than npm)",
+    "Build small, fast agent microservices using Bun's built-in HTTP server (Bun.serve()) without Express overhead",
+    "Execute agent build pipelines faster using Bun as a bundler with fast JSX/TS transforms",
+    "Use Bun's built-in SQLite client for agent data persistence without additional npm packages"
   ],
   "not_for": [
-    "Production Linux ARM64 environments where Bun's binary compatibility is still maturing",
-    "Teams requiring full Node.js native addon (.node files) support — many do not work with Bun's JavaScriptCore engine",
-    "Projects depending on Node.js worker_threads at scale, where Bun's threading model differs from Node's"
+    "Production systems requiring battle-tested Node.js compatibility — Bun's Node.js compatibility is good but not 100%; some packages may fail",
+    "Enterprise environments requiring LTS stability — Bun is still v1 with active breaking changes; Node.js has predictable LTS cycles",
+    "Complex native addon (N-API) packages — native addons are Node.js specific and may not work with Bun"
   ],
-  "best_when": "You want the fastest possible JS/TS execution for agent scripts and are willing to accept occasional Node.js API compatibility gaps.",
-  "avoid_when": "Your agent toolchain relies on packages that use Node.js-specific native bindings (node-gyp compiled modules) without ESM fallbacks.",
-  "alternatives": ["deno-api", "nodejs-api"],
+  "best_when": "You want faster local development, faster CI installs, and are building new TypeScript-first agents where Node.js compatibility isn't a hard requirement.",
+  "avoid_when": "You need guaranteed Node.js compatibility or are using native addons — stick with Node.js for production stability until Bun's compatibility matures.",
+  "alternatives": ["node-api", "deno-api", "nx-api"],
   "interface": {
     "has_rest_api": false,
     "has_graphql": false,
     "has_grpc": false,
     "has_mcp_server": false,
     "mcp_server_url": null,
-    "has_sdk": false,
-    "sdk_languages": [],
+    "has_sdk": true,
+    "sdk_languages": ["node", "browser"],
     "openapi_spec_url": null,
     "webhooks": false
   },
@@ -38,68 +38,69 @@
     "methods": ["none"],
     "oauth": false,
     "scopes": false,
-    "notes": "No auth required for local CLI use. No managed cloud platform requiring credentials."
+    "notes": "Local runtime — no authentication required. bun install uses public npm registry by default."
   },
   "pricing": {
     "model": "open_source",
     "free_tier_exists": true,
-    "free_tier_limits": "Unlimited",
-    "paid_tiers": "none",
+    "free_tier_limits": "MIT licensed, completely free",
+    "paid_tiers": "None",
     "requires_credit_card": false,
-    "notes": "MIT-licensed open source. No hosted service or paid tier exists as of 2024."
+    "notes": "MIT license. Developed by Oven SH, Inc. Funded by venture capital."
   },
   "performance": {
     "latency_p50_ms": null,
     "latency_p99_ms": null,
     "uptime_sla_percent": null,
-    "rate_limits": "Self-hosted",
-    "data_source": "self_hosted"
+    "rate_limits": "No rate limits. Runtime startup: ~2-3ms vs Node.js ~50ms. HTTP server: ~3x faster than Node.js Fastify in benchmarks.",
+    "data_source": "llm_estimated"
   },
   "requirements": {
     "requires_signup": false,
     "requires_credit_card": false,
     "domain_verification": false,
-    "data_residency": ["self_hosted"],
+    "data_residency": ["local"],
     "compliance": [],
     "min_contract": "none"
   },
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
-    "documentation_accuracy": 85,
-    "error_message_quality": 84,
-    "error_message_notes": "Error messages include line numbers and stack traces; module resolution failures occasionally show cryptic JSC engine messages",
+    "documentation_accuracy": 82,
+    "error_message_quality": 82,
+    "error_message_notes": "Runtime errors include stack traces and source positions. TypeScript errors surface as JavaScript errors without type information at runtime. Bundler errors are clear with file paths.",
     "idempotency_support": "full",
-    "idempotency_notes": "Script execution is stateless and idempotent by nature; bun:sqlite supports transactions for atomic writes",
+    "idempotency_notes": "Runtime is deterministic. bun install is reproducible with a lockfile.",
     "pagination_style": "none",
     "retry_guidance_documented": false,
     "known_agent_gotchas": [
-      "Node.js compatibility is ~95% but gaps in vm, cluster, and some crypto APIs can cause silent fallbacks that produce wrong results",
-      "bun install creates a bun.lockb binary lockfile — agents that parse lockfiles for dependency analysis need bun-specific parsers",
-      "Bun's JavaScriptCore engine handles some edge-case JS semantics differently from V8, causing subtle bugs in code relying on V8 quirks",
-      "bun compile produces platform-specific binaries — agent build pipelines must target each OS separately",
-      "Hot reload (--hot flag) can leave stale module state in memory between reloads, causing agent tools to behave inconsistently during development"
+      "Bun's Node.js compatibility is ~95% but not 100% — packages using undocumented Node.js internals, native .node addons, or certain vm module features may fail; always test dependencies before adopting Bun",
+      "Bun uses its own lockfile format (bun.lockb binary) — not interchangeable with package-lock.json or yarn.lock; teams must commit to Bun's lockfile",
+      "Bun.serve() has a different API than Node.js http.createServer() or Express — not a drop-in replacement; agent HTTP code must be adapted",
+      "Windows support is still evolving — some features (Shell API, file watchers) may behave differently on Windows vs. macOS/Linux; test cross-platform agent code explicitly",
+      "Bun's hot reload (--hot flag) reloads the entire module graph — it's not the same as HMR; state is lost on reload; agent processes with stateful memory must handle reload gracefully",
+      "bun:sqlite (built-in SQLite) has a different API than better-sqlite3 — code written for better-sqlite3 requires adaptation; the APIs are similar but not identical"
     ]
   },
   "af_score_components": {
     "mcp_score": 0,
-    "api_doc_score": 85,
-    "error_handling_score": 84,
-    "auth_complexity_score": 98,
-    "rate_limit_clarity_score": 95
+    "api_doc_score": 82,
+    "error_handling_score": 82,
+    "auth_complexity_score": 100,
+    "rate_limit_clarity_score": 100
   },
   "security_score_components": {
-    "tls_enforcement": 88,
-    "auth_strength": 80,
-    "scope_granularity": 72,
-    "dependency_hygiene": 84,
-    "secret_handling": 82,
-    "security_notes": "No built-in permission model like Deno — Bun runs with full process permissions by default. Relies on OS-level sandboxing for isolation."
+    "tls_enforcement": 95,
+    "auth_strength": 95,
+    "scope_granularity": 95,
+    "dependency_hygiene": 82,
+    "secret_handling": 88,
+    "security_notes": "Newer runtime with shorter security track record than Node.js. .env auto-loading simplifies secret management. Dependency scanning tools may have partial Bun support."
   },
   "reliability_score_components": {
-    "uptime_documented": 72,
-    "version_stability": 80,
-    "breaking_changes_history": 75,
+    "uptime_documented": 85,
+    "version_stability": 78,
+    "breaking_changes_history": 70,
     "error_recovery": 82
   }
 }

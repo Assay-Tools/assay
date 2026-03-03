@@ -1,28 +1,28 @@
 {
   "id": "esbuild-api",
   "name": "esbuild",
-  "version_evaluated": "current",
-  "homepage": "https://esbuild.github.io",
+  "version_evaluated": "0.21+",
+  "homepage": "https://esbuild.github.io/",
   "repo_url": "https://github.com/evanw/esbuild",
   "category": "developer-tools",
-  "subcategories": ["build-tool", "bundler"],
-  "tags": ["javascript", "typescript", "bundler", "build", "go", "transpiler"],
-  "what_it_does": "Extremely fast JavaScript and TypeScript bundler and minifier written in Go, offering 10–100x speed improvements over webpack or Rollup for bundling and transpilation tasks.",
+  "subcategories": ["build-tools", "bundler", "javascript", "typescript"],
+  "tags": ["javascript", "typescript", "bundler", "compiler", "fast", "go", "tree-shaking", "minification", "esm"],
+  "what_it_does": "Extremely fast JavaScript and TypeScript bundler/compiler written in Go. 10-100x faster than Webpack and Rollup. Bundles, minifies, and transforms TypeScript/JSX to JavaScript. Used as the core of Vite's dev server, Bun's bundler, and many build tool chains. Also available as a library via its JavaScript/Go API for programmatic bundling.",
   "use_cases": [
-    "Bundle a TypeScript library for npm publication with tree-shaking and minification in a single CLI call",
-    "Transpile and bundle a large JavaScript codebase for multiple browser targets (esm, cjs, iife) in parallel",
-    "Use the Node.js API (@esbuild/core) to integrate bundling into a custom build pipeline or agent workflow",
-    "Serve a development build with esbuild's built-in HTTP server and watch mode for fast iteration",
-    "Process JSX/TSX files and emit browser-ready bundles without a heavy webpack configuration"
+    "Bundle TypeScript agent CLI tools and services with sub-second build times replacing slow tsc+webpack pipelines",
+    "Use esbuild programmatically in agent build pipelines to transform TypeScript source files on the fly",
+    "Bundle agent Lambda functions or edge workers with minimal output size using esbuild's tree shaking",
+    "Speed up agent CI builds by replacing webpack or rollup with esbuild for 10-100x faster compilation",
+    "Transpile TypeScript for Node.js agent services without type checking overhead (using esbuild's fast TS strip)"
   ],
   "not_for": [
-    "TypeScript type-checking — esbuild strips types but does not run tsc; run tsc separately for type safety",
-    "Complex plugin ecosystems requiring webpack loaders — esbuild's plugin API is simpler and not compatible with webpack/Rollup plugins",
-    "CSS-heavy projects needing PostCSS transforms — esbuild has basic CSS support but lacks a PostCSS plugin pipeline"
+    "Complex code splitting with dynamic imports in non-ESM environments — esbuild's code splitting is limited vs. Webpack/Rollup",
+    "Projects needing Babel plugins for legacy browser compatibility transforms — esbuild targets modern JS; use Babel for specific legacy transforms",
+    "Full application bundling with plugin-heavy Webpack configurations — plugin ecosystem is smaller than Webpack"
   ],
-  "best_when": "You need maximum bundling speed for CI pipelines or large codebases and can accept a simpler plugin API compared to webpack.",
-  "avoid_when": "Your project relies on TypeScript type checking at build time or requires webpack-compatible loader plugins.",
-  "alternatives": ["rollup-api", "vite-api", "swc-api"],
+  "best_when": "You need the fastest possible JavaScript/TypeScript bundling for Node.js agent tools, Lambda functions, or as a build step in a custom pipeline.",
+  "avoid_when": "You need complex code splitting strategies, Babel plugin compatibility, or rich plugin ecosystem — Vite (which uses esbuild internally) or Webpack offer more complete solutions.",
+  "alternatives": ["vite-api", "rollup-api", "webpack-api", "swc-api"],
   "interface": {
     "has_rest_api": false,
     "has_graphql": false,
@@ -30,7 +30,7 @@
     "has_mcp_server": false,
     "mcp_server_url": null,
     "has_sdk": true,
-    "sdk_languages": ["javascript", "typescript", "go"],
+    "sdk_languages": ["node", "go"],
     "openapi_spec_url": null,
     "webhooks": false
   },
@@ -38,28 +38,28 @@
     "methods": ["none"],
     "oauth": false,
     "scopes": false,
-    "notes": "Local build tool — no authentication needed."
+    "notes": "Local build tool — no authentication required."
   },
   "pricing": {
     "model": "open_source",
     "free_tier_exists": true,
-    "free_tier_limits": "Unlimited, open source (MIT)",
+    "free_tier_limits": "MIT licensed, completely free",
     "paid_tiers": "None",
     "requires_credit_card": false,
-    "notes": "Open source under MIT license."
+    "notes": "MIT license. Created and maintained by Evan Wallace."
   },
   "performance": {
     "latency_p50_ms": null,
     "latency_p99_ms": null,
     "uptime_sla_percent": null,
-    "rate_limits": "None (local tool)",
+    "rate_limits": "No rate limits. Typical bundling: 100K LOC TypeScript in <1 second. 10-100x faster than Webpack/Rollup.",
     "data_source": "llm_estimated"
   },
   "requirements": {
     "requires_signup": false,
     "requires_credit_card": false,
     "domain_verification": false,
-    "data_residency": ["self_hosted"],
+    "data_residency": ["local"],
     "compliance": [],
     "min_contract": "none"
   },
@@ -67,39 +67,40 @@
     "mcp_server_quality": null,
     "mcp_security_score": null,
     "documentation_accuracy": 90,
-    "error_message_quality": 80,
-    "error_message_notes": "Error messages are concise but sometimes lack line-level context for transform errors; resolve errors include file paths.",
+    "error_message_quality": 85,
+    "error_message_notes": "Build errors include file path and line number. Missing export errors are clear. TypeScript type errors are NOT reported (esbuild strips types without checking); use tsc --noEmit separately for type checking.",
     "idempotency_support": "full",
-    "idempotency_notes": "Builds are deterministic given the same inputs and esbuild version.",
+    "idempotency_notes": "Deterministic build output for same source and config. Incremental builds cache file transforms.",
     "pagination_style": "none",
     "retry_guidance_documented": false,
     "known_agent_gotchas": [
-      "esbuild does NOT perform TypeScript type checking — agents must invoke tsc --noEmit separately to catch type errors",
-      "Plugin API is not compatible with Rollup or webpack plugins; agents must find esbuild-specific plugins or write custom ones",
-      "The 'external' option must explicitly list all Node.js built-ins (e.g., 'fs', 'path') when targeting Node or they will be bundled",
-      "Output format 'esm' does not add file extensions to imports by default; downstream consumers may need explicit extensions for Node ESM",
-      "Watch mode runs indefinitely — agents invoking esbuild programmatically with watch:true must manage process lifecycle explicitly"
+      "esbuild does NOT type-check TypeScript — it strips types without validation; type errors will not fail the build; always run tsc --noEmit separately in CI for type safety",
+      "Decorators support requires experimentalDecorators option and may not match TypeScript's decorator implementation — test decorator-heavy code (NestJS, TypeORM) carefully",
+      "CSS modules and some CSS-in-JS solutions are not fully supported — esbuild has basic CSS support but lacks Webpack's rich CSS loader ecosystem",
+      "The watch mode API changed between versions — programmatic watch usage via the JavaScript API requires specific version-aware code",
+      "esbuild's code splitting is ESM-only — CommonJS output doesn't support code splitting; agent code targeting Node.js CJS bundles must be single-file",
+      "Source maps generated by esbuild use absolute paths on some systems — configure sourceRoot in build options for portable source maps in CI environments"
     ]
   },
   "af_score_components": {
     "mcp_score": 0,
     "api_doc_score": 90,
-    "error_handling_score": 80,
+    "error_handling_score": 85,
     "auth_complexity_score": 100,
     "rate_limit_clarity_score": 100
   },
   "security_score_components": {
-    "tls_enforcement": 0,
-    "auth_strength": 0,
-    "scope_granularity": 0,
-    "dependency_hygiene": 88,
-    "secret_handling": 85,
-    "security_notes": "No network calls; runs entirely locally. Dependency count is low (primarily Go stdlib). Agents should ensure they pin esbuild versions to avoid supply-chain drift."
+    "tls_enforcement": 100,
+    "auth_strength": 100,
+    "scope_granularity": 100,
+    "dependency_hygiene": 92,
+    "secret_handling": 90,
+    "security_notes": "Local build tool. No network calls during build. Output code security is application responsibility. Dependency scanning applies to input packages, not esbuild itself."
   },
   "reliability_score_components": {
-    "uptime_documented": 0,
-    "version_stability": 90,
-    "breaking_changes_history": 85,
-    "error_recovery": 82
+    "uptime_documented": 95,
+    "version_stability": 85,
+    "breaking_changes_history": 82,
+    "error_recovery": 92
   }
 }
