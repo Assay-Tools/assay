@@ -1,0 +1,106 @@
+{
+  "id": "kaminari-ruby-api",
+  "name": "Kaminari",
+  "version_evaluated": "1.x",
+  "homepage": "https://github.com/kaminari/kaminari",
+  "repo_url": "https://github.com/kaminari/kaminari",
+  "category": "developer-tools",
+  "subcategories": ["pagination", "ruby", "rails", "activerecord"],
+  "tags": ["ruby", "rails", "pagination", "kaminari", "activerecord", "pages"],
+  "what_it_does": "Pagination library for Ruby on Rails — adds .page() and .per() scope chain to ActiveRecord, Mongoid, and plain arrays. Kaminari features: Agent.page(params[:page]).per(20) scope, paginate view helper for page link rendering, page_entries_info helper showing 'Displaying X-Y of Z total', configurable per-page defaults, API-friendly page/per params, without_count mode for large tables, paginates_per class method for model defaults, kaminari-actionview for Rails views, and theme support. Zero-config default: works immediately after gem install. paginate(@agents) in view renders Bootstrap-compatible page links. Alternative to will_paginate with more Rails integration and active maintenance.",
+  "use_cases": [
+    "Agent list pagination — @agents = Agent.page(params[:page]).per(25) in controller; <%= paginate @agents %> in view generates page link bar; agent list displays 25 agents per page with navigation",
+    "Agent API pagination — Agent.page(params[:page]).per(params[:per_page].to_i.clamp(1,100)) with Link header and X-Total-Pages response header for agent REST API pagination following GitHub conventions",
+    "Scoped agent pagination — Agent.active.where(category: params[:category]).page(params[:page]).per(20) chains pagination with existing ActiveRecord scopes; Kaminari integrates transparently with any scope chain",
+    "Agent search results pagination — searchkick agent search results: Agent.search(query, page: params[:page], per_page: 20); Kaminari-compatible response from Searchkick for paginate() view helper",
+    "Without-count optimization for large agent tables — Agent.page(params[:page]).per(20).without_count disables COUNT(*) query; faster for agent tables with millions of rows where total count is expensive; trade-off: no total page count in pagination UI"
+  ],
+  "not_for": [
+    "Cursor-based pagination — Kaminari uses OFFSET-based pagination; for large agent datasets where OFFSET performance degrades, use cursor-based pagination gems (pagy cursor) or manual keyset pagination",
+    "Non-Rails/non-AR contexts — Kaminari is Rails-native; for plain Ruby pagination use pure Ruby array pagination or pagy",
+    "GraphQL pagination — Kaminari's page/per model doesn't match GraphQL Relay cursor spec; use graphql-ruby built-in connection pagination for agent GraphQL APIs"
+  ],
+  "best_when": "Your Rails agent app needs straightforward OFFSET-based pagination for admin lists, search results, or API endpoints — Kaminari's ActiveRecord integration requires zero configuration and works transparently with any scope.",
+  "avoid_when": "You have agent tables with millions of rows where OFFSET pagination degrades (use cursor/keyset), or you need GraphQL Relay-style cursor pagination.",
+  "alternatives": ["pagy-ruby-api", "will-paginate-api", "ransack-ruby-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["ruby"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — pagination library. Page parameter comes from user request; validate and clamp page number to prevent negative or absurdly large page values."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Kaminari is MIT licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 5,
+    "latency_p99_ms": 100,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — generates SQL LIMIT/OFFSET queries. OFFSET performance degrades at large page numbers on large agent tables (page 1000 = OFFSET 20000). Use without_count to skip COUNT(*). Add database index on ORDER BY column for agent pagination queries.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 88,
+    "error_message_quality": 82,
+    "error_message_notes": "Kaminari raises Kaminari::PageOutOfRange for page beyond last page (in strict mode). Out-of-range page without strict mode returns empty collection. paginate() view helper raises ArgumentError if passed non-Kaminari collection. page(0) treated as page(1) — no error.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Pagination is a read operation — fully idempotent. .page().per() scope chain is deterministic. Same params always return same page. COUNT(*) query for total pages is idempotent.",
+    "pagination_style": "page",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "kaminari-actionview required separately in Rails 6+ — Kaminari core was split; gem 'kaminari' alone may not include paginate view helper; Gemfile needs gem 'kaminari' and Rails asset pipeline setup; missing kaminari-actionview causes undefined method paginate for agent views",
+      "Default per-page is 25, not customizable without config — Kaminari.configure { |config| config.default_per_page = 20 } in initializer sets global default; per-model override: paginates_per 10 in model; agent APIs using per without explicit value get default 25 which may differ from documented API page size",
+      ".page() must come before .per() in scope chain — Agent.per(20).page(1) vs Agent.page(1).per(20) — both work but Agent.per(20) without .page() raises NoMethodError; agent controller patterns occasionally omit .page() causing errors in production when params[:page] is nil",
+      "OFFSET pagination causes page drift during writes — if agents are created/deleted while user pages through list, items shift between pages; agent list page 2 may show different items if page 1 agents were deleted; expected behavior for OFFSET pagination but confuses users; document or use cursor pagination for frequently-updated agent lists",
+      "params[:page] must be sanitized — Kaminari accepts page(params[:page]) which calls to_i on the string; 'abc'.to_i = 0 returns page 1 (safe); negative page numbers are clamped; but extremely large page values cause slow OFFSET queries; validate params[:page].to_i.positive? and set maximum page in agent controllers",
+      "without_count disables last page detection — Agent.page(1).per(20).without_count skips COUNT(*) but paginate view helper can't render 'last' link or total count; agent UIs using paginate() helper with without_count get truncated pagination UI; use rel='next' only style or implement client-side infinite scroll for agent lists with without_count"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 88,
+    "error_handling_score": 82,
+    "auth_complexity_score": 96,
+    "rate_limit_clarity_score": 95
+  },
+  "security_score_components": {
+    "tls_enforcement": 92,
+    "auth_strength": 90,
+    "scope_granularity": 88,
+    "dependency_hygiene": 88,
+    "secret_handling": 92,
+    "security_notes": "OFFSET-based pagination exposes page parameter to user manipulation — validate and clamp page number to prevent timing attacks via large OFFSET queries against agent tables. SQL injection not possible through page/per parameters (converted to integers). Pagination metadata (total count) may leak agent data count information to unauthenticated users."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 90,
+    "version_stability": 88,
+    "breaking_changes_history": 85,
+    "error_recovery": 88
+  }
+}

@@ -1,0 +1,106 @@
+{
+  "id": "brakeman-ruby-api",
+  "name": "Brakeman",
+  "version_evaluated": "6.x",
+  "homepage": "https://brakemanscanner.org/",
+  "repo_url": "https://github.com/presidentbeef/brakeman",
+  "category": "developer-tools",
+  "subcategories": ["security", "ruby", "rails", "sast", "static-analysis"],
+  "tags": ["ruby", "rails", "security", "sast", "static-analysis", "brakeman", "vulnerability"],
+  "what_it_does": "Static security analysis tool for Ruby on Rails applications — scans Rails source code for security vulnerabilities without executing the application. Brakeman checks: SQL injection (ActiveRecord string interpolation), Cross-Site Scripting (unescaped user output in views), Mass Assignment (permit without whitelist), Command Injection (backticks/system with user input), Dangerous Send (user-controlled method dispatch), File Access (user-controlled paths), Redirect (open redirects), Session Secret exposure, CSRF weaknesses, unsafe deserialization (YAML.load), and 30+ other Rails-specific vulnerability patterns. brakeman command outputs confidence-rated warnings with file/line context. Essential CI check for agent Rails security.",
+  "use_cases": [
+    "Agent Rails security CI check — brakeman --exit-on-warn --no-progress in CI pipeline fails build on any security warning; prevents agent code with SQL injection or XSS from merging to main branch",
+    "Agent SQL injection detection — Brakeman flags Agent.where('name = ' + params[:name]) as SQL injection; identifies string interpolation in ActiveRecord queries throughout agent codebase without manual code review",
+    "Agent mass assignment audit — Brakeman flags agent controllers missing strong_parameters permit() calls; identifies params.require(:agent).permit(:all) or legacy mass-assignment patterns in agent API controllers",
+    "Agent XSS detection — Brakeman flags <%= params[:name] %> without html_escape in agent ERB views; identifies raw output and unsafe html_safe calls in agent templates",
+    "Baseline suppression for known issues — brakeman --ignore-file config/.brakeman.ignore suppresses known-accepted risks; agent teams review new warnings only without noise from existing suppressed issues; brakeman --compare previous.json shows new vulnerabilities vs last scan"
+  ],
+  "not_for": [
+    "Dynamic vulnerability testing — Brakeman is static analysis; it can't find runtime vulnerabilities (business logic flaws, authentication bypasses) requiring actual HTTP requests; use DAST tools like OWASP ZAP for agent dynamic testing",
+    "Non-Rails Ruby applications — Brakeman analyzes Rails structure (routes, controllers, models, views); for non-Rails Ruby use Semgrep or manual review",
+    "Dependency vulnerability scanning — Brakeman checks application code not gems; for known CVEs in agent dependencies use bundler-audit or dependabot"
+  ],
+  "best_when": "Every Rails agent application in CI — Brakeman is the standard Rails SAST tool, catching common security mistakes before they reach production. Zero-configuration Rails security scanning.",
+  "avoid_when": "There is no scenario to avoid Brakeman for Rails apps — run it in every agent Rails CI pipeline. Tune false positives with ignore file rather than disabling.",
+  "alternatives": ["semgrep-api", "rubocop-ruby-api", "snyk-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": false,
+    "sdk_languages": [],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — local static analysis tool. Reads Rails source files only, no network access."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Brakeman is MIT licensed, maintained by Justin Collins. Free for all commercial and open source use."
+  },
+  "performance": {
+    "latency_p50_ms": 0,
+    "latency_p99_ms": 0,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — local CLI. Scan of medium Rails agent app takes 5-30 seconds. Large apps with thousands of controllers and views take 1-2 minutes. No I/O beyond reading source files.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 88,
+    "error_message_quality": 85,
+    "error_message_notes": "Brakeman warnings include: severity (High/Medium/Weak), confidence (High/Medium/Weak), file:line, check name (SQLInjection, CrossSiteScripting), message with code snippet. --format json provides machine-parseable CI output. Warning codes stable across versions for suppression.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Brakeman scan is pure static analysis — fully idempotent. Same source produces same findings. --compare mode requires previous JSON report for diff. Findings are deterministic given same source files.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "--exit-on-warn vs --exit-on-error distinction — --exit-on-warn exits non-zero on any warning (use in CI); --exit-on-error exits non-zero only on Brakeman errors (scan failure); agent CI using only --exit-on-error passes even with security warnings; always use --exit-on-warn for security-gating agent CI",
+      "False positives require .brakeman.ignore — Brakeman flags some safe patterns as warnings; sanitized SQL with Arel.sql() still triggers warning; agent teams must use brakeman --interactive to build ignore file or pipeline noise causes developers to ignore real warnings; maintain curated ignore file in version control",
+      "Brakeman doesn't follow dynamic dispatch — Agent.send(params[:method]) flagged as dangerous; Brakeman can't verify safe method whitelist in send() call even with guard; agent code using legitimate dynamic dispatch needs ignore annotation or .brakeman.ignore suppression",
+      "Rails version affects detected checks — Brakeman includes Rails-version-specific checks; running Brakeman 6.x on Rails 4.x agent apps may show false warnings for patterns that were vulnerabilities in old Rails but safe in current; specify --rails-version or upgrade agent app Rails version",
+      "Brakeman doesn't scan gems — agent code vulnerabilities in gems (XSS in gem ERB templates, SQL injection in gem AR queries) are not detected by Brakeman; only application code under app/ is scanned; use bundler-audit in parallel for agent gem CVE scanning",
+      "Confidence levels require triage strategy — Brakeman reports High/Medium/Weak confidence; agent CI treating Weak confidence as blocking has high false positive rate; recommended: fail CI on High confidence warnings, review Medium in PR, track Weak separately; tune --confidence-threshold to match agent team risk tolerance"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 88,
+    "error_handling_score": 85,
+    "auth_complexity_score": 98,
+    "rate_limit_clarity_score": 98
+  },
+  "security_score_components": {
+    "tls_enforcement": 95,
+    "auth_strength": 95,
+    "scope_granularity": 92,
+    "dependency_hygiene": 90,
+    "secret_handling": 95,
+    "security_notes": "Brakeman is a security tool — the tool itself has no security concerns. Brakeman output includes code snippets from agent source; treat scan results as sensitive documents in CI artifacts. Brakeman ignore file must be reviewed regularly; suppressed agent warnings can silently reintroduce vulnerabilities if code changes make previously-safe patterns unsafe."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 92,
+    "version_stability": 88,
+    "breaking_changes_history": 85,
+    "error_recovery": 90
+  }
+}
