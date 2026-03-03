@@ -1,0 +1,106 @@
+{
+  "id": "jmespath-python-api",
+  "name": "jmespath",
+  "version_evaluated": "1.x",
+  "homepage": "https://jmespath.org/",
+  "repo_url": "https://github.com/jmespath/jmespath.py",
+  "category": "developer-tools",
+  "subcategories": ["json", "query", "python", "data-processing"],
+  "tags": ["python", "jmespath", "json", "query", "aws", "data-processing", "filtering"],
+  "what_it_does": "JMESPath query language implementation for Python — query and transform JSON/dict structures with a declarative expression syntax. jmespath features: jmespath.search(expression, data) for querying nested dicts, field selection (a.b.c), array indexing (a[0]), slicing (a[0:3]), projections (a[*].b), filters (a[?x=='y']), multi-select list ([a, b, c]), multi-select hash ({key: a}), functions (length(), keys(), sort_by(), max_by()), pipe operator for chaining, and compiled expressions for repeated queries. Used extensively in AWS CLI/boto3 (--query parameter), AWS SDK internals, and Ansible. Standard JSON query language for agent data extraction from API responses.",
+  "use_cases": [
+    "Agent AWS API data extraction — import jmespath; response = boto3.client('ec2').describe_instances(); instance_ids = jmespath.search('Reservations[*].Instances[*].InstanceId', response) — flatten nested AWS response to list of IDs; identical to AWS CLI --query parameter; agent AWS automation extracts specific fields from complex paginated responses",
+    "Agent JSON API filtering — data = requests.get(api_url).json(); active_users = jmespath.search('users[?status==`active`].{name: name, email: email}', data) — filter and reshape JSON response in one expression; agent processes API responses without Python list comprehensions for readable data extraction",
+    "Agent config query — expression = jmespath.compile('services[?type==`database`].connection_string'); conn_strings = expression.search(config) — precompile expression for repeated queries; agent applies same JMESPath expression to multiple API responses efficiently; compiled expressions 10x faster for repeated use",
+    "Agent data transformation — result = jmespath.search('sort_by(items, &price)[*].{name: name, price: price}', catalog) — sort by field and select specific keys in one expression; agent reformats API response for downstream processing without intermediate variables",
+    "Agent recursive search — values = jmespath.search('*.nested.value', deep_dict) — wildcard projections traverse all keys; agent extracts values from variable-depth response structures; works on any dict/list nesting level"
+  ],
+  "not_for": [
+    "JSONPath — jmespath and jsonpath are different standards; AWS uses jmespath; jmespath has no recursive descent operator (..); for recursive search use jsonpath-ng",
+    "Mutating data — jmespath is read-only query language; for modification use Python dict operations or jq",
+    "Non-JSON data — jmespath operates on Python dicts/lists; for querying XML use XPath with lxml"
+  ],
+  "best_when": "Extracting and transforming data from AWS API responses or complex nested JSON/dict structures — jmespath expressions are more readable than equivalent Python list comprehensions and identical to the AWS CLI --query syntax agents can reuse.",
+  "avoid_when": "You need recursive descent (..) operators (use jsonpath-ng), need to mutate data, or work with non-dict data structures.",
+  "alternatives": ["jsonpath-ng-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — local query library."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "jmespath is MIT licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 1,
+    "latency_p99_ms": 5,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Pure Python — microseconds to milliseconds per query. Compile expressions once with jmespath.compile() for repeated use. Performance is dominated by data size, not expression complexity.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 88,
+    "error_message_quality": 80,
+    "error_message_notes": "jmespath.exceptions.ParseError for invalid expression syntax with position info. jmespath.exceptions.JMESPathError base class for all errors. Returns None for non-existent paths (no KeyError) — agent code must check for None return.",
+    "idempotency_support": "full",
+    "idempotency_notes": "jmespath.search() is a pure function — same expression and data always returns same result. Compiled expressions are also idempotent. No side effects.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Returns None for missing paths (not KeyError) — jmespath.search('a.b.missing', data) returns None, not raises exception; agent code must check: result = jmespath.search(expr, data); if result is None: handle_missing() — never assume non-None return even for required fields",
+      "Backtick literals vs string comparisons differ — filter [?type=='string'] uses single quotes; [?count==`42`] uses backticks for numbers/booleans/null; agent code with filter expressions must use correct quoting; [?active==`true`] not [?active=='true'] for boolean match",
+      "Wildcard projections return None-filtered lists — a[*].b skips items where b is missing (returns None-filtered list not error); agent code counting results may get shorter list than input; all None values dropped by projection flattening",
+      "Pipe operator vs projection differ — a[*].b | [0] gets first of all b values; a[0].b gets b of first item; agent code building complex expressions must understand pipe chains the full left-side result before right-side processes",
+      "Compile expressions for repeated use — jmespath.search('a.b.c', data) recompiles expression every call; jmespath.compile('a.b.c') returns compiled expression reusable with compiled.search(data); agent loops processing 1000+ responses must precompile; 5-10x performance improvement",
+      "sort_by and max_by require field reference syntax — sort_by(items, &price) uses ampersand for field reference; agent code writing sort_by(items, 'price') fails with ParseError; & syntax is unique to jmespath and not obvious from JMESPath spec examples"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 78,
+    "auth_complexity_score": 98,
+    "rate_limit_clarity_score": 98
+  },
+  "security_score_components": {
+    "tls_enforcement": 92,
+    "auth_strength": 92,
+    "scope_granularity": 90,
+    "dependency_hygiene": 90,
+    "secret_handling": 92,
+    "security_notes": "Pure Python query evaluation — no code injection risk, no network calls. JMESPath expressions are data queries, not executable code. Safe to use with untrusted expression strings as no eval() is used internally."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 90,
+    "breaking_changes_history": 90,
+    "error_recovery": 85
+  }
+}

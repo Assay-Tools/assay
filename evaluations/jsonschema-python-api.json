@@ -1,0 +1,106 @@
+{
+  "id": "jsonschema-python-api",
+  "name": "jsonschema",
+  "version_evaluated": "4.x",
+  "homepage": "https://python-jsonschema.readthedocs.io/",
+  "repo_url": "https://github.com/python-jsonschema/jsonschema",
+  "category": "developer-tools",
+  "subcategories": ["json", "validation", "python", "schema"],
+  "tags": ["python", "jsonschema", "validation", "json-schema", "openapi", "schema"],
+  "what_it_does": "JSON Schema validation library for Python — validates JSON/dict data against JSON Schema drafts (draft-07, draft-2019-09, draft-2020-12). jsonschema features: jsonschema.validate() one-shot validation, jsonschema.Draft202012Validator for explicit draft selection, validator.iter_errors() for all errors not just first, best_match() for human-readable error selection, schema referencing ($ref, $defs), format validators (email, date, uri), custom validators, jsonschema.exceptions.ValidationError with path and schema info, and format checking with jsonschema[format-nongpl] extras. Standard for validating OpenAPI request/response bodies, config files, and agent-generated structured outputs.",
+  "use_cases": [
+    "Agent output validation — schema = {'type': 'object', 'required': ['action', 'params'], 'properties': {'action': {'type': 'string'}, 'params': {'type': 'object'}}}; jsonschema.validate(agent_output, schema) — validate LLM-generated JSON against schema; agent structured output pipeline ensures valid tool calls before execution; ValidationError caught and fed back to LLM for retry",
+    "Agent API request validation — validator = jsonschema.Draft202012Validator(openapi_schema['components']['schemas']['CreateUser']); errors = list(validator.iter_errors(request_body)) — validate incoming API request body; agent API gateway validates all requests before processing; collect all errors not just first with iter_errors()",
+    "Agent config file validation — schema = json.load(open('config-schema.json')); jsonschema.validate(yaml.safe_load(open('config.yaml')), schema) — validate YAML/JSON config against schema; agent validates config at startup before any processing; clear error paths show exactly which config field is wrong",
+    "Agent response schema checking — errors = list(validator.iter_errors(api_response)); best = jsonschema.exceptions.best_match(errors); raise ValueError(f'API response invalid: {best.message}') — validate third-party API response against expected schema; agent detects API contract violations before processing bad data",
+    "Agent dynamic schema generation — schema = {'type': 'array', 'items': {'type': 'object', 'properties': {k: {'type': 'string'} for k in required_fields}}}; jsonschema.validate(data, schema) — programmatically build schema from field list; agent validates dynamic data structures where schema varies by context"
+  ],
+  "not_for": [
+    "Pydantic-style type coercion — jsonschema validates only, doesn't convert types; '42' doesn't validate as integer; use pydantic for type coercion + validation in one step",
+    "Python dataclass validation — jsonschema validates dicts/JSON; for Python object validation use pydantic or attrs",
+    "Performance-critical validation — jsonschema is pure Python and slow for high-throughput validation; use fastjsonschema for 5-10x faster validation in hot paths"
+  ],
+  "best_when": "Validating JSON data against JSON Schema specs (OpenAPI schemas, config schemas, agent output schemas) — jsonschema is the reference Python implementation supporting all JSON Schema drafts with detailed error reporting and $ref resolution.",
+  "avoid_when": "You need type coercion (use pydantic), Python object validation, or high-throughput validation (use fastjsonschema).",
+  "alternatives": ["pydantic-api", "fastjsonschema-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — local validation library."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "jsonschema is MIT licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 1,
+    "latency_p99_ms": 10,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Pure Python — slower than fastjsonschema (C-based). Create validator instances once and reuse. $ref resolution adds overhead on first use. For high-throughput paths, consider fastjsonschema or compiled validators.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 85,
+    "error_message_notes": "jsonschema.exceptions.ValidationError with message, path (deque of keys), schema_path, instance (failed value), and validator. jsonschema.exceptions.SchemaError for invalid schema. best_match() selects most relevant error from multiple. Detailed error context for agent feedback loops.",
+    "idempotency_support": "full",
+    "idempotency_notes": "validate() is a pure function — same data and schema always produces same result. Validator instances are reusable and thread-safe for reading. No side effects.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "jsonschema.validate() raises on first error only — jsonschema.validate(data, schema) raises ValidationError on first problem; agent code collecting all validation errors must use: v = jsonschema.Draft202012Validator(schema); errors = list(v.iter_errors(data)) — collect all errors before reporting back to LLM for one-shot retry",
+      "Draft version matters for $schema keyword — JSON Schema draft-07 uses 'definitions', draft-2019-09+ uses '$defs'; schema using wrong draft validator raises SchemaError or silently ignores keywords; always use Draft202012Validator unless schema explicitly declares older $schema URI",
+      "format validation not enforced by default — jsonschema.validate(data, {'type': 'string', 'format': 'email'}) does NOT validate email format by default; format checking requires: jsonschema.validate(data, schema, format_checker=jsonschema.FormatChecker()); agent schema validation for email/date/URI must explicitly enable format checker",
+      "$ref resolution requires referencing store or registry — schema with $ref to external file fails unless using RefResolver or jsonschema.Registry; agent code loading schemas from multiple files must: resolver = jsonschema.RefResolver('file:///path/', schema); validator = Draft202012Validator(schema, resolver=resolver)",
+      "error.path is a deque not list — ValidationError.path is collections.deque; agent code accessing error.path[0] works but list(error.path) needed for full path; error.absolute_path gives full path as deque from root; convert with list(error.absolute_path) for readable key path",
+      "additionalProperties defaults to true — {'type': 'object', 'properties': {'name': {'type': 'string'}}} allows any extra keys; agent schema for strict output validation must add 'additionalProperties': false to reject unexpected fields from LLM; commonly missed causing silent extra field acceptance"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 88,
+    "auth_complexity_score": 98,
+    "rate_limit_clarity_score": 98
+  },
+  "security_score_components": {
+    "tls_enforcement": 90,
+    "auth_strength": 90,
+    "scope_granularity": 88,
+    "dependency_hygiene": 88,
+    "secret_handling": 90,
+    "security_notes": "Pure validation library — no network calls by default. $ref to remote URLs (http/https) can trigger network requests; disable with custom RefResolver for untrusted schemas. Schema itself is not executable — no code injection risk."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 85,
+    "breaking_changes_history": 80,
+    "error_recovery": 88
+  }
+}

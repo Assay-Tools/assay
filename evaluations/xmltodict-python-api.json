@@ -1,0 +1,106 @@
+{
+  "id": "xmltodict-python-api",
+  "name": "xmltodict",
+  "version_evaluated": "0.13.x",
+  "homepage": "https://github.com/martinblech/xmltodict",
+  "repo_url": "https://github.com/martinblech/xmltodict",
+  "category": "developer-tools",
+  "subcategories": ["xml", "python", "parsing", "serialization"],
+  "tags": ["python", "xml", "dict", "json", "parsing", "serialization", "xmltodict"],
+  "what_it_does": "Lightweight XML-to-dict converter for Python — parses XML into OrderedDict and back. xmltodict features: xmltodict.parse() converts XML string to nested dict, xmltodict.unparse() converts dict back to XML, streaming mode for large XML files (item_depth parameter), namespace support, force_list to always return lists, cdata_key for CDATA sections, attr_prefix (default '@') for XML attributes, encoding control, postprocessor callback for type conversion, and expat-based parsing (fast). Ideal for consuming XML APIs as if they were JSON — convert SOAP/RSS/Atom/config XML to Python dicts for agent processing without XPath complexity.",
+  "use_cases": [
+    "Agent XML API consumption — import xmltodict; response = requests.get(api_url); data = xmltodict.parse(response.text); items = data['feed']['entry'] — parse RSS/Atom feed XML to dict; agent processes XML as JSON-like structure without XPath; far simpler than lxml for straightforward XML-to-dict conversion",
+    "Agent SOAP response handling — data = xmltodict.parse(soap_response); result = data['soap:Envelope']['soap:Body']['GetItemResponse']['Item'] — traverse SOAP XML as dict; agent legacy enterprise SOAP API integration; combine with attr_prefix='@' for attribute access",
+    "Agent config XML parsing — with open('config.xml') as f: config = xmltodict.parse(f.read()); db_host = config['configuration']['database']['@host'] — parse XML config files to dict; agent reads legacy XML application configs without lxml overhead; @ prefix accesses XML attributes",
+    "Agent XML generation — xml_string = xmltodict.unparse({'root': {'item': [{'@id': '1', '#text': 'value'}]}}) — round-trip dict back to XML; agent builds XML request bodies for SOAP/XML APIs from dict structure; unparse preserves attribute and text node structure",
+    "Agent streaming large XML — def handle_item(path, item): process(item); return True; xmltodict.parse(large_xml_file, item_depth=2, item_callback=handle_item) — stream XML without loading full document into memory; agent processes 100MB+ XML event feeds one item at a time"
+  ],
+  "not_for": [
+    "XPath queries — xmltodict converts XML to dict; for XPath use lxml; dict traversal loses XML query power for complex selections",
+    "XSLT transforms or XML validation — xmltodict is parse/generate only; use lxml for XMLSchema validation or XSLT transforms",
+    "Complex namespaced XML — namespace handling in xmltodict produces ugly '{ns}key' dict keys; use lxml for namespace-heavy SOAP or SAML XML"
+  ],
+  "best_when": "Consuming simple XML APIs (RSS, Atom, config files, basic REST-XML) as Python dicts — xmltodict's zero-learning-curve API converts XML to JSON-like structure in one line, perfect for agents that just need data without XML query sophistication.",
+  "avoid_when": "You need XPath queries, XSLT transforms, XML validation, or complex namespace handling — use lxml instead.",
+  "alternatives": ["lxml-python-api", "beautifulsoup4-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — local parsing library."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "xmltodict is MIT licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 1,
+    "latency_p99_ms": 50,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Expat-based parser is fast. Large XML files should use item_depth streaming mode to avoid memory issues. 10-100MB XML files parse in 1-5 seconds.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 78,
+    "error_message_notes": "xml.parsers.expat.ExpatError for malformed XML with line/column info. KeyError for missing dict keys (traverse carefully). No custom exceptions — errors surface as Python builtins.",
+    "idempotency_support": "full",
+    "idempotency_notes": "parse() on same XML always returns same dict. unparse() on same dict always returns same XML string. Fully deterministic.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Single child elements are dict, multiple are list — data['root']['item'] is a dict when XML has one <item>, but a list when multiple <item> exist; agent code doing data['root']['item']['name'] fails when multiple items present; use force_list=('item',) to always return list: xmltodict.parse(xml, force_list=('item',))",
+      "Attributes use '@' prefix — XML attribute id in <item id='1'> becomes data['item']['@id']; agent code must use '@id' not 'id' to access XML attributes; configure attr_prefix='' to remove prefix but then conflicts with element names",
+      "Text content uses '#text' key — <item id='1'>value</item> becomes {'@id': '1', '#text': 'value'}; agent code doing data['item'] gets dict not string when element has both attributes and text; check for '#text' key or access via data['item']['#text']",
+      "Namespace prefixes appear in dict keys — <soap:Body> becomes 'soap:Body' dict key; agent SOAP parsing uses data['soap:Envelope']['soap:Body']; namespace URIs not resolved by default; use namespaces parameter for URI-to-prefix mapping",
+      "CDATA sections need cdata_key — <![CDATA[content]]> stored under '#text' key by default; agent code expecting CDATA in separate key must pass cdata_key='content' parameter; without it CDATA merges with element text",
+      "No XXE protection by default — xmltodict uses Python's expat parser which disables external entities by default; still validate/sanitize untrusted XML before parsing; extremely large XML can cause memory issues without streaming item_depth mode"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 82,
+    "error_handling_score": 72,
+    "auth_complexity_score": 98,
+    "rate_limit_clarity_score": 98
+  },
+  "security_score_components": {
+    "tls_enforcement": 90,
+    "auth_strength": 90,
+    "scope_granularity": 88,
+    "dependency_hygiene": 88,
+    "secret_handling": 90,
+    "security_notes": "Python's expat parser disables XXE by default (safer than lxml default). No network calls during parsing. Validate XML size before parsing to prevent memory exhaustion from large documents."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 85,
+    "version_stability": 88,
+    "breaking_changes_history": 88,
+    "error_recovery": 80
+  }
+}
