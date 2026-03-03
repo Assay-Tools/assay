@@ -1,0 +1,106 @@
+{
+  "id": "spring-retry-api",
+  "name": "Spring Retry",
+  "version_evaluated": "2.x",
+  "homepage": "https://github.com/spring-projects/spring-retry",
+  "repo_url": "https://github.com/spring-projects/spring-retry",
+  "category": "developer-tools",
+  "subcategories": ["resilience", "java", "spring", "retry", "fault-tolerance"],
+  "tags": ["java", "kotlin", "spring", "retry", "resilience", "backoff", "fault-tolerance", "spring-boot"],
+  "what_it_does": "Retry abstraction for Spring applications — provides declarative (@Retryable) and programmatic (RetryTemplate) retry with configurable backoff policies. Spring Retry features: @Retryable(retryFor=IOException.class, maxAttempts=3, backoff=@Backoff(delay=1000, multiplier=2)) annotation, @Recover fallback method, RetryTemplate with ExponentialBackOffPolicy, SimpleRetryPolicy, CircuitBreakerRetryPolicy, stateful retry for message-driven recovery, RetryContext for cross-attempt state, and @EnableRetry on configuration class. Used in Spring Batch, Spring AMQP, and Spring Kafka internally. Lighter weight than Resilience4j for pure retry use cases.",
+  "use_cases": [
+    "Agent LLM API retry on transient failure — @Retryable(retryFor = {RateLimitException.class, IOException.class}, maxAttempts = 3, backoff = @Backoff(delay = 1000, multiplier = 2.0)) on agent LLM call method; automatically retries with 1s, 2s delays before propagating exception",
+    "@Recover fallback for agent calls — @Recover public AgentResponse fallback(RateLimitException e, AgentRequest req) { return AgentResponse.rateLimitedResponse() } invoked after all @Retryable attempts exhausted; agent graceful degradation without try/catch in business logic",
+    "RetryTemplate for programmatic agent retry — RetryTemplate template = RetryTemplate.builder().maxAttempts(5).exponentialBackoff(500, 2.0, 10000).retryOn(TransientException.class).build(); template.execute(ctx -> callExternalAgentApi()) with explicit retry context",
+    "Agent batch processing retry — Spring Batch uses Spring Retry internally; agent job step configured with retryLimit and list of retryable exceptions; failed agent task item retried configured times before skip or job failure",
+    "Circuit breaker retry combination — CircuitBreakerRetryPolicy wraps SimpleRetryPolicy; agent service opens circuit after threshold failures; subsequent calls fail fast without retry until circuit closes; lighter alternative to Resilience4j circuit breaker for Spring-native agent services"
+  ],
+  "not_for": [
+    "Comprehensive resilience patterns — Spring Retry focuses on retry/backoff; for bulkhead, rate limiting, and time limiter use Resilience4j",
+    "Non-Spring Java applications — Spring Retry requires Spring AOP for @Retryable annotation support; for plain Java retry use Failsafe or Guava Retryer",
+    "Kafka consumer retry — Spring Kafka has its own DefaultErrorHandler with retry; using Spring Retry @Retryable on @KafkaListener conflicts with Spring Kafka's offset management; use Spring Kafka's built-in retry configuration for agent message consumers"
+  ],
+  "best_when": "Your Spring agent service makes external API calls (LLM APIs, partner APIs) that transiently fail and need simple retry with exponential backoff — Spring Retry's @Retryable annotation eliminates boilerplate retry loops.",
+  "avoid_when": "You need circuit breaker, bulkhead, or rate limiting (use Resilience4j), or you're using Spring Kafka where built-in retry is more appropriate.",
+  "alternatives": ["resilience4j-api", "polly-dotnet-api", "failsafe-java-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["java", "kotlin"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — retry abstraction library. Authentication for retried calls handled by the calling agent service."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, Apache 2.0 licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Spring Retry is Apache 2.0 licensed, maintained by the Spring team. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 0,
+    "latency_p99_ms": 1,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — retry adds delay between attempts by design. Total latency = sum of backoff delays + call latencies for all attempts. Tune maxAttempts and backoff ceiling to stay within agent SLA budgets.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 82,
+    "error_message_quality": 80,
+    "error_message_notes": "ExhaustedRetryException wraps original exception after all attempts fail. RetryContext.getLastThrowable() provides last failure cause. @Recover method receives original exception as first parameter. Spring Retry logs retry attempt count at DEBUG level via RetryTemplate.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Spring Retry assumes retried operations are idempotent — non-idempotent agent operations (payment processing, email sending) must not be retried without deduplication. @Retryable retries entire method body on exception; agent side effects from partial execution may be repeated.",
+    "pagination_style": "none",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "@EnableRetry required on configuration class — @Retryable annotations silently do nothing without @EnableRetry on @Configuration class or Spring Boot application; agent services adding @Retryable without @EnableRetry have zero retry behavior; add @EnableRetry to Spring Boot main class or dedicated RetryConfig @Configuration",
+      "@Retryable only works on Spring beans called externally — Spring Retry uses AOP proxy; calling @Retryable method from within same class bypasses proxy; agent service method calling another @Retryable method on 'this' reference skips retry; inject self or extract to separate @Service bean for agent internal retry",
+      "noRetryFor vs retryFor mutually exclusive patterns — @Retryable with no retryFor retries on all exceptions; specifying retryFor={IOException.class} retries ONLY those exceptions; noRetryFor={RuntimeException.class} retries all EXCEPT those; agent code specifying retryFor={Exception.class} catches all including unchecked exceptions unexpectedly",
+      "@Recover method signature must match @Retryable — @Recover method must accept same parameters as @Retryable method plus exception as first parameter; return type must match; mismatched @Recover signatures cause ExhaustedRetryException instead of fallback invocation for agent degraded response",
+      "Stateful retry requires unique RetryState — stateful retry (for Spring Batch/AMQP) needs RetryState key matching item; stateless @Retryable is default and appropriate for agent API calls; mixing stateful and stateless retry for agent message processing causes unexpected retry counts",
+      "Backoff maxDelay ceiling essential for agent SLAs — @Backoff(delay=1000, multiplier=2) without maxDelay caps exponentially: 1s, 2s, 4s, 8s... with maxAttempts=10 means last retry at 512s delay; always set maxDelay=30000 (or appropriate agent SLA ceiling) to prevent multi-minute backoffs in agent production services"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 82,
+    "error_handling_score": 80,
+    "auth_complexity_score": 92,
+    "rate_limit_clarity_score": 88
+  },
+  "security_score_components": {
+    "tls_enforcement": 88,
+    "auth_strength": 88,
+    "scope_granularity": 85,
+    "dependency_hygiene": 90,
+    "secret_handling": 88,
+    "security_notes": "Retry amplifies agent API calls — exponential backoff prevents agent thundering herd on downstream services during outages. Ensure retried agent operations are idempotent to prevent double-charging, duplicate sends, or duplicate agent task execution. Log retry attempts for agent audit trails."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 88,
+    "breaking_changes_history": 85,
+    "error_recovery": 90
+  }
+}

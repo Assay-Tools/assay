@@ -1,0 +1,106 @@
+{
+  "id": "sorbet-ruby-api",
+  "name": "Sorbet",
+  "version_evaluated": "0.5.x",
+  "homepage": "https://sorbet.org/",
+  "repo_url": "https://github.com/sorbet/sorbet",
+  "category": "developer-tools",
+  "subcategories": ["type-checking", "ruby", "static-analysis", "types"],
+  "tags": ["ruby", "sorbet", "type-checking", "static-analysis", "types", "rbi", "tapioca"],
+  "what_it_does": "Static type checker for Ruby — adds gradual typing to Ruby using T:: annotations and sig{} method signatures. Sorbet features: T.let(), T.must(), T::Sig, sig { params(x: String).returns(Integer) } method signatures, T.nilable() for nullable types, T::Struct for typed value objects, T::Enum for enums, RBI files for third-party type stubs, Tapioca for auto-generating RBIs from gems, runtime type checking in development (T::Configuration.call_validation_error_handler), strictness levels (# typed: false/true/strict/strong), and IDE integration via Spoom. Created at Stripe and open-sourced. Alternative to Steep/RBS for Ruby type checking. Highly performant incremental type checking via C++ implementation.",
+  "use_cases": [
+    "Typed agent service signatures — sig { params(agent_id: String, options: T::Hash[Symbol, T.untyped]).returns(T.nilable(Agent)) } annotates agent service methods; Sorbet catches type errors before runtime in agent codebase",
+    "Gradual agent codebase typing — # typed: false on legacy agent files, # typed: true on new files; incrementally add type coverage to agent Rails app without requiring 100% coverage upfront",
+    "Agent config typed struct — class AgentConfig < T::Struct { const :model, String; const :max_tokens, Integer; prop :temperature, Float, default: 0.7 } — typed immutable agent configuration object with Sorbet enforcement",
+    "T.must() for agent nil safety — agent = T.must(Agent.find_by(id: id)) asserts non-nil at runtime; Sorbet's flow-sensitive typing narrows type after T.must() call; eliminates NoMethodError on nil in agent service critical paths",
+    "Tapioca for agent gem RBIs — bundle exec tapioca gems generates RBI type stubs for all Gemfile gems; agent Rails app gets type information for ActiveRecord, Sidekiq, HTTParty without manual RBI authoring"
+  ],
+  "not_for": [
+    "Quick scripts and tooling — Sorbet type annotation overhead is not worth it for one-off agent scripts; use for production agent service code only",
+    "RBS/Steep users — Sorbet and Steep/RBS are competing Ruby type systems; don't mix; choose one approach for agent project type checking",
+    "Dynamic metaprogramming-heavy code — Sorbet struggles with Ruby DSLs that heavily use method_missing, define_method, and dynamic dispatch; agent code using Rails concerns, Grape DSL, or Pundit may require many # typed: ignore workarounds"
+  ],
+  "best_when": "Your Ruby agent service codebase is large enough that type errors are a recurring problem and you want IDE autocompletion with type safety — Sorbet provides Stripe-tested production-grade Ruby typing.",
+  "avoid_when": "Your codebase is small, you're prototyping, your team is unfamiliar with typed Ruby, or you have heavy metaprogramming that resists static analysis.",
+  "alternatives": ["steep-ruby-api", "rbs-ruby-api", "crystal-lang-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["ruby"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — local static analysis tool."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, Apache 2.0 licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Sorbet is Apache 2.0 licensed, open-sourced by Stripe. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 0,
+    "latency_p99_ms": 0,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — local CLI. Sorbet type checking is incremental and fast (C++ implementation). Full check of large agent Rails apps takes 5-30 seconds; incremental re-checks take <1 second. IDE integration provides real-time type feedback.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 80,
+    "error_message_quality": 82,
+    "error_message_notes": "Sorbet errors include file:line with error code (7017 for type mismatch) and expected vs actual type. Flow-sensitive typing narrows error context. srb tc --color human-readable output. Error codes are documented at sorbet.org/docs/error-reference for agent developer lookup.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Sorbet type checking is pure static analysis — same code produces same type errors deterministically. srb tc is idempotent. Runtime type checking (T::Configuration) fires once per call with same result for same types.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "# typed: true strictness level required for sig{} checking — # typed: false files skip all type checking; # typed: true enables method signature checking; # typed: strict requires signatures on all methods; agent files left at # typed: false get no benefit from added sig{} annotations; set minimum # typed: true for new agent service files",
+      "Rails dynamic methods require RBI stubs — ActiveRecord scope, attribute, has_many generate methods Sorbet can't see; without tapioca-generated RBIs, agent.name causes 'Method name does not exist on Agent' errors; run bundle exec tapioca dsl after every Rails model change to regenerate agent model RBIs",
+      "T.nilable() vs T.must() interaction — T.nilable(Agent) type requires nil check before calling methods; Sorbet flow-typing narrows after if agent; agent code using &. safe navigation instead of if-nil-check doesn't narrow type; Sorbet still requires T.must() or explicit nil check even after &. usage",
+      "sig{} runtime checking adds overhead — T::Configuration.enable_checking_for_sigs_with_runtime_checks=true enables runtime type validation; in production agent services this adds measurable overhead per sig'd method call; disable runtime checking in production, enable only in development/test for agent performance",
+      "Tapioca requires periodic regeneration — RBI stubs go stale when gems update; agent CI should run bundle exec tapioca gems and commit updated RBIs; stale RBIs cause false type errors or missed real errors in agent code after gem upgrades; add tapioca regeneration to gem update workflow",
+      "Abstract and interface require T::Helpers — class AgentStrategy; extend T::Helpers; abstract! marks class abstract; interface! requires all methods to be abstract; forgetting include T::Helpers in agent base classes causes NoMethodError on abstract! at class definition time"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 80,
+    "error_handling_score": 82,
+    "auth_complexity_score": 95,
+    "rate_limit_clarity_score": 98
+  },
+  "security_score_components": {
+    "tls_enforcement": 92,
+    "auth_strength": 90,
+    "scope_granularity": 88,
+    "dependency_hygiene": 85,
+    "secret_handling": 90,
+    "security_notes": "Static analysis tool — no network security concerns. Sorbet type checking can catch type confusion bugs in agent code that could be exploited. T::Struct const attributes prevent mutation of agent configuration objects. Local CLI tool, no external data transmission."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 85,
+    "version_stability": 78,
+    "breaking_changes_history": 75,
+    "error_recovery": 85
+  }
+}

@@ -1,0 +1,106 @@
+{
+  "id": "spring-session-api",
+  "name": "Spring Session",
+  "version_evaluated": "3.x",
+  "homepage": "https://spring.io/projects/spring-session",
+  "repo_url": "https://github.com/spring-projects/spring-session",
+  "category": "developer-tools",
+  "subcategories": ["session", "java", "spring", "redis", "authentication"],
+  "tags": ["java", "kotlin", "spring", "session", "redis", "jdbc", "hazelcast", "clustering"],
+  "what_it_does": "Distributed session management for Spring applications — replaces in-memory HttpSession with a clustered session store (Redis, JDBC, Hazelcast, MongoDB). Spring Session features: @EnableRedisHttpSession replaces default session with Redis-backed session, spring.session.store-type=redis auto-configuration, transparent HttpSession API (no code changes to session.getAttribute()), session namespace isolation, cookie customization (SameSite, Secure, domain), WebSocket session support, reactive WebFlux session, WebSession for reactive apps, and JSON serialization configuration. Solves sticky session requirement for Spring agent services in Kubernetes/load-balanced environments.",
+  "use_cases": [
+    "Stateless agent API cluster — @EnableRedisHttpSession makes multiple agent service pods share session state via Redis; users authenticated to agent pod-1 have session on pod-2 when load balancer routes next request; eliminates Kubernetes sticky session requirement for agent web apps",
+    "Agent session with JDBC store — spring.session.store-type=jdbc stores sessions in agent database; no Redis needed; agent_sessions table holds serialized session data; suitable for agent apps with existing database infrastructure and modest session volume",
+    "Long-lived agent workflow sessions — configure maxInactiveIntervalInSeconds for agent multi-step workflow sessions that persist across browser close; Redis TTL matches agent session lifetime; agent can resume workflow from where they left off across days",
+    "Agent WebSocket with shared session — Spring Session WebSocket support shares authentication session across WebSocket connection and HTTP requests; agent real-time features use same session as HTTP agent API calls without separate WebSocket auth",
+    "Multi-tenant agent session namespacing — spring.session.redis.namespace=agent-service:sessions isolates agent service sessions from other Spring services using same Redis; prevents session key collision in shared Redis clusters across agent microservices"
+  ],
+  "not_for": [
+    "Stateless JWT APIs — Spring Session manages server-side session state; JWT-based stateless agent APIs carry auth in token and don't benefit from Spring Session; use Spring Security JWT filter chain instead",
+    "Non-Spring applications — Spring Session is Spring-specific; for distributed sessions in non-Spring Java apps use Redisson SessionManager or Jedis-based custom store",
+    "Mobile app backends — mobile agent apps typically use token-based auth not cookie sessions; Spring Session's cookie-based session management is designed for browser-facing agent web applications"
+  ],
+  "best_when": "You have a Spring agent web application that needs session persistence across multiple pods in Kubernetes — Spring Session transparently replaces HttpSession with clustered Redis storage.",
+  "avoid_when": "Your agent API is stateless and JWT-based, or you're building mobile/SPA backends where cookie sessions are inappropriate.",
+  "alternatives": ["redis-api", "hazelcast-api", "spring-security-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["java", "kotlin"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["bearer_token"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Spring Session stores session in external store using session cookie token. Works with Spring Security for authentication. Session cookie (SESSION by default) passed in Cookie header; configure with CookieSerializer bean for SameSite=Strict, Secure, and custom domain for agent production."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, Apache 2.0 licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Spring Session is Apache 2.0 licensed, maintained by the Spring team. Redis/JDBC hosting costs are infrastructure."
+  },
+  "performance": {
+    "latency_p50_ms": 2,
+    "latency_p99_ms": 20,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Each HTTP request with session triggers Redis GET for session lookup; adds ~1-5ms network latency. Write-through on session attribute changes. Connection pooling via Lettuce or Jedis. Agent high-frequency requests benefit from session read-through caching.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 80,
+    "error_message_notes": "RedisConnectionFailureException when Redis is unavailable surfaces as session read failure causing 500. Session deserialization errors (ClassNotFoundException after class rename) appear in logs with session ID. JDBC session store CannotCreateTransactionException when DB unavailable. Session expiry is silent — expired session returns null attributes.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Session reads are idempotent. Session attribute writes are last-write-wins. Session invalidation is idempotent — invalidating already-expired session is safe. Agent session operations are consistent within single Redis transaction.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Session serialization requires consistent Java class versions — Spring Session Redis serializes session attributes using Java serialization or JSON; renaming agent class stored in session (UserContext → AgentUserContext) causes deserialization failure on existing sessions; implement session migration strategy or configure JSON serialization with type mapping for agent rolling deployments",
+      "SameSite cookie attribute must be configured explicitly — modern browsers require SameSite for cross-origin cookies; agent frontends on different domain from API need SameSite=None; Secure=true; configure DefaultCookieSerializer bean with sameSite='None' and useSecureCookie=true; missing SameSite causes agent session cookie blocked by browser",
+      "spring.session.store-type required for Redis — without explicit configuration, Spring Session may fall back to in-memory; adding spring-session-data-redis NuGet without spring.session.store-type=redis in application.properties results in no-op Redis session configuration; agent sessions stored in-memory despite Redis dependency present",
+      "Session namespace conflicts across services — default spring:session namespace means multiple Spring services on same Redis cluster share session keyspace; agent-service sessions and auth-service sessions in same namespace cause accidental session sharing; configure unique spring.session.redis.namespace per agent service",
+      "@EnableRedisHttpSession conflicts with Spring Boot auto-config — Spring Boot auto-configures session via spring.session.store-type; adding @EnableRedisHttpSession annotation AND spring.session.store-type=redis creates duplicate session repository beans causing NoUniqueBeanDefinitionException; use only auto-config (application.properties) or annotation, not both for agent Spring Boot apps",
+      "Session invalidation on logout must be explicit — Spring Security logout handler invalidates security context but may not invalidate Spring Session; call HttpSession.invalidate() in agent logout handler to delete Redis session key; without explicit invalidation, agent session remains in Redis until TTL expiry even after logout"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 78,
+    "auth_complexity_score": 82,
+    "rate_limit_clarity_score": 88
+  },
+  "security_score_components": {
+    "tls_enforcement": 85,
+    "auth_strength": 82,
+    "scope_granularity": 80,
+    "dependency_hygiene": 88,
+    "secret_handling": 82,
+    "security_notes": "Session cookie must use Secure flag (HTTPS only) and HttpOnly in production agent apps — configure DefaultCookieSerializer with useHttpOnlyCookie=true and useSecureCookie=true. Redis session store contains all agent session attributes including auth state; Redis must be secured with AUTH password and TLS. Session fixation attack prevention enabled by Spring Security by default."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 88,
+    "breaking_changes_history": 85,
+    "error_recovery": 82
+  }
+}
