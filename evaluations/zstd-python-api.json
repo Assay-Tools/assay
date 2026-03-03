@@ -1,0 +1,106 @@
+{
+  "id": "zstd-python-api",
+  "name": "zstandard",
+  "version_evaluated": "0.22.x",
+  "homepage": "https://python-zstandard.readthedocs.io/",
+  "repo_url": "https://github.com/indygreg/python-zstandard",
+  "category": "developer-tools",
+  "subcategories": ["compression", "python", "performance", "utilities"],
+  "tags": ["python", "zstd", "zstandard", "compression", "fast", "binary", "facebook", "streaming"],
+  "what_it_does": "Python bindings for Zstandard (zstd) compression — provides fast, high-ratio compression developed by Facebook. zstandard features: ZstdCompressor/ZstdDecompressor for streaming, compress()/decompress() for one-shot, level parameter (1-22, default 3), trained dictionary support for repetitive data, streaming compression via compressor.stream_writer(), multi-threaded compression, frame parameters (magic, checksum, dict_id), content size in frame, chunked streaming decompression, CFFI and C extension backends, and significant improvement over LZ4 (better ratio) and gzip (much faster).",
+  "use_cases": [
+    "Agent data compression — import zstandard as zstd; cctx = zstd.ZstdCompressor(level=3); compressed = cctx.compress(data); dctx = zstd.ZstdDecompressor(); restored = dctx.decompress(compressed) — standard compression; agent caches and stores compressed binary data; level=3 balances speed and ratio",
+    "Agent high-compression archiving — cctx = zstd.ZstdCompressor(level=19); compressed = cctx.compress(large_data) — high compression mode; agent archiving historical data uses level 19 for best ratio; decompression always fast regardless of compression level",
+    "Agent streaming compression — cctx = zstd.ZstdCompressor(); with cctx.stream_writer(output_file) as compressor: for chunk in data_stream: compressor.write(chunk) — streaming; agent processes large datasets without buffering entire payload in memory; stream_writer wraps file-like object",
+    "Agent trained dictionary — from zstandard import ZstdCompressionDict; training_data = [sample1, sample2, sample3]; dict_data = zstd.train_dictionary(8192, training_data); cdict = ZstdCompressionDict(dict_data); cctx = zstd.ZstdCompressor(dict_data=cdict); compressed = cctx.compress(similar_data) — dictionary training; agent compresses many similar small payloads with shared dictionary; 2-5x better ratio for similar data",
+    "Agent multi-threaded compression — cctx = zstd.ZstdCompressor(level=3, threads=-1); compressed = cctx.compress(large_data) — threaded; agent compresses large payloads using all CPU cores; threads=-1 uses detected CPU count; significant speedup for large files on multi-core systems"
+  ],
+  "not_for": [
+    "Browser compatibility — zstd support in browsers is limited; for web use gzip or brotli",
+    "Streaming zip/tar archives — zstd is raw compression; for zip/tar format use zipfile or tarfile modules",
+    "Ultra-simple compression — for simplest API use Python's gzip module (stdlib)"
+  ],
+  "best_when": "High-performance compression for agent data storage, caching, and IPC — zstd provides the best balance of speed and compression ratio among general-purpose compressors, outperforming both LZ4 (ratio) and gzip (speed).",
+  "avoid_when": "Browser compatibility needed (use gzip/brotli), standard archive formats (use zipfile), or ultra-simple API (use stdlib gzip).",
+  "alternatives": ["lz4-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — local compression library."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, BSD licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "python-zstandard is BSD licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Performance: level 3: ~400 MB/s compression, ~1500 MB/s decompression. level 1: ~600 MB/s compression. level 19: ~50 MB/s compression, ~1500 MB/s decompression (same decompression speed regardless of level). Compression ratio: 2.8-3.5:1 for typical data vs LZ4's 2:1 and gzip's 3:1. Best overall balance.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 82,
+    "error_message_notes": "ZstdError for compression/decompression failures. zstd.DecompressionError for invalid compressed data. MemoryError for insufficient memory. Error messages indicate operation that failed and underlying zstd error code.",
+    "idempotency_support": "full",
+    "idempotency_notes": "compress() with same parameters and same input produces functionally equivalent output (bit-identical for same content and level). decompress() is fully deterministic. Round-trip is lossless.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "import zstandard not import zstd — package name is zstandard; pip install zstandard; import zstandard as zstd; not: import zstd (that's a different package); agent requirements.txt must specify: zstandard; confusion between package name and import alias is common",
+      "ZstdCompressor and ZstdDecompressor are not paired — compressed data is self-describing; any ZstdDecompressor can decompress any ZstdCompressor output; no need to pair same compressor/decompressor instances; agent code creates one compressor for writing and independent decompressor for reading",
+      "Streaming decompressor requires chunked output — dctx.decompressobj(); while True: chunk = decompressor.decompress(input_chunk, max_length=65536) — max_length limits output per call; without max_length, decompressor may buffer internally; agent streaming decompression must set max_length to control memory usage",
+      "Dictionary must match for decompression — data compressed with dictionary: dctx = ZstdDecompressor(dict_data=my_dict); without matching dict: ZstdError: decompressor must use same dictionary as compressor; agent must store dictionary alongside compressed data or include in frame (dict_id in frame header)",
+      "threads parameter for compression only — ZstdCompressor(threads=4) uses multi-threading for compression; ZstdDecompressor has no threads parameter — decompression is single-threaded in libzstd (currently); agent parallel decompression requires multiple ZstdDecompressor instances",
+      "Content size not always included — by default, ZstdCompressor embeds content size in frame header; this allows pre-allocated output buffer; if content size unknown at compression time: write_content_size=False; without content size: decompressor cannot pre-allocate exact buffer — uses dynamic allocation"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 82,
+    "auth_complexity_score": 99,
+    "rate_limit_clarity_score": 99
+  },
+  "security_score_components": {
+    "tls_enforcement": 92,
+    "auth_strength": 92,
+    "scope_granularity": 90,
+    "dependency_hygiene": 90,
+    "secret_handling": 90,
+    "security_notes": "Compression library with no network calls. zstd does not encrypt data — compress then encrypt separately for secure storage. Decompression bombs: valid zstd data can expand to GB of output — validate max_length for untrusted input. HMAC for authenticated integrity separate from compression. zstd frame checksums provide data integrity but not authentication."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 85,
+    "version_stability": 88,
+    "breaking_changes_history": 88,
+    "error_recovery": 85
+  }
+}

@@ -1,0 +1,106 @@
+{
+  "id": "blessed-python-api",
+  "name": "blessed",
+  "version_evaluated": "1.20.x",
+  "homepage": "https://blessed.readthedocs.io/",
+  "repo_url": "https://github.com/jquast/blessed",
+  "category": "developer-tools",
+  "subcategories": ["cli", "python", "terminal", "tui", "curses"],
+  "tags": ["python", "blessed", "terminal", "tui", "curses", "full-screen", "keyboard", "colors"],
+  "what_it_does": "Terminal capabilities library for Python — wraps curses to provide a clean API for terminal control, colors, keyboard input, and cursor positioning. blessed features: Terminal() class for terminal detection, t.bold/t.red/t.on_blue for ANSI styling, t.move_xy() for cursor positioning, t.width/t.height for terminal dimensions, t.inkey() for keyboard input with key detection, t.cbreak() for raw key mode, t.hidden_cursor() for cursor management, t.fullscreen() for fullscreen mode, 256-color and true color support, and context managers for terminal state management. Successor to blessings library.",
+  "use_cases": [
+    "Agent terminal colors — from blessed import Terminal; t = Terminal(); print(t.bold_red('ERROR: ') + t.bold('Connection failed')); print(t.green('SUCCESS: ') + 'Operation complete') — composable styling; agent CLI output uses rich color combinations; t.bold_red combines bold + red in one call; styles compose naturally",
+    "Agent terminal dimensions — t = Terminal(); cols = t.width; rows = t.height; print(f'Terminal: {cols}x{rows}'); bar_width = cols - 10; bar = '█' * int(bar_width * progress) — responsive layout; agent CLI adapts to terminal size; t.width/t.height auto-detect and update on resize",
+    "Agent keyboard input — t = Terminal(); with t.cbreak(): key = t.inkey(timeout=5) — non-blocking key read; agent CLI waits for key input with timeout; key.name gives 'KEY_UP', 'KEY_ENTER' etc.; key.code for numeric code; inkey() is non-blocking alternative to input()",
+    "Agent cursor control — with t.hidden_cursor(): for i, item in enumerate(items): print(t.move_xy(0, i) + t.clear_eol + f'{item.name}: {item.status}') — cursor-controlled output; agent status dashboard updates lines in place without scrolling; clear_eol clears to end of line",
+    "Agent fullscreen TUI — with t.fullscreen(): with t.hidden_cursor(): with t.cbreak(): header = t.bold(t.center('Agent Dashboard')); print(t.move_xy(0, 0) + header); while True: key = t.inkey(timeout=0.1); if key.name == 'q': break — full-screen app; agent dashboard occupies entire terminal"
+  ],
+  "not_for": [
+    "Complex widget-based TUI — blessed provides primitives; for full widgets (buttons, tables, dialogs) use textual or urwid",
+    "Web terminal emulation — blessed is local terminal only; for web terminal use xterm.js",
+    "Windows compatibility — blessed has limited Windows support; for Windows use prompt_toolkit"
+  ],
+  "best_when": "Building custom terminal UIs with full control over cursor positioning, colors, and keyboard input — blessed provides the right level of abstraction over curses for agent dashboards and interactive CLI tools.",
+  "avoid_when": "Widget-based TUI (use textual), web terminal (use xterm.js), or Windows-first (use prompt_toolkit).",
+  "alternatives": ["prompt-toolkit-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — local terminal library."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "blessed is MIT licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Performance: terminal output is I/O bound. t.inkey() blocks for up to timeout seconds. Cursor moves are immediate. 60fps update rate easily achievable for status displays.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 82,
+    "error_message_quality": 80,
+    "error_message_notes": "Terminal() initialization succeeds even for dumb terminals — style calls return empty strings. t.inkey() returns Keystroke() object — check .is_sequence and .name. No exceptions for non-TTY — blessed degrades gracefully.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Styling functions (t.bold_red()) are idempotent — same input produces same ANSI output. Terminal state changes (fullscreen, hidden_cursor) are stateful context managers. inkey() is stateful — reads from keyboard buffer.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Context managers must be nested correctly — with t.fullscreen(): with t.hidden_cursor(): with t.cbreak(): order matters; fullscreen must be outermost; reversing order causes terminal restoration issues; exiting contexts restores terminal state — do not catch SystemExit inside these contexts or terminal won't restore",
+      "t.inkey() timeout=0 returns immediately — t.inkey(timeout=0) checks for pending key without blocking; returns Keystroke with empty string if no key; agent game loop: key = t.inkey(timeout=0.05) for responsive without CPU burning; None timeout blocks forever",
+      "Style callable vs format string — t.bold is callable: t.bold('text') or format string: f'{t.bold}text{t.normal}'; mixing: t.bold + 'text' + t.normal (string concatenation); agent code must pick one pattern and be consistent; callable is cleaner but format strings enable composition",
+      "Keyboard key names differ by terminal — KEY_UP may be 'KEY_UP' in most terminals but different in some; t.KEY_UP is the constant for comparison: if key.code == t.KEY_UP:; do not hardcode escape sequences; agent code using key.name for navigation must test on target terminal type",
+      "t.move_xy(x, y) is column-then-row — move_xy(x=0, y=5) moves to column 0, row 5; many cursor APIs are row,col but blessed is x (col), y (row); agent code mixing blessed with curses.move() (row, col) gets coordinates swapped",
+      "Dumb terminal degrades gracefully — Terminal() on non-color terminal: style calls return empty strings silently; agent code t.bold('text') on dumb terminal returns 'text' without bold; no errors; agent tools are usable on minimal terminals but without decoration"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 82,
+    "error_handling_score": 80,
+    "auth_complexity_score": 99,
+    "rate_limit_clarity_score": 99
+  },
+  "security_score_components": {
+    "tls_enforcement": 88,
+    "auth_strength": 88,
+    "scope_granularity": 85,
+    "dependency_hygiene": 88,
+    "secret_handling": 85,
+    "security_notes": "Terminal library with no network calls. t.cbreak() puts terminal in raw mode — ensure proper cleanup via context manager to restore terminal on exit. Don't display sensitive values with cursor positioning in shared terminal sessions. Always use context managers to guarantee terminal restoration."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 80,
+    "version_stability": 82,
+    "breaking_changes_history": 82,
+    "error_recovery": 82
+  }
+}
