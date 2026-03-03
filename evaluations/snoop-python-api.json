@@ -1,0 +1,106 @@
+{
+  "id": "snoop-python-api",
+  "name": "snoop",
+  "version_evaluated": "0.4.x",
+  "homepage": "https://github.com/alexmojaki/snoop",
+  "repo_url": "https://github.com/alexmojaki/snoop",
+  "category": "developer-tools",
+  "subcategories": ["debugging", "python", "tracing", "logging"],
+  "tags": ["python", "snoop", "debug", "tracing", "decorator", "logging", "pysnooper"],
+  "what_it_does": "Non-interactive Python debugging via automatic variable tracing — traces function execution and prints variable changes without a debugger. snoop features: @snoop decorator for automatic trace logging, snoop() context manager for block tracing, pp() for pretty-print with expression display, watch= parameter for tracking non-local variables, depth= for tracing called functions, out= for file/stream output, prefix= for log identification, columns= for timestamp/thread display, enabled= flag for conditional tracing, and pysnooper compatibility. Prints every line executed with variable values — debugging without breakpoints.",
+  "use_cases": [
+    "Agent function tracing — import snoop; @snoop; def process(data): result = transform(data); filtered = [x for x in result if x > 0]; return filtered — trace without breakpoints; agent logs every variable change in decorated function; output shows: line numbers, variable assignments, return values; ideal for understanding unfamiliar code",
+    "Agent block tracing — with snoop(): result = complex_calculation(x, y); if result > threshold: do_action(result) — context manager; agent traces specific code block without decorating function; snoop() shows variable values for each statement in block",
+    "Agent pretty print with expression — from snoop import pp; pp(agent.state['memory']['recent_events'][:5]) — pp shows both expression and value; output: agent.state['memory']['recent_events'][:5] = [...]; unlike print() which shows only value; agent debugging knows which variable is being displayed",
+    "Agent deep trace — @snoop(depth=2); def agent_step(state): return compute_next_state(state) — depth=2 traces into called functions; agent traces call chain without decorating every function; shows compute_next_state execution with its variables",
+    "Agent conditional tracing — VERBOSE = os.getenv('AGENT_DEBUG'); @snoop(enabled=VERBOSE); def process(x): return transform(x) — environment-controlled tracing; agent enables detailed tracing via env var; zero overhead when disabled=False; production code with optional debugging"
+  ],
+  "not_for": [
+    "Interactive debugging — snoop prints logs but cannot pause execution or inspect interactively; for interactive use pudb or pdb++",
+    "Performance-critical code — snoop adds settrace overhead similar to pdb; never use in production hot paths",
+    "Long-running continuous tracing — snoop output is verbose; for ongoing monitoring use structured logging or prometheus metrics"
+  ],
+  "best_when": "Debugging complex functions without interactive debugger access — snoop's automatic variable tracing reveals execution flow in non-interactive environments (containers, CI logs, remote servers).",
+  "avoid_when": "Interactive debugging needed (use pudb/pdb++), production performance (remove decorators), or long-running monitoring (use logging).",
+  "alternatives": ["pudb-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — local tracing/debugging tool."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "snoop is MIT licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Overhead: significant — snoop uses sys.settrace like debuggers; 5-50x slowdown per traced function. Output volume: very high for loops — each iteration logged. Use depth=1 and targeted context managers to limit overhead.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 82,
+    "error_message_notes": "snoop itself doesn't raise errors — traces target function execution. If traced function raises, snoop logs the exception then propagates it. pp() shows expression and value on stdout/stderr. Output format: 'Source_path:line_number | variable = value'.",
+    "idempotency_support": "full",
+    "idempotency_notes": "snoop is non-invasive tracing — does not change function return values or side effects (only adds logging overhead). Same function produces same results with snoop as without.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Output goes to stderr by default — snoop output appears on stderr; agent code redirecting stdout misses snoop output; use: snoop(out=sys.stdout) or snoop(out='/path/to/debug.log') to redirect; or: snoop.install(out=sys.stdout) for global redirection",
+      "Loops produce massive output — @snoop on function with for i in range(10000) loop logs 10000+ lines; agent code with large iteration must limit scope: use 'with snoop():' around specific statements not whole loop; or use watch= to monitor only specific variables",
+      "depth= traces all called functions — @snoop(depth=2) traces the decorated function AND all functions it calls at depth 1; if decorated function calls a library function processing large data, snoop traces into it; limit depth carefully; depth=1 (default) traces only the decorated function",
+      "pp() may expose secrets — pp(auth_token) prints auth_token = 'sk-...' to stderr; agent code using pp() for debugging must not leave pp() calls on sensitive variables in code; unlike print(), pp() makes the variable name explicit making it easier to audit",
+      "snoop not compatible with all async code — @snoop on async functions may produce interleaved output from concurrent coroutines; for async tracing: use columns=['thread'] or separate snoop instances per coroutine; asyncio event loop tracing produces confusing output with multiple coroutines",
+      "install() modifies global trace — snoop.install() installs snoop as built-in so @snoop works without import in any file; useful in large codebases but modifies global interpreter state; call install() at application startup; may interfere with other tracing tools (coverage, profilers) using sys.settrace"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 82,
+    "auth_complexity_score": 99,
+    "rate_limit_clarity_score": 99
+  },
+  "security_score_components": {
+    "tls_enforcement": 90,
+    "auth_strength": 90,
+    "scope_granularity": 88,
+    "dependency_hygiene": 90,
+    "secret_handling": 75,
+    "security_notes": "snoop automatically logs ALL local variables including passwords, tokens, and PII. Never leave @snoop on functions handling credentials. Use enabled=False flag or conditional enabling. Redirect output to secure log file not stdout when debugging in shared environments. Remove all snoop decorators before production deployment."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 80,
+    "version_stability": 82,
+    "breaking_changes_history": 82,
+    "error_recovery": 82
+  }
+}
