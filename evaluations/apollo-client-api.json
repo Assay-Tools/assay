@@ -1,0 +1,106 @@
+{
+  "id": "apollo-client-api",
+  "name": "Apollo Client",
+  "version_evaluated": "3.x",
+  "homepage": "https://www.apollographql.com/docs/react/",
+  "repo_url": "https://github.com/apollographql/apollo-client",
+  "category": "developer-tools",
+  "subcategories": ["graphql", "javascript", "typescript", "react", "client"],
+  "tags": ["graphql", "javascript", "typescript", "react", "apollo", "client", "cache", "queries"],
+  "what_it_does": "GraphQL client for JavaScript/React — handles queries, mutations, subscriptions, caching, and state management for GraphQL APIs. Apollo Client 3 features: useQuery() and useMutation() React hooks, InMemoryCache with automatic normalization, cache-first / network-only / cache-and-network fetch policies, optimistic updates (optimisticResponse), Apollo Link chain (auth, error, retry), subscription via WebSocket (subscribeToMore), refetchQueries after mutations, field-level cache policies, reactive variables (makeVar()), pagination helpers (fetchMore, relayStylePagination), and Apollo Client DevTools. Standard GraphQL client for React agent frontends querying agent GraphQL APIs.",
+  "use_cases": [
+    "Agent data fetching — const { data, loading, error } = useQuery(GET_AGENTS, { variables: { status: 'active' } }) fetches agent list; Apollo caches and deduplicates identical queries; automatic React re-render when agent data updates",
+    "Agent mutation with cache update — const [createAgent] = useMutation(CREATE_AGENT, { update(cache, { data: { createAgent } }) { cache.modify({ fields: { agents(existing) { return [...existing, createAgent] } } }) }) } adds new agent to cache without refetch",
+    "Optimistic agent UI — useMutation with optimisticResponse: { createAgent: { id: 'temp', name: newName, __typename: 'Agent' } } shows agent immediately in UI before server confirms; reverts on error; instant agent creation feeling",
+    "Agent subscriptions for real-time — useSubscription(AGENT_STATUS_CHANGED, { onData: ({ data }) => updateAgentUI(data) }) or subscribeToMore for agent status updates via WebSocket; Apollo handles reconnection and cache merging",
+    "Agent pagination — useQuery with fetchMore({ variables: { cursor: pageInfo.endCursor } }) appends next agent page; relayStylePagination() field policy merges pages automatically in InMemoryCache for infinite scroll agent lists"
+  ],
+  "not_for": [
+    "REST API clients — Apollo Client is GraphQL-specific; for REST agent APIs use TanStack Query, SWR, or Axios",
+    "Non-React frameworks — Apollo Client has React-specific hooks; use Apollo Client's core package or framework adapters for Vue/Angular agent frontends, or use urql as a lighter alternative",
+    "Server-side GraphQL — Apollo Client is a frontend library; for Node.js GraphQL server use Apollo Server or GraphQL Yoga"
+  ],
+  "best_when": "Your React agent frontend queries a GraphQL API and needs automatic caching, optimistic updates, and real-time subscriptions — Apollo Client's InMemoryCache eliminates duplicate requests and keeps agent UI data synchronized.",
+  "avoid_when": "You're using REST APIs (use TanStack Query), Vue/Svelte (use urql), or you want a lighter GraphQL client without Apollo's full cache layer (use graphql-request).",
+  "alternatives": ["urql-api", "tanstack-query-api", "graphql-request-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": true,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["javascript", "typescript"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["bearer_token", "api_key"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Auth via Apollo Link: authLink = setContext((_, { headers }) => { return { headers: { ...headers, authorization: token } } }). Link chain adds auth header to all agent API requests. Token refresh via error link catching 401 responses."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed. Apollo Studio (cloud dashboard) has free tier.",
+    "paid_tiers": "Apollo GraphOS (Studio) for managed graph federation, schema registry, and team collaboration",
+    "requires_credit_card": false,
+    "notes": "Apollo Client is MIT licensed. Apollo Studio/GraphOS has free and paid tiers for managed services."
+  },
+  "performance": {
+    "latency_p50_ms": 50,
+    "latency_p99_ms": 300,
+    "uptime_sla_percent": null,
+    "rate_limits": "No client-side rate limits. InMemoryCache serves cached data with zero network latency. Network requests to agent GraphQL server depend on server performance. Subscription WebSocket connection pooled — single connection per client.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 82,
+    "error_message_notes": "useQuery returns { error: ApolloError } with graphQLErrors (server errors) and networkError (HTTP/network failures). GraphQL errors have message, locations, path, and extensions.code. Apollo Client DevTools browser extension shows query/mutation/cache state for agent debugging. Cache eviction shown in DevTools.",
+    "idempotency_support": "full",
+    "idempotency_notes": "useQuery is idempotent — same query with same variables returns cached result on subsequent renders. cache-and-network fetches fresh data but shows cached immediately. useMutation is not idempotent — each call triggers mutation. refetchQueries re-runs queries after mutation.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "InMemoryCache requires __typename and id for normalization — Apollo caches objects by __typename + id; without id in query selections, cache doesn't normalize and may show stale agent data; always include id in agent query fragments; custom keyFields in InMemoryCache type policies for non-standard agent entity keys",
+      "Stale cache after mutation requires explicit update — useMutation doesn't auto-update cache for other queries; after creating agent, other agent list queries still show old data; use update() callback with cache.modify() or refetchQueries: ['GetAgents'] to keep agent list current after mutation",
+      "Network-only vs cache-and-network distinction — fetchPolicy: 'network-only' skips cache reads but writes to cache; fetchPolicy: 'no-cache' skips both read and write; agent dev debugging showing stale data may need 'network-only' temporarily; production agent views should use 'cache-and-network' for instant + fresh pattern",
+      "Apollo Link order matters for error handling — links execute request in order: auth → http; error links execute in reverse; RetryLink must come before HttpLink in agent link chain; incorrect link order causes auth headers missing from retried requests or error handler not catching network failures",
+      "useQuery variables object reference triggers refetch — { variables: { status: filter } } with object literal creates new reference every render; Apollo compares variables by reference not value; agent filter components must memoize variables object or use useMemo to prevent infinite refetch loop",
+      "Subscription cleanup required on unmount — useSubscription automatically unsubscribes on component unmount; subscribeToMore returns unsubscribe function that must be called in useEffect cleanup; agent components using subscribeToMore without cleanup cause memory leaks and zombie subscriptions receiving updates after component unmount"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 82,
+    "auth_complexity_score": 82,
+    "rate_limit_clarity_score": 88
+  },
+  "security_score_components": {
+    "tls_enforcement": 90,
+    "auth_strength": 85,
+    "scope_granularity": 82,
+    "dependency_hygiene": 85,
+    "secret_handling": 82,
+    "security_notes": "Apollo Client stores auth tokens in memory or localStorage — use httpOnly cookies for agent auth tokens to prevent XSS. Apollo DevTools browser extension exposes full cache including sensitive agent data; disable in production builds. Subscription WebSocket auth: pass token in connectionParams, not URL query string, for agent real-time security."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 85,
+    "breaking_changes_history": 78,
+    "error_recovery": 85
+  }
+}

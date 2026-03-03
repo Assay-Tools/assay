@@ -1,0 +1,106 @@
+{
+  "id": "django-debug-toolbar-api",
+  "name": "Django Debug Toolbar",
+  "version_evaluated": "4.x",
+  "homepage": "https://django-debug-toolbar.readthedocs.io/",
+  "repo_url": "https://github.com/jazzband/django-debug-toolbar",
+  "category": "developer-tools",
+  "subcategories": ["debugging", "python", "django", "performance", "development"],
+  "tags": ["python", "django", "debug", "toolbar", "sql", "performance", "profiling", "development"],
+  "what_it_does": "Development debugging panel for Django — adds a collapsible sidebar to HTML pages showing request details, SQL queries, template rendering, cache hits, signal execution, and profiling. Django Debug Toolbar panels: SQL (all queries with EXPLAIN, duplicate detection), Time (per-phase timing), Cache (hits/misses), Signals (fired signals with receivers), Templates (context variables, template path), Headers (request/response headers), History (recent requests), Static Files, Redirects, Logging, and Profiling (call graph). SHOW_TOOLBAR_CALLBACK restricts to staff users. Catches N+1 queries and slow agent request SQL automatically in development.",
+  "use_calls": [
+    "Agent N+1 query detection — SQL panel shows 47 queries on agent list page; similar queries highlight as duplicates; agent developer sees agents loop triggering user.name lookup per row; adds .select_related('user') to agent queryset",
+    "Agent request profiling — Profiling panel shows flame graph of agent view execution; identifies time in template rendering, ORM calls, or agent service method; focused optimization target without cProfiler setup",
+    "Agent cache verification — Cache panel shows hit/miss for each cache key; agent developer verifies expensive LLM response cached correctly on second request; identifies cache configuration issues in local development",
+    "Agent template debugging — Templates panel shows rendered template path, context variables, and inheritance chain; agent developers see which template rendered for request and what variables were available",
+    "Agent signal debugging — Signals panel shows all Django signals fired during request; agent workflows triggering post_save signals visible; debugging unexpected signal cascade effects in agent business logic"
+  ],
+  "not_for": [
+    "Production monitoring — Debug Toolbar is development-only; for production agent performance monitoring use Prometheus + Grafana, DataDog APM, or New Relic",
+    "Non-HTML API endpoints — Debug Toolbar only injects into HTML responses; for agent REST API JSON endpoint profiling use Django Silk or cProfile middleware",
+    "Load testing profiling — Debug Toolbar processes each request synchronously adding overhead; for agent load test profiling use py-spy or dedicated APM"
+  ],
+  "best_when": "Every Django agent development environment — Debug Toolbar shows SQL queries, slow operations, and N+1 problems in the browser without adding print() statements or running separate profilers.",
+  "avoid_when": "Production environments (performance overhead + security exposure), non-HTML API-only agent backends, or load testing scenarios.",
+  "alternatives": ["django-silk-api", "ddtrace-api", "yappi-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "SHOW_TOOLBAR_CALLBACK controls display. Default shows only for staff users or DEBUG=True with internal IPs. Never enable in production without proper auth restriction."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, BSD-3-Clause licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Django Debug Toolbar is BSD-3-Clause licensed, maintained by Jazzband. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 0,
+    "latency_p99_ms": 0,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Debug Toolbar adds 10-50ms overhead per request in development by intercepting all DB queries and template rendering. Profiling panel adds 100-500ms. Never use in production agent deployment.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 90,
+    "error_message_quality": 85,
+    "error_message_notes": "Toolbar shows all SQL errors from agent views inline. Profiling panel shows exception stack traces. Missing INTERNAL_IPS config shown as no toolbar appearing without error. Invalid DJDT configuration raises ImproperlyConfigured at startup with clear message.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Debug Toolbar is read-only — collects data per request. Panel data is idempotent with respect to displayed information. No state changes from toolbar interaction.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "INTERNAL_IPS must include Docker host IP — default INTERNAL_IPS=['127.0.0.1'] works for local dev; Docker-based agent dev environments have different IP (172.17.0.1 typical); add IP dynamically: import socket; hostname, _, ips = socket.gethostbyname_ex(socket.gethostname()); INTERNAL_IPS = [ip[:-1]+'1' for ip in ips]; toolbar silently doesn't show without matching IP",
+      "debug_toolbar.middleware.DebugToolbarMiddleware must be first — if gzip or other compression middleware comes before debug toolbar, HTML injection of toolbar sidebar fails; agent projects with WhiteNoise or GZipMiddleware before DebugToolbarMiddleware get no toolbar sidebar in HTML responses",
+      "Not shown for AJAX/JSON responses — Debug Toolbar injects JavaScript sidebar into HTML responses only; agent REST API views returning JSON don't show toolbar; to debug agent API SQL use logging.getLogger('django.db.backends') or django-silk for JSON endpoint profiling",
+      "Toolbar in production is a security vulnerability — SHOW_TOOLBAR_CALLBACK returning True in production exposes all agent SQL queries, request headers (including auth tokens), cache keys, and template context to anyone; misconfigured production toolbar leaks sensitive agent infrastructure details; always check DEBUG=False disables toolbar",
+      "Historical panel requires ENABLE_STACKTRACES — SQL panel stacktraces showing which agent code triggered query require DEBUG_TOOLBAR_CONFIG = {'ENABLE_STACKTRACES': True}; disabled by default for performance; enable for agent N+1 query investigation to see exact code line generating duplicate SQL",
+      "Panel not appearing with async views — Debug Toolbar 4.x has limited async support; Django async views (async def my_view) may not display all panels correctly; agent async DRF views or async Django views show incomplete SQL panel; use sync agent views or django-silk for async endpoint SQL profiling"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 90,
+    "error_handling_score": 85,
+    "auth_complexity_score": 92,
+    "rate_limit_clarity_score": 98
+  },
+  "security_score_components": {
+    "tls_enforcement": 88,
+    "auth_strength": 75,
+    "scope_granularity": 75,
+    "dependency_hygiene": 90,
+    "secret_handling": 72,
+    "security_notes": "CRITICAL: Debug Toolbar exposes SQL queries, headers, cache keys, and context — restrict to development ONLY. Never enable in production agent deployments. SHOW_TOOLBAR_CALLBACK must verify DEBUG=True and staff status for any staging use. Toolbar sidebar injected into HTML can expose agent data to browser dev tools."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 90,
+    "version_stability": 88,
+    "breaking_changes_history": 85,
+    "error_recovery": 88
+  }
+}

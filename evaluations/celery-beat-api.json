@@ -1,0 +1,106 @@
+{
+  "id": "celery-beat-api",
+  "name": "Celery Beat",
+  "version_evaluated": "5.x",
+  "homepage": "https://docs.celeryq.dev/en/stable/userguide/periodic-tasks.html",
+  "repo_url": "https://github.com/celery/celery",
+  "category": "developer-tools",
+  "subcategories": ["scheduling", "python", "django", "celery", "cron"],
+  "tags": ["python", "celery", "beat", "scheduling", "cron", "periodic-tasks", "django-celery-beat"],
+  "what_it_does": "Periodic task scheduler for Celery — runs cron-like scheduled tasks via Celery Beat process. Celery Beat features: @shared_task with beat_schedule in celery.py configuration, crontab() for cron expression schedules (every Monday at 9am), timedelta for interval schedules (every 10 minutes), django-celery-beat for DB-backed schedules editable via Django admin, dynamic schedule modification without restart, PeriodicTask model for programmatic schedule management, clocked() for one-time scheduled tasks, solar() for sunrise/sunset schedules, and timezone support. Separate celery beat -A myapp process runs alongside Celery workers for agent scheduled task execution.",
+  "use_cases": [
+    "Agent health check scheduling — @shared_task def check_agent_health(): Agent.objects.active().update_status() with beat_schedule = {'check-agents': {'task': 'agents.tasks.check_agent_health', 'schedule': crontab(minute='*/5')}} checks all agents every 5 minutes",
+    "Agent report generation — crontab(hour=9, minute=0, day_of_week='mon') schedules weekly agent performance report; Celery Beat triggers GenerateAgentReportTask at Monday 9am; django-celery-beat allows ops team to adjust schedule without code deploy",
+    "Agent data sync via django-celery-beat — PeriodicTask.objects.create(name='sync-agent-configs', task='agents.sync_task', crontab=CrontabSchedule.objects.get_or_create(minute='0', hour='*/6')[0]) creates schedule programmatically; agent integrations auto-create their sync schedules on startup",
+    "Agent token refresh scheduling — interval schedule with timedelta(minutes=55) refreshes OAuth tokens before expiry; Celery Beat triggers agent token refresh 5 minutes before 60-minute token expires",
+    "Agent analytics aggregation — daily crontab(hour=0, minute=30) aggregates yesterday's agent interaction metrics into summary tables; beat ensures analytics jobs run consistently without manual cron job management on each agent server"
+  ],
+  "not_for": [
+    "One-off delayed tasks — Celery Beat is for recurring schedules; for one-time delay use task.apply_async(countdown=300) or eta parameter without Beat",
+    "Complex workflow orchestration — Beat triggers tasks; for agent DAG workflows with dependencies use Celery Canvas (chain/chord/group) or Prefect/Dagster",
+    "Sub-second scheduling — Celery Beat has ~1 second resolution; for agent tasks needing millisecond precision use dedicated event loop (asyncio) or APScheduler"
+  ],
+  "best_when": "Your Python agent service needs cron-style recurring tasks (health checks, reports, data sync) managed alongside your Celery workers — Beat provides DB-backed schedules adjustable without code changes via django-celery-beat.",
+  "avoid_when": "You need one-off delayed tasks (use task.apply_async(eta=...)), complex DAG orchestration, or sub-second scheduling precision.",
+  "alternatives": ["celery-api", "apscheduler-api", "rq-scheduler-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — internal scheduler. Uses same broker (Redis/RabbitMQ) auth as Celery. django-celery-beat Django admin access controlled by Django auth."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, BSD-3-Clause licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Celery Beat is part of Celery (BSD-3-Clause). django-celery-beat is MIT licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 1000,
+    "latency_p99_ms": 5000,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Beat checks schedule every second (default). Task dispatch latency: 1-5 seconds from scheduled time to worker pickup. High-precision scheduling requires reducing beat_max_loop_interval.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 82,
+    "error_message_quality": 80,
+    "error_message_notes": "Celery Beat logs scheduled task dispatch and failures to celery.beat logger. Task execution errors appear in Celery worker logs. django-celery-beat schedule errors shown in Django admin. Beat heartbeat failure (process crash) surfaced in Celery monitoring tools (Flower, Django Celery Results).",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Periodic task dispatch is idempotent — Beat sends task once per schedule interval. Running multiple Beat processes causes duplicate task dispatch; only ONE Beat process should run per Celery cluster. Task implementation must be idempotent for scheduled agent tasks.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Only ONE Beat process per Celery cluster — running multiple `celery beat` processes causes duplicate task scheduling; agent deployments with multiple replicas must ensure only one beat replica runs; use Kubernetes Deployment with replicas:1 for beat, separate from worker Deployment; duplicate beat causes agent health checks to run twice simultaneously",
+      "beat_schedule in celeryconfig vs django-celery-beat DB — static beat_schedule in code requires redeploy to change; django-celery-beat stores schedules in DB allowing runtime modification; agent ops teams using django-celery-beat can adjust check intervals without code deploy; mixing both can cause confusion about which schedules are active",
+      "Timezone requires CELERY_TIMEZONE setting — crontab(hour=9) without timezone uses UTC; agent scheduled reports at 9am UTC may be wrong local time; set CELERY_TIMEZONE = 'America/New_York' and CELERY_ENABLE_UTC = True; django-celery-beat respects Django TIME_ZONE setting",
+      "Beat schedule not persisted between restarts by default — in-memory Beat schedule resets on restart; if Django migrations add new PeriodicTask records, Beat picks them up on startup; hardcoded beat_schedule in settings is re-read on restart; django-celery-beat DB schedules survive Beat restart",
+      "Beat heartbeat monitoring required for production — Beat process silently dying means NO agent scheduled tasks run; add external monitoring (Healthchecks.io, Cronitor) with periodic task pinging Beat-triggered sentinel task; agent systems without Beat heartbeat monitoring miss scheduled task failures for days",
+      "crontab day_of_week=0 is Monday in Celery, 0 is Sunday in Unix cron — Celery crontab(day_of_week=0) means Monday (ISO weekday); Unix cron 0 means Sunday; agent scheduling bugs from crontab/cron mismatch common when migrating scheduled tasks from system cron to Celery Beat"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 82,
+    "error_handling_score": 78,
+    "auth_complexity_score": 88,
+    "rate_limit_clarity_score": 88
+  },
+  "security_score_components": {
+    "tls_enforcement": 82,
+    "auth_strength": 80,
+    "scope_granularity": 78,
+    "dependency_hygiene": 85,
+    "secret_handling": 80,
+    "security_notes": "Beat process has same access as Celery workers — follow least-privilege for agent scheduled tasks. Django admin PeriodicTask management must be restricted to ops users only. Beat process should run with minimal OS permissions. Broker credentials (Redis AUTH) required to prevent unauthorized task injection into agent scheduled task queue."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 82,
+    "version_stability": 82,
+    "breaking_changes_history": 80,
+    "error_recovery": 78
+  }
+}
