@@ -1,0 +1,106 @@
+{
+  "id": "rolify-ruby-api",
+  "name": "Rolify",
+  "version_evaluated": "6.x",
+  "homepage": "https://github.com/RolifyCommunity/rolify",
+  "repo_url": "https://github.com/RolifyCommunity/rolify",
+  "category": "developer-tools",
+  "subcategories": ["authorization", "ruby", "rails", "roles", "permissions"],
+  "tags": ["ruby", "rails", "roles", "rbac", "permissions", "authorization", "resource-scoped", "activerecord"],
+  "what_it_does": "Role management library for Ruby on Rails — adds flexible role-based access control with resource-scoped roles. Rolify features: `rolify` macro on User model adds has_and_belongs_to_many :roles, `resourcify` on resource model enables resource-scoped roles, `user.add_role :admin` (global role), `user.add_role :editor, Agent` (class-scoped), `user.add_role :owner, @agent` (instance-scoped). Querying: `user.has_role? :admin`, `User.with_role :editor, Agent`. Integrates with CanCanCan and Pundit for authorization policy evaluation. Roles stored in roles table with optional resource_type/resource_id for scoping.",
+  "use_cases": [
+    "Agent platform role assignment — user.add_role :admin (platform admin), user.add_role :creator, Agent (can create any agent), user.add_role :owner, @agent (owns specific agent); Rolify enables three-tier role model in one gem",
+    "CanCanCan integration for agent RBAC — Rolify roles drive CanCanCan Ability class: can :manage, Agent if user.has_role? :admin; can :manage, Agent, user_id: user.id if user.has_role? :creator, Agent; clean separation of role storage from authorization logic",
+    "Agent team membership with roles — user.add_role :reviewer, @project assigns user as reviewer on specific project; User.with_role(:reviewer, @project).each for listing team members; resource-scoped roles model agent team collaboration",
+    "Dynamic agent permission UI — user.roles.map(&:name) lists all user roles for permission display; user.has_role?(:owner, @agent) gates destructive agent operations; Rolify queries enable permission-based UI rendering",
+    "Bulk role queries for agent admin — User.with_role(:admin) returns all admin users; Agent.with_role(:owner, user) returns all agents a user owns; efficient role-based queries for agent platform administration"
+  ],
+  "not_for": [
+    "Attribute-level permissions — Rolify manages roles, not field-level access; for agent API responses that vary by role (hide certain fields), combine Rolify with Pundit or custom serializer logic",
+    "Non-Rails projects — Rolify is ActiveRecord/Rails-specific; for non-Rails Ruby agent services, implement custom role management or use a policy library",
+    "Complex permission rules without authorization layer — Rolify stores roles but doesn't evaluate permissions; always combine with CanCanCan or Pundit; using Rolify alone without an authorization layer just gives you role storage"
+  ],
+  "best_when": "Your Rails agent platform has multiple user roles that need to be scoped to specific resources — Rolify provides flexible global, class-level, and instance-level role management with database persistence.",
+  "avoid_when": "You only have 2-3 hard-coded roles (use an enum on the User model), you need attribute-level permissions, or you're not on Rails.",
+  "alternatives": ["cancancan-ruby-api", "pundit-ruby-api", "access-granted-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["ruby"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Role management library — works with any authentication system. Roles are assigned by application logic; protect role assignment endpoints from unauthorized access."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Rolify is MIT licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 2,
+    "latency_p99_ms": 15,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — database-backed role storage. user.has_role?(:admin) generates SQL query; Rolify caches roles in memory (rolify config.use_dynamic_shortcuts = true) to reduce N+1 queries in views.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 82,
+    "error_message_quality": 78,
+    "error_message_notes": "Rolify errors are mostly silent — add_role on non-existent resource silently creates role; has_role? returns false rather than error for unknown role names. ActiveRecord errors surface for DB constraint violations. Configuration errors (missing rolify migration) raise ActiveRecord::StatementInvalid.",
+    "idempotency_support": "full",
+    "idempotency_notes": "add_role is idempotent — adding same role twice does not create duplicate roles (Rolify uses find_or_create). remove_role on non-existent role is safe. has_role? is always idempotent read.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "N+1 role queries without eager loading — user.has_role? in views/serializers for each agent in list triggers per-agent SQL query; use User.with_role eager loading or preload roles with user.roles.load before rendering agent list; Rolify does not auto-eager-load roles",
+      "resourcify must be added to resource model — user.add_role :owner, @agent only works if Agent model includes resourcify; without resourcify on Agent, resource-scoped role creation fails silently or raises undefined method error for agent resource roles",
+      "Role name is a string, not symbol in DB — add_role :admin and add_role 'admin' are equivalent but Role.where(name: :admin) fails; use Role.where(name: 'admin').to_s or Rolify's has_role? method; direct Role queries in agent admin must use string role names",
+      "Rolify migration creates roles and users_roles tables — running rolify generator without running migration causes all Rolify calls to fail; in multi-tenant agent deployments, ensure migration runs on all tenant databases (if using apartment/acts_as_tenant schema separation)",
+      "Strict mode prevents typo roles — Rolify 6.x added strict mode validation; without rolify strict: true and explicit role name registration, typo role assignments silently create new role records; configure Rolify.configure with valid_roles list to prevent phantom agent role names",
+      "Clearing roles must use remove_all_roles — user.roles.delete_all bypasses Rolify callbacks and leaves orphaned role records; use user.remove_all_roles to correctly clean up resource-scoped roles; direct roles table manipulation corrupts Rolify's resource association tracking"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 80,
+    "error_handling_score": 75,
+    "auth_complexity_score": 85,
+    "rate_limit_clarity_score": 92
+  },
+  "security_score_components": {
+    "tls_enforcement": 88,
+    "auth_strength": 82,
+    "scope_granularity": 85,
+    "dependency_hygiene": 82,
+    "secret_handling": 88,
+    "security_notes": "Role assignment is a privileged operation — protect add_role endpoints with authorization checks; never expose role assignment to unauthenticated or unauthorized agent users. Rolify role names are strings stored in DB — validate against whitelist to prevent arbitrary role creation. Resource-scoped roles require careful access control on role assignment."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 82,
+    "version_stability": 78,
+    "breaking_changes_history": 75,
+    "error_recovery": 80
+  }
+}

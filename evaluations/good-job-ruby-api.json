@@ -1,0 +1,106 @@
+{
+  "id": "good-job-ruby-api",
+  "name": "GoodJob",
+  "version_evaluated": "4.x",
+  "homepage": "https://goodjob.dev/",
+  "repo_url": "https://github.com/bensheldon/good_job",
+  "category": "developer-tools",
+  "subcategories": ["background-jobs", "ruby", "rails", "postgresql", "queue"],
+  "tags": ["ruby", "rails", "background-jobs", "postgresql", "activejob", "queue", "async", "scheduler"],
+  "what_it_does": "PostgreSQL-backed ActiveJob backend for Ruby on Rails — runs background jobs in the same database as your application using PostgreSQL's advisory locks for concurrency control. GoodJob features: LISTEN/NOTIFY for instant job pickup (no polling), cron-like scheduled jobs (GoodJob::Cron), concurrency control (limit max concurrent jobs per queue or globally), job priority (0-100 integer), retry with exponential backoff, and a built-in web dashboard (GoodJob::Engine). Designed as a simpler alternative to Sidekiq that requires no Redis — runs in same Rails process, same PostgreSQL database. Ideal for applications already on PostgreSQL that want background jobs without additional infrastructure.",
+  "use_cases": [
+    "Background agent task execution without Redis — GoodJob processes agent background jobs using existing PostgreSQL database; no Redis cluster required; agents enqueue tasks via AgentJob.perform_later(agent_id) using standard ActiveJob API",
+    "Scheduled agent report generation — GoodJob cron config { 'daily_agent_report' => { cron: '0 8 * * *', class: 'AgentReportJob' } } runs daily agent analytics without separate cron infrastructure",
+    "Concurrency-limited agent API calls — GoodJob concurrency control limits to 3 concurrent external API calls per agent; prevents rate limit violations in agent tool execution jobs",
+    "Agent job monitoring dashboard — GoodJob::Engine mounted at /jobs provides visual dashboard showing queued, running, failed, and completed agent jobs with retry UI",
+    "Transactional agent job enqueuing — GoodJob enqueues jobs within same PostgreSQL transaction as model saves; agent config update and job enqueue either both succeed or both rollback — impossible to miss a job"
+  ],
+  "not_for": [
+    "High-throughput job processing — GoodJob handles tens of thousands of jobs/day well but not millions; for high-volume agent job queues (100k+/day), Sidekiq's Redis backend with threading handles more throughput",
+    "Non-PostgreSQL databases — GoodJob requires PostgreSQL for advisory locks and LISTEN/NOTIFY; MySQL or SQLite agent apps must use Sidekiq, Resque, or DelayedJob",
+    "Cross-service job queues — GoodJob stores jobs in application database; for agent job queues shared across multiple services, use Sidekiq with Redis or cloud-native queues (SQS, Pub/Sub)"
+  ],
+  "best_when": "You're building a Rails agent app on PostgreSQL that needs background jobs without adding Redis to your infrastructure — GoodJob gives you reliable async processing with just your existing database.",
+  "avoid_when": "You need millions of jobs per day, you're not on PostgreSQL, or you need a cross-service job queue shared between multiple Rails applications.",
+  "alternatives": ["sidekiq-api", "delayed-job-api", "solid-queue-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["ruby"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No external auth — uses application's PostgreSQL connection. Dashboard (/jobs) should be protected with HTTP basic auth or application authentication in production."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "GoodJob is MIT licensed, maintained by Ben Sheldon. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 50,
+    "latency_p99_ms": 500,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — job pickup latency depends on LISTEN/NOTIFY (near-instant) vs polling mode. Multi-process mode with multiple GoodJob threads improves throughput for agent job-heavy workloads.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 88,
+    "error_message_quality": 85,
+    "error_message_notes": "GoodJob captures job exceptions and stores them in good_jobs table with backtrace. Failed jobs visible in dashboard with error details. GoodJob::Error subclasses provide specific failure reasons. Concurrency limit exceeded causes job to be rescheduled, not failed.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Job enqueue within transaction is atomic — either enqueued or not. Job execution is not inherently idempotent; use job-level idempotency keys or GoodJob's built-in uniqueness (concurrency key) to prevent duplicate agent job execution.",
+    "pagination_style": "none",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Execution mode must match deployment — GoodJob.config.execution_mode :async runs jobs in web process threads (Puma); :external requires separate GoodJob worker process; :inline runs synchronously (test mode); wrong mode in production causes agent jobs to never execute or blocks Puma threads",
+      "Database connection pool must accommodate GoodJob threads — GoodJob uses database_tasks: GoodJob.configuration.max_threads threads; if Rails DB pool (pool: 5 in database.yml) is smaller than GoodJob threads + Puma threads, agent jobs cause ActiveRecord::ConnectionTimeoutError",
+      "Transactional job enqueue can cause double-enqueue — if agent controller enqueues job inside transaction that retries on deadlock, job can be enqueued twice; use GoodJob concurrency key (good_job_uniqueness_id) to prevent duplicate processing of same agent task",
+      "Dashboard requires explicit route mounting — GoodJob::Engine must be mounted in routes.rb: mount GoodJob::Engine => '/good_job'; without mounting, dashboard is inaccessible and 404s; secure route with authenticate block in production to prevent unauthorized agent job visibility",
+      "Cron jobs require primary process awareness — GoodJob cron runs in only one process; in multi-process deployments, use GoodJob.configuration.enable_cron = true on designated primary process only; multiple processes running cron causes duplicate scheduled agent job execution",
+      "Discarded jobs don't retry by default — GoodJob discards jobs after executions_count exceeds retry_on limits; discarded agent jobs are preserved in DB but not retried; check GoodJob::Job.discarded scope for failed agent jobs and use job.reschedule to retry manually"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 88,
+    "error_handling_score": 85,
+    "auth_complexity_score": 90,
+    "rate_limit_clarity_score": 92
+  },
+  "security_score_components": {
+    "tls_enforcement": 90,
+    "auth_strength": 85,
+    "scope_granularity": 82,
+    "dependency_hygiene": 88,
+    "secret_handling": 85,
+    "security_notes": "GoodJob stores job arguments as JSON in PostgreSQL — never include sensitive agent credentials in job arguments; pass IDs and fetch credentials at execution time. Protect GoodJob dashboard from unauthorized access in production. Job table may accumulate sensitive agent data in serialized arguments; implement retention policy."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 85,
+    "breaking_changes_history": 82,
+    "error_recovery": 88
+  }
+}

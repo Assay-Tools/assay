@@ -1,0 +1,106 @@
+{
+  "id": "paper-trail-ruby-api",
+  "name": "PaperTrail",
+  "version_evaluated": "15.x",
+  "homepage": "https://github.com/paper-trail-gem/paper_trail",
+  "repo_url": "https://github.com/paper-trail-gem/paper_trail",
+  "category": "developer-tools",
+  "subcategories": ["auditing", "ruby", "rails", "versioning", "history"],
+  "tags": ["ruby", "rails", "audit", "versioning", "history", "undo", "activerecord", "whodunnit"],
+  "what_it_does": "Model versioning and audit trail library for Ruby on Rails — tracks every change to ActiveRecord models in a versions table with before/after data. PaperTrail features: `has_paper_trail` macro enables versioning on any model, versions table stores changeset as JSON, `object_changes` column records before/after values, `whodunnit` stores user ID for each change, `reify` method reconstructs model at any past version. Supports custom metadata (request IP, session ID), ignoring certain attributes, and disabling versioning per-request. Used for compliance audit trails, undo functionality, change history displays, and regulatory requirements.",
+  "use_cases": [
+    "Audit trail for agent configuration changes — has_paper_trail on AgentConfig model records every change with whodunnit set to current_user.id for compliance and debugging agent behavior changes",
+    "Undo last change to agent settings — agent.versions.last.reify restores previous AgentConfig state; agent.save! reverts to prior configuration without manual diff calculation",
+    "Display agent change history — agent.versions.map { |v| v.changeset } shows field-level diffs for audit log UI showing who changed what agent configuration and when",
+    "Track agent document modifications — PaperTrail on Document model records edit history; version.event (:create/:update/:destroy) plus whodunnit enables document audit compliance for regulated agent workflows",
+    "Reconstruct agent state at point in time — agent.version_at(2.weeks.ago) returns PaperTrail::Version that can reify to show exact agent configuration during an incident investigation"
+  ],
+  "not_for": [
+    "High-volume append-only events — PaperTrail versions table grows quickly for frequently-updated models; for agent action logs (millions of events), use append-only event log table instead",
+    "Non-ActiveRecord persistence — PaperTrail is ActiveRecord-specific; use event sourcing or custom audit logging for agent services using MongoDB, Redis, or non-ORM persistence",
+    "Real-time change streams — PaperTrail stores versions synchronously in same transaction; for real-time agent change notifications, combine with ActiveRecord::Observer or webhooks"
+  ],
+  "best_when": "Your Rails agent app needs compliance audit trails, undo functionality, or change history displays — PaperTrail adds complete versioning to any ActiveRecord model with one line.",
+  "avoid_when": "Your models change extremely frequently (high write volume), you need non-ActiveRecord versioning, or your audit requirements need separate tamper-proof storage.",
+  "alternatives": ["audited-ruby-api", "logidze-api", "activerecord-events-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["ruby"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — library integrates with application auth to set whodunnit. Set PaperTrail.request.whodunnit = current_user&.id in ApplicationController before_action."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "PaperTrail is MIT licensed, actively maintained. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 5,
+    "latency_p99_ms": 30,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — writes version record on each model change in same DB transaction. High-frequency model updates (polling, real-time) create large versions tables; use ignore: [] to skip noisy columns.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 88,
+    "error_message_quality": 82,
+    "error_message_notes": "PaperTrail errors surface as standard ActiveRecord errors. Version table missing raises ActiveRecord::StatementInvalid. Reify on destroyed record works but associations may be nil. Serialization errors for custom object_changes types raise PaperTrail::UnsupportedColumnType.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Version creation is idempotent with respect to the model — each save creates exactly one version record. Reify is read-only and deterministic.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "whodunnit must be set per-request — PaperTrail.request.whodunnit defaults to nil; without setting in before_action, all agent model versions show nil author; use ApplicationController before_action { PaperTrail.request.whodunnit = current_user&.id.to_s }",
+      "versions table schema requires migration — paper_trail:install generator creates versions table; missing migration on deploy causes PaperTrail::Version.create failures silently or raises ActiveRecord::StatementInvalid depending on version; always run migrations before enabling has_paper_trail",
+      "Reify does not restore associations — version.reify restores the model's scalar attributes but not has_many associations; agent models with complex associations need custom reification logic to fully restore associated records from their own version history",
+      "ignore vs skip have different semantics — ignore: [:updated_at] prevents version creation when ONLY ignored attributes change; skip: [:api_key] excludes attribute from version data; confusing the two causes either missing versions or sensitive agent data leaking into versions table",
+      "Large object_changes column impacts query performance — PaperTrail stores full before/after JSON in object_changes; for agent models with large text fields (documents, prompts), use paper_trail_options only: [:status, :name] to limit which attributes are tracked and prevent versions table bloat",
+      "PaperTrail disabled block affects nested transactions — PaperTrail.request.disable_model(Agent) inside a block disables versioning; if block wraps a transaction that creates other versioned models, those also lose versioning; scope disable/enable carefully for agent bulk operations"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 88,
+    "error_handling_score": 82,
+    "auth_complexity_score": 90,
+    "rate_limit_clarity_score": 92
+  },
+  "security_score_components": {
+    "tls_enforcement": 90,
+    "auth_strength": 85,
+    "scope_granularity": 82,
+    "dependency_hygiene": 88,
+    "secret_handling": 80,
+    "security_notes": "Never track sensitive agent attributes (API keys, passwords, tokens) — use skip: [:api_key] to exclude from versions table. Versions table contains historical PII; apply same data retention policies as source tables. Whodunnit stores user ID as string — ensure it cannot be spoofed via mass assignment."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 85,
+    "breaking_changes_history": 82,
+    "error_recovery": 85
+  }
+}

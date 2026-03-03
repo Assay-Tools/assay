@@ -1,0 +1,106 @@
+{
+  "id": "snapkit-ios-api",
+  "name": "SnapKit",
+  "version_evaluated": "5.x",
+  "homepage": "http://snapkit.io/",
+  "repo_url": "https://github.com/SnapKit/SnapKit",
+  "category": "developer-tools",
+  "subcategories": ["ui", "swift", "ios", "autolayout", "constraints"],
+  "tags": ["swift", "ios", "macos", "autolayout", "constraints", "ui", "layout", "dsl"],
+  "what_it_does": "Auto Layout DSL library for Swift iOS/macOS development — provides fluent constraint API over UIKit's verbose NSLayoutConstraint. SnapKit replaces NSLayoutConstraint.activate([NSLayoutConstraint(item: view, attribute: .leading, relatedBy: .equal, toItem: superview, attribute: .leading, multiplier: 1, constant: 16)]) with view.snp.makeConstraints { make in make.leading.equalToSuperview().offset(16) }. Features: makeConstraints/updateConstraints/remakeConstraints for constraint lifecycle management, constraint references for later updates, multiplier support, priority setting, and chaining. Works alongside UIKit programmatic layout without Interface Builder. Essential for programmatic iOS UI development.",
+  "use_cases": [
+    "Agent chat UI layout with SnapKit — agentBubbleView.snp.makeConstraints { make in make.top.equalTo(messageLabel.snp.bottom).offset(8); make.leading.trailing.equalToSuperview().inset(16) } creates agent chat bubble layout without IB",
+    "Dynamic agent card constraints — store constraint reference: var heightConstraint: Constraint?; view.snp.makeConstraints { make in heightConstraint = make.height.equalTo(100).constraint }; later: heightConstraint?.update(offset: 200) for animated agent card expansion",
+    "Agent settings form layout — stackView.snp.makeConstraints { make in make.top.equalTo(view.safeAreaLayoutGuide); make.leading.trailing.equalToSuperview().inset(16); make.bottom.lessThanOrEqualToSuperview() } creates safe-area-aware agent settings form",
+    "Responsive agent dashboard — use snp.updateConstraints in viewDidLayoutSubviews to adapt agent metrics card sizes to different iPhone/iPad screen sizes without complex size class checks",
+    "SnapKit for agent onboarding screens — chain constraints: titleLabel.snp.makeConstraints { make in make.centerX.equalToSuperview(); make.top.equalTo(imageView.snp.bottom).offset(24) } creates clean agent onboarding flow layout"
+  ],
+  "not_for": [
+    "SwiftUI projects — SnapKit is UIKit-specific; SwiftUI uses declarative layout system incompatible with SnapKit constraints; use SwiftUI's built-in layout modifiers for agent UIs built with SwiftUI",
+    "Interface Builder storyboard layouts — SnapKit is for programmatic layout; mixing SnapKit with IB constraints causes conflicts; choose one layout approach for agent UI consistency",
+    "Simple layouts solvable with stack views — UIStackView handles many layouts without explicit constraints; use SnapKit only when stack view can't express the agent UI layout requirements"
+  ],
+  "best_when": "You're building programmatic UIKit iOS agent apps and want readable, maintainable Auto Layout code — SnapKit reduces constraint verbosity by 80% while retaining full Auto Layout power.",
+  "avoid_when": "You're using SwiftUI, Interface Builder, or your layout is simple enough for UIStackView without explicit constraints.",
+  "alternatives": ["swiftui-api", "pin-layout-api", "uikit-autolayout-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["swift"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "UI layout library — no auth concepts."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "SnapKit is MIT licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 0,
+    "latency_p99_ms": 1,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — UI constraint library. Constraint creation is in-memory; performance equals UIKit Auto Layout performance. Avoid making/remaking constraints in layoutSubviews without change detection.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 88,
+    "error_message_quality": 80,
+    "error_message_notes": "SnapKit constraint conflicts surface as UIKit Auto Layout ambiguity warnings in Xcode console. SnapKit raises SnapKit.ConstraintMakerFinalizable error on invalid constraint combinations. Missing superview causes 'Unable to install constraint' runtime error. Constraint reference to deallocated view causes EXC_BAD_ACCESS.",
+    "idempotency_support": "full",
+    "idempotency_notes": "makeConstraints adds constraints; remakeConstraints removes all existing SnapKit constraints then adds new ones (idempotent full replacement). updateConstraints updates only matching constraints. Choose method based on desired behavior for agent view updates.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "translatesAutoresizingMaskIntoConstraints must be false — SnapKit does NOT automatically set translatesAutoresizingMaskIntoConstraints = false unlike some tutorials claim; must set it manually before calling snp.makeConstraints or Auto Layout conflicts occur for agent views added programmatically",
+      "View must be in hierarchy before constraints — calling snp.makeConstraints before addSubview causes 'Unable to activate constraint with anchors' runtime error; always addSubview(agentView) before agentView.snp.makeConstraints in agent UI setup",
+      "remakeConstraints vs updateConstraints — remakeConstraints removes ALL SnapKit constraints and re-creates; updateConstraints only updates constants on existing constraints; using remakeConstraints for simple constant updates in animation blocks breaks constraint references and causes layout jumps in agent card animations",
+      "Constraint references become invalid after remakeConstraints — storing Constraint reference var agentHeightConstraint: Constraint? then calling remakeConstraints invalidates reference; must reassign in remakeConstraints closure; using stale constraint reference causes EXC_BAD_ACCESS in agent dynamic layout",
+      "Safe area layout guide requires snp.safeAreaLayoutGuide — view.snp.makeConstraints { make.top.equalTo(view.safeAreaLayoutGuide) } is correct; make.top.equalToSuperview() on nav-bar screens causes agent UI to overlap under navigation bar; always use safe area for agent screen edges",
+      "Priority must be set before activation — constraint.priority = .high must be set in makeConstraints closure, not after; setting priority after constraint activation on iOS 12+ raises NSLayoutConstraint warning; define agent constraint priorities inline in makeConstraints block"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 88,
+    "error_handling_score": 78,
+    "auth_complexity_score": 98,
+    "rate_limit_clarity_score": 98
+  },
+  "security_score_components": {
+    "tls_enforcement": 95,
+    "auth_strength": 95,
+    "scope_granularity": 90,
+    "dependency_hygiene": 88,
+    "secret_handling": 95,
+    "security_notes": "UI layout library — no security concerns beyond standard iOS app security. Do not render sensitive agent data in debug layout visualizations."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 90,
+    "version_stability": 88,
+    "breaking_changes_history": 85,
+    "error_recovery": 85
+  }
+}

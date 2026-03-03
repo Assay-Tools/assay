@@ -1,0 +1,106 @@
+{
+  "id": "ransack-ruby-api",
+  "name": "Ransack",
+  "version_evaluated": "4.x",
+  "homepage": "https://activerecord-hackery.github.io/ransack/",
+  "repo_url": "https://github.com/activerecord-hackery/ransack",
+  "category": "developer-tools",
+  "subcategories": ["search", "ruby", "rails", "filtering", "activerecord"],
+  "tags": ["ruby", "rails", "search", "filter", "sort", "activerecord", "predicates", "query-builder"],
+  "what_it_does": "Search and filtering library for Ruby on Rails — translates HTTP params into ActiveRecord scopes using predicate-based DSL. Ransack params: `q[name_cont]=foo` (name contains), `q[status_eq]=active` (equals), `q[created_at_gteq]=2024-01-01` (greater-than-or-equal), `q[s]=name+asc` (sort). Controller: `@q = Agent.ransack(params[:q]); @agents = @q.result`. View helpers: `sort_link(@q, :name)` for sortable column headers. Supports associations (q[user_email_cont]), custom ransackers for computed attributes, and form helpers for search form generation. Successor to MetaSearch.",
+  "use_cases": [
+    "Agent list search and filter UI — Ransack params q[name_cont] and q[status_eq] power agent admin search form; @q = Agent.ransack(params[:q]) generates safe SQL WHERE clauses from user input",
+    "Sortable agent tables — sort_link(@q, :name) Ransack view helper generates sort links with direction toggle for agent management tables without custom controller logic",
+    "Multi-field agent search — q[name_or_description_cont]=keyword searches across multiple agent attributes with single OR query; Ransack generates optimized SQL LIKE clause",
+    "Association-based agent filtering — q[user_email_cont]=@company.com filters agents by owner email through belongs_to association without explicit joins in controller",
+    "Date range filtering for agent analytics — q[created_at_gteq]=2024-01-01&q[created_at_lteq]=2024-12-31 generates BETWEEN clause for agent creation date range filtering in reporting views"
+  ],
+  "not_for": [
+    "Full-text search — Ransack uses SQL LIKE for contains predicate; for full-text agent search with relevance ranking, use Searchkick (Elasticsearch) or pg_search (PostgreSQL full-text)",
+    "Complex custom search logic — Ransack's predicate system handles common cases; for agent search with custom scoring, facets, or multi-index search, use dedicated search engines",
+    "APIs without form-based search — Ransack's param naming convention (q[field_predicate]) is designed for form submission; for programmatic agent API search, GraphQL filters or custom scopes are cleaner"
+  ],
+  "best_when": "You're building Rails admin interfaces or list views that need user-controllable search, filtering, and sorting — Ransack eliminates boilerplate query-building code with declarative params.",
+  "avoid_when": "You need full-text search with relevance, faceted search, or your search logic is complex enough to require custom SQL that doesn't fit Ransack's predicate model.",
+  "alternatives": ["searchkick-api", "pg-search-api", "elasticsearch-rails-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["ruby"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — Ransack builds scopes from params. Ransackable attributes/associations must be explicitly whitelisted to prevent unauthorized access to hidden columns."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Ransack is MIT licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 10,
+    "latency_p99_ms": 100,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — generates SQL queries. Complex searches across associations can produce expensive JOIN queries; add database indexes on searchable agent columns.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 78,
+    "error_message_notes": "Ransack silently ignores unknown predicates by default. Invalid sort columns raise ActiveRecord::StatementInvalid. Association search on non-ransackable associations raises Ransack::InvalidSearchError (4.x) or silently ignores (3.x). Missing ransackable_attributes whitelist causes Ransack::UnauthorizedSearch in strict mode.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Ransack search is read-only and deterministic — same params produce same SQL scope. Idempotent by nature.",
+    "pagination_style": "offset",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "ransackable_attributes whitelist required in Rails 6.1+ — Ransack 4.x requires explicit def self.ransackable_attributes; omitting it raises Ransack::UnauthorizedSearch for all searches; add class method to Agent model listing allowed search attributes or all searches fail",
+      "Sorting by virtual attributes requires custom ransacker — sort_link on computed attributes (agent.display_name derived from first_name + last_name) needs ransacker(:display_name) { Arel.sql(\"first_name || ' ' || last_name\") }; sort on undefined ransacker silently falls back to default sort causing confusing agent list ordering",
+      "result(distinct: true) required for association searches — searching through has_many associations produces duplicate rows without .result(distinct: true); agent search q[tags_name_cont]=ml returns duplicate agent rows for agents with multiple matching tags; always use distinct: true for association predicates",
+      "Ransack params are user-controlled — q[admin_eq]=true could expose admin column if ransackable_attributes includes :admin; always whitelist only searchable agent attributes; never expose sensitive columns (api_key, password_digest) in ransackable_attributes",
+      "Predicate combinations are AND by default — multiple q[] params use AND logic; Ransack groupings (q[g][0][m]=or) enable OR across groups but syntax is complex; for agent search needing OR across multiple fields, use q[name_or_description_cont] combinator syntax instead of groupings",
+      "4.x changed default strictness — Ransack 4.0 changed default to strict mode raising errors on unauthorized attributes; upgrading from 3.x may break agent search forms that relied on silent ignore behavior; audit all Ransack usage and add ransackable_attributes to every searched model before upgrading"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 82,
+    "error_handling_score": 78,
+    "auth_complexity_score": 88,
+    "rate_limit_clarity_score": 92
+  },
+  "security_score_components": {
+    "tls_enforcement": 88,
+    "auth_strength": 82,
+    "scope_granularity": 85,
+    "dependency_hygiene": 85,
+    "secret_handling": 82,
+    "security_notes": "Ransack is a common source of Rails security vulnerabilities — always whitelist ransackable_attributes to prevent unauthorized column access. Never allow search on password_digest, api_key, or other sensitive agent model attributes. Use ransackable_associations to control which relations are searchable."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 85,
+    "version_stability": 80,
+    "breaking_changes_history": 75,
+    "error_recovery": 82
+  }
+}

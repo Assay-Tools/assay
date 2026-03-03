@@ -1,0 +1,106 @@
+{
+  "id": "friendly-id-ruby-api",
+  "name": "FriendlyId",
+  "version_evaluated": "5.x",
+  "homepage": "https://norman.github.io/friendly_id/",
+  "repo_url": "https://github.com/norman/friendly_id",
+  "category": "developer-tools",
+  "subcategories": ["routing", "ruby", "rails", "slugs", "seo", "urls"],
+  "tags": ["ruby", "rails", "slug", "url", "seo", "permalink", "friendly-url", "activerecord"],
+  "what_it_does": "Human-readable URL slug library for Ruby on Rails ActiveRecord models — generates and manages URL-friendly slugs from model attributes. FriendlyId features: `extend FriendlyId; friendly_id :name, use: :slugged` generates slug from name attribute, `use: :history` preserves old slugs for redirects (slug changes), `use: :scoped, scope: :user` enables per-user unique slugs, `use: :finders` enables Agent.friendly.find('my-agent') lookup. Handles slug uniqueness (appends -2, -3 on collision), Unicode transliteration, and custom slug generation. SEO-friendly URLs like /agents/my-agent-name instead of /agents/123.",
+  "use_cases": [
+    "SEO-friendly agent profile URLs — friendly_id :name, use: [:slugged, :history] generates /agents/my-agent-name; slug history preserves old URLs when agent is renamed, preventing 404s for bookmarked agent pages",
+    "Agent lookup by slug in controller — Agent.friendly.find(params[:id]) transparently finds by slug or ID; no controller changes needed when switching from numeric IDs to friendly slugs for agent detail pages",
+    "User-scoped agent slugs — friendly_id :name, use: [:slugged, :scoped], scope: :user enables /users/alice/agents/my-agent and /users/bob/agents/my-agent as distinct routes with same slug for different users",
+    "Custom agent URL generation — friendly_id :slug_candidates method returns candidate names for slug generation; [name, [name, category]] tries 'my-agent', then 'my-agent-chatbot' to resolve collisions for agent catalog",
+    "Agent slug history redirect — FriendlyId history plugin stores old slugs; redirect_to agent_path(agent) in controller with if stale? check automatically redirects old agent URLs to canonical current slug URL"
+  ],
+  "not_for": [
+    "Non-Rails or non-ActiveRecord projects — FriendlyId is Rails/ActiveRecord-specific; use custom slug logic or Mongoid slug gem for non-AR agent persistence",
+    "Slugs requiring complex custom logic — FriendlyId's slug_candidates covers most cases; for AI-generated slugs from agent descriptions or multi-language slug normalization, custom slug generation may be cleaner",
+    "High-volume slug updates — FriendlyId history creates a row per slug change; agent models with frequent name changes accumulate many history rows; implement cleanup strategy for agent slug history table"
+  ],
+  "best_when": "Your Rails agent app needs SEO-friendly URLs like /agents/my-agent-name with automatic uniqueness handling and redirect support when slugs change.",
+  "avoid_when": "You need non-ActiveRecord persistence, your slugs are static and manually managed, or you need complex custom slug logic beyond what FriendlyId's candidates system handles.",
+  "alternatives": ["stringex-api", "acts-as-url-api", "custom-slug-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["ruby"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — URL slug library. Slug uniqueness is enforced via database unique index; add index on slug column in migration."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "FriendlyId is MIT licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 2,
+    "latency_p99_ms": 10,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — local slug generation. Agent.friendly.find does slug lookup with database index; ensure unique index on slug column for O(log n) lookups.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 80,
+    "error_message_notes": "FriendlyId raises ActiveRecord::RecordNotFound for unknown slugs (same as ID lookup). Slug collision resolution is automatic (appends sequence). FriendlyId::SlugGenerationError raised when slug_candidates all exhausted. History plugin raises on duplicate history record if not using unique index.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Slug generation is deterministic given same name input. Agent.friendly.find is idempotent read operation. Slug history records are append-only.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "use: :finders required for Agent.friendly.find — without :finders plugin, Agent.find('my-agent') raises ActiveRecord::RecordNotFound; must use Agent.friendly.find or add :finders to use: array; many tutorials omit :finders causing confusing 404s in agent routing",
+      "Slug column requires unique database index — FriendlyId validates slug uniqueness at application level but does not create DB index; without add_index :agents, :slug, unique: true migration, concurrent agent creation causes duplicate slugs; always add unique index",
+      "History slugs must be cleaned up manually — use: :history keeps ALL old slugs forever by default; agent models with frequent renames accumulate thousands of FriendlyId::Slug records; use FriendlyId::Slug.where(created_at: ..old_date).delete_all in maintenance jobs",
+      "should_generate_new_friendly_id? determines regeneration — by default, slug only regenerates on create, not update; to regenerate on name change, override should_generate_new_friendly_id? { name_changed? }; without this, renaming agent doesn't update slug causing stale URL display",
+      "Scoped slugs require scope column in slugs table — use: [:slugged, :scoped], scope: :organization requires organization_id in friendly_id_slugs table; running friendly_id migration without scope column causes FriendlyId::SlugError on scoped agent record creation",
+      "Agent.friendly.find with numeric string finds by ID — Agent.friendly.find('123') finds by ID if no slug matches '123'; agents with numeric names ('Agent 42') get numeric slugs that behave like IDs; use slug_candidates to ensure non-numeric slug for agent names that could be integers"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 80,
+    "auth_complexity_score": 92,
+    "rate_limit_clarity_score": 95
+  },
+  "security_score_components": {
+    "tls_enforcement": 90,
+    "auth_strength": 88,
+    "scope_granularity": 82,
+    "dependency_hygiene": 85,
+    "secret_handling": 92,
+    "security_notes": "FriendlyId slugs are public-facing — avoid generating slugs from sensitive agent attributes (internal IDs, email addresses). Slugs expose model names publicly; ensure agent names used for slugs are intended to be public. History slugs can reveal past agent names; consider privacy implications."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 85,
+    "version_stability": 88,
+    "breaking_changes_history": 85,
+    "error_recovery": 85
+  }
+}
