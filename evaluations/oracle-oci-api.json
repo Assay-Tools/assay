@@ -1,0 +1,106 @@
+{
+  "id": "oracle-oci-api",
+  "name": "Oracle Cloud Infrastructure (OCI) API",
+  "version_evaluated": "current",
+  "homepage": "https://docs.oracle.com/en-us/iaas/api/",
+  "repo_url": null,
+  "category": "cloud-infrastructure",
+  "subcategories": ["compute", "storage", "databases", "networking", "ai-ml"],
+  "tags": ["cloud", "oracle", "database", "compute", "autonomous-database", "enterprise", "object-storage", "oci-functions", "bare-metal"],
+  "what_it_does": "Oracle Cloud Infrastructure (OCI) is Oracle's enterprise public cloud platform providing APIs for compute, storage, networking, databases (including Autonomous Database), AI/ML, and serverless functions.",
+  "use_cases": [
+    "Provision and manage OCI compute instances, bare metal servers, and GPU shapes for AI/ML workloads",
+    "Query and interact with Autonomous Database via OCI REST APIs — scale OCPU, load data, run SQL",
+    "Manage OCI Object Storage buckets and objects for large-scale data pipelines and agent file transfer",
+    "Orchestrate OCI Functions (serverless) for event-driven agent workflows triggered by OCI Events or Streaming",
+    "Automate network topology — VCNs, subnets, load balancers, and security lists via the Networking API"
+  ],
+  "not_for": [
+    "Quick prototypes or greenfield projects without an existing Oracle stack — RSA signature auth setup and compartment structure add significant onboarding friction",
+    "Teams unfamiliar with Oracle tenancy, IAM policies, and compartment hierarchy — the access model is Oracle-specific and not portable",
+    "Workloads already committed to AWS, Azure, or GCP where multi-cloud API abstraction is not in scope"
+  ],
+  "best_when": "Your organization runs Oracle databases or E-Business Suite and needs cloud infrastructure that integrates natively with Oracle's stack, including Autonomous Database and Exadata.",
+  "avoid_when": "You need a fast-start cloud environment with simple API key auth — OCI's RSA signature auth and compartment prerequisites add meaningful setup overhead compared to AWS or GCP.",
+  "alternatives": ["aws-api", "gcp-api", "azure-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "java", "go", "typescript", "dotnet", "ruby"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["api_key"],
+    "oauth": false,
+    "scopes": true,
+    "notes": "OCI uses RSA key-pair signing — requests are signed with a private key using the OCI Signature v1 scheme, not a simple bearer token. Requires tenancy OCID, user OCID, fingerprint, private key, and region. IAM policies in OCI control what resources the calling user or instance principal can access. Instance principal auth is available for agents running on OCI compute."
+  },
+  "pricing": {
+    "model": "freemium",
+    "free_tier_exists": true,
+    "free_tier_limits": "Always Free tier includes 2 AMD Compute VMs, 200 GB block storage, 10 GB object storage, 2 Autonomous Databases (20 GB each), and more — time-unlimited",
+    "paid_tiers": "Pay-as-you-go after Always Free limits; Universal Credits for committed spend discounts; enterprise licensing available",
+    "requires_credit_card": true,
+    "notes": "Always Free resources are genuinely always free (not a trial). Credit card required to upgrade beyond Always Free limits. Pricing is competitive for compute-heavy Oracle workloads."
+  },
+  "performance": {
+    "latency_p50_ms": 80,
+    "latency_p99_ms": 350,
+    "uptime_sla_percent": 99.95,
+    "rate_limits": "Varies significantly by service; most control-plane APIs enforce per-region per-tenancy limits; Autonomous Database has separate query concurrency limits; documented in service-specific SLA pages",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": true,
+    "domain_verification": false,
+    "data_residency": ["US", "EU", "APAC", "ME", "UK", "CA", "AU"],
+    "compliance": ["SOC2", "ISO27001", "FedRAMP", "HIPAA", "PCI-DSS", "GDPR"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 82,
+    "error_message_quality": 78,
+    "error_message_notes": "OCI REST errors return structured JSON with a code string (e.g., NotAuthorizedOrNotFound, LimitExceeded) and a message field. HTTP status codes align with standard semantics. SDK exceptions map to these codes. Error messages can be verbose but are consistent.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Most mutating OCI API operations accept an opcRetryToken header for client-side idempotency — the same token within 24 hours returns the same result. Not all services implement it consistently. Read operations are fully idempotent.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "RSA signature-based auth is significantly more complex than bearer token APIs — agents must implement or use the OCI SDK signing logic; raw HTTP requests without an SDK require careful header construction",
+      "All resources belong to a compartment — compartment OCID is a required parameter for most list and create operations; agents must know the compartment hierarchy before provisioning",
+      "API endpoints are region-specific (e.g., iaas.us-phoenix-1.oraclecloud.com) — agents operating across regions must manage endpoint routing explicitly",
+      "OCI tenancy and initial IAM setup must exist before API use — unlike AWS/GCP, there is no immediate account-and-go experience",
+      "Instance principal auth (for agents on OCI compute) is the preferred production approach but requires dynamic groups and IAM policies configured by an administrator before agent deployment",
+      "Rate limit errors (429) differ by service plane — control plane limits are per-tenancy while data plane limits are per-instance; backoff strategies must account for both"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 82,
+    "error_handling_score": 78,
+    "auth_complexity_score": 55,
+    "rate_limit_clarity_score": 72
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 95,
+    "scope_granularity": 90,
+    "dependency_hygiene": 85,
+    "secret_handling": 88,
+    "security_notes": "RSA key signing provides strong request authenticity guarantees — no long-lived bearer tokens transmitted. IAM policy engine supports fine-grained resource-level permissions. Compartment isolation is a core security boundary. SOC2, ISO 27001, FedRAMP High, HIPAA, and PCI-DSS certified. OCI Vault available for key management."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 90,
+    "version_stability": 88,
+    "breaking_changes_history": 85,
+    "error_recovery": 82
+  }
+}

@@ -1,0 +1,105 @@
+{
+  "id": "codacy-api",
+  "name": "Codacy API",
+  "version_evaluated": "current",
+  "homepage": "https://api.codacy.com",
+  "repo_url": null,
+  "category": "developer-tools",
+  "subcategories": ["code-quality", "static-analysis", "security", "ci-cd"],
+  "tags": ["code-quality", "static-analysis", "security", "ci-cd", "coverage", "technical-debt", "linting"],
+  "what_it_does": "Codacy is an automated code review and quality platform with a REST API for triggering analyses, fetching quality metrics, managing repositories, and integrating quality gates into CI/CD pipelines.",
+  "use_cases": [
+    "Trigger a code analysis on a pull request and block merge if quality gates fail — automate via CI pipeline agent",
+    "Fetch repository quality metrics (issues, coverage, complexity, duplication) programmatically to track trends across sprints",
+    "List and categorize code issues by severity, category, or pattern to prioritize remediation in a backlog",
+    "Monitor coverage trends across branches and fail builds when coverage drops below a configured threshold",
+    "Manage organization repositories and configure quality settings programmatically across large monorepos"
+  ],
+  "not_for": [
+    "Runtime error detection — Codacy is static analysis only and cannot detect issues in executing code",
+    "Non-Git workflows — Codacy requires GitHub, GitLab, or Bitbucket integration; bare repositories are not supported",
+    "Performance profiling or memory leak detection — those require dynamic analysis tools"
+  ],
+  "best_when": "You want a turnkey code quality gate integrated into GitHub/GitLab PRs with minimal configuration and a broad set of out-of-the-box static analysis rules across many languages.",
+  "avoid_when": "You need highly customizable static analysis rules or runtime/dynamic analysis — Codacy's rule customization is more limited than SonarQube self-hosted.",
+  "alternatives": ["sonarqube-api", "deepsource-api", "snyk-api", "codeclimate-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": false,
+    "sdk_languages": [],
+    "openapi_spec_url": "https://api.codacy.com/api/v3/openapi.yaml",
+    "webhooks": true
+  },
+  "auth": {
+    "methods": ["api_key"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "API token passed in the api-token header. Account-level and organization-level tokens are distinct; account tokens work for personal repos while organization tokens are required for org-level endpoints. No granular scope control."
+  },
+  "pricing": {
+    "model": "freemium",
+    "free_tier_exists": true,
+    "free_tier_limits": "Free for open source repositories (unlimited public repos); private repos require a paid plan",
+    "paid_tiers": "Pro from $15/user/month for private repos; Business and Enterprise plans with SSO and advanced features available",
+    "requires_credit_card": false,
+    "notes": "Open source projects get full Codacy features for free. Credit card not required to start with public repos. API access is available on all paid plans."
+  },
+  "performance": {
+    "latency_p50_ms": 120,
+    "latency_p99_ms": 500,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "60 requests/minute per API token; analysis results are asynchronous and may take minutes to appear after a commit",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["US", "EU"],
+    "compliance": ["SOC2", "GDPR"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 78,
+    "error_message_quality": 74,
+    "error_message_notes": "REST API returns standard HTTP status codes with JSON error bodies. Error messages are generally adequate but not always actionable — 403 errors do not always distinguish between wrong token type (account vs org) and missing permissions, which can cause agent confusion.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Read operations are fully idempotent. Analysis triggers are effectively idempotent — triggering analysis on a commit that already has results returns the existing result rather than re-running. Repository configuration updates are idempotent with same values.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Analysis results are asynchronous — agents must poll for analysis completion after triggering; there is no webhook push model for analysis-complete events in all plan tiers",
+      "Rate limit is 60 req/min per token — agents polling for analysis status across many repos must implement backoff or token pooling",
+      "Organization slug is required for most org-level endpoints and is distinct from the organization display name — agents must resolve it via the organizations list endpoint first",
+      "Coverage data requires a separate upload step using the Codacy Coverage Reporter CLI; the API alone does not collect coverage — agents must integrate both the API and the CLI tool",
+      "Account-level API tokens do not work for organization endpoints — agents operating on org repos must use organization tokens, and the error messages do not always make this distinction clear"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 78,
+    "error_handling_score": 74,
+    "auth_complexity_score": 80,
+    "rate_limit_clarity_score": 72
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 72,
+    "scope_granularity": 65,
+    "dependency_hygiene": 80,
+    "secret_handling": 78,
+    "security_notes": "TLS enforced. API tokens are plain bearer tokens with no scope granularity — a leaked token provides full account or org access. No OAuth flow or fine-grained permissions. SOC2 Type II certified. GDPR compliant with EU data residency option."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 82,
+    "version_stability": 80,
+    "breaking_changes_history": 78,
+    "error_recovery": 78
+  }
+}

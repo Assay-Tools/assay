@@ -1,0 +1,105 @@
+{
+  "id": "wiremock-api",
+  "name": "WireMock API",
+  "version_evaluated": "current",
+  "homepage": "https://wiremock.org",
+  "repo_url": "https://github.com/wiremock/wiremock",
+  "category": "developer-tools",
+  "subcategories": ["testing", "api-mocking", "service-virtualization", "ci-cd"],
+  "tags": ["api-mocking", "testing", "service-virtualization", "java", "open-source", "contract-testing", "stub", "simulation"],
+  "what_it_does": "WireMock is an open-source API mocking and service virtualization tool with a REST admin API for programmatically creating stubs, recording real API interactions, and resetting mock state during testing.",
+  "use_cases": [
+    "Programmatically set up HTTP stubs before each test run so agents can test against controlled, predictable API responses without hitting production",
+    "Record real API interactions against a live service and replay them as stubs to create realistic mock fixtures",
+    "Simulate upstream API error conditions (500s, timeouts, rate limit 429s) to verify agent retry and fallback logic",
+    "Test stateful workflows using WireMock Scenarios — model multi-step interactions where responses change based on state transitions",
+    "Validate that agents send correctly structured requests by inspecting captured request logs via the admin API"
+  ],
+  "not_for": [
+    "Production traffic proxying — WireMock is a test double, not a production gateway or reverse proxy",
+    "Load testing at scale — WireMock is not optimized for sustained high-throughput traffic simulation",
+    "Contract publishing and broker management — use Pact or Specmatic for full contract testing lifecycle"
+  ],
+  "best_when": "You need full programmatic control over HTTP mock setup and teardown within CI pipelines or agent test harnesses, especially for simulating complex error conditions and stateful API interactions.",
+  "avoid_when": "You only need simple one-off API mocking with a GUI — tools like Mockoon or Postman mock servers have lower setup overhead for exploratory mocking without a CI pipeline.",
+  "alternatives": ["mockoon", "pact-api", "msw", "hoverfly"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["java", "python", "node", "dotnet", "go"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["api_key"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Self-hosted WireMock has no auth on the admin API by default — it is designed for local or internal network use. WireMock Cloud requires an API key passed in the Authorization header. Agents using self-hosted WireMock in shared environments should apply network-level access controls."
+  },
+  "pricing": {
+    "model": "freemium",
+    "free_tier_exists": true,
+    "free_tier_limits": "Fully free and open source when self-hosted (Apache 2.0 license); no limits",
+    "paid_tiers": "WireMock Cloud from $49/month for managed hosting with collaboration features; Enterprise plans available",
+    "requires_credit_card": false,
+    "notes": "Self-hosted is completely free with no feature restrictions. WireMock Cloud adds team collaboration, mock sharing, and hosted infrastructure. Most CI/CD use cases are served by self-hosted."
+  },
+  "performance": {
+    "latency_p50_ms": 5,
+    "latency_p99_ms": 30,
+    "uptime_sla_percent": null,
+    "rate_limits": "No enforced rate limits on self-hosted; WireMock Cloud limits depend on plan; throughput bounded by hosting JVM resources",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": [],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 78,
+    "error_message_notes": "Admin API returns clear JSON errors for invalid stub configurations — missing required fields, invalid matcher syntax, and duplicate priorities are reported with descriptive messages. Request matching failures are logged and queryable via the /requests endpoint for debugging.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "GET requests are idempotent. Stub creation (POST /mappings) is not idempotent — calling it twice creates duplicate stubs, which can cause ambiguous matching. Stub update (PUT /mappings/{id}) is idempotent. Reset (POST /__admin/reset) is idempotent.",
+    "pagination_style": "offset",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Stub JSON format has specific priority rules — when multiple stubs match a request, the one with the highest explicit priority wins; without explicit priorities, the most recently registered stub wins, which can cause non-deterministic behavior in parallel test setups",
+      "WireMock Cloud and self-hosted admin API paths differ slightly (e.g., /__admin/ prefix on self-hosted vs. /api/ on Cloud) — agents switching between environments must handle endpoint differences",
+      "Stateful scenarios require careful sequencing — agents must set the scenario state explicitly and verify transitions; parallel test threads sharing a WireMock instance can corrupt scenario state",
+      "Request matching can be over-broad if not configured carefully — a stub matching any POST to /api will intercept all POST requests, masking bugs where agents send requests to wrong paths",
+      "WireMock does not persist stubs across restarts by default; agents relying on pre-loaded stubs must re-register them on startup or use the --root-dir option to load from files"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 78,
+    "auth_complexity_score": 88,
+    "rate_limit_clarity_score": 82
+  },
+  "security_score_components": {
+    "tls_enforcement": 70,
+    "auth_strength": 55,
+    "scope_granularity": 50,
+    "dependency_hygiene": 75,
+    "secret_handling": 72,
+    "security_notes": "Self-hosted WireMock has no auth or TLS by default — it assumes a trusted network environment. This is appropriate for local/CI use but requires care in shared environments. TLS and basic auth can be configured but require manual setup. WireMock Cloud enforces TLS and API key auth. Open source so dependency hygiene is community-managed."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 70,
+    "version_stability": 88,
+    "breaking_changes_history": 85,
+    "error_recovery": 82
+  }
+}
