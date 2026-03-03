@@ -1,0 +1,106 @@
+{
+  "id": "dnspython-api",
+  "name": "dnspython",
+  "version_evaluated": "2.6.x",
+  "homepage": "https://www.dnspython.org/",
+  "repo_url": "https://github.com/rthalley/dnspython",
+  "category": "developer-tools",
+  "subcategories": ["networking", "dns", "python", "security"],
+  "tags": ["python", "dnspython", "dns", "networking", "resolver", "DNSSEC", "zone", "security"],
+  "what_it_does": "Full-featured DNS toolkit for Python — DNS client, server, and zone manipulation library. dnspython features: dns.resolver.resolve() for DNS queries (A, AAAA, MX, TXT, CNAME, NS, SOA, SRV records), dns.query.udp()/tcp() for raw DNS queries, dns.zone.from_file() for zone parsing, DNSSEC validation, dns.asyncresolver for asyncio DNS, DoT (DNS over TLS) and DoH (DNS over HTTPS) support, dns.rdataset for record sets, dns.name for domain name manipulation, and dns.message for DNS message construction. Used for network scanning, email validation (MX lookup), service discovery (SRV), and security tooling (TXT record verification).",
+  "use_cases": [
+    "Agent email domain validation — import dns.resolver; try: mx_records = dns.resolver.resolve('gmail.com', 'MX'); has_mx = True except dns.resolver.NXDOMAIN: has_mx = False — verify domain has mail servers before sending; agent email validation pipeline checks MX records to reduce bounce rate; also checks SPF (TXT) and DMARC records for deliverability",
+    "Agent service discovery — srv_records = dns.resolver.resolve('_http._tcp.service.consul', 'SRV'); for r in srv_records: host, port = r.target.to_text(), r.port; endpoints.append(f'{host}:{port}') — resolve service endpoints via DNS-SD/Consul; agent discovers microservice endpoints via DNS without hard-coded IP addresses",
+    "Agent domain reconnaissance — a_records = dns.resolver.resolve('example.com', 'A'); txt_records = dns.resolver.resolve('example.com', 'TXT'); ns_records = dns.resolver.resolve('example.com', 'NS') — enumerate DNS records for domain; agent security scanner discovers infrastructure via DNS before other scanning; fully authorized reconnaissance only",
+    "Agent async DNS resolution — import dns.asyncresolver; results = await dns.asyncresolver.resolve('api.example.com', 'A'); ip = results[0].to_text() — non-blocking DNS in async agent; FastAPI service resolves hostnames without blocking event loop; uses asyncio-compatible DNS client",
+    "Agent DNSSEC validation — resolver = dns.resolver.Resolver(); resolver.use_dnssec = True; resolver.nameservers = ['8.8.8.8']; answer = resolver.resolve('secure.example.com', 'A', want_dnssec=True) — validates DNSSEC signature chain; agent verifies authoritative DNS responses not forged by DNS spoofing"
+  ],
+  "not_for": [
+    "High-level hostname resolution — for simple hostname→IP use socket.getaddrinfo() or asyncio.get_event_loop().getaddrinfo() which respect /etc/hosts; dnspython bypasses system resolver",
+    "DNS server implementation — dnspython can construct DNS messages but is not a full DNS server; use BIND/PowerDNS for authoritative DNS",
+    "Caching DNS resolver — dnspython performs raw DNS queries without caching; use system resolver or implement cache on top for repeated lookups"
+  ],
+  "best_when": "Programmatic DNS queries beyond Python's socket module (MX records, SRV records, TXT records, DNSSEC validation, zone parsing) — dnspython provides full DNS record type support and DoH/DoT for secure DNS.",
+  "avoid_when": "You need simple hostname→IP resolution (use socket), a full DNS server, or caching resolver.",
+  "alternatives": ["scapy-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth for standard DNS. DoT/DoH may require TLS configuration. TSIG for authenticated zone transfers."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, ISC licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "dnspython is ISC licensed. Free for all use. DNS resolver infrastructure costs are separate (use 8.8.8.8 for free)."
+  },
+  "performance": {
+    "latency_p50_ms": 20,
+    "latency_p99_ms": 500,
+    "uptime_sla_percent": null,
+    "rate_limits": "No client-side rate limits. DNS query latency: 10-100ms typical. UDP by default (faster), TCP for large responses. No built-in caching — implement if needed for repeated queries.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 80,
+    "error_message_quality": 78,
+    "error_message_notes": "dns.resolver.NXDOMAIN for non-existent domain. dns.resolver.NoAnswer when domain exists but record type missing. dns.resolver.Timeout for unresponsive nameserver. dns.exception.DNSException base class. Specific exception types for each DNS failure mode.",
+    "idempotency_support": "full",
+    "idempotency_notes": "DNS queries are idempotent — same query produces same result for same DNS state. Results may change as DNS propagates or TTL expires. resolve() result has .ttl for cache guidance.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "NXDOMAIN vs NoAnswer are different exceptions — dns.resolver.NXDOMAIN means domain doesn't exist; dns.resolver.NoAnswer means domain exists but no record of requested type; agent code must handle both: MX lookup on domain without mail server raises NoAnswer, not NXDOMAIN; many agent validators only catch NXDOMAIN and miss NoAnswer",
+      "Default resolver uses system nameservers — dns.resolver.resolve() uses /etc/resolv.conf nameservers; in Docker containers with custom DNS, may resolve differently than expected; agent security tools should specify nameservers explicitly: resolver.nameservers = ['8.8.8.8', '1.1.1.1']",
+      "Trailing dot in domain names — DNS domain names end with '.' (root); dns.resolver.resolve('example.com') works (dnspython adds trailing dot); dns.name.from_text('example.com') creates relative name; dns.name.from_text('example.com.') creates absolute; agent zone manipulation must use correct absolute/relative name forms",
+      "Async resolver requires separate import — dns.asyncresolver (not dns.resolver) for async DNS; import dns.asyncresolver; await dns.asyncresolver.resolve('example.com', 'A'); agent async code using dns.resolver.resolve() blocks event loop; async DNS requires explicit asyncresolver import",
+      "Record rdataset is iterable of records — dns.resolver.resolve('example.com', 'MX') returns Answer object iterable over RData objects; for r in answer: r.exchange, r.preference; agent code doing answer[0] gets first record (valid); answer.to_text() gets string representation of all records",
+      "No built-in caching causes repeated queries — dns.resolver.resolve() queries DNS every call with no cache; agent processing 10K email addresses with MX lookup makes 10K DNS queries; implement: from functools import lru_cache; @lru_cache(maxsize=1000); def lookup_mx(domain): return dns.resolver.resolve(domain, 'MX')"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 80,
+    "error_handling_score": 78,
+    "auth_complexity_score": 95,
+    "rate_limit_clarity_score": 92
+  },
+  "security_score_components": {
+    "tls_enforcement": 85,
+    "auth_strength": 82,
+    "scope_granularity": 80,
+    "dependency_hygiene": 85,
+    "secret_handling": 88,
+    "security_notes": "DNS queries are unencrypted by default (UDP port 53) — use DoT or DoH for sensitive DNS lookups. DNSSEC validation prevents DNS spoofing attacks. DNS reconnaissance is a dual-use capability — only use against authorized targets. DNS over HTTPS support for bypassing DNS interception."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 82,
+    "version_stability": 85,
+    "breaking_changes_history": 82,
+    "error_recovery": 80
+  }
+}
