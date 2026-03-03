@@ -1,0 +1,106 @@
+{
+  "id": "memory-profiler-python-api",
+  "name": "memory-profiler",
+  "version_evaluated": "0.61.x",
+  "homepage": "https://github.com/pythonprofiling/memory_profiler",
+  "repo_url": "https://github.com/pythonprofiling/memory_profiler",
+  "category": "developer-tools",
+  "subcategories": ["profiling", "python", "memory", "debugging", "performance"],
+  "tags": ["python", "memory-profiler", "profiling", "memory", "leak", "optimization", "mprof"],
+  "what_it_does": "Memory profiling for Python — tracks memory usage line-by-line and over time. memory_profiler features: @profile decorator for line-by-line memory usage, mprof run/plot for time-based memory tracking, memory_usage() for programmatic profiling, --include-children for subprocess memory, matplotlib integration for memory graphs, interval parameter for sampling frequency, backend selection (psutil, tracemalloc, posix), timestamps for tracking memory over time, and streaming output for long-running processes. Identifies memory leaks, peak usage, and objects causing growth.",
+  "use_cases": [
+    "Agent line-by-line memory — from memory_profiler import profile; @profile; def process_batch(items): data = [load_item(i) for i in items]; results = transform(data); return aggregate(results) — run: python -m memory_profiler script.py; agent identifies which line allocates most memory; line annotations show increment and total memory",
+    "Agent memory over time — mprof run python agent.py; mprof plot — command line time series; agent long-running process shows memory growth curve; mprof plot generates matplotlib graph; identify memory leaks by upward trend without plateau",
+    "Agent programmatic measurement — from memory_profiler import memory_usage; mem = memory_usage((process_function, (args,), {}), interval=0.1); print(f'Peak: {max(mem):.1f} MB, Min: {min(mem):.1f} MB') — measure function memory programmatically; agent test suite verifies function stays under memory budget; memory_usage returns list of memory samples",
+    "Agent before/after comparison — import tracemalloc; tracemalloc.start(); do_work(); snapshot = tracemalloc.take_snapshot(); stats = snapshot.statistics('lineno')[:10] — stdlib tracemalloc for allocation tracking; agent identifies specific objects causing memory growth; top 10 allocation sites by size",
+    "Agent memory budget test — from memory_profiler import memory_usage; peak = max(memory_usage((my_function, (input_data,), {}), interval=0.05)); assert peak < 500, f'Memory exceeded 500MB: {peak:.1f}MB' — automated memory budget assertion; agent integration test enforces memory SLO; fails build if function uses too much memory"
+  ],
+  "not_for": [
+    "CPU profiling — memory_profiler only tracks memory not CPU time; for CPU use cProfile or pyinstrument",
+    "Production runtime monitoring — memory_profiler adds significant overhead (10-100x slower); use psutil for lightweight production monitoring",
+    "Object-level memory analysis — memory_profiler tracks RSS memory not object sizes; for object-level use objgraph or pympler"
+  ],
+  "best_when": "Diagnosing memory leaks and peak memory usage in Python code — memory_profiler's line-by-line decorator and mprof time series are the most accessible tools for memory optimization.",
+  "avoid_when": "CPU profiling (use pyinstrument/cProfile), production monitoring (use psutil), or object-level analysis (use objgraph).",
+  "alternatives": ["pyinstrument-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — local profiling tool."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, BSD licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "memory_profiler is BSD licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Overhead: @profile decorator adds 10-100x slowdown due to line-by-line measurement via settrace. mprof sampling interval default 0.1s — adjustable. memory_usage() overhead: 5-20% for measuring target function. Never use @profile in production code.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 80,
+    "error_message_quality": 78,
+    "error_message_notes": "memory_profiler has minimal error reporting. @profile requires running with -m memory_profiler or kernprof. mprof creates .dat files. matplotlib required for mprof plot. ImportError if psutil not installed (required for most backends).",
+    "idempotency_support": "full",
+    "idempotency_notes": "Memory profiling is read-only — does not modify application behavior (only slows it down). Same code produces consistent memory profiles for same inputs. Idempotent for profiling runs.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "@profile only works with -m memory_profiler — running decorated script normally raises NameError: name 'profile' is not defined; correct invocation: python -m memory_profiler script.py; agent dev workflow must remember the -m flag; or add: try: profile; except NameError: profile = lambda f: f at top of file for optional profiling",
+      "Measures RSS not Python object size — memory_profiler measures resident set size from OS; RSS includes Python internals, shared libraries, and OS page rounding; agent code seeing 50MB RSS doesn't mean 50MB of Python objects; use tracemalloc for Python object allocation tracking",
+      "Multiprocessing memory not tracked — @profile on function that spawns subprocesses shows only parent process RSS; agent code using multiprocessing Pool or subprocess doesn't show child memory; use --include-children with mprof run for subprocess memory tracking",
+      "Line-level granularity misattributes lazy evaluation — generators and lazy iterators don't allocate until iterated; @profile shows memory at assignment line not at iteration; agent code using generators shows 0MB at gen = (x for x in big_list) and all memory at list(gen); interpret line numbers accordingly",
+      "mprof dat files accumulate — mprof run creates .dat file in current directory; multiple mprof runs create multiple files; mprof plot uses latest file; agent CI pipeline must clean .dat files between runs or use --output flag; .dat files shouldn't be committed to git",
+      "psutil required but not always auto-installed — memory_profiler uses psutil backend by default; pip install memory_profiler doesn't always pull psutil; if psutil not installed: backend falls back to slower alternatives or raises ImportError; agent requirements.txt should include: memory-profiler[psutil] or explicit psutil dependency"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 80,
+    "error_handling_score": 78,
+    "auth_complexity_score": 99,
+    "rate_limit_clarity_score": 99
+  },
+  "security_score_components": {
+    "tls_enforcement": 92,
+    "auth_strength": 92,
+    "scope_granularity": 90,
+    "dependency_hygiene": 88,
+    "secret_handling": 90,
+    "security_notes": "Profiling tool that reads process memory — no network calls. @profile decorator accesses all variables in profiled scope including secrets — never profile functions handling credentials in production. mprof .dat files contain memory usage data, not application data — safe to store."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 78,
+    "version_stability": 80,
+    "breaking_changes_history": 82,
+    "error_recovery": 78
+  }
+}

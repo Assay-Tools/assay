@@ -1,0 +1,106 @@
+{
+  "id": "bottle-python-api",
+  "name": "bottle",
+  "version_evaluated": "0.12.x",
+  "homepage": "https://bottlepy.org/",
+  "repo_url": "https://github.com/bottlepy/bottle",
+  "category": "developer-tools",
+  "subcategories": ["web-framework", "python", "wsgi", "microframework"],
+  "tags": ["python", "bottle", "web", "wsgi", "microframework", "rest", "http", "single-file"],
+  "what_it_does": "Minimalist single-file Python web framework — provides routing, request/response handling, templating, and HTTP server in a single .py file with no dependencies. bottle features: @route/@get/@post/@put/@delete decorators, URL parameters with <name> syntax, request object (request.json, request.forms, request.params), response object (response.status, response.headers), built-in template engine (jinja2/mako/cheetah adapters), static file serving, cookies, JSON responses, file uploads, WSGI middleware support, built-in development server, and gunicorn/uwsgi deployment. Single-file — copy bottle.py into project for zero-dependency deployment.",
+  "use_cases": [
+    "Agent HTTP API — from bottle import route, run, request, response; @route('/agent/execute', method='POST'); def execute(): body = request.json; result = agent.run(body['task']); return {'result': result, 'status': 'ok'}; run(host='0.0.0.0', port=8080) — minimal REST API; agent exposes HTTP endpoint with no framework overhead; single file deployment",
+    "Agent health endpoint — from bottle import route, run; @route('/health'); def health(): return {'status': 'ok', 'version': VERSION}; @route('/status'); def status(): return {'queue_depth': queue.qsize(), 'active_tasks': len(tasks)} — health and status endpoints; agent infrastructure exposes monitoring endpoints; minimal overhead per request",
+    "Agent webhook receiver — @route('/webhook', method='POST'); def webhook(): payload = request.json; event_type = request.headers.get('X-Event-Type'); process_event(event_type, payload); return {'received': True} — webhook handler; agent receives GitHub/Slack/custom webhooks; bottle handles HTTP parsing and response",
+    "Agent file serving — from bottle import route, static_file; @route('/reports/<filename>'); def serve_report(filename): return static_file(filename, root='/agent/output', download=True) — static file download; agent serves generated reports via HTTP; static_file handles Content-Type, Range requests, and 404",
+    "Agent URL parameters — @route('/agent/<agent_id>/task/<task_id>'); def get_task(agent_id, task_id): task = db.get_task(agent_id, task_id); if not task: response.status = 404; return {'error': 'Not found'}; return task — path parameters; agent REST API with resource-oriented URLs; response.status for HTTP status codes"
+  ],
+  "not_for": [
+    "Production high-traffic APIs — bottle is synchronous WSGI; for async/high-performance use FastAPI or aiohttp",
+    "Large applications — bottle has no built-in ORM, auth, or admin; for full-featured web apps use Django",
+    "WebSocket support — bottle has no native WebSocket support; for WebSocket use fastapi with websockets library"
+  ],
+  "best_when": "Minimal HTTP API or webhook server with zero dependencies — bottle's single-file design is ideal for simple agent HTTP interfaces, scripts, and tools that need HTTP without a full framework.",
+  "avoid_when": "High-traffic production APIs (use FastAPI), large applications (use Django/Flask), or WebSocket needs.",
+  "alternatives": ["flask-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No built-in auth — implement via request.headers checking or WSGI middleware. Auth is application responsibility."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "bottle is MIT licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 1,
+    "latency_p99_ms": 5,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Performance: built-in wsgiref server is development-only (single-threaded); use gunicorn for production: gunicorn 'myapp:app' -w 4; bottle adds minimal overhead vs raw WSGI. Synchronous — each request blocks until complete; no async support.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 80,
+    "error_message_notes": "HTTPError raised for HTTP errors (abort(404)). HTTPResponse for custom responses. Unhandled exceptions return 500 with traceback in debug mode. @error(404) decorator for custom error pages. request.json returns None if body is not JSON — no exception.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "GET handlers are idempotent if logic is idempotent. POST/PUT handlers depend on application logic. bottle itself has no built-in idempotency guarantees.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Built-in server is single-threaded development-only — run(host='0.0.0.0', port=8080) uses Python's wsgiref which handles one request at a time; agent production deployment must use: run(server='gunicorn', workers=4) or WSGI server; never expose bottle's built-in server to production traffic",
+      "request.json returns None not error for non-JSON body — if client sends request without Content-Type: application/json, request.json is None not {}; agent code must check: body = request.json; if body is None: return HTTPError(400, 'JSON required'); forgetting the None check causes AttributeError on body access",
+      "Route decorators use global app by default — @route('/path') uses default app; multiple bottle apps in same process share routes unless using Bottle() instances; agent code with multiple APIs in one process: app = Bottle(); @app.route('/path'); app.run() — explicit app instance avoids route conflicts",
+      "Static files require explicit root — static_file(filename, root='/path') serves file only from root directory; without root: raises TypeError; filename must not contain path traversal; bottle prevents ../ in filename for security; set download=True for Content-Disposition: attachment header",
+      "abort() raises exception that exits current function — from bottle import abort; abort(404, 'Not found') raises HTTPError immediately; agent code after abort() is never reached; use abort() for early returns like Python's raise; don't catch abort() unless re-raising",
+      "No built-in CSRF protection — bottle has no CSRF middleware; agent admin endpoints exposed over HTTP are CSRF-vulnerable; implement CSRF token validation manually or use WTForms integration; for agent-to-agent internal APIs without browser clients, CSRF is not a concern"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 80,
+    "auth_complexity_score": 92,
+    "rate_limit_clarity_score": 95
+  },
+  "security_score_components": {
+    "tls_enforcement": 80,
+    "auth_strength": 72,
+    "scope_granularity": 70,
+    "dependency_hygiene": 92,
+    "secret_handling": 80,
+    "security_notes": "No built-in auth or CSRF — must implement manually. Never expose built-in development server to internet. Use TLS via reverse proxy (nginx/caddy) in front of bottle WSGI server. Validate and sanitize all request.json inputs — bottle does no validation. debug=True exposes tracebacks to clients — never in production."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 82,
+    "version_stability": 88,
+    "breaking_changes_history": 90,
+    "error_recovery": 80
+  }
+}

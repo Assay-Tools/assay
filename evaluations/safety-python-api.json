@@ -1,0 +1,106 @@
+{
+  "id": "safety-python-api",
+  "name": "safety",
+  "version_evaluated": "3.x",
+  "homepage": "https://safetycli.com/",
+  "repo_url": "https://github.com/pyupio/safety",
+  "category": "developer-tools",
+  "subcategories": ["security", "python", "vulnerability-scanning", "dependencies"],
+  "tags": ["python", "safety", "security", "cve", "vulnerabilities", "dependencies", "audit"],
+  "what_it_does": "Python dependency vulnerability scanner — checks installed packages against a database of known CVEs and security advisories. safety features: safety check for scanning requirements.txt or installed packages, safety scan for project-level scanning, JSON/text output formats, --continue-on-error for CI pipelines, --ignore for known safe CVEs, PyPI Safety DB (free) and Safety DB Pro (authenticated), integration with pip-audit and CI systems, CVSS scores, fix recommendations, and GitHub Actions support. Identifies packages with known security vulnerabilities before deployment.",
+  "use_cases": [
+    "Agent dependency audit — subprocess.run(['safety', 'check', '--output', 'json', '-r', 'requirements.txt'], capture_output=True, text=True); vulns = json.loads(result.stdout) — scan requirements file; agent CI pipeline identifies vulnerable dependencies; JSON output for programmatic processing and alerting",
+    "Agent installed packages scan — subprocess.run(['safety', 'check', '--json'], capture_output=True, text=True) — scan all installed packages in current environment; agent verifies deployment environment safety; identifies transitive dependencies with vulnerabilities not listed in requirements.txt",
+    "Agent CI quality gate — subprocess.run(['safety', 'check', '--continue-on-error'], check=False); if result.returncode != 0: alert_security_team() — non-blocking scan; agent CI reports vulnerabilities without failing build; --continue-on-error exits 0 even with vulnerabilities; parse JSON output for severity-based actions",
+    "Agent vulnerability report — result = subprocess.run(['safety', 'check', '--output', 'text', '--short-report'], text=True, capture_output=True); print(result.stdout) — human-readable short report; agent generates security summary for weekly review; shows package name, installed version, vulnerable versions, CVE IDs",
+    "Agent ignored CVEs — subprocess.run(['safety', 'check', '--ignore', '39462', '--ignore', '40291', '-r', 'requirements.txt']) — ignore specific CVE IDs; agent CI skips known false positives or accepted risks; document ignored CVEs with justification in comments"
+  ],
+  "not_for": [
+    "Code vulnerability scanning — safety only checks dependencies not Python code; for code SAST use bandit or semgrep",
+    "Non-Python dependencies — safety is Python-only; for JavaScript use npm audit, for container scanning use Trivy",
+    "Real-time runtime protection — safety is a scan-time tool; for runtime protection use WAF or application security monitoring"
+  ],
+  "best_when": "CI/CD pipeline dependency security checks — safety quickly identifies Python packages with known CVEs before deployment, with minimal setup.",
+  "avoid_when": "Code security scanning (use bandit/semgrep), non-Python dependencies, or needing runtime protection.",
+  "alternatives": ["pip-audit-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["api_key"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Free tier uses PyPI Safety DB (limited). Authenticated tier via SAFETY_API_KEY environment variable for Safety DB Pro with more CVEs and faster updates. API key from safetycli.com account."
+  },
+  "pricing": {
+    "model": "freemium",
+    "free_tier_exists": true,
+    "free_tier_limits": "Free tier uses open PyPI Safety DB. Paid Safety DB Pro has more CVEs, CVSS scores, malware detection",
+    "paid_tiers": "Safety Pro subscription for enhanced vulnerability database",
+    "requires_credit_card": false,
+    "notes": "safety CLI is open source (MIT). Safety DB Pro requires paid subscription. Free tier suitable for most open source projects."
+  },
+  "performance": {
+    "latency_p50_ms": 2000,
+    "latency_p99_ms": 10000,
+    "uptime_sla_percent": null,
+    "rate_limits": "Free tier: rate limited on Safety DB API calls. Authenticated: higher limits. Scan time depends on number of packages and network latency to Safety DB. Typical scan: 2-10 seconds. Use --cache for offline scanning after initial fetch.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["cloud"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 80,
+    "error_message_quality": 80,
+    "error_message_notes": "JSON output includes vulnerability ID, package name, affected versions, advisory text, CVE IDs, and severity. Text output is human-readable. Exit code 0 for no vulnerabilities, non-zero for found vulnerabilities or errors. --continue-on-error changes exit behavior.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Same requirements file always produces same scan results (for same database version). Idempotent for CI use. Database updates may change results over time.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "safety 3.x changed CLI syntax significantly — safety 2.x: safety check; safety 3.x: safety scan; agent CI scripts written for safety 2.x break on safety 3.x; check version: safety --version; migration guide required when upgrading; pin version in CI to avoid surprise upgrades",
+      "Exit code non-zero on vulnerabilities found — safety check exits 1 when vulnerabilities found; subprocess.run(['safety', 'check'], check=True) raises CalledProcessError on any finding; agent CI must decide: check=False and inspect returncode, or use --continue-on-error; don't silently swallow the return code",
+      "Scans installed packages not just requirements.txt — safety check without -r flag scans ALL installed packages in current Python environment; agent running in dev environment with many extra packages gets false scope; always use: safety check -r requirements.txt for production dependency scanning",
+      "Free tier database may lag — Safety DB free tier has fewer CVEs and slower updates than Pro; agent relying on free tier may miss recent vulnerabilities; supplement with pip-audit which uses OSV database; consider both tools for comprehensive coverage",
+      "Ignored CVEs need documentation — safety check --ignore 12345 silently skips CVE-12345 forever; agent code should document ignored CVEs with justification in .safety-policy.yml or comments; periodically review ignored CVEs to check if patches are now available",
+      "Transitive dependencies not always scanned — safety check -r requirements.txt scans direct dependencies; if requirements.txt doesn't pin transitive deps, vulnerable transitive packages may not be caught; use pip freeze > requirements-frozen.txt for complete dependency tree scanning"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 80,
+    "error_handling_score": 80,
+    "auth_complexity_score": 90,
+    "rate_limit_clarity_score": 82
+  },
+  "security_score_components": {
+    "tls_enforcement": 90,
+    "auth_strength": 85,
+    "scope_granularity": 82,
+    "dependency_hygiene": 90,
+    "secret_handling": 85,
+    "security_notes": "Security scanning tool itself — keep safety updated to get latest vulnerability database. Store SAFETY_API_KEY as CI secret not in code. The safety database is queried over HTTPS. Free tier data is publicly available — no sensitive data sent to safety servers beyond package names and versions."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 80,
+    "version_stability": 78,
+    "breaking_changes_history": 75,
+    "error_recovery": 80
+  }
+}

@@ -1,0 +1,106 @@
+{
+  "id": "questionary-python-api",
+  "name": "questionary",
+  "version_evaluated": "2.x",
+  "homepage": "https://questionary.readthedocs.io/",
+  "repo_url": "https://github.com/tmbo/questionary",
+  "category": "developer-tools",
+  "subcategories": ["cli", "python", "interactive", "terminal", "prompts"],
+  "tags": ["python", "questionary", "cli", "interactive", "prompts", "terminal", "inquirer"],
+  "what_it_does": "Beautiful interactive CLI prompts for Python — provides styled terminal question types with keyboard navigation. questionary features: text() for free-text input, password() for hidden input, confirm() for yes/no, select() for single-choice with arrow keys, checkbox() for multi-choice, rawselect() for numbered selection, autocomplete() for filtered selection, path() for file path with completion, print() for styled output, validate= parameter for inline validation, style= for custom colors, ask() and ask_async() for async support, and skip_if()/when() for conditional questions. Successor to inquirer.py with better async support.",
+  "use_cases": [
+    "Agent CLI config wizard — import questionary; host = questionary.text('Database host?', default='localhost').ask(); port = questionary.text('Port?', default='5432', validate=lambda v: v.isdigit()).ask(); db = questionary.select('Database type?', choices=['postgresql', 'mysql', 'sqlite']).ask() — interactive setup; agent CLI guides user through configuration with validation and defaults",
+    "Agent confirmation prompt — action = questionary.select('What to do?', choices=['deploy', 'rollback', 'cancel']).ask(); if action == 'deploy': confirmed = questionary.confirm(f'Deploy to production?').ask(); if confirmed: execute_deploy() — select then confirm; agent dangerous action requires explicit confirmation; arrow-key selection prevents typos",
+    "Agent multi-select — features = questionary.checkbox('Enable features?', choices=[questionary.Choice('logging', checked=True), questionary.Choice('metrics'), questionary.Choice('tracing')]).ask() — multi-select with defaults; agent capability selection with pre-checked defaults; returns list of selected strings",
+    "Agent async prompts — import asyncio; async def setup(): name = await questionary.text('Agent name?').ask_async(); return name; asyncio.run(setup()) — async-compatible; agent async FastAPI startup uses ask_async(); doesn't block event loop during user input",
+    "Agent autocomplete input — tasks = ['analyze', 'generate', 'validate', 'deploy']; choice = questionary.autocomplete('Command?', choices=tasks, validate=lambda v: v in tasks).ask() — filtered autocomplete; agent CLI with many options filters as user types; validate ensures selection from valid list"
+  ],
+  "not_for": [
+    "Non-interactive environments — questionary requires TTY; CI/CD pipelines without TTY cause failures",
+    "Web or GUI interfaces — questionary is terminal-only; for web prompts use HTML forms, for GUI use tkinter",
+    "High-volume automation — questionary requires user interaction; for scripted input use argparse or click"
+  ],
+  "best_when": "Building interactive CLI tools and agent setup wizards — questionary provides polished arrow-key selection, validation, and colored output for excellent user experience in terminal tools.",
+  "avoid_when": "CI/CD automation (no TTY), web interfaces, or when scripted non-interactive input is needed.",
+  "alternatives": ["prompt-toolkit-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — local terminal UI library."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "questionary is MIT licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Performance bounded by user typing speed. Autocomplete filtering: O(n) per keystroke for n choices. Large choice lists (1000+) may feel slow — filter server-side before passing to questionary.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 88,
+    "error_message_quality": 85,
+    "error_message_notes": "Returns None when user presses Ctrl+C or Ctrl+D (no exception by default). validate= function receives string and should return True (valid) or error message string. KeyboardInterrupt raised if user_ctrl_c_handling=True. Clear validation error messages shown inline.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Prompts are interactive — user input determines result. Same prompt code may produce different results on different runs. For scripted/test environments use unittest.mock to mock questionary.ask().",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Returns None on Ctrl+C not KeyboardInterrupt — questionary.text('?').ask() returns None when user presses Ctrl+C; agent code must check: result = q.ask(); if result is None: sys.exit(0); forgetting None check causes AttributeError on result usage; use ask(kbi_msg='Cancelled') to raise KeyboardInterrupt instead",
+      "No TTY causes hanging or errors — in CI or piped environments (pytest, subprocess), questionary cannot get terminal input; agent CLI tools must detect TTY: import sys; if not sys.stdin.isatty(): use defaults; or test with --no-interactive flag that skips prompts",
+      "validate= receives the raw string before type coercion — validate=lambda v: v.isdigit() checks string input; agent code must not assume type in validator; for integer validation: check isdigit() in validator, convert after ask(); validate returns True for valid or string error message for invalid",
+      "checkbox() returns empty list not None for no selection — questionary.checkbox('Select:', choices=['a','b']).ask() returns [] if user selects nothing and presses Enter; agent code checking 'if result:' treats empty list as falsy — correct; but checking 'if result is None:' misses empty selection case",
+      "Choice values vs labels — questionary.Choice(title='Deploy to prod', value='deploy_prod') shows 'Deploy to prod' but returns 'deploy_prod'; agent code receives value not title string; for simple string choices: questionary.select('?', choices=['a', 'b']).ask() returns the string directly",
+      "ask_async() requires existing event loop — await questionary.text('?').ask_async() must run inside async context; cannot call ask_async() synchronously; agent code mixing sync/async must use asyncio.run() wrapper or ensure prompt is in async function; ask_async() uses asyncio keyboard interrupt handling different from sync ask()"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 88,
+    "error_handling_score": 85,
+    "auth_complexity_score": 99,
+    "rate_limit_clarity_score": 99
+  },
+  "security_score_components": {
+    "tls_enforcement": 92,
+    "auth_strength": 92,
+    "scope_granularity": 90,
+    "dependency_hygiene": 90,
+    "secret_handling": 88,
+    "security_notes": "Terminal UI library with no network calls. password() type masks input during typing but value is still a plain Python string after ask() — do not log or print password values. Validate user file paths from path() type before using in file operations."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 85,
+    "version_stability": 85,
+    "breaking_changes_history": 85,
+    "error_recovery": 88
+  }
+}
