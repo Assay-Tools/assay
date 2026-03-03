@@ -1,0 +1,106 @@
+{
+  "id": "pyflakes-python-api",
+  "name": "pyflakes",
+  "version_evaluated": "3.x",
+  "homepage": "https://github.com/PyCQA/pyflakes",
+  "repo_url": "https://github.com/PyCQA/pyflakes",
+  "category": "developer-tools",
+  "subcategories": ["linting", "python", "code-quality", "static-analysis"],
+  "tags": ["python", "pyflakes", "linter", "static-analysis", "imports", "undefined", "unused"],
+  "what_it_does": "Fast Python source code checker for logical errors — detects undefined names, unused imports, redefined names, and other logical errors without style enforcement. pyflakes features: undefined variable/name detection, unused import detection, redefined function/variable warnings, import shadowing detection, __all__ export validation, Python 2/3 compatible syntax checking, programmatic API via pyflakes.api, direct AST analysis (no execution), extremely fast (no type inference), flake8 plugin integration, and zero false positives policy (no style warnings). Focused exclusively on logical errors, not style.",
+  "use_cases": [
+    "Agent code validation — from pyflakes import api; import ast; tree = ast.parse(source_code); result = api.check(source_code, '<string>'); print(result) — check code; agent validates generated Python code for logical errors before execution; result is count of warnings; output to stdout; returns 0 on clean code",
+    "Agent file linting — from pyflakes.api import main; import sys; sys.argv = ['pyflakes', 'myfile.py']; main() — lint file; agent checks Python file for undefined names and unused imports; programmatic invocation via sys.argv manipulation; better: use subprocess for isolation",
+    "Agent import analysis — from pyflakes import api, checker; tree = ast.parse(source); w = checker.Checker(tree, '<test>'); for warning in w.messages: print(type(warning).__name__, warning.lineno, warning.message_args) — structured warnings; agent analyzes imports and undefined names programmatically; warning types: UndefinedName, UnusedImport, RedefinedWhileUnused",
+    "Agent flake8 integration — pyflakes integrates as flake8 plugin automatically when both installed; flake8 myfile.py reports pyflakes F-codes; F401=unused import, F811=redefined, F821=undefined name; agent runs flake8 to get combined style+logic checks; pyflakes adds F-codes to flake8 output",
+    "Agent CI code gate — import subprocess; result = subprocess.run(['pyflakes', 'src/'], capture_output=True); if result.returncode != 0: raise ValueError(f'pyflakes errors:\\n{result.stdout.decode()}') — gate check; agent CI pipeline rejects code with undefined names or unused imports; faster than pylint for pure logical checks"
+  ],
+  "not_for": [
+    "Style checking — pyflakes explicitly does not check style; for PEP 8 use flake8/ruff/pycodestyle",
+    "Type checking — pyflakes doesn't do type inference; for type errors use mypy/pyright",
+    "Complex static analysis — pyflakes checks limited set of issues; for comprehensive analysis use pylint"
+  ],
+  "best_when": "Fast logical error checking without style opinions — pyflakes is ideal for CI gates that catch undefined names and unused imports without generating style noise.",
+  "avoid_when": "Style enforcement needed (use ruff/flake8), type checking (use mypy), comprehensive static analysis (use pylint), or when zero false positives is less important than finding more issues.",
+  "alternatives": ["pylint-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — local static analysis library."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "pyflakes is MIT licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Performance: extremely fast — typically 10-50x faster than pylint. Checks 10K LOC in under 1 second. No config file parsing. Stateless per-file analysis. Suitable for pre-commit hooks without noticeable delay.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 82,
+    "error_message_quality": 85,
+    "error_message_notes": "Output format: filename:line:col: message. Message types are clear: 'undefined name X', 'imported but unused', 'redefined while unused from line Y'. No error codes in pyflakes standalone output (codes added by flake8 plugin). Return code is count of warnings (0 = clean).",
+    "idempotency_support": "full",
+    "idempotency_notes": "pyflakes analysis is purely deterministic — same source always produces same warnings. No configuration, no randomness, no side effects.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "api.check() return value is warning count not bool — from pyflakes.api import check; result = check(code, '<string>'); result is integer (0 = clean, >0 = warnings found); agent code checking success: if check(code, '<string>') == 0: code_is_clean; output goes to stdout/stderr not return value; redirect sys.stdout to capture messages",
+      "pyflakes ignores noqa comments — pyflakes does not respect # noqa inline comments (that's a flake8 feature); to suppress pyflakes warnings programmatically, restructure code; for noqa support, run via flake8 --select=F instead of pyflakes directly; agent code using noqa suppression must run through flake8",
+      "Checker API requires compiled AST — from pyflakes.checker import Checker; Checker(ast.parse(source), '<name>') — requires ast.parse() result not raw string; api.check(source_string) handles parsing internally; agent code using Checker directly must parse first and handle SyntaxError from ast.parse separately",
+      "pyflakes does not understand __all__ magic in all cases — __all__ = ['exported_name'] marks names as used; but dynamic __all__ = [x for x in dir()] doesn't prevent unused-import warnings; agent code with dynamic __all__ may see false positives; suppress by using static __all__ list",
+      "Unused imports in __init__.py trigger warnings — pyflakes warns about unused imports even in __init__.py re-exports; from package.module import Something triggers UnusedImport if Something not used locally; workaround: from package.module import Something as Something (explicit re-export pattern) or add to __all__",
+      "No configuration file support — pyflakes has zero configuration; cannot ignore specific error codes or paths; for project-level ignore rules, use flake8 with per-file-ignores in setup.cfg; agent code needing selective suppression must use flake8+pyflakes not standalone pyflakes"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 82,
+    "error_handling_score": 85,
+    "auth_complexity_score": 99,
+    "rate_limit_clarity_score": 99
+  },
+  "security_score_components": {
+    "tls_enforcement": 92,
+    "auth_strength": 92,
+    "scope_granularity": 90,
+    "dependency_hygiene": 92,
+    "secret_handling": 92,
+    "security_notes": "Static analysis library with no network calls and minimal dependencies. Analyzing untrusted code: pyflakes parses AST without executing — safe. No side effects from analysis. Minimal attack surface."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 90,
+    "breaking_changes_history": 90,
+    "error_recovery": 90
+  }
+}

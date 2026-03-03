@@ -1,0 +1,106 @@
+{
+  "id": "persistqueue-python-api",
+  "name": "persistqueue",
+  "version_evaluated": "0.8.x",
+  "homepage": "https://github.com/peter-wangxu/persist-queue",
+  "repo_url": "https://github.com/peter-wangxu/persist-queue",
+  "category": "developer-tools",
+  "subcategories": ["queues", "python", "persistence", "reliability"],
+  "tags": ["python", "persistqueue", "queue", "persistent", "sqlite", "disk", "reliability"],
+  "what_it_does": "Thread-safe persistent queue library for Python — provides disk-backed queues that survive process restarts using SQLite or filesystem storage. persistqueue features: Queue (SQLite-backed FIFO), FIFOSQLiteQueue/UniqueQ/FIFOUniqueQ variants, SQLiteAckQueue (explicit acknowledgment for at-least-once delivery), FIFOSQLiteAckQueue, put()/get()/task_done()/ack()/nack() API, auto-commit mode, serialization support (pickle, msgpack, JSON), thread-safe operations, SQLite WAL mode for concurrent access, and empty/qsize/full checks. Drop-in for Python's queue.Queue but with disk persistence.",
+  "use_cases": [
+    "Agent persistent task queue — import persistqueue; q = persistqueue.Queue('task_queue_dir'); q.put({'task': 'process', 'url': url}); task = q.get(); process(task); q.task_done() — persistent FIFO; agent enqueues tasks that survive crashes; SQLite backend persists to task_queue_dir/; restart agent and tasks resume from where left off",
+    "Agent at-least-once processing — from persistqueue import SQLiteAckQueue; q = SQLiteAckQueue('ack_queue/'); q.put(message); item = q.get(); try: process(item); q.ack(item); except: q.nack(item) — ack queue; agent processes tasks with explicit acknowledgment; unacked items return to queue after timeout; guarantees at-least-once delivery",
+    "Agent unique task deduplication — from persistqueue import UniqueQ; q = UniqueQ('unique_queue/'); q.put('url1'); q.put('url1') — second put is no-op; task = q.get() — dedup queue; agent URL crawler deduplicates tasks; UniqueQ silently drops duplicate puts; useful for idempotent task queues",
+    "Agent producer-consumer across restarts — producer: q = persistqueue.Queue('shared/'); for item in data: q.put(item); consumer: q = persistqueue.Queue('shared/'); while True: item = q.get(block=True); process(item); q.task_done() — shared queue; different processes use same SQLite file for inter-process communication",
+    "Agent crash-safe download queue — q = persistqueue.Queue('/tmp/downloads'); for url in urls: q.put({'url': url, 'dest': '/data/'}); while not q.empty(): item = q.get(); download(item['url'], item['dest']); q.task_done() — crash-safe; agent resumes partial downloads after crash; completed items removed from SQLite on task_done()"
+  ],
+  "not_for": [
+    "High-throughput messaging — persistqueue is SQLite-backed (~1000 ops/s); for high-throughput use Redis queues via kombu",
+    "Distributed multi-node queues — SQLite is single-machine; for distributed queues use Redis/RabbitMQ/SQS",
+    "In-memory ephemeral queues — persistqueue disk persistence adds overhead; for in-memory use Python's queue.Queue"
+  ],
+  "best_when": "Single-machine persistent queues that survive process restarts — persistqueue is ideal for agent task queues, download queues, and work queues where reliability matters but distributed infrastructure is overkill.",
+  "avoid_when": "High-throughput messaging (use Redis/kombu), distributed multi-node scenarios, or pure in-memory ephemeral queues (use queue.Queue).",
+  "alternatives": [],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — local filesystem queue library. Filesystem permissions control access."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, BSD licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "persistqueue is BSD 3-Clause licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Performance: SQLite-backed: ~500-2000 put/get ops/second depending on disk speed. auto_commit=True: each operation is committed (slower but more crash-safe). auto_commit=False: batched commits (faster but risk partial loss on crash). NFS/network filesystems not supported.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 78,
+    "error_message_quality": 75,
+    "error_message_notes": "Empty exception for get() on empty queue with block=False. Full exception for put() on full queue (if maxsize set). SQLite errors surface as sqlite3.OperationalError for lock/permission issues. Error messages minimal but standard queue exceptions match Python's queue module.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "put() is idempotent (adds to queue). UniqueQ.put() is idempotent for duplicate keys. get() consumes items — not idempotent. SQLiteAckQueue with ack() is idempotent — acked items permanently removed.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "task_done() required after every get() — persistqueue.Queue tracks in-flight items; calling get() without subsequent task_done() leaves item 'in-progress' in SQLite; join() will block forever; for SQLiteAckQueue: call ack() instead of task_done(); agent consumer pattern: item = q.get(); try: process(item); finally: q.task_done()",
+      "Queue directory created automatically but must be writable — persistqueue.Queue('path/to/dir') creates the directory if it doesn't exist; but parent directory must be writable; agent code on read-only filesystems fails silently or raises OSError; pre-create directory with correct permissions",
+      "Multiple processes require SQLite WAL mode — SQLiteQueue uses WAL mode by default for concurrent access; but SQLite has limits on concurrent writers; for high-concurrency multi-process: use separate queue instances pointing to separate SQLite files; or use single dedicated queue process with IPC",
+      "get(block=True, timeout=None) blocks forever — agent code calling q.get(block=True) without timeout blocks indefinitely on empty queue; always use timeout: item = q.get(block=True, timeout=5.0) and catch persistqueue.Empty; enables clean shutdown checks in agent consumer loops",
+      "SQLiteAckQueue nack() visibility timeout — nacked items become visible again after default_nack_timeout seconds (default 10); agent code calling nack() immediately makes item visible after 10s for retry; set nack_timeout in put(): q.put(item, nack_timeout=60) for longer retry delay; prevents tight retry loops",
+      "Pickle is default serializer — items are pickled to SQLite BLOB by default; pickle is not safe for untrusted consumer code; if multiple agents share a queue: use serializer='json' parameter: persistqueue.Queue('dir', serializer=persistqueue.serializers.json); JSON prevents pickle-based code execution attacks"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 78,
+    "error_handling_score": 75,
+    "auth_complexity_score": 99,
+    "rate_limit_clarity_score": 99
+  },
+  "security_score_components": {
+    "tls_enforcement": 90,
+    "auth_strength": 90,
+    "scope_granularity": 88,
+    "dependency_hygiene": 88,
+    "secret_handling": 85,
+    "security_notes": "Default pickle serializer is unsafe for untrusted data — use JSON serializer. SQLite file contains all queued data — protect with filesystem permissions. Do not store secrets in queue items. Queue directory ACLs control access — set appropriately for multi-user environments."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 78,
+    "version_stability": 80,
+    "breaking_changes_history": 80,
+    "error_recovery": 85
+  }
+}

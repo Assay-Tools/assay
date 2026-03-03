@@ -1,0 +1,106 @@
+{
+  "id": "cachelib-python-api",
+  "name": "cachelib",
+  "version_evaluated": "0.9.x",
+  "homepage": "https://cachelib.readthedocs.io/",
+  "repo_url": "https://github.com/pallets-eco/cachelib",
+  "category": "developer-tools",
+  "subcategories": ["caching", "python", "utilities", "flask"],
+  "tags": ["python", "cachelib", "cache", "flask", "redis", "memcached", "filesystem", "backend"],
+  "what_it_does": "Unified caching library for Python — provides a consistent interface across multiple cache backends (Redis, Memcached, filesystem, SimpleCache in-memory). cachelib features: SimpleCache (dict-based in-memory), FileSystemCache (disk-based with pickle), RedisCache (via redis-py), MemcachedCache (via pylibmc/python-memcached), SASLMemcachedCache, UWSGICache, NullCache (for testing), uniform API (set/get/delete/clear/has), timeout support, key prefixing, and threshold-based eviction for SimpleCache. Flask's cache backend (used by Flask-Caching extension).",
+  "use_cases": [
+    "Agent in-memory caching — from cachelib import SimpleCache; cache = SimpleCache(threshold=500, default_timeout=300); cache.set('result_key', expensive_result, timeout=60); cached = cache.get('result_key') — in-memory cache; agent caches computation results; threshold=500 limits max entries; timeout in seconds; get() returns None on miss",
+    "Agent Redis caching — from cachelib import RedisCache; cache = RedisCache(host='localhost', port=6379, default_timeout=3600, key_prefix='agent:'); cache.set('user_data', data, timeout=3600); value = cache.get('user_data') — Redis backend; agent uses Redis cache with consistent API; key_prefix namespaces keys; same interface as SimpleCache",
+    "Agent filesystem caching — from cachelib import FileSystemCache; cache = FileSystemCache('/tmp/agent_cache', threshold=1000, default_timeout=86400); cache.set('large_result', big_data); cached = cache.get('large_result') — persistent cache; agent persists cache across restarts; FileSystemCache survives process restart; threshold limits file count",
+    "Agent cache-aside pattern — def get_with_cache(key, compute_fn, timeout=300): cached = cache.get(key); if cached is not None: return cached; result = compute_fn(); cache.set(key, result, timeout=timeout); return result — cache-aside; agent implements cache-aside using cachelib; works with any backend by swapping cache instance",
+    "Agent test with NullCache — from cachelib import NullCache; cache = NullCache() — no-op cache; agent testing with NullCache disables caching without changing code; NullCache.get() always returns None; NullCache.set() is no-op; same interface as real caches"
+  ],
+  "not_for": [
+    "Advanced caching patterns — cachelib is basic get/set/delete; for LRU, TTL collections, complex eviction use cachetools",
+    "High-performance in-process caching — SimpleCache is dict-based Python; for high-throughput use functools.lru_cache or cachetools LRU",
+    "Distributed cache coordination — cachelib doesn't handle distributed consistency; for multi-node cache invalidation use Redis pub/sub directly"
+  ],
+  "best_when": "Flask-ecosystem caching with backend flexibility — cachelib provides swappable backends behind a uniform API, making it easy to switch from development (SimpleCache) to production (Redis) without code changes.",
+  "avoid_when": "Advanced eviction policies (use cachetools), high-throughput in-process caching (use lru_cache), or when distributed cache coordination is needed.",
+  "alternatives": [],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none", "password"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Auth via backend credentials: RedisCache(password='...'), MemcachedCache with SASL. No auth for SimpleCache/FileSystemCache."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, BSD licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "cachelib is BSD 3-Clause licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Performance: SimpleCache: <1ms get/set (in-process dict). FileSystemCache: ~1-10ms (disk I/O + pickle). RedisCache: ~1-5ms (network + serialization). MemcachedCache: ~0.5-2ms. Pickle serialization overhead for complex objects.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 82,
+    "error_message_quality": 78,
+    "error_message_notes": "ConnectionError for Redis/Memcached connection failures (backend-specific). CacheError base class. FileSystemCache raises OSError for permission issues. Most errors surface as backend-specific exceptions since cachelib is a thin wrapper.",
+    "idempotency_support": "full",
+    "idempotency_notes": "cache.set() is idempotent — same key/value overwrites existing. cache.get() is read-only. cache.delete() is idempotent (no error on missing key). timeout resets on set().",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "cache.get() returns None for both missing keys AND keys with None value — cannot distinguish between 'key not found' and 'key stored as None'; agent code: use cache.has(key) before cache.get(key) if None is a valid cached value; or use sentinel: MISSING = object(); cached = cache.get(key, MISSING); if cached is MISSING: compute and cache",
+      "FileSystemCache uses pickle — FileSystemCache serializes values with pickle; pickle is not safe for untrusted data; agent code storing user-controlled data in FileSystemCache: values are pickled to disk; anyone with filesystem access can execute arbitrary code via malicious pickle; use JSON serialization manually if untrusted data",
+      "threshold eviction is approximate for SimpleCache — SimpleCache(threshold=500) does not guarantee exactly 500 items; when threshold exceeded, ~20% of items randomly evicted; agent code relying on specific item count in cache may see unexpected misses; threshold is approximate upper bound not exact limit",
+      "Redis connection must be pre-warmed — RedisCache() creates connection pool lazily; first cache operation triggers connection; agent code with connection failures should use: cache.ping() or catch ConnectionError on first operation; connection pool is not retried automatically on failure",
+      "key_prefix is prepended to all keys — RedisCache(key_prefix='app:v1:') makes all keys 'app:v1:actual_key'; useful for namespace isolation and cache versioning; change key_prefix to invalidate all cache entries without delete; agent cache version bumps: change prefix not manual key deletion",
+      "clear() deletes ALL keys with the prefix — cache.clear() on RedisCache removes all keys matching the prefix; on SimpleCache clears entire dict; agent code calling clear() in production must ensure it's intentional — affects all users/sessions sharing the cache instance; use delete(key) for targeted invalidation"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 82,
+    "error_handling_score": 78,
+    "auth_complexity_score": 92,
+    "rate_limit_clarity_score": 95
+  },
+  "security_score_components": {
+    "tls_enforcement": 85,
+    "auth_strength": 82,
+    "scope_granularity": 80,
+    "dependency_hygiene": 88,
+    "secret_handling": 80,
+    "security_notes": "FileSystemCache uses pickle — never store untrusted data. RedisCache: use rediss:// for TLS, set Redis AUTH password. Never cache secrets (API keys, passwords) without encryption. key_prefix prevents cross-application pollution in shared Redis. Cache poisoning: validate cached values on retrieval if cache storage is shared."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 80,
+    "version_stability": 82,
+    "breaking_changes_history": 82,
+    "error_recovery": 80
+  }
+}
