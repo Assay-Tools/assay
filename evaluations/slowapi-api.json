@@ -1,0 +1,106 @@
+{
+  "id": "slowapi-api",
+  "name": "SlowAPI",
+  "version_evaluated": "0.1.x",
+  "homepage": "https://slowapi.readthedocs.io/",
+  "repo_url": "https://github.com/laurents/slowapi",
+  "category": "developer-tools",
+  "subcategories": ["rate-limiting", "python", "fastapi", "api", "security"],
+  "tags": ["python", "fastapi", "starlette", "rate-limiting", "throttling", "api", "middleware", "redis"],
+  "what_it_does": "Rate limiting extension for FastAPI and Starlette — port of Flask-Limiter using the limits library. SlowAPI provides @limiter.limit() decorator for endpoint-level rate limiting with storage backends (in-memory, Redis, Memcached). Limits expressed as strings: '100/day', '10/minute', '1/second'. Supports key functions for per-user or per-IP limiting (default: client IP). Integrates with FastAPI's dependency injection and exception handlers. Agent API limiting example: @app.get('/agent/run') @limiter.limit('10/minute') for per-IP agent API rate limiting.",
+  "use_cases": [
+    "Rate limit agent API endpoints per IP — @limiter.limit('10/minute') on /agent/run FastAPI endpoint prevents abuse of compute-intensive agent processing",
+    "Per-user agent quota enforcement — custom key_func that extracts user_id from JWT token enables per-user agent API rate limiting via Redis-backed SlowAPI",
+    "Tiered agent rate limits — different limits per endpoint: /agent/quick at '60/minute', /agent/deep-research at '5/hour' for resource-appropriate agent API rate limiting",
+    "Distributed agent rate limiting with Redis — SlowAPI + Redis storage backend shares rate limit counters across all agent API instances for consistent cross-instance limiting",
+    "Agent API burst protection — '100/day;10/hour;2/minute' compound limit notation prevents both burst and sustained agent API abuse"
+  ],
+  "not_for": [
+    "Non-FastAPI/Starlette apps — SlowAPI is specifically for FastAPI/Starlette; use Flask-Limiter for Flask agent APIs, or API Gateway rate limiting for AWS/GCP-hosted agent services",
+    "API Gateway-level rate limiting — cloud-hosted agent APIs should use API Gateway built-in rate limiting for better security and performance; SlowAPI is for application-level limits in self-hosted scenarios",
+    "Complex rate limit logic — SlowAPI's string-based limit expressions are simple; for dynamic agent quotas from database or business rules, implement custom rate limiting middleware"
+  ],
+  "best_when": "You have a FastAPI agent service that needs quick endpoint-level rate limiting with minimal setup — SlowAPI adds rate limiting in 5 lines of code with Redis backend for distributed limiting.",
+  "avoid_when": "You're on AWS/GCP API Gateway (use built-in throttling), your rate limits require complex business logic, or you need rate limiting at the infrastructure level.",
+  "alternatives": ["fastapi-limiter-api", "starlette-rate-limit-api", "nginx-rate-limit-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Rate limiting library — no auth. Key functions for rate limit identity can use JWT claims, API keys, or IP address from request."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "SlowAPI is MIT licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 1,
+    "latency_p99_ms": 5,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits on the library itself. In-memory backend: <1ms overhead per request. Redis backend: 1-3ms per request (network roundtrip). Redis adds external dependency but enables distributed rate limiting.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 78,
+    "error_message_quality": 80,
+    "error_message_notes": "SlowAPI raises RateLimitExceeded exception (HTTP 429) with retry-after header. Exception handler must be registered: app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler). Default 429 response includes limit details. Redis connection errors surface as storage backend errors.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Rate limit counters in Redis are atomic — no race conditions. In-memory counters are not thread-safe for async; single-process only. Redis backend is the reliable option for production agent APIs.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Exception handler must be manually registered — SlowAPI does not auto-register the 429 exception handler; app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler) required; without it, RateLimitExceeded propagates as 500 Internal Server Error for agent callers",
+      "In-memory storage is per-process — default in-memory storage doesn't work correctly with multiple agent service workers (Uvicorn workers or Gunicorn); each worker has separate counter; must use Redis backend for multi-worker or multi-instance agent deployments",
+      "IP extraction behind proxy requires X-Forwarded-For — default key_func uses client IP from request.client.host; behind load balancer or reverse proxy, this is proxy IP; configure request.headers.get('X-Forwarded-For') in key_func for real client IP-based agent rate limiting",
+      "Decorator order matters with FastAPI — @limiter.limit() must be applied before @app.get()/@router.get(); wrong order causes decorator to not attach to FastAPI route; always put limiter decorator closest to function definition",
+      "SlowAPI maintenance is limited — SlowAPI is minimally maintained; consider fastapi-limiter as alternative for better async support; check GitHub for open issues before adopting for production agent APIs",
+      "Compound limits apply all thresholds — '10/minute;100/hour' applies BOTH limits independently; agent caller hitting 10/minute limit gets 429 even if hourly quota is not exceeded; explain compound limits in agent API documentation"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 78,
+    "error_handling_score": 80,
+    "auth_complexity_score": 88,
+    "rate_limit_clarity_score": 85
+  },
+  "security_score_components": {
+    "tls_enforcement": 88,
+    "auth_strength": 80,
+    "scope_granularity": 78,
+    "dependency_hygiene": 80,
+    "secret_handling": 85,
+    "security_notes": "Rate limiting is a security control — prevents agent API DoS. IP-based limiting can be bypassed by IP rotation; combine with user-based limiting via JWT key_func. Redis connection should use TLS and auth for production agent rate limit storage."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 75,
+    "version_stability": 72,
+    "breaking_changes_history": 70,
+    "error_recovery": 78
+  }
+}
