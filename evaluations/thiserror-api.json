@@ -1,28 +1,28 @@
 {
   "id": "thiserror-api",
   "name": "thiserror",
-  "version_evaluated": "1.x",
+  "version_evaluated": "1.x / 2.x",
   "homepage": "https://docs.rs/thiserror/",
   "repo_url": "https://github.com/dtolnay/thiserror",
   "category": "developer-tools",
   "subcategories": ["error-handling", "rust", "utilities"],
-  "tags": ["rust", "error-handling", "derive-macro", "library-errors", "typed-errors", "std-error"],
-  "what_it_does": "Derive macro for Rust error types. Annotate an enum or struct with #[derive(Error)] and attributes (#[error(\"message\")], #[from], #[source]) to implement std::error::Error, Display, and From conversions automatically. The standard way to define typed errors in Rust library crates. Companion to anyhow: anyhow for app code, thiserror for library code.",
+  "tags": ["thiserror", "rust", "error-handling", "derive", "error-types", "library-errors"],
+  "what_it_does": "Derive macro for implementing std::error::Error for custom Rust error types. Write error enums with #[derive(Error)] and #[error('description')] attributes — thiserror generates the Error implementation, Display, and From conversions automatically. The standard approach for defining typed errors in Rust library crates, complementary to anyhow for application code.",
   "use_cases": [
-    "Define typed error enums for agent library crates that callers can match on and recover from programmatically",
-    "Implement error conversion with #[from] to automatically convert underlying errors (IO, network, JSON) into domain error types",
-    "Create rich error types for agent tool implementations with context fields embedded in error variants",
-    "Define agent SDK error types that distinguish recoverable (rate limit, timeout) from unrecoverable (auth failure) errors",
-    "Build error hierarchies for agent pipelines where each stage has typed errors consumers can handle specifically"
+    "Define typed error enums for Rust agent library crates that callers can pattern match programmatically",
+    "Create structured error types for agent API clients where callers need to handle specific error variants",
+    "Implement error conversions from underlying errors (io::Error, serde_json::Error) to domain-specific error types",
+    "Build agent SDK crates with clear, documented error types that users can handle specifically",
+    "Define precise error types for agent state machine transitions where each failure mode has distinct handling"
   ],
   "not_for": [
-    "Application error propagation — use anyhow for app code where fine-grained error type discrimination isn't needed",
-    "Simple programs with few error types — anyhow is simpler for application-level code",
-    "no_std environments without proc macros — thiserror requires proc macro support"
+    "Application binary crates — use anyhow for application error handling where typed errors aren't needed",
+    "Simple one-off errors — anyhow::anyhow!('message') or anyhow::bail!() is simpler for application code",
+    "Complex error hierarchies across many crates — consider the error ecosystem design carefully"
   ],
-  "best_when": "You're writing a Rust library crate that needs to expose typed errors callers can match on — thiserror is the standard way to implement std::error::Error on custom types.",
-  "avoid_when": "You're writing application code (not library code) — use anyhow for ergonomic error propagation without exposing specific error types to callers.",
-  "alternatives": ["anyhow-api", "snafu-api", "eyre-api"],
+  "best_when": "You're writing a Rust library crate and need typed error enums that library users can match on — the standard approach for Rust library error handling.",
+  "avoid_when": "You're writing application binary code — use anyhow for simpler error propagation without typed enums. thiserror is for library authors.",
+  "alternatives": ["anyhow-api", "snafu-api"],
   "interface": {
     "has_rest_api": false,
     "has_graphql": false,
@@ -38,21 +38,21 @@
     "methods": ["none"],
     "oauth": false,
     "scopes": false,
-    "notes": "Local derive macro library — no authentication required."
+    "notes": "Local library — no authentication required. MIT/Apache 2.0 dual licensed."
   },
   "pricing": {
     "model": "open_source",
     "free_tier_exists": true,
-    "free_tier_limits": "MIT/Apache-2.0 dual licensed, completely free",
+    "free_tier_limits": "MIT/Apache 2.0 dual licensed — completely free",
     "paid_tiers": "None",
     "requires_credit_card": false,
-    "notes": "MIT/Apache-2.0 dual license. Written by David Tolnay."
+    "notes": "MIT/Apache 2.0 dual licensed. Zero cost."
   },
   "performance": {
-    "latency_p50_ms": null,
-    "latency_p99_ms": null,
+    "latency_p50_ms": 0,
+    "latency_p99_ms": 0,
     "uptime_sla_percent": null,
-    "rate_limits": "No rate limits — compile-time code generation, zero runtime overhead.",
+    "rate_limits": "No rate limits. Zero runtime overhead — macro generates compile-time trait implementations.",
     "data_source": "llm_estimated"
   },
   "requirements": {
@@ -66,26 +66,26 @@
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
-    "documentation_accuracy": 92,
-    "error_message_quality": 90,
-    "error_message_notes": "Error display messages configured via #[error(\"...\")] string. Dynamic values via {field_name} in error strings. Source errors accessible via error.source(). Compile-time validation of error formatting strings.",
+    "documentation_accuracy": 90,
+    "error_message_quality": 88,
+    "error_message_notes": "Error display from #[error()] attribute. Error chain via #[source] and #[from] attributes. Generated implementations are well-formed and match Rust error handling conventions.",
     "idempotency_support": "full",
-    "idempotency_notes": "Error type definition library — compile-time only, pure.",
+    "idempotency_notes": "Error type definition — fully deterministic.",
     "pagination_style": "none",
     "retry_guidance_documented": false,
     "known_agent_gotchas": [
-      "#[from] generates From<SourceError> for the variant — this means conflicting From impls if multiple variants have #[from] for the same source type; each source type can have at most one #[from] variant",
-      "#[error(transparent)] delegates Display and source to the inner error — useful for wrapper errors but makes the variant invisible in error chains",
-      "Struct errors (#[derive(Error)] on struct) are less common but valid — useful for single-kind errors with multiple context fields; enum variants are more idiomatic for multiple error kinds",
-      "Format strings in #[error(\"...\")]: use {0} for tuple variant fields, {field_name} for named fields — incorrect format strings cause compile errors",
-      "thiserror does not generate backtrace capture — add a backtrace field (Backtrace type) manually if you need automatic backtrace in error types",
-      "thiserror errors implement std::error::Error but not std::fmt::Debug unless you also derive Debug — always add #[derive(Debug, Error)] to your error types"
+      "#[from] generates From<SourceError> for YourError — enables ? operator conversion but each source type can only appear ONCE in the enum",
+      "#[source] vs #[from]: #[from] = From conversion + source; #[source] = only source (no From); use #[from] when you want ? operator conversion",
+      "Error display format: #[error('Failed to parse {0}: {1}')] uses positional or named fields; #[error('IO error: {source}')] references field by name",
+      "Transparent errors: #[error(transparent)] forwards Display and source to the inner error — useful for simple newtype wrappers",
+      "thiserror v2 vs v1: v2 has improved diagnostics and some syntax changes — check migration guide; both are widely used",
+      "Combining thiserror and anyhow is idiomatic: library defines error types with thiserror, application uses anyhow::Error and converts with ?"
     ]
   },
   "af_score_components": {
     "mcp_score": 0,
-    "api_doc_score": 92,
-    "error_handling_score": 90,
+    "api_doc_score": 90,
+    "error_handling_score": 88,
     "auth_complexity_score": 100,
     "rate_limit_clarity_score": 100
   },
@@ -94,13 +94,13 @@
     "auth_strength": 100,
     "scope_granularity": 100,
     "dependency_hygiene": 98,
-    "secret_handling": 88,
-    "security_notes": "Compile-time macro library. No runtime risk. Be careful not to include secrets in #[error(\"...\")] format strings that embed sensitive field values in display output."
+    "secret_handling": 92,
+    "security_notes": "MIT/Apache 2.0. Zero runtime, memory-safe Rust. Proc-macro crate — proc-macro security of the derive macro itself is the concern for supply chain."
   },
   "reliability_score_components": {
     "uptime_documented": 100,
-    "version_stability": 98,
-    "breaking_changes_history": 98,
-    "error_recovery": 100
+    "version_stability": 95,
+    "breaking_changes_history": 92,
+    "error_recovery": 95
   }
 }

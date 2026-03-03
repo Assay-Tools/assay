@@ -1,28 +1,28 @@
 {
   "id": "axum-api",
-  "name": "axum",
+  "name": "Axum",
   "version_evaluated": "0.7.x",
   "homepage": "https://docs.rs/axum/",
   "repo_url": "https://github.com/tokio-rs/axum",
   "category": "developer-tools",
-  "subcategories": ["web-framework", "rust", "api", "http"],
-  "tags": ["rust", "web-framework", "http", "rest", "tokio", "tower", "hyper", "async"],
-  "what_it_does": "Ergonomic async web framework for Rust built on Tokio and Hyper. Uses a type-safe extractor system for request parsing (JSON, path params, headers, query strings) and Tower middleware for cross-cutting concerns. The official web framework from the Tokio project. Designed for building production REST APIs and agent backends with minimal boilerplate.",
+  "subcategories": ["web-framework", "api", "rust", "async"],
+  "tags": ["axum", "rust", "web-framework", "api", "tokio", "async", "http", "rest"],
+  "what_it_does": "Ergonomic, modular async web framework for Rust built on Tokio, Tower, and Hyper. Routes handlers are async functions that use extractors to declaratively parse request parts (JSON body, path params, headers, query strings). Middleware via Tower's Service trait — leverages the entire Tower ecosystem. The most popular Rust web framework for building APIs and agent tool servers.",
   "use_cases": [
-    "Build production Rust REST API backends for agent services with type-safe request/response handling",
-    "Create high-performance HTTP servers for agent tool endpoints with zero-cost async I/O on Tokio",
-    "Implement WebSocket endpoints for real-time agent communication using axum's WebSocket extractor",
-    "Add middleware layers (auth, logging, rate limiting, CORS) using Tower middleware ecosystem",
-    "Build streaming response endpoints for LLM token streaming with axum's StreamBody support"
+    "Build high-performance agent HTTP API servers in Rust with type-safe routing and request extraction",
+    "Create Rust-based MCP (Model Context Protocol) servers with async HTTP/WebSocket endpoints",
+    "Implement agent tool endpoints with automatic JSON parsing via axum::extract::Json<T> and Serde deserialization",
+    "Build microservices for agent systems requiring maximum throughput with minimal memory footprint",
+    "Develop WebSocket-based agent coordination servers using axum's native WebSocket upgrade support"
   ],
   "not_for": [
-    "Full-stack web applications requiring server-side templating — Actix-web has more ecosystem plugins; axum is API-focused",
-    "Teams new to Rust — axum's extractor system requires understanding Rust traits and lifetimes",
-    "Simple scripts or CLIs — axum's async setup is overkill for non-server use cases"
+    "Full-stack web development with templating and ORM — use a framework like Rails/Django for full-stack; Axum is API-first",
+    "Developers new to Rust — Axum's extractor pattern and tower middleware require intermediate Rust knowledge",
+    "GraphQL servers without extra crates — use async-graphql with axum integration for GraphQL support"
   ],
-  "best_when": "You're building a production Rust HTTP API or agent backend and want the most ergonomic, type-safe framework with Tokio's full ecosystem.",
-  "avoid_when": "You need full server-side rendering, extensive plugin ecosystem, or are new to Rust — Actix-web has a larger existing ecosystem.",
-  "alternatives": ["actix-web-api", "warp-api", "rocket-api", "hyper-api"],
+  "best_when": "You're building a high-performance Rust API service or tool server where type safety, async performance, and the Tokio/Tower ecosystem are priorities.",
+  "avoid_when": "You're new to Rust or need full-stack templating. For prototyping, Actix-web may have more examples; for learning Rust, Rocket has more beginner-friendly ergonomics.",
+  "alternatives": ["actix-web-api", "rocket-api", "warp-api"],
   "interface": {
     "has_rest_api": false,
     "has_graphql": false,
@@ -38,21 +38,21 @@
     "methods": ["none"],
     "oauth": false,
     "scopes": false,
-    "notes": "Web framework — auth is implemented via Tower middleware layers (e.g., axum-auth, tower-http)."
+    "notes": "Framework for building APIs — auth is implemented by the developer via middleware. Tower middleware for JWT/session auth available."
   },
   "pricing": {
     "model": "open_source",
     "free_tier_exists": true,
-    "free_tier_limits": "MIT licensed, completely free",
+    "free_tier_limits": "MIT licensed — completely free",
     "paid_tiers": "None",
     "requires_credit_card": false,
-    "notes": "MIT license. Part of the Tokio project."
+    "notes": "MIT licensed. Zero cost."
   },
   "performance": {
     "latency_p50_ms": 0,
-    "latency_p99_ms": 1,
+    "latency_p99_ms": 5,
     "uptime_sla_percent": null,
-    "rate_limits": "No rate limits built-in. Tower middleware (tower-governor) can add rate limiting. Raw throughput in millions of req/sec on modern hardware.",
+    "rate_limits": "No rate limits in the framework. One of the fastest HTTP frameworks — benchmarks show 500K+ requests/second on commodity hardware.",
     "data_source": "llm_estimated"
   },
   "requirements": {
@@ -68,39 +68,39 @@
     "mcp_security_score": null,
     "documentation_accuracy": 90,
     "error_message_quality": 85,
-    "error_message_notes": "Extractor rejection errors return structured HTTP error responses. Custom error types implement IntoResponse for consistent API error shapes. Compile-time type errors from mismatched extractors are verbose but precise.",
+    "error_message_notes": "Extractor rejection returns structured error responses. Custom error handling via IntoResponse trait. Type-safe extractors provide compile-time guarantees on handler signatures.",
     "idempotency_support": "full",
-    "idempotency_notes": "Framework is request-response — idempotency is application responsibility. State sharing via Arc<State> is thread-safe.",
+    "idempotency_notes": "Framework is stateless — idempotency implemented per handler.",
     "pagination_style": "none",
     "retry_guidance_documented": false,
     "known_agent_gotchas": [
-      "axum 0.6→0.7 was a major breaking change (State extractor, Router API changes) — check versions carefully when following tutorials or copying examples",
-      "Extractor order in handler function signatures matters — extractors that consume the body (Json<T>, Bytes) must appear last; multiple body extractors fail to compile",
-      "Tower middleware integration requires matching Service/Body types — type mismatches produce very long, confusing compiler error messages; use axum::middleware::from_fn for simpler middleware",
-      "Shared state must implement Clone and be wrapped in Arc — non-Clone state causes compile errors that are hard to trace",
-      "WebSocket upgrades require specific response handling — upgrade errors must be handled explicitly or the connection leaks",
-      "axum has no built-in OpenAPI/Swagger generation — use aide or utoipa crates for OpenAPI spec generation from axum routes"
+      "Extractor rejection order matters — if extractors fail, Axum returns 400/422; implement IntoResponse for AppError enum to customize all error responses",
+      "State sharing: use axum::extract::State<Arc<AppState>> for shared state — not thread-local; state must be Clone + Send + Sync",
+      "Route layer vs router layer: router.layer() applies to ALL routes; router.route_layer() applies to matched routes only; wrong layering causes incorrect middleware behavior",
+      "Body extraction is exclusive — cannot extract Json<T> AND Form<T> from the same request; choose one or use Request<Body> for manual parsing",
+      "Path parameters: use axum::extract::Path<(String, u32)> for multiple path params or Path<HashMap<String, String>> for dynamic keys",
+      "WebSocket upgrade: use axum::extract::WebSocketUpgrade then .on_upgrade(|ws| async { ... }) — WebSocket handler runs as a separate async task"
     ]
   },
   "af_score_components": {
     "mcp_score": 0,
     "api_doc_score": 90,
     "error_handling_score": 85,
-    "auth_complexity_score": 100,
-    "rate_limit_clarity_score": 92
+    "auth_complexity_score": 92,
+    "rate_limit_clarity_score": 88
   },
   "security_score_components": {
-    "tls_enforcement": 100,
-    "auth_strength": 95,
-    "scope_granularity": 95,
-    "dependency_hygiene": 95,
-    "secret_handling": 95,
-    "security_notes": "Rust memory safety eliminates buffer overflows and use-after-free. TLS via rustls or native-tls. Type-safe request parsing prevents injection. No ambient secrets — security via application design."
+    "tls_enforcement": 92,
+    "auth_strength": 90,
+    "scope_granularity": 88,
+    "dependency_hygiene": 92,
+    "secret_handling": 90,
+    "security_notes": "MIT licensed. Rust memory safety. TLS via rustls or native-tls. Tower middleware for rate limiting, auth. Tokio-rs maintained — high security bar."
   },
   "reliability_score_components": {
-    "uptime_documented": 95,
+    "uptime_documented": 100,
     "version_stability": 82,
     "breaking_changes_history": 78,
-    "error_recovery": 92
+    "error_recovery": 90
   }
 }

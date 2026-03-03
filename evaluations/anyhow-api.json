@@ -6,23 +6,23 @@
   "repo_url": "https://github.com/dtolnay/anyhow",
   "category": "developer-tools",
   "subcategories": ["error-handling", "rust", "utilities"],
-  "tags": ["rust", "error-handling", "error-context", "idiomatic", "result", "eyre"],
-  "what_it_does": "Flexible error handling library for Rust applications. Provides anyhow::Error as a single error type that wraps any std::error::Error implementation, with context attachment and downcasting. The ? operator chains errors automatically. Designed for application code (not libraries) where you want easy error propagation with context, not fine-grained error type discrimination.",
+  "tags": ["anyhow", "rust", "error-handling", "result", "context", "backtrace", "application-errors"],
+  "what_it_does": "Flexible error handling library for Rust applications. Provides anyhow::Error as a dynamic error type that can hold any error implementing std::error::Error, with context chaining (context() / with_context()), backtraces, and ergonomic ? operator usage without defining custom error types per function. The standard error handling approach for Rust application code (as opposed to library code which uses thiserror).",
   "use_cases": [
-    "Propagate errors in agent application code with .context(\"doing X\") to build error chains that explain what the agent was doing",
-    "Simplify error handling in agent main() functions with anyhow::Result<()> instead of custom error types",
-    "Collect errors from multiple sources (network, file I/O, JSON parsing) into a single Result type without wrapping",
-    "Add contextual error messages to LLM API failures to trace which agent step caused the error",
-    "Prototype agent error handling quickly before moving to typed thiserror errors in library code"
+    "Handle errors in Rust agent applications without defining custom error enums for every function",
+    "Add rich error context to propagated errors: file.read().context('Failed to read config file')",
+    "Build Rust agent CLIs and tools where descriptive error messages matter more than programmatic error matching",
+    "Prototype Rust agent services quickly without the overhead of defining error types upfront",
+    "Combine errors from multiple sources (IO, HTTP, database) into a single result type"
   ],
   "not_for": [
-    "Library crates — use thiserror for typed errors that callers can match on; anyhow loses type information",
-    "Applications needing to programmatically match error types — use thiserror enums for recoverable error handling",
-    "no_std environments — anyhow requires std"
+    "Rust library crates — libraries should use thiserror for typed errors that callers can match on; anyhow's dynamic errors lose type information",
+    "Programmatic error matching — anyhow::Error is a type-erased box; use thiserror enums when callers need to handle different error variants differently",
+    "WASM targets — anyhow has limited WASM support"
   ],
-  "best_when": "You're writing Rust application code (not library code) and want ergonomic error propagation with rich context without defining custom error types.",
-  "avoid_when": "You're writing a library crate — use thiserror to expose typed errors that library consumers can match and handle programmatically.",
-  "alternatives": ["thiserror-api", "eyre-api", "snafu-api"],
+  "best_when": "You're building a Rust application (binary/CLI/service) and want simple error propagation without defining error types — just use anyhow::Result<T> and add context with .context().",
+  "avoid_when": "You're writing a library crate — use thiserror to define structured errors that library users can match on programmatically.",
+  "alternatives": ["thiserror-api", "eyre-api"],
   "interface": {
     "has_rest_api": false,
     "has_graphql": false,
@@ -38,21 +38,21 @@
     "methods": ["none"],
     "oauth": false,
     "scopes": false,
-    "notes": "Local error handling library — no authentication required."
+    "notes": "Local library — no authentication required. MIT/Apache 2.0 dual licensed."
   },
   "pricing": {
     "model": "open_source",
     "free_tier_exists": true,
-    "free_tier_limits": "MIT/Apache-2.0 dual licensed, completely free",
+    "free_tier_limits": "MIT/Apache 2.0 dual licensed — completely free",
     "paid_tiers": "None",
     "requires_credit_card": false,
-    "notes": "MIT/Apache-2.0 dual license. Written by David Tolnay, author of serde and many other foundational Rust crates."
+    "notes": "MIT/Apache 2.0 dual licensed. Zero cost."
   },
   "performance": {
-    "latency_p50_ms": null,
-    "latency_p99_ms": null,
+    "latency_p50_ms": 0,
+    "latency_p99_ms": 0,
     "uptime_sla_percent": null,
-    "rate_limits": "No rate limits — local error handling with minimal overhead.",
+    "rate_limits": "No rate limits. Negligible overhead — error handling is the cold path.",
     "data_source": "llm_estimated"
   },
   "requirements": {
@@ -67,25 +67,25 @@
     "mcp_server_quality": null,
     "mcp_security_score": null,
     "documentation_accuracy": 92,
-    "error_message_quality": 90,
-    "error_message_notes": "Error display chains context messages clearly. {:?} debug format shows full backtrace (if RUST_BACKTRACE=1). .context() strings appear in error chain in order of wrapping.",
+    "error_message_quality": 92,
+    "error_message_notes": "Excellent error messages — chained context appears in display output. Backtrace support (RUST_BACKTRACE=1). Error chain displayed as 'Caused by:' hierarchy.",
     "idempotency_support": "full",
-    "idempotency_notes": "Error handling library — pure functional, no side effects.",
+    "idempotency_notes": "Error handling is deterministic.",
     "pagination_style": "none",
     "retry_guidance_documented": false,
     "known_agent_gotchas": [
-      "anyhow::Error erases the original error type — you cannot match error variants; use thiserror if you need to recover from specific error kinds",
-      "Backtrace capture requires RUST_BACKTRACE=1 environment variable at runtime — not captured by default for performance; set in development but consider the overhead in production",
-      ".with_context(|| format!(...)) is lazy (closure) while .context(\"string\") is eager — use with_context for expensive string formatting that should only run on error",
-      "anyhow does not implement std::error::Error itself (by design) — you cannot use ? to propagate anyhow::Error into a Box<dyn Error> result in library code",
-      "In library crates, returning anyhow::Error forces consumers to add anyhow as a dependency just to use your crate — always use thiserror in library code",
-      "downcast_ref::<T>() can recover original error types from anyhow::Error — useful when consuming APIs that return anyhow errors and you need to handle specific cases"
+      "anyhow::Result<T> is an alias for Result<T, anyhow::Error> — use this return type for all application functions: fn load_config() -> anyhow::Result<Config>",
+      "Context vs with_context: .context('message') evaluates message eagerly; .with_context(|| format!('expensive: {}', val)) evaluates lazily — use with_context for expensive formatting",
+      "anyhow::bail!() macro is shorthand for return Err(anyhow::anyhow!('message')) — cleaner than constructing and returning errors manually",
+      "anyhow::ensure!() macro is shorthand for if !condition { bail!('message') } — for precondition checks",
+      "Not for library crates: if you publish a library, use thiserror — anyhow loses type information that library users need to programmatically handle errors",
+      "Downcast to original error: err.downcast_ref::<IoError>() — possible but loses the benefit of context chaining; better to use thiserror for types that need downcasting"
     ]
   },
   "af_score_components": {
     "mcp_score": 0,
     "api_doc_score": 92,
-    "error_handling_score": 90,
+    "error_handling_score": 92,
     "auth_complexity_score": 100,
     "rate_limit_clarity_score": 100
   },
@@ -94,13 +94,13 @@
     "auth_strength": 100,
     "scope_granularity": 100,
     "dependency_hygiene": 98,
-    "secret_handling": 85,
-    "security_notes": "Error handling library. Be careful not to include secrets in error context strings — error messages may be logged. No network calls."
+    "secret_handling": 90,
+    "security_notes": "MIT/Apache 2.0. Memory-safe Rust. No network. Avoid including sensitive data (passwords, tokens) in error context strings as they may be logged."
   },
   "reliability_score_components": {
     "uptime_documented": 100,
     "version_stability": 98,
-    "breaking_changes_history": 98,
-    "error_recovery": 100
+    "breaking_changes_history": 96,
+    "error_recovery": 95
   }
 }

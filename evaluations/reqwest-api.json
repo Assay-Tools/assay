@@ -5,24 +5,24 @@
   "homepage": "https://docs.rs/reqwest/",
   "repo_url": "https://github.com/seanmonstar/reqwest",
   "category": "developer-tools",
-  "subcategories": ["http-client", "rust", "networking"],
-  "tags": ["rust", "http-client", "async", "rest", "json", "tokio", "tls", "cookies"],
-  "what_it_does": "The most popular async HTTP client for Rust. Built on Hyper and Tokio with a high-level ergonomic API. Supports JSON serialization/deserialization via Serde, cookie management, proxies, redirect following, TLS (rustls or native-tls), and streaming responses. The go-to choice for making HTTP requests in Rust agents and services.",
+  "subcategories": ["http-client", "async", "rust"],
+  "tags": ["reqwest", "rust", "http-client", "async", "tokio", "https", "json", "rest"],
+  "what_it_does": "The most popular Rust HTTP client library. Built on Tokio and Hyper with a high-level ergonomic API. Supports async/await, automatic JSON serialization/deserialization via serde, streaming requests/responses, cookie management, connection pooling, TLS (rustls or native-tls), proxy support, and middleware. The de-facto standard Rust HTTP client for making API calls.",
   "use_cases": [
-    "Make HTTP API calls to LLM providers (OpenAI, Anthropic) from Rust agent code with async/await and JSON body handling",
-    "Build Rust agent tools that call REST APIs with automatic JSON deserialization into typed Serde structs",
-    "Implement streaming response consumption for LLM token streaming with reqwest's async byte stream API",
-    "Make authenticated HTTP requests with bearer token injection via request builder middleware",
-    "Build Rust-based web scrapers or data fetchers for agent pipelines with connection pooling and retry logic"
+    "Make async HTTP API calls in Rust agent services — GET, POST, PUT with JSON bodies via Serde integration",
+    "Build Rust-based API client SDKs with connection pooling and retry logic for agent API integrations",
+    "Stream large HTTP responses in agent download pipelines without buffering entire responses in memory",
+    "Implement OAuth flows and authenticated API clients with header management and cookie jar",
+    "Build Rust agent tools that consume REST APIs with automatic JSON deserialization to typed structs"
   ],
   "not_for": [
-    "Blocking/synchronous Rust code — use reqwest's blocking feature for sync contexts but prefer async",
-    "WebSocket connections — reqwest is HTTP-only; use tokio-tungstenite for WebSocket",
-    "Extremely high performance raw HTTP needs — hyper directly provides lower-level control with less overhead"
+    "Non-async (synchronous) HTTP — use ureq for a simpler sync-only HTTP client",
+    "Low-level HTTP control — use hyper directly for custom HTTP protocol handling",
+    "gRPC clients — use tonic for gRPC in Rust"
   ],
-  "best_when": "You need to make HTTP requests in async Rust code — reqwest is the standard ergonomic choice with batteries included.",
-  "avoid_when": "You need WebSocket support or the lowest-level HTTP control — use tokio-tungstenite for WS or hyper directly for raw HTTP.",
-  "alternatives": ["hyper-api", "surf-api", "ureq-api"],
+  "best_when": "You need an ergonomic, production-ready async HTTP client in Rust — making API calls with JSON, authentication, and connection reuse.",
+  "avoid_when": "You need synchronous HTTP without Tokio — use ureq. For HTTP/3 or custom protocol needs, consider hyper directly.",
+  "alternatives": ["hyper-api", "ureq-api"],
   "interface": {
     "has_rest_api": false,
     "has_graphql": false,
@@ -38,21 +38,21 @@
     "methods": ["none"],
     "oauth": false,
     "scopes": false,
-    "notes": "HTTP client library — auth headers/tokens are set by the caller via request builder or header middleware."
+    "notes": "Local library — no authentication required. MIT/Apache 2.0 dual licensed. Auth configured per client/request via header or bearer_auth()."
   },
   "pricing": {
     "model": "open_source",
     "free_tier_exists": true,
-    "free_tier_limits": "MIT/Apache-2.0 dual licensed, completely free",
+    "free_tier_limits": "MIT/Apache 2.0 dual licensed — completely free",
     "paid_tiers": "None",
     "requires_credit_card": false,
-    "notes": "MIT/Apache-2.0 dual license. Maintained by Sean McArthur."
+    "notes": "MIT/Apache 2.0 dual licensed. Zero cost."
   },
   "performance": {
-    "latency_p50_ms": null,
-    "latency_p99_ms": null,
+    "latency_p50_ms": 10,
+    "latency_p99_ms": 100,
     "uptime_sla_percent": null,
-    "rate_limits": "No rate limits — local HTTP client. Performance limited by network and connection pool size.",
+    "rate_limits": "No rate limits in the library. Connection pooling via Client — reuse clients for performance.",
     "data_source": "llm_estimated"
   },
   "requirements": {
@@ -67,38 +67,38 @@
     "mcp_server_quality": null,
     "mcp_security_score": null,
     "documentation_accuracy": 90,
-    "error_message_quality": 85,
-    "error_message_notes": "reqwest errors include error kind (network, timeout, status, decode) with source chaining. HTTP status errors include the response body for debugging. Timeout errors clearly indicate which phase timed out.",
-    "idempotency_support": "partial",
-    "idempotency_notes": "GET/HEAD requests are idempotent by HTTP spec. POST/PUT/PATCH require application-level idempotency. reqwest does not add idempotency keys automatically.",
+    "error_message_quality": 88,
+    "error_message_notes": "Rich error types — reqwest::Error with is_timeout(), is_connect(), is_status() helpers. Status error handling via response.error_for_status(). Excellent error messages.",
+    "idempotency_support": "full",
+    "idempotency_notes": "HTTP client — idempotency depends on the API. Client itself makes exactly one request per call.",
     "pagination_style": "none",
-    "retry_guidance_documented": false,
+    "retry_guidance_documented": true,
     "known_agent_gotchas": [
-      "reqwest builds a connection pool per Client instance — create one Client and reuse it; creating a new Client per request leaks connections and is slow",
-      "Response bodies must be explicitly consumed — drop a Response without reading the body and the connection may not return to the pool properly",
-      "The blocking feature (reqwest::blocking) cannot be used from within a Tokio runtime (deadlock) — use the async API or spawn_blocking for sync code in async contexts",
-      "TLS backend selection (rustls vs native-tls) is a compile-time feature — choose one and stick with it; mixing causes linker errors",
-      "Redirect following is enabled by default (up to 10 redirects) — use redirect(Policy::none()) to disable for APIs that use 3xx for semantic responses",
-      "JSON deserialization errors from response.json::<T>() lose the original response body — capture response.text() first for debugging when deserialization fails"
+      "Reuse Client for connection pooling — creating a new Client per request creates a new connection pool; use Client::new() once and clone/share: let client = Arc::new(reqwest::Client::new())",
+      "Cargo features gate capabilities: reqwest = { features = ['json', 'rustls-tls'] } — 'json' enables .json() and .json::<T>(); 'rustls-tls' or 'native-tls' for HTTPS",
+      "reqwest v0.12 breaking change: .json::<T>() returns T directly, not wrapped; error handling with response.error_for_status()? before deserialization",
+      "Timeouts must be configured explicitly: Client::builder().timeout(Duration::from_secs(30)).build()? — no default timeout in reqwest",
+      "Streaming: response.bytes_stream() for streaming; don't call .text() or .bytes() which buffer entire response in memory for large responses",
+      "TLS configuration: rustls-tls (pure Rust, preferred) vs native-tls (system TLS) — choose one in Cargo.toml features; don't enable both"
     ]
   },
   "af_score_components": {
     "mcp_score": 0,
     "api_doc_score": 90,
-    "error_handling_score": 85,
-    "auth_complexity_score": 100,
-    "rate_limit_clarity_score": 95
+    "error_handling_score": 88,
+    "auth_complexity_score": 95,
+    "rate_limit_clarity_score": 90
   },
   "security_score_components": {
-    "tls_enforcement": 95,
-    "auth_strength": 95,
-    "scope_granularity": 95,
-    "dependency_hygiene": 95,
-    "secret_handling": 92,
-    "security_notes": "Rust memory safety prevents buffer overflows. TLS enabled by default (rustls or native-tls). Certificate verification on by default — disable only for development. No ambient credential storage."
+    "tls_enforcement": 96,
+    "auth_strength": 92,
+    "scope_granularity": 90,
+    "dependency_hygiene": 92,
+    "secret_handling": 90,
+    "security_notes": "MIT/Apache 2.0. TLS via rustls (preferred) — memory-safe TLS implementation. Certificate verification enabled by default. No sensitive data logged by default."
   },
   "reliability_score_components": {
-    "uptime_documented": 95,
+    "uptime_documented": 100,
     "version_stability": 85,
     "breaking_changes_history": 82,
     "error_recovery": 90

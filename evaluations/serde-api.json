@@ -1,28 +1,28 @@
 {
   "id": "serde-api",
-  "name": "serde",
+  "name": "Serde",
   "version_evaluated": "1.x",
   "homepage": "https://serde.rs/",
   "repo_url": "https://github.com/serde-rs/serde",
   "category": "developer-tools",
-  "subcategories": ["serialization", "rust", "data-formats"],
-  "tags": ["rust", "serialization", "deserialization", "json", "yaml", "toml", "msgpack", "derive-macro"],
-  "what_it_does": "The standard Rust serialization/deserialization framework. A single `#[derive(Serialize, Deserialize)]` attribute makes any Rust struct serializable to/from JSON, YAML, TOML, MessagePack, CBOR, and 20+ other formats. Zero-cost abstractions — Serde generates format-specific code at compile time with no runtime reflection overhead.",
+  "subcategories": ["serialization", "json", "rust"],
+  "tags": ["serde", "rust", "serialization", "deserialization", "json", "yaml", "toml", "bincode"],
+  "what_it_does": "The foundational serialization/deserialization framework for Rust. Derive macros (#[derive(Serialize, Deserialize)]) automatically implement serialization for Rust structs and enums for any supported format. Works with serde_json (JSON), serde_yaml (YAML), toml, bincode, MessagePack, and 50+ other formats through a single generic interface. Used in virtually every Rust project that handles external data.",
   "use_cases": [
-    "Serialize and deserialize LLM API request/response types to/from JSON in Rust agent code with derive macros",
-    "Define strongly-typed configuration structs that auto-deserialize from TOML or YAML config files",
-    "Convert between data formats (JSON ↔ MessagePack) in agent data pipeline stages without runtime overhead",
-    "Validate incoming webhook payloads against typed Rust structs — deserialization failures become type errors",
-    "Implement custom serialization logic for domain types (UUID, DateTime, enum discriminants) via serde attributes"
+    "Serialize Rust agent structs to JSON for REST APIs and deserialize JSON responses to typed Rust structs",
+    "Define typed API request/response types that automatically serialize/deserialize with derive macros",
+    "Process configuration files (YAML, TOML, JSON) into typed Rust configuration structs in agent services",
+    "Serialize agent state to efficient binary formats (bincode, MessagePack) for storage or IPC",
+    "Build type-safe Rust agent clients for external APIs where JSON structures map to Rust types"
   ],
   "not_for": [
-    "Dynamic schema handling where field names are unknown at compile time — use serde_json::Value for untyped JSON",
-    "High-level schema validation beyond types — use validator crate for business rule validation after deserialization",
-    "Non-Rust codebases — Serde is Rust-specific; language-agnostic serialization uses Protocol Buffers or Avro"
+    "Schema-first API definition — serde is type-first; use OpenAPI tools if you need schema-first development",
+    "Dynamic JSON manipulation without types — use serde_json::Value for untyped JSON; serde shines with typed structs",
+    "Non-Rust languages — serde is Rust-only; use Pydantic for Python, Zod for TypeScript"
   ],
-  "best_when": "You need efficient, ergonomic serialization in Rust — Serde is the universal standard and required by virtually all Rust JSON/YAML/TOML libraries.",
-  "avoid_when": "You need runtime dynamic schemas or reflection-based serialization — Serde is compile-time only; use serde_json::Value for fully dynamic JSON.",
-  "alternatives": ["rkyv-api", "bincode-api", "protobuf-rust-api"],
+  "best_when": "You're writing any Rust code that processes JSON, YAML, TOML, or other external data formats — serde is effectively mandatory for Rust data handling.",
+  "avoid_when": "You need dynamic/untyped JSON manipulation — use serde_json::Value. Serde's strength is typed deserialization; avoid it for purely dynamic scenarios.",
+  "alternatives": ["simd-json-api"],
   "interface": {
     "has_rest_api": false,
     "has_graphql": false,
@@ -38,21 +38,21 @@
     "methods": ["none"],
     "oauth": false,
     "scopes": false,
-    "notes": "Local serialization library — no authentication required."
+    "notes": "Local library — no authentication required. MIT/Apache 2.0 dual licensed."
   },
   "pricing": {
     "model": "open_source",
     "free_tier_exists": true,
-    "free_tier_limits": "MIT/Apache-2.0 dual licensed, completely free",
+    "free_tier_limits": "MIT/Apache 2.0 dual licensed — completely free",
     "paid_tiers": "None",
     "requires_credit_card": false,
-    "notes": "MIT/Apache-2.0 dual license. One of the most downloaded Rust crates. Foundation of the Rust serialization ecosystem."
+    "notes": "MIT/Apache 2.0 dual licensed. Zero cost."
   },
   "performance": {
-    "latency_p50_ms": null,
-    "latency_p99_ms": null,
+    "latency_p50_ms": 0,
+    "latency_p99_ms": 0,
     "uptime_sla_percent": null,
-    "rate_limits": "No rate limits — zero-overhead compile-time code generation. Comparable to hand-written serialization code.",
+    "rate_limits": "No rate limits. Among the fastest serialization frameworks in any language — zero-cost abstractions compile away to optimal code.",
     "data_source": "llm_estimated"
   },
   "requirements": {
@@ -66,26 +66,26 @@
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
-    "documentation_accuracy": 95,
-    "error_message_quality": 88,
-    "error_message_notes": "Deserialization errors include field names, expected types, and source positions (for JSON with serde_json). Compile-time derive errors are sometimes verbose but precise. Custom error messages via #[serde(rename)] and custom visitors.",
+    "documentation_accuracy": 92,
+    "error_message_quality": 85,
+    "error_message_notes": "Deserialization errors include field path, expected type, and got type. serde_json::from_str errors include line/column. Error messages are compiler-level quality.",
     "idempotency_support": "full",
-    "idempotency_notes": "Pure serialization library — deterministic, no side effects.",
+    "idempotency_notes": "Serialization/deserialization is pure and deterministic.",
     "pagination_style": "none",
     "retry_guidance_documented": false,
     "known_agent_gotchas": [
-      "serde derive requires the serde crate with features = [\"derive\"] in Cargo.toml — the derive feature is not enabled by default; a common beginner mistake",
-      "#[serde(rename_all = \"camelCase\")] renames all fields but doesn't handle irregular names — use #[serde(rename = \"fieldName\")] for exceptions",
-      "Option<T> fields are serialized as null by default — use #[serde(skip_serializing_if = \"Option::is_none\")] to omit absent fields in JSON APIs",
-      "Enum serialization format is unexpected by default — adjacently tagged, internally tagged, and untagged representations require explicit #[serde(tag)] attributes to match API expectations",
-      "serde does not validate field values beyond type coercion — a String field accepts any string; add the validator crate for business rule validation",
-      "Deserializing unknown fields causes errors by default for structs — add #[serde(deny_unknown_fields)] to reject extra fields or omit it to silently ignore them"
+      "#[derive(Serialize, Deserialize)] requires serde feature flags in Cargo.toml: serde = { version = '1', features = ['derive'] } — forgetting 'derive' feature is the most common mistake",
+      "Field renaming: #[serde(rename = 'snake_case_name')] or #[serde(rename_all = 'camelCase')] on the struct — useful for API response fields that differ from Rust naming conventions",
+      "Optional fields: Option<T> fields serialize as null (or absent if skip_serializing_if); use #[serde(skip_serializing_if = 'Option::is_none')] to omit null fields in JSON output",
+      "Unknown fields: #[serde(deny_unknown_fields)] rejects JSON with extra fields; default is to ignore unknown — explicit for strict API clients",
+      "Custom serialization: #[serde(with = 'module')] delegates to a custom module's serialize/deserialize functions — needed for types without Serde support (chrono dates, UUIDs)",
+      "Untagged enums: #[serde(untagged)] tries each variant in order — can be slow and error messages for failure are unclear; prefer tagged enums for agent API schemas"
     ]
   },
   "af_score_components": {
     "mcp_score": 0,
-    "api_doc_score": 95,
-    "error_handling_score": 88,
+    "api_doc_score": 92,
+    "error_handling_score": 85,
     "auth_complexity_score": 100,
     "rate_limit_clarity_score": 100
   },
@@ -94,13 +94,13 @@
     "auth_strength": 100,
     "scope_granularity": 100,
     "dependency_hygiene": 98,
-    "secret_handling": 92,
-    "security_notes": "Rust memory safety eliminates buffer overflow risks in deserialization. Deeply nested JSON can cause stack overflow — set recursion limits for untrusted input. Use #[serde(skip)] to exclude sensitive fields from serialization."
+    "secret_handling": 95,
+    "security_notes": "MIT/Apache 2.0 dual licensed. Memory-safe Rust — no buffer overflows during deserialization. Widely audited. Trusted for security-critical applications."
   },
   "reliability_score_components": {
     "uptime_documented": 100,
     "version_stability": 98,
-    "breaking_changes_history": 98,
+    "breaking_changes_history": 96,
     "error_recovery": 95
   }
 }
