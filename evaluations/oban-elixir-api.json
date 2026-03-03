@@ -1,0 +1,106 @@
+{
+  "id": "oban-elixir-api",
+  "name": "Oban",
+  "version_evaluated": "2.x",
+  "homepage": "https://hexdocs.pm/oban/Oban.html",
+  "repo_url": "https://github.com/oban-bg/oban",
+  "category": "developer-tools",
+  "subcategories": ["job-queue", "background-processing", "task-queue", "workflow"],
+  "tags": ["elixir", "job-queue", "background-jobs", "postgresql", "async", "scheduling", "cron", "reliability"],
+  "what_it_does": "Production-grade background job processing library for Elixir backed by PostgreSQL. Oban uses the database as the job store — no Redis required — providing ACID-compliant job insertion, deduplication, scheduling, and retry with exponential backoff. Supports priority queues, cron scheduling, unique job constraints, and job cancellation. Oban Pro adds workflows (job dependencies) and plugins for advanced patterns.",
+  "use_cases": [
+    "Queue LLM API calls as background Oban jobs with automatic retry on rate limits — uses PostgreSQL for durable job storage without Redis",
+    "Schedule periodic agent maintenance tasks (data sync, cache warming, report generation) using Oban's built-in cron scheduler",
+    "Implement unique job constraints to prevent duplicate agent tasks — Oban's unique jobs ensure only one job per key runs within a time window",
+    "Fan out agent work across multiple queues with priority — high-priority user-facing tasks in one queue, batch processing in another",
+    "Build multi-step agent workflows with Oban Pro's workflow DSL to express job dependencies and sequential/parallel execution"
+  ],
+  "not_for": [
+    "Non-Elixir stacks — Oban is Elixir-specific; use Sidekiq (Ruby), Celery (Python), or BullMQ (Node.js) for other languages",
+    "Extremely high-throughput job queues (millions/second) — PostgreSQL-backed queues have overhead vs Redis; use dedicated queue systems at extreme scale",
+    "Teams not using PostgreSQL — Oban requires Postgres; no MySQL or SQLite support (Oban Pro adds SQLite for testing)"
+  ],
+  "best_when": "You're building Elixir/Phoenix applications and want reliable background job processing without adding Redis to your infrastructure — Postgres is sufficient.",
+  "avoid_when": "You need sub-millisecond job latency at massive scale, or you're not using Elixir/PostgreSQL. Sidekiq + Redis is faster for high-throughput Ruby workloads.",
+  "alternatives": ["sidekiq-api", "celery-api", "bullmq-api", "temporal-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["elixir"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Oban is an Elixir library — no external auth. Database credentials managed via Oban's Repo configuration. Oban Web (UI dashboard) supports basic auth for the web interface."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Core Oban is free, Apache 2.0",
+    "paid_tiers": "Oban Pro: $150/year for individual, $500/year for teams — adds workflows, dynamic queues, encrypted jobs, metrics",
+    "requires_credit_card": false,
+    "notes": "Open source Oban covers 90% of use cases. Oban Pro is reasonably priced for commercial teams needing workflows and advanced features."
+  },
+  "performance": {
+    "latency_p50_ms": 50,
+    "latency_p99_ms": 500,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — self-hosted. Performance bounded by PostgreSQL and Erlang VM process capacity.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 90,
+    "error_message_quality": 88,
+    "error_message_notes": "Oban job errors are stored in the jobs table with error details and backtrace. Telemetry events emitted for job start/stop/error. Dashboard (Oban Web) provides visual error inspection. Error data well-structured for automated monitoring.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Oban unique jobs use unique_for/unique_keys constraints — prevents duplicate job insertion within time windows. Workers can implement idempotent perform/1 logic. Cancelled/discarded jobs are retained in DB for audit.",
+    "pagination_style": "none",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Oban workers run in separate Elixir processes — mutable state (ETS, Agent, GenServer) is not shared between job processes; agents must use database or shared process for cross-job state",
+      "Job args must be JSON-serializable — no Elixir structs, atoms that aren't strings, or PIDs in job args; serialize to plain maps before enqueueing",
+      "Unique jobs use a uniqueness window — the unique_for time period must be long enough to cover the job execution time or duplicates can sneak in at window edges",
+      "Oban drains queues on application shutdown (with drain_queues) — in test environments, drain must be called explicitly or jobs queued in tests never execute",
+      "Rate limiting requires Oban Pro's GlobalLimit plugin — base Oban has no built-in rate limiting for external API calls; must implement manual rate-limiting logic in workers",
+      "Scheduled jobs use PostgreSQL's system clock — servers with clock drift between nodes can cause scheduled job misfires; ensure NTP synchronization in distributed deployments"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 90,
+    "error_handling_score": 88,
+    "auth_complexity_score": 95,
+    "rate_limit_clarity_score": 88
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 88,
+    "scope_granularity": 82,
+    "dependency_hygiene": 90,
+    "secret_handling": 88,
+    "security_notes": "Job args stored in PostgreSQL — database security applies. Oban Pro supports encrypted job args for sensitive data. No external network calls. TLS for DB connection via ssl: true."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 90,
+    "version_stability": 88,
+    "breaking_changes_history": 85,
+    "error_recovery": 92
+  }
+}

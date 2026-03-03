@@ -1,0 +1,106 @@
+{
+  "id": "broadway-elixir-api",
+  "name": "Broadway",
+  "version_evaluated": "1.x",
+  "homepage": "https://hexdocs.pm/broadway/Broadway.html",
+  "repo_url": "https://github.com/dashbitco/broadway",
+  "category": "developer-tools",
+  "subcategories": ["data-pipeline", "message-processing", "stream-processing", "concurrent"],
+  "tags": ["elixir", "data-pipeline", "message-queue", "concurrent", "backpressure", "kafka", "rabbitmq", "sqs", "flow"],
+  "what_it_does": "Concurrent, multi-stage data ingestion and processing pipeline framework for Elixir. Broadway provides built-in support for message acknowledgment, batching, backpressure, and fault tolerance when consuming from message queues (AWS SQS, RabbitMQ, Kafka, Google Cloud PubSub). Uses GenStage under the hood for demand-driven processing — producers only emit messages when consumers are ready.",
+  "use_cases": [
+    "Build multi-stage agent data processing pipelines that consume from AWS SQS or Kafka with automatic acknowledgment and retry on failure",
+    "Process LLM API responses in batches using Broadway's batching support — group agent outputs for batch database writes or downstream API calls",
+    "Implement backpressure-aware agent ingestion pipelines that adapt to downstream processing speed without dropping messages",
+    "Create fault-tolerant agent event processing that handles failures gracefully — Broadway retries failed messages and continues processing others",
+    "Fan out agent work from a single message queue to multiple concurrent processing stages with configurable concurrency per stage"
+  ],
+  "not_for": [
+    "Simple queue consumers without batch processing needs — Oban is better for job queues; Broadway shines for high-throughput pipeline processing",
+    "Non-Elixir stacks — Faust (Python), Kafka Streams (Java), or Lapine (Ruby) for other languages",
+    "Real-time streaming analytics — Broadway processes discrete messages, not continuous time-series streams"
+  ],
+  "best_when": "You're building high-throughput Elixir data pipelines that consume from message queues (SQS, Kafka, RabbitMQ) and need backpressure, batching, and fault tolerance built in.",
+  "avoid_when": "You just need background jobs — Oban is simpler for task queues. Broadway's value is in multi-stage pipeline processing of high-volume message streams.",
+  "alternatives": ["oban-elixir-api", "celery-api", "kafka-streams-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["elixir"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Broadway is a library — auth for message queue producers (SQS, RabbitMQ, Kafka) handled by respective producer adapters using their native auth mechanisms."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, Apache 2.0 licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Broadway is maintained by Dashbit (José Valim's company) and is Apache 2.0 licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 10,
+    "latency_p99_ms": 100,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — self-hosted. Throughput limited by message source and Erlang VM capacity.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 88,
+    "error_message_quality": 85,
+    "error_message_notes": "Broadway emits Telemetry events for message start/stop/exception. Failed messages tracked separately from successful ones. handle_failed/2 callback receives error context. Integration with Logger for pipeline monitoring.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Message acknowledgment is handled automatically — messages are only acked after successful handle_message/3 or handle_batch/4. Agents must implement idempotent processing as messages can be redelivered by the queue.",
+    "pagination_style": "none",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Message acknowledgment happens automatically — agents must not manually ack/nack messages; returning {:failed, message} from handle_message signals Broadway to route to handle_failed",
+      "Batching is optional but requires explicit configuration — batch_size and batch_timeout must be tuned per workload; default batch of 1 eliminates batching benefits",
+      "Concurrency is per-stage — processor_concurrency and batcher_concurrency are independent settings; under-provisioning either creates bottlenecks in the pipeline",
+      "Broadway pipelines are supervised — pipeline crashes trigger supervisor restart; accumulating state inside processors (ETS, Agent) may be lost on crash",
+      "Producer adapters have different ack semantics — SQS uses visibility timeout, RabbitMQ uses channel-level acks; read adapter-specific docs for at-least-once vs exactly-once behavior",
+      "Testing Broadway pipelines requires Broadway.Topology in test mode — use Broadway.test_message/3 and Broadway.test_batch/3 to inject test messages without real message queue infrastructure"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 88,
+    "error_handling_score": 85,
+    "auth_complexity_score": 92,
+    "rate_limit_clarity_score": 88
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 85,
+    "scope_granularity": 80,
+    "dependency_hygiene": 90,
+    "secret_handling": 85,
+    "security_notes": "No external network calls — library only. TLS for message queue connections via producer adapter config. No PII in Broadway itself — security is producer/consumer responsibility."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 85,
+    "breaking_changes_history": 82,
+    "error_recovery": 92
+  }
+}
