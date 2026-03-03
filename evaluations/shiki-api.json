@@ -5,24 +5,24 @@
   "homepage": "https://shiki.style/",
   "repo_url": "https://github.com/shikijs/shiki",
   "category": "developer-tools",
-  "subcategories": ["syntax-highlighting", "markdown", "documentation"],
-  "tags": ["syntax-highlighting", "code", "vscode-themes", "documentation", "markdown", "typescript"],
-  "what_it_does": "Syntax highlighter using TextMate grammars and VS Code themes. Shiki produces HTML output with VS Code-accurate syntax highlighting — the same engine that powers VS Code's syntax coloring. Supports 100+ languages and all VS Code themes. v1.0 (Shikiji successor) added true ESM, WASM bundle for browser use, and dual-theme support for dark/light mode. Used in VitePress, Twoslash, and many documentation frameworks.",
+  "subcategories": ["syntax-highlighting", "ui", "documentation"],
+  "tags": ["syntax-highlighting", "code", "highlighting", "textmate", "vscode", "themes", "markdown", "shiki"],
+  "what_it_does": "VS Code-quality syntax highlighter using TextMate grammars and VS Code themes. Produces HTML with inline styles rather than CSS classes — no external stylesheet needed. Powers syntax highlighting in the VitePress, Nuxt, Astro, and many modern documentation sites. Shiki v1 (Shikiji merge) is a complete rewrite with universal (browser/Node/Deno/Bun) support and a streaming renderer.",
   "use_cases": [
-    "Add VS Code-quality syntax highlighting to documentation sites, technical blogs, and developer tools",
-    "Generate highlighted code snippets for blog posts, READMEs, and documentation in agent content pipelines",
-    "Implement syntax highlighting in custom Markdown processors with shiki's remark/rehype plugins",
-    "Build code preview components in web applications with accurate multi-language highlighting",
-    "Support dual light/dark mode themes in documentation using Shiki's CSS variables mode"
+    "Generate VS Code-quality syntax-highlighted HTML for static site generators, documentation sites, and blogs",
+    "Add accurate language-specific code highlighting to agent-generated content for developer-facing APIs",
+    "Process code blocks in Markdown content pipelines with TextMate grammar accuracy matching VS Code",
+    "Embed beautifully highlighted code examples in email templates or PDFs (inline styles, no CSS dependency)",
+    "Power real-time code highlighting in documentation tools where VS Code theme compatibility is required"
   ],
   "not_for": [
-    "Real-time editor syntax highlighting — use CodeMirror or Monaco; Shiki is for static HTML output",
-    "Client-side highlighting of user-provided code at runtime — Shiki's WASM bundle is large (~900KB); use Prism.js for lightweight client-side highlighting",
-    "Minimal bundle size — Prism.js or highlight.js are lighter for simple use cases"
+    "Interactive code editors — Shiki produces static HTML; use Monaco Editor for editable code with VS Code features",
+    "Client-side runtime highlighting — Shiki loads full grammar files (~10MB+); for browser, use highlight.js or prism.js which are smaller",
+    "Simple projects where highlight.js's lighter weight is preferable — Shiki's VS Code quality comes with larger bundle size"
   ],
-  "best_when": "You need VS Code-quality syntax highlighting in documentation, static sites, or pre-rendered HTML — Shiki's TextMate grammar support beats other highlighters for accuracy.",
-  "avoid_when": "You need lightweight client-side highlighting (use Prism.js) or real-time editor functionality (use CodeMirror or Monaco).",
-  "alternatives": [],
+  "best_when": "You need VS Code-quality syntax highlighting with TextMate grammar accuracy for documentation, blogs, or static sites — and bundle size isn't a primary constraint.",
+  "avoid_when": "You need lightweight browser-side highlighting or an interactive code editor. For simple projects, highlight.js is smaller and simpler.",
+  "alternatives": ["highlight-js-api", "prism-js-api"],
   "interface": {
     "has_rest_api": false,
     "has_graphql": false,
@@ -30,7 +30,7 @@
     "has_mcp_server": false,
     "mcp_server_url": null,
     "has_sdk": true,
-    "sdk_languages": ["node", "browser"],
+    "sdk_languages": ["node", "browser", "deno", "bun"],
     "openapi_spec_url": null,
     "webhooks": false
   },
@@ -38,21 +38,21 @@
     "methods": ["none"],
     "oauth": false,
     "scopes": false,
-    "notes": "No authentication — local code highlighting library."
+    "notes": "Local library — no authentication required. MIT licensed."
   },
   "pricing": {
     "model": "open_source",
     "free_tier_exists": true,
-    "free_tier_limits": "Fully free and open source (MIT)",
+    "free_tier_limits": "MIT licensed — completely free",
     "paid_tiers": "None",
     "requires_credit_card": false,
-    "notes": "MIT-licensed open source library."
+    "notes": "MIT licensed. Zero cost."
   },
   "performance": {
-    "latency_p50_ms": 50,
-    "latency_p99_ms": 500,
+    "latency_p50_ms": 10,
+    "latency_p99_ms": 200,
     "uptime_sla_percent": null,
-    "rate_limits": "No rate limits — local processing",
+    "rate_limits": "No rate limits. First highlight is slow due to grammar loading. Subsequent highlights use cached grammars. Memory intensive for large grammar sets.",
     "data_source": "llm_estimated"
   },
   "requirements": {
@@ -66,41 +66,41 @@
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
-    "documentation_accuracy": 90,
-    "error_message_quality": 82,
-    "error_message_notes": "Invalid language IDs throw descriptive errors listing available languages. Theme loading errors include theme name context. HTML output is deterministic.",
+    "documentation_accuracy": 88,
+    "error_message_quality": 78,
+    "error_message_notes": "Async API returns HTML strings. Unknown language falls back to plain text. Errors thrown for invalid theme names. Documentation is excellent for v1.",
     "idempotency_support": "full",
-    "idempotency_notes": "Highlighting is deterministic — same code + same language + same theme always produces same HTML.",
+    "idempotency_notes": "Pure function — same code, language, theme always produces same HTML output.",
     "pagination_style": "none",
     "retry_guidance_documented": false,
     "known_agent_gotchas": [
-      "Shiki v1 (Shikiji) changed API significantly from v0.x — createHighlighter() replaces getHighlighter(); old tutorials and code don't work with v1",
-      "WASM initialization is async — must await createHighlighter() before calling highlight functions; synchronous usage patterns don't work",
-      "Bundle size is large (~1-5MB with grammars) — use lazy loading with codeToHtml() and only load languages/themes you need",
-      "Language grammars are loaded lazily in v1 — first highlight of a new language has extra latency as grammar is fetched; preload frequently-used languages",
-      "CSS variables mode (dual theme) requires additional CSS configuration to switch between light/dark modes",
-      "Unknown languages fall back to plain text — check language name spelling if highlighting appears plain; language IDs are case-sensitive"
+      "Shiki is async — codeToHtml() returns a Promise; await it: const html = await codeToHtml(code, { lang: 'javascript', theme: 'vitesse-dark' })",
+      "createHighlighter() is the recommended API in v1 — create once at startup, reuse; each call loads grammars into memory",
+      "Grammars and themes must be explicitly loaded — bundler tree-shaking won't include unused grammars: createHighlighter({ themes: ['vitesse-dark'], langs: ['javascript', 'python'] })",
+      "Inline styles vs CSS classes — Shiki outputs inline styles by default; use addClassToHaveInlineStyles option or htmlRendererOptions for class-based output",
+      "v1 breaking changes from v0.x — API completely redesigned; migration guide available at shiki.style/guide/migrate-v0",
+      "Bundle size concern for browser use — loading many languages and themes significantly increases bundle; use CDN or lazy-load specific grammars for browser applications"
     ]
   },
   "af_score_components": {
     "mcp_score": 0,
-    "api_doc_score": 90,
-    "error_handling_score": 82,
+    "api_doc_score": 88,
+    "error_handling_score": 78,
     "auth_complexity_score": 100,
     "rate_limit_clarity_score": 100
   },
   "security_score_components": {
-    "tls_enforcement": 90,
-    "auth_strength": 90,
-    "scope_granularity": 90,
-    "dependency_hygiene": 88,
-    "secret_handling": 90,
-    "security_notes": "Output HTML should be sanitized if rendering untrusted code — Shiki escapes most HTML but user-provided code may contain HTML injection if rendered without sanitization."
+    "tls_enforcement": 100,
+    "auth_strength": 100,
+    "scope_granularity": 100,
+    "dependency_hygiene": 85,
+    "secret_handling": 100,
+    "security_notes": "Local computation. MIT licensed. HTML output escapes code content to prevent XSS from highlighted code."
   },
   "reliability_score_components": {
-    "uptime_documented": 88,
-    "version_stability": 80,
-    "breaking_changes_history": 72,
-    "error_recovery": 82
+    "uptime_documented": 100,
+    "version_stability": 82,
+    "breaking_changes_history": 78,
+    "error_recovery": 85
   }
 }

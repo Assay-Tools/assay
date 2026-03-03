@@ -1,28 +1,28 @@
 {
   "id": "winston-api",
   "name": "Winston",
-  "version_evaluated": "3+",
+  "version_evaluated": "3.x",
   "homepage": "https://github.com/winstonjs/winston",
   "repo_url": "https://github.com/winstonjs/winston",
   "category": "developer-tools",
-  "subcategories": ["logging", "node", "multi-transport"],
-  "tags": ["logging", "node", "multi-transport", "json", "structured", "flexible"],
-  "what_it_does": "Multi-transport async logging library for Node.js. Winston's primary strength is its transport system — route logs to multiple destinations simultaneously (console, files, HTTP, databases) with configurable format transforms per transport. Supports custom levels, colorized output, JSON formatting, splat interpolation, and printf-style formatting. The most flexible (if slower) Node.js logger.",
+  "subcategories": ["logging", "observability", "utilities"],
+  "tags": ["logging", "winston", "node", "log-levels", "transports", "json-logging", "structured-logging"],
+  "what_it_does": "Universal logging library for Node.js with support for multiple transports (console, file, HTTP, stream), log levels, custom formatters, and structured JSON logging. The most widely used Node.js logging library — supports async transports, log rotation, metadata, and custom transports. Pluggable transport system enables writing to console, files, databases, or external services simultaneously.",
   "use_cases": [
-    "Route logs to multiple simultaneous destinations — console in development, JSON file in production, error-only to alert endpoint",
-    "Build logging infrastructure for agent systems that need to write to both local files and remote logging services",
-    "Implement structured logging with custom formats — combine timestamp, correlation IDs, and error stacks in consistent format",
-    "Use winston-daily-rotate-file for rotating log files in long-running agent servers",
-    "Integrate with external log aggregators via community transports (winston-cloudwatch, winston-elasticsearch, winston-papertrail)"
+    "Add structured JSON logging to Node.js agent services with consistent metadata fields (requestId, userId, sessionId)",
+    "Route logs to multiple destinations simultaneously — console for development, file for production, external service for aggregation",
+    "Implement log-level-based filtering in agent services — debug logs in development, warn/error only in production",
+    "Create child loggers with bound metadata for request-scoped logging in agent API servers",
+    "Build custom transports to route agent logs to specialized sinks (Datadog, CloudWatch, Elasticsearch)"
   ],
   "not_for": [
-    "High-throughput production servers where logging performance is critical — use Pino which is 5x faster",
-    "Simple single-destination logging — Pino or console.log are simpler for basic cases",
-    "Browser logging — Winston is Node.js specific"
+    "High-performance logging at extreme throughput — pino is 5-10x faster; use pino for performance-critical applications",
+    "Browser logging — Winston is Node.js only; use browser-native console or loglevel for browser",
+    "Structured log streaming — pino's newline-delimited JSON and pino-pretty pipeline is more modern and faster"
   ],
-  "best_when": "You need flexible multi-transport logging with the rich ecosystem of community transports — Winston's transport system enables routing to any destination.",
-  "avoid_when": "You need maximum logging performance in a high-throughput server — Pino is significantly faster. Use Pino for performance-sensitive applications.",
-  "alternatives": ["pino-api"],
+  "best_when": "You need a flexible, battle-tested logging solution with multiple simultaneous transports, custom formatters, and rich ecosystem of plugins for Node.js services.",
+  "avoid_when": "You're optimizing for maximum logging throughput or want the most modern structured logging approach — pino is faster and more focused.",
+  "alternatives": ["pino-api", "bunyan-api", "loglevel-api", "debug-api"],
   "interface": {
     "has_rest_api": false,
     "has_graphql": false,
@@ -38,28 +38,28 @@
     "methods": ["none"],
     "oauth": false,
     "scopes": false,
-    "notes": "No authentication — logging library. Remote transports configure auth separately."
+    "notes": "Local library — no authentication required. MIT licensed. External transport authentication configured per transport."
   },
   "pricing": {
     "model": "open_source",
     "free_tier_exists": true,
-    "free_tier_limits": "Fully free and open source (MIT)",
+    "free_tier_limits": "MIT licensed — completely free",
     "paid_tiers": "None",
     "requires_credit_card": false,
-    "notes": "MIT-licensed open source library."
+    "notes": "MIT licensed. Zero cost."
   },
   "performance": {
-    "latency_p50_ms": null,
-    "latency_p99_ms": null,
+    "latency_p50_ms": 1,
+    "latency_p99_ms": 10,
     "uptime_sla_percent": null,
-    "rate_limits": "No rate limits — local logging library",
+    "rate_limits": "No rate limits. Performance varies by transport — console/file are fast; HTTP transport adds network latency. Async transports prevent blocking. Slower than pino for high-throughput use cases.",
     "data_source": "llm_estimated"
   },
   "requirements": {
     "requires_signup": false,
     "requires_credit_card": false,
     "domain_verification": false,
-    "data_residency": ["self-hosted"],
+    "data_residency": ["local"],
     "compliance": [],
     "min_contract": "none"
   },
@@ -67,40 +67,40 @@
     "mcp_server_quality": null,
     "mcp_security_score": null,
     "documentation_accuracy": 82,
-    "error_message_quality": 78,
-    "error_message_notes": "Winston transport errors surface as error events on the transport — must add error handlers to each transport. Logger configuration errors at setup time are descriptive.",
+    "error_message_quality": 80,
+    "error_message_notes": "Transport errors emit 'error' events — must attach error handler or Node.js will crash. Log entry errors are typically swallowed. Well-documented error handling for transports.",
     "idempotency_support": "full",
-    "idempotency_notes": "Logging is a side effect — idempotency not applicable.",
+    "idempotency_notes": "Logging calls don't have idempotency concerns — each log call produces exactly one log entry.",
     "pagination_style": "none",
     "retry_guidance_documented": false,
     "known_agent_gotchas": [
-      "Winston transport errors don't throw — they emit 'error' events on the transport instance; must add error handlers or errors are silently swallowed",
-      "Multiple logger instances across modules sharing transports can cause duplicate logging — use winston.createLogger() once and export the instance, don't create in each module",
-      "Format combiners must be in correct order — winston.format.combine(timestamp(), json()) order matters; wrong order produces malformed output",
-      "winston-daily-rotate-file is a separate package with its own versioning — ensure it's compatible with your winston version",
-      "Winston 3.x changed the API significantly from 2.x — online tutorials mixing versions cause configuration confusion",
-      "Logging Error objects requires format.errors({stack: true}) — without this format, Error instances log as empty {}"
+      "Must handle transport 'error' events or process will crash: logger.on('error', (err) => { /* handle */ }) — missing error handlers cause unhandled rejections",
+      "Child loggers inherit parent transports — logger.child({ requestId: '123' }) creates logger with added metadata fields for request-scoped logging",
+      "JSON format requires winston.format.json() in formatters array — default format is custom text, not JSON; add format.combine(format.timestamp(), format.json()) for structured logging",
+      "File transport does NOT do log rotation by default — use winston-daily-rotate-file package for production log rotation",
+      "Log levels are numeric priority — higher number = lower priority: error(0), warn(1), info(2), http(3), verbose(4), debug(5), silly(6); set level to control minimum logged",
+      "Silent mode (silent: true) suppresses all output — useful for tests but easy to accidentally leave enabled"
     ]
   },
   "af_score_components": {
     "mcp_score": 0,
     "api_doc_score": 82,
-    "error_handling_score": 78,
+    "error_handling_score": 80,
     "auth_complexity_score": 100,
     "rate_limit_clarity_score": 100
   },
   "security_score_components": {
-    "tls_enforcement": 90,
-    "auth_strength": 88,
-    "scope_granularity": 88,
-    "dependency_hygiene": 80,
-    "secret_handling": 80,
-    "security_notes": "Log output may contain sensitive data — implement format transforms to redact sensitive fields. Winston has no built-in redaction; implement custom formatter."
+    "tls_enforcement": 100,
+    "auth_strength": 95,
+    "scope_granularity": 95,
+    "dependency_hygiene": 82,
+    "secret_handling": 85,
+    "security_notes": "MIT licensed. Logging sensitive data is developer responsibility — avoid logging credentials/PII. Transport-level authentication configured per transport. No remote calls unless using HTTP transport."
   },
   "reliability_score_components": {
-    "uptime_documented": 82,
-    "version_stability": 78,
-    "breaking_changes_history": 72,
-    "error_recovery": 75
+    "uptime_documented": 98,
+    "version_stability": 85,
+    "breaking_changes_history": 82,
+    "error_recovery": 80
   }
 }
