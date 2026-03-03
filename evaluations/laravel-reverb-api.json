@@ -1,0 +1,106 @@
+{
+  "id": "laravel-reverb-api",
+  "name": "Laravel Reverb",
+  "version_evaluated": "1.x",
+  "homepage": "https://reverb.laravel.com/",
+  "repo_url": "https://github.com/laravel/reverb",
+  "category": "developer-tools",
+  "subcategories": ["websockets", "laravel", "php", "real-time", "broadcasting"],
+  "tags": ["laravel", "php", "websockets", "broadcasting", "real-time", "reverb", "echo", "pusher-compatible"],
+  "what_it_does": "First-party WebSocket server for Laravel — a self-hosted, Pusher-compatible WebSocket server that integrates natively with Laravel Broadcasting. Reverb features: drop-in replacement for Pusher Channels (uses pusher/pusher-php-server protocol), BROADCAST_CONNECTION=reverb in .env, Laravel Echo frontend client with Reverb connector, channel types (public, private, presence), broadcast() helper with ShouldBroadcast event interface, horizontal scaling via Redis pub/sub, and built-in support for Laravel Echo Server replacement. Ships with laravel/reverb package; starts with php artisan reverb:start. No monthly fees vs Pusher's paid tiers for high message volumes.",
+  "use_cases": [
+    "Agent task progress streaming — AgentTaskUpdated event implements ShouldBroadcast { broadcastOn() { return new PrivateChannel('agent.'.$this->agent->id) } } broadcasts agent progress via WebSocket; frontend Echo.private('agent.'+id).listen('.AgentTaskUpdated', updateUI)",
+    "Real-time agent collaboration — presence channels track online users: Echo.join('agent-session.'+sessionId).here(members => setUsers(members)).joining(user => addUser(user)).leaving(user => removeUser(user)) enables agent co-editing sessions",
+    "Self-hosted Pusher replacement — REVERB_APP_ID, REVERB_APP_KEY, REVERB_APP_SECRET in .env; existing Pusher-based agent code works without changes by pointing to Reverb server; eliminates Pusher subscription costs for high-traffic agent platforms",
+    "Agent notification delivery — broadcast(new AgentAlertEvent($alert))->toOthers() broadcasts to all agent users except sender; toOthers() uses X-Socket-ID header to exclude broadcasting socket; instant agent alert delivery without polling",
+    "Scaled agent WebSocket cluster — REVERB_SCALING_ENABLED=true with Redis publish/subscribe allows multiple Reverb servers behind load balancer; agent WebSocket connections distributed across Reverb instances for horizontal scaling"
+  ],
+  "not_for": [
+    "Non-Laravel PHP projects — Reverb is Laravel-specific; for standalone WebSocket servers use Ratchet, Swoole, or Workerman with custom protocol",
+    "Managed WebSocket service — Reverb requires self-hosting and server management; if you need managed WebSockets with SLA, use Pusher Channels or Ably",
+    "Binary WebSocket protocols — Reverb uses Pusher protocol (JSON text frames); for binary WebSocket streams (audio/video agent data), use dedicated streaming infrastructure"
+  ],
+  "best_when": "You have an existing Laravel app using Pusher Broadcasting and want to eliminate Pusher subscription costs by self-hosting, or you're building a new Laravel real-time app that needs WebSockets without external service dependency.",
+  "avoid_when": "You need managed WebSocket infrastructure with global CDN and SLA guarantees, or you're not using Laravel Broadcasting.",
+  "alternatives": ["pusher-api", "ably-api", "soketi-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["php"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["api_key"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Private and presence channels require auth via Laravel Broadcasting auth endpoint (POST /broadcasting/auth). Reverb validates channel auth using REVERB_APP_KEY and REVERB_APP_SECRET. Public channels need no auth."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed. Self-hosted on your own infrastructure.",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Laravel Reverb is MIT licensed, maintained by the Laravel team. Server hosting costs are your own infrastructure."
+  },
+  "performance": {
+    "latency_p50_ms": 10,
+    "latency_p99_ms": 50,
+    "uptime_sla_percent": null,
+    "rate_limits": "No built-in rate limits. Performance depends on server resources. Reverb handles thousands of concurrent connections on a single server. Scale horizontally with Redis pub/sub for high-traffic agent deployments.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 82,
+    "error_message_quality": 78,
+    "error_message_notes": "Reverb logs connection and authentication events to Laravel log. Channel auth failures return 403 from broadcasting/auth endpoint. WebSocket connection errors surface in browser console with close code. php artisan reverb:start --debug shows verbose connection and message logs.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Broadcasting events is fire-and-forget — no delivery guarantee. WebSocket delivery is best-effort; client reconnection with Laravel Echo is automatic but misses messages during disconnect. Use database + WebSocket for reliable agent event delivery.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "php artisan reverb:start must run as separate process — Reverb is a long-running WebSocket server separate from php-fpm/nginx; not automatically started by Laravel; agent deployments need supervisor or systemd unit for reverb:start; forgetting Reverb process means WebSocket connections silently fail",
+      "REVERB_HOST must match from client perspective — REVERB_HOST=localhost works for local dev but production needs actual domain/IP; agent frontends connecting to ws://localhost:8080 fail in production; set REVERB_HOST to the public hostname and configure reverse proxy (nginx) for WSS (TLS) termination",
+      "Private channel auth uses Laravel session or API auth — Echo.private() triggers POST /broadcasting/auth with session cookie or Bearer token; agent API clients using stateless auth must set withCredentials: true and send Authorization header; missing auth header causes 403 on private agent channels",
+      "Reverb does not persist messages — messages sent while client is disconnected are lost; agent frontends must fetch missed updates via REST API on reconnect; use Laravel Echo's withoutOverlap() or application-level sequence numbers for agent event ordering",
+      "Horizontal scaling requires Redis — REVERB_SCALING_ENABLED=true needs REDIS_HOST configured; without Redis, events broadcast on one Reverb instance don't reach clients on other instances; agent WebSocket clusters silently lose messages without Redis pub/sub backplane",
+      "ShouldBroadcastNow vs ShouldBroadcast queue behavior — ShouldBroadcast queues event broadcasting via Laravel Queue; ShouldBroadcastNow bypasses queue and broadcasts synchronously; agent events needing immediate delivery use ShouldBroadcastNow; using ShouldBroadcast without running queue workers causes agent WebSocket events to never deliver"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 82,
+    "error_handling_score": 78,
+    "auth_complexity_score": 80,
+    "rate_limit_clarity_score": 88
+  },
+  "security_score_components": {
+    "tls_enforcement": 82,
+    "auth_strength": 82,
+    "scope_granularity": 78,
+    "dependency_hygiene": 85,
+    "secret_handling": 80,
+    "security_notes": "REVERB_APP_SECRET must be kept private — it signs channel auth responses; exposure allows unauthorized channel subscriptions. Always use WSS (TLS) in production via nginx reverse proxy. Private channels require server-side auth; never rely on client-side checks for sensitive agent channel access."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 78,
+    "version_stability": 80,
+    "breaking_changes_history": 82,
+    "error_recovery": 78
+  }
+}

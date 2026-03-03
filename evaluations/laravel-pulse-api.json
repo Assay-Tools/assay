@@ -1,0 +1,106 @@
+{
+  "id": "laravel-pulse-api",
+  "name": "Laravel Pulse",
+  "version_evaluated": "1.x",
+  "homepage": "https://pulse.laravel.com/",
+  "repo_url": "https://github.com/laravel/pulse",
+  "category": "developer-tools",
+  "subcategories": ["monitoring", "laravel", "php", "observability", "performance"],
+  "tags": ["laravel", "php", "monitoring", "pulse", "performance", "health", "metrics", "dashboard"],
+  "what_it_does": "Real-time application performance monitoring dashboard for Laravel — tracks server metrics, slow queries, slow jobs, exceptions, HTTP requests, and cache hits with minimal configuration. Pulse features: /pulse dashboard with configurable cards, server monitoring (CPU, memory, disk via pulse:check command), slow query detection (DB::listen threshold), failed/slow job tracking, exception aggregation, cache interaction stats, user activity timeline, custom recorders, and database-backed metric storage. Ships as laravel/pulse package with Livewire dashboard component. Requires no external services — all data stored in your app's database (pulse_* tables). Complements Laravel Telescope for development with production-grade metric aggregation.",
+  "use_cases": [
+    "Agent service health dashboard — /pulse shows real-time CPU/memory, slow agent API requests (>1000ms), failed agent background jobs, and exception rates; ops team sees agent service health at a glance without external monitoring services",
+    "Slow query detection in agent workflows — Pulse slow query recorder captures queries exceeding threshold_ms with calling stack trace; identifies N+1 queries in agent data loading without manual query logging",
+    "Agent job queue monitoring — failed job tracking in Pulse dashboard shows failed agent task jobs with exception message and queue name; supplements Horizon (Redis) with database-backed job failure history for agents using database queue driver",
+    "Exception rate monitoring — Pulse exception recorder aggregates exception class, message, and count; agent exception spikes visible in dashboard before Sentry alerts trigger; useful for catching agent retry storms and error cascades",
+    "Custom agent metric cards — Pulse::record('agent_tasks_completed', count: $n)->count() records custom agent business metrics; custom card displayed in /pulse dashboard with configurable period and grouping"
+  ],
+  "not_for": [
+    "Distributed tracing — Pulse tracks metrics for single Laravel app; for distributed agent microservice tracing use OpenTelemetry or Jaeger",
+    "Long-term metric retention — Pulse prunes old data (configurable retention); for long-term trend analysis use Prometheus + Grafana ingesting from Pulse or app metrics",
+    "Production APM replacement — Pulse is lightweight monitoring; for full APM with code-level profiling of agent code paths use Blackfire, Datadog APM, or New Relic"
+  ],
+  "best_when": "You want zero-configuration production visibility into your Laravel agent app's performance — Pulse installs in minutes and provides a dashboard without external services or per-month costs.",
+  "avoid_when": "You need distributed tracing across microservices, long-term metric retention beyond Pulse's pruning window, or code-level profiling for deep agent performance optimization.",
+  "alternatives": ["laravel-telescope-api", "prometheus-api", "datadog-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["php"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Pulse dashboard at /pulse is restricted by gate check (App\\Providers\\PulseServiceProvider viewPulse gate). Production access requires authentication — add user check in gate definition. Open by default in local environment."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Laravel Pulse is MIT licensed, maintained by the Laravel team. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 2,
+    "latency_p99_ms": 20,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Pulse uses ingest buffering — metrics are temporarily buffered in cache and written to DB in batch to minimize request overhead. High-traffic sites should configure pulse:work queue worker for async ingest.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 82,
+    "error_message_quality": 80,
+    "error_message_notes": "Pulse ingest errors appear in Laravel logs. Dashboard display failures are silent (empty cards). Server monitoring requires pulse:check to run on each server; missing process causes empty server metrics without error. Custom recorder exceptions are caught and logged, not re-thrown.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Pulse recording is write-only — metrics accumulate by time period. Dashboard reads are idempotent. pulse:purge cleanup is safe to run repeatedly. Duplicate recording increments counters correctly.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "pulse:work queue worker required for high-traffic apps — by default Pulse writes metrics synchronously during request; on high-traffic agent APIs this adds DB write overhead per request; configure PULSE_INGEST_DRIVER=redis and run php artisan pulse:work to process metrics asynchronously; missing queue worker causes metric backlog in cache",
+      "Server monitoring requires pulse:check on every server — php artisan pulse:check runs CPU/memory monitoring; must execute on each server in fleet via supervisor/cron; agent multi-server deployments only see metrics from servers running pulse:check; missing check causes empty server cards without error",
+      "/pulse route requires Livewire — Pulse dashboard uses Livewire for real-time updates; Livewire must be installed (laravel/livewire package); missing Livewire dependency causes dashboard route 500 error; agent apps without Livewire must install it for Pulse dashboard",
+      "Pulse data stored in app database — pulse_* tables in your application DB accumulate data; high-traffic agent apps generate substantial Pulse table rows; configure 'pulse' database connection to use separate DB to prevent agent query/Pulse query interference and enable separate backup strategy",
+      "Gate authorization controls dashboard access — viewPulse gate defaults to false in production (only local env allows open access); agent deployments with empty gate definition show 403 for all users; add Auth::user()->isAdmin() check in PulseServiceProvider::boot() to allow agent ops team access",
+      "Custom recorders must be registered in pulse.php — Pulse::record() calls work without registration but custom Card and Recorder classes must be listed in config/pulse.php recorders array; agent custom metric cards missing from config don't appear in dashboard without error message"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 82,
+    "error_handling_score": 78,
+    "auth_complexity_score": 85,
+    "rate_limit_clarity_score": 90
+  },
+  "security_score_components": {
+    "tls_enforcement": 88,
+    "auth_strength": 80,
+    "scope_granularity": 78,
+    "dependency_hygiene": 85,
+    "secret_handling": 82,
+    "security_notes": "Pulse dashboard exposes sensitive operational data — slow query SQL, exception messages with stack traces, user activity; restrict /pulse access with strong gate authorization. Exception messages may contain agent user data or sensitive parameters; audit what Pulse captures before production deployment. Server metrics reveal infrastructure details."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 78,
+    "version_stability": 80,
+    "breaking_changes_history": 82,
+    "error_recovery": 80
+  }
+}
