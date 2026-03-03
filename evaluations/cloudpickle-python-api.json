@@ -1,0 +1,106 @@
+{
+  "id": "cloudpickle-python-api",
+  "name": "cloudpickle",
+  "version_evaluated": "3.x",
+  "homepage": "https://github.com/cloudpipe/cloudpickle",
+  "repo_url": "https://github.com/cloudpipe/cloudpickle",
+  "category": "developer-tools",
+  "subcategories": ["serialization", "python", "distributed", "multiprocessing"],
+  "tags": ["python", "cloudpickle", "pickle", "serialization", "lambda", "distributed", "ray", "dask", "spark"],
+  "what_it_does": "Extended Python pickling for distributed computing — serializes Python objects that standard pickle cannot, including lambdas, closures, locally defined functions, and class definitions. cloudpickle features: cloudpickle.dumps()/loads() API compatible with pickle, serializes lambda functions (not picklable with standard pickle), closures capturing local variables, inner functions, dynamically defined classes, generator functions, functools.partial with lambda args, and is used internally by Ray, Dask, PySpark, and joblib. Essential for sending Python callables across process boundaries.",
+  "use_cases": [
+    "Agent parallel lambda execution — import cloudpickle; import concurrent.futures; fn = lambda x: x * factor; pickled = cloudpickle.dumps(fn); executor.submit(cloudpickle.loads(pickled), value) — serialize lambda for worker process; agent parallel processing sends lambda transform to workers; standard pickle raises AttributeError on lambda",
+    "Agent Ray remote functions — import ray; @ray.remote; def agent_task(data): return process(data) — Ray uses cloudpickle internally; agent distributes closures capturing local state; Ray actors serialize entire class definition with cloudpickle; no special serialization code needed",
+    "Agent Dask computation — import dask; result = dask.delayed(lambda df: df.groupby('agent').mean())(large_df) — Dask uses cloudpickle; agent distributed DataFrame processing sends lambda transformations to workers; dask.compute() executes lambda in worker process",
+    "Agent closure serialization — def make_agent(config): threshold = config['threshold']; def agent_fn(data): return data > threshold; return agent_fn; fn = make_agent({'threshold': 0.9}); bytes = cloudpickle.dumps(fn) — closure captures threshold from outer scope; cloudpickle serializes closure with captured variables; standard pickle fails with PicklingError",
+    "Agent cross-process class transfer — import cloudpickle; class DynamicAgent: pass; DynamicAgent.score = compute_score; serialized = cloudpickle.dumps(DynamicAgent); sent_class = cloudpickle.loads(serialized) — dynamically modified class transferred between processes; agent metaclass-generated classes work with cloudpickle; class definition included in serialized bytes"
+  ],
+  "not_for": [
+    "Long-term storage — cloudpickle serialization is Python-version dependent; do not use for persistent storage; use JSON, msgpack, or protocol buffers",
+    "Security boundaries — pickle/cloudpickle deserialization can execute arbitrary code; never deserialize cloudpickle data from untrusted sources",
+    "Cross-language serialization — cloudpickle is Python-only; for cross-language use protobuf, JSON, or Apache Arrow"
+  ],
+  "best_when": "Sending Python callables (lambdas, closures, local functions) to worker processes in distributed computing frameworks — cloudpickle enables Ray, Dask, and Spark to serialize Python functions that standard pickle cannot handle.",
+  "avoid_when": "You need persistent storage (use JSON/protobuf), cross-language communication, or are serializing data from untrusted sources (pickle is a security risk).",
+  "alternatives": ["dill-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — local serialization library. CRITICAL: pickle/cloudpickle deserialization can execute arbitrary code — only deserialize from trusted sources."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, BSD licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "cloudpickle is BSD licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Serialization speed: ~1-10MB/s for complex objects. Simple lambdas: ~1μs. Large closures with captured state: slower. cloudpickle serializes function bytecode — serialized size varies with function complexity.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mpc_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 82,
+    "error_message_quality": 78,
+    "error_message_notes": "PicklingError for objects that cloudpickle also cannot serialize (C extensions, file handles). AttributeError when deserializing on target if module not available. TypeError for non-serializable C types. Error messages similar to standard pickle — 'can't pickle X objects'. Deserialization errors are harder to debug.",
+    "idempotency_support": "full",
+    "idempotency_notes": "cloudpickle.dumps() of same function is deterministic (same bytes). cloudpickle.loads(cloudpickle.dumps(fn)) returns equivalent function. Serialized bytes are not stable across Python versions.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "CRITICAL: Never deserialize cloudpickle data from untrusted sources — cloudpickle.loads() executes arbitrary Python code; attacker-controlled pickled bytes can execute os.system('rm -rf /'); agent systems receiving serialized functions from external sources must use code signing or alternative serialization; only deserialize from trusted internal sources",
+      "Serialized bytes are not stable across Python versions — cloudpickle.dumps(fn) on Python 3.10 may not deserialize on Python 3.11; agent distributed systems must use same Python version on all workers; do not store cloudpickle bytes to disk for later use across upgrades; for stable storage use JSON or protobuf",
+      "C extensions and file handles cannot be serialized — cloudpickle.dumps(open('/tmp/file')) raises PicklingError; cloudpickle cannot serialize objects holding OS resources (file descriptors, sockets, locks); agent functions capturing file handles in closures must close before serialization or use path strings instead of file objects",
+      "Module availability required on target — cloudpickle.loads() on worker requires all imported modules available; agent code: lambda x: numpy.mean(x) serialized and sent to worker without numpy installed raises ImportError on load; worker environment must match sender environment for imports; use requirements.txt or Docker to ensure consistency",
+      "Class instances serialized as class definition + state — cloudpickle serializes class definition with instance; if class changes between serialize and deserialize, deserialization may fail or produce incorrect objects; agent rolling deployments where workers have old class definitions and sender has new class fail to deserialize; coordinate deployment",
+      "Captured variables in closures increase serialized size — def make_fn(large_df): return lambda x: large_df.loc[x]; fn = make_fn(huge_dataframe); cloudpickle.dumps(fn) includes entire huge_dataframe; agent lambda capturing large objects serializes entire object to worker; use IDs and remote data access instead of capturing large objects in closure"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 80,
+    "error_handling_score": 75,
+    "auth_complexity_score": 90,
+    "rate_limit_clarity_score": 98
+  },
+  "security_score_components": {
+    "tls_enforcement": 75,
+    "auth_strength": 65,
+    "scope_granularity": 60,
+    "dependency_hygiene": 80,
+    "secret_handling": 65,
+    "security_notes": "CRITICAL SECURITY WARNING: cloudpickle deserialization executes arbitrary Python code — equivalent to remote code execution if data source is untrusted. Never deserialize cloudpickle/pickle data from external sources, user input, or any untrusted channel. Use HMAC signing if cloudpickle data must traverse network boundaries. Consider alternatives (JSON + function registry, protobuf) for security-sensitive scenarios. Serialized closures may capture and transmit sensitive data (API keys, passwords) captured in outer scope."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 78,
+    "version_stability": 80,
+    "breaking_changes_history": 78,
+    "error_recovery": 78
+  }
+}

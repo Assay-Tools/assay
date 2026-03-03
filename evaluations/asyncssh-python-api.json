@@ -1,0 +1,106 @@
+{
+  "id": "asyncssh-python-api",
+  "name": "asyncssh",
+  "version_evaluated": "2.x",
+  "homepage": "https://asyncssh.readthedocs.io/",
+  "repo_url": "https://github.com/ronf/asyncssh",
+  "category": "developer-tools",
+  "subcategories": ["ssh", "python", "async", "networking", "asyncio"],
+  "tags": ["python", "asyncssh", "ssh", "sftp", "async", "asyncio", "remote", "scp"],
+  "what_it_does": "Async SSH client/server library for Python — provides non-blocking SSH connections, SFTP, and port forwarding in asyncio. asyncssh features: asyncssh.connect() for client connections, asyncssh.create_server() for servers, run() for command execution, create_process() for interactive processes, start_client()/start_server() for SFTP, SFTPClient for file operations, port forwarding and tunneling, known_hosts verification, multiple auth methods (password, public key, keyboard-interactive, GSSAPI), agent forwarding, X.509 certificates, and cipher/MAC configuration. Pure Python asyncio SSH without blocking.",
+  "use_cases": [
+    "Agent async SSH command — import asyncssh; async with asyncssh.connect('host', username='agent', client_keys=['~/.ssh/id_rsa']) as conn: result = await conn.run('ls -la /data/'); print(result.stdout) — non-blocking SSH; agent infrastructure management runs commands on remote hosts without blocking event loop; result.exit_status checks success",
+    "Agent parallel SSH — async with asyncssh.connect('host1', ...) as c1, asyncssh.connect('host2', ...) as c2: r1, r2 = await asyncio.gather(c1.run('cmd'), c2.run('cmd')) — concurrent SSH to multiple hosts; agent fleet management runs same command on 100 hosts in parallel; gather() handles concurrency with single event loop",
+    "Agent SFTP file transfer — async with asyncssh.connect('host', username='deploy') as conn: async with conn.start_sftp_client() as sftp: await sftp.put('local_file.txt', '/remote/path/file.txt'); await sftp.get('/remote/log.txt', 'local_log.txt') — async SFTP upload/download; agent deployment pushes artifacts to remote host; get() downloads results",
+    "Agent SSH tunnel — async with asyncssh.connect('bastion', username='user') as tunnel: async with tunnel.forward_local_port('', 8080, 'db.internal', 5432): conn = await asyncpg.connect(host='127.0.0.1', port=8080) — SSH tunnel to internal database; agent connects to private network resources through bastion host; port forwarding transparent to application",
+    "Agent interactive process — async with asyncssh.connect('host') as conn: process = await conn.create_process('python3 -i'); await process.stdin.write('import sys\\n'); output = await process.stdout.read(100) — interactive remote process; agent drives remote interactive programs; stdin/stdout async streams"
+  ],
+  "not_for": [
+    "Sync Python code — asyncssh requires asyncio; for sync SSH use paramiko",
+    "Simple one-off SSH commands — asyncssh has startup overhead; for simple scripts use subprocess.run(['ssh', ...])",
+    "Windows SSH server — asyncssh server mode requires Unix pty; client mode works on Windows"
+  ],
+  "best_when": "Async Python applications needing SSH — FastAPI background tasks, async agent infrastructure automation, parallel multi-host operations — asyncssh provides non-blocking SSH without separate threading.",
+  "avoid_when": "Your code is synchronous (use paramiko), you need only simple shell commands (use subprocess + ssh), or you're building SSH servers on Windows.",
+  "alternatives": ["paramiko-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["ssh_key", "password", "certificate"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "SSH key authentication (preferred). Password auth supported but discouraged. X.509 certificate auth. GSSAPI/Kerberos for enterprise environments. Known hosts verification configurable."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, EPL licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "asyncssh is Eclipse Public License licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 50,
+    "latency_p99_ms": 200,
+    "uptime_sla_percent": null,
+    "rate_limits": "No client rate limits. Connection establishment: 50-200ms (SSH handshake). Command execution overhead: ~10ms. SFTP transfer: network-limited. Concurrent connections: limited by OS fd limits and server configuration.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 82,
+    "error_message_notes": "asyncssh.PermissionDenied for auth failure. asyncssh.HostKeyNotVerifiable when unknown host. asyncssh.DisconnectError for connection drops. asyncssh.ProcessError for non-zero exit status from run(). Error messages include SSH error code and description. Known host errors clearly identify the problematic key.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "SSH connections are stateful — each connect() creates new session. run() command execution is as idempotent as the command itself. SFTP put() is idempotent (overwrites). SFTP mkdir() raises on existing directory without exist_ok.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "known_hosts verification fails for new hosts — asyncssh.connect() raises HostKeyNotVerifiable for hosts not in ~/.ssh/known_hosts; agent automation against new hosts must: known_hosts=None (disable verification, insecure) or known_hosts='path/to/known_hosts' with host pre-added; never disable verification in production without alternative trust mechanism",
+      "Connection context manager required — asyncssh.connect() returns context manager; without async with, connection leaks; conn = await asyncssh.connect() without context manager: conn.close() must be called manually; agent code must always use: async with asyncssh.connect(...) as conn: or explicitly call conn.close() in finally block",
+      "run() vs create_process() for interactive commands — conn.run('cmd') captures complete stdout/stderr and returns when command exits; create_process() returns running process with stdin/stdout streams for interactive use; agent code using run() for interactive prompts hangs waiting for command to exit; use create_process() for any command requiring stdin input",
+      "SFTP client nested context manager — async with conn.start_sftp_client() as sftp: requires open connection; sftp operations outside this context raise asyncssh.SFTPError; agent code must keep both connection and sftp client open for duration of file operations; sftp.put() of 1GB file requires connection open for entire transfer",
+      "result.exit_status vs result.stderr for error diagnosis — conn.run('failing_cmd') raises asyncssh.ProcessError if check=True (default); exception has .exit_status and .stderr; conn.run('cmd', check=False) returns result without raising on non-zero exit; agent code needing both success and failure output: check=False then inspect result.exit_status",
+      "Concurrent connections share event loop but not threads — asyncssh is fully async; asyncio.gather(conn1.run(cmd), conn2.run(cmd)) runs both concurrently on same event loop; no thread creation; agent parallel SSH scales to 100s of concurrent connections without thread overhead; limit max concurrent connections with asyncio.Semaphore(max_connections)"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 82,
+    "auth_complexity_score": 88,
+    "rate_limit_clarity_score": 95
+  },
+  "security_score_components": {
+    "tls_enforcement": 95,
+    "auth_strength": 92,
+    "scope_granularity": 88,
+    "dependency_hygiene": 85,
+    "secret_handling": 85,
+    "security_notes": "SSH is encrypted by default — all traffic encrypted. Always enable known_hosts verification in production — disable only for testing. Prefer SSH key auth over password auth. asyncssh supports modern ciphers (ChaCha20, AES-GCM) by default. Agent forwarding should be disabled unless needed: agent_forwarding=False. Commands run on remote host with remote user's privileges — validate commands before execution."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 85,
+    "version_stability": 85,
+    "breaking_changes_history": 82,
+    "error_recovery": 82
+  }
+}
