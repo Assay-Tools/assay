@@ -1,0 +1,106 @@
+{
+  "id": "trl-huggingface-api",
+  "name": "TRL (HuggingFace)",
+  "version_evaluated": "0.1x",
+  "homepage": "https://huggingface.co/docs/trl/",
+  "repo_url": "https://github.com/huggingface/trl",
+  "category": "ai-ml",
+  "subcategories": ["machine-learning", "python", "rlhf", "fine-tuning", "llm"],
+  "tags": ["python", "huggingface", "trl", "rlhf", "sft", "dpo", "ppo", "fine-tuning", "alignment", "llm"],
+  "what_it_does": "Transformer Reinforcement Learning library for LLM alignment — implements state-of-the-art fine-tuning and alignment techniques. TRL features: SFTTrainer for supervised fine-tuning (easier than raw Trainer), DPOTrainer for Direct Preference Optimization, PPOTrainer for RLHF, RewardTrainer for reward model training, GRPOTrainer for Group Relative Policy Optimization, ORPO, KTO, curriculum sampling, dataset formatting helpers, LoRA integration via PEFT, and DataCollatorForCompletionOnlyLM for chat template formatting. Used for aligning agent LLMs with desired behaviors.",
+  "use_cases": [
+    "Agent instruction fine-tuning — trainer = SFTTrainer(model=model, train_dataset=agent_conversations, dataset_text_field='text', max_seq_length=2048, peft_config=lora_config) — simpler than raw Trainer; SFTTrainer handles packing, formatting, and LoRA automatically for agent instruction following",
+    "Agent preference alignment — trainer = DPOTrainer(model=model, ref_model=ref_model, args=dpo_args, train_dataset=preference_data) — DPO trains agent on (prompt, chosen, rejected) pairs without reward model; improves agent response quality and reduces harmful outputs",
+    "Agent RLHF pipeline — reward_model trained with RewardTrainer; PPOTrainer.step(queries, responses, scores) updates agent policy with reward feedback; full RLHF for agent helpfulness optimization",
+    "Agent chat format training — DataCollatorForCompletionOnlyLM masks prompt tokens; agent only trains on response tokens not input; SFTTrainer with formatting_func applies chat template (user/assistant turns) to agent conversation dataset",
+    "Agent reward model — trainer = RewardTrainer(model=reward_model, train_dataset=preference_data, peft_config=lora_config) — trains reward model on human preference pairs; reward scores guide agent fine-tuning with PPO or GRPO"
+  ],
+  "not_for": [
+    "Inference serving — TRL is for training; for agent LLM serving use vLLM or HuggingFace Inference API",
+    "Non-LLM ML training — TRL is specialized for language model alignment; for general ML training use PyTorch directly",
+    "Production ML pipelines — TRL is research-grade; for production-scale LLM training use SageMaker Training Jobs or Vertex AI"
+  ],
+  "best_when": "Aligning agent LLMs with desired behaviors using modern fine-tuning (SFT, DPO, RLHF) — TRL provides state-of-the-art training algorithms with LoRA integration for resource-efficient agent specialization.",
+  "avoid_when": "You need inference optimization, non-LLM training, or production-scale managed ML training.",
+  "alternatives": ["peft-huggingface-api", "accelerate-huggingface-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["api_key"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "HF_TOKEN for loading gated base models and pushing trained adapters to Hub. WANDB_API_KEY for experiment tracking integration."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, Apache 2.0 licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "TRL is Apache 2.0 licensed, maintained by HuggingFace. Free for all use. GPU compute costs separate."
+  },
+  "performance": {
+    "latency_p50_ms": 0,
+    "latency_p99_ms": 0,
+    "uptime_sla_percent": null,
+    "rate_limits": "No TRL rate limits. Training speed depends on model size, GPU, and training algorithm. SFT is fastest. PPO is 2-3x slower than SFT (needs reward inference). DPO is between SFT and PPO in compute cost.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted", "cloud"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 75,
+    "error_message_quality": 70,
+    "error_message_notes": "SFTTrainer raises ValueError for incompatible dataset formats. CUDA OOM from too large batch size or sequence length. DPOTrainer shape errors if chosen/rejected sequences have different lengths. PPOTrainer errors from reward model output shape mismatch. TRL moves fast — error messages may not match documentation.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Training is not idempotent (stochastic without fixed seed). Checkpoint saving is idempotent for same step. SFTTrainer.train() resumes from checkpoint if output_dir contains checkpoints. Use set_seed() for reproducible agent training.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "TRL changes rapidly — TRL releases breaking changes frequently (monthly); SFTTrainer parameters change names between versions; agent training code from 6-month-old blog post may not work with current TRL; always pin TRL version (trl==0.12.0) in requirements.txt and test upgrades explicitly",
+      "DataCollatorForCompletionOnlyLM requires response_template matching exactly — response_template='### Response:' must exactly match the text in formatted examples; partial match or whitespace differences cause all tokens to be masked (no gradient); agent training converges poorly or not at all with wrong response_template",
+      "DPO requires reference model in memory simultaneously — DPOTrainer keeps ref_model and model in GPU simultaneously for KL divergence calculation; 7B DPO requires 2x model VRAM; agent fine-tuning with DPO on 24GB GPU limited to smaller models; use peft_config with create_reference_model=False to reduce memory",
+      "SFT packing may mix agent conversation boundaries — packing=True packs multiple short examples into one sequence for GPU efficiency; without eos_token between examples, model sees one long sequence mixing multiple agent conversations; add eos_token to end of each example in formatting_func to prevent cross-contamination",
+      "RLHF PPO requires reward model and reference model simultaneously — 3 models in GPU: policy, reference, reward; 7B agent RLHF requires 3x 7B model VRAM (~80-100GB); use QLoRA for policy + reference + smaller reward model; GRPO (new) eliminates reward model requirement",
+      "chat_template must match inference template — SFTTrainer with formatting_func applying chat template (user/assistant roles) must use same template at inference; Llama-3 uses <|begin_of_text|><|start_header_id|> format; mismatch between training and inference templates causes agent to not follow fine-tuned behavior"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 72,
+    "error_handling_score": 65,
+    "auth_complexity_score": 80,
+    "rate_limit_clarity_score": 85
+  },
+  "security_score_components": {
+    "tls_enforcement": 82,
+    "auth_strength": 78,
+    "scope_granularity": 72,
+    "dependency_hygiene": 75,
+    "secret_handling": 78,
+    "security_notes": "Agent training data (preference pairs, conversations) is sensitive — store securely, encrypt at rest. HF_TOKEN and WANDB_API_KEY as environment secrets. Trained agent adapters encode fine-tuning data patterns — assess data privacy before sharing adapters publicly. Reward model may encode biases from preference data — audit reward signals for agent alignment."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 65,
+    "version_stability": 60,
+    "breaking_changes_history": 55,
+    "error_recovery": 65
+  }
+}
