@@ -1,0 +1,106 @@
+{
+  "id": "py-spy-python-api",
+  "name": "py-spy",
+  "version_evaluated": "0.3.x",
+  "homepage": "https://github.com/benfred/py-spy",
+  "repo_url": "https://github.com/benfred/py-spy",
+  "category": "developer-tools",
+  "subcategories": ["profiling", "python", "cpu", "debugging", "performance"],
+  "tags": ["python", "py-spy", "cpu-profiling", "sampling", "profiling", "flamegraph", "performance", "debugging"],
+  "what_it_does": "Sampling CPU profiler for Python — profiles running Python processes without code changes or restarts. py-spy features: py-spy top --pid PID for live top-like CPU view, py-spy record -o profile.svg --pid PID for flamegraph SVG, py-spy dump --pid PID for stack trace snapshot, zero-overhead profiling (sampling not instrumentation), native code profiling (C extensions, Cython), support for multi-threaded programs, support for subprocesses, Docker container profiling, GIL state tracking, and async task awareness. Written in Rust — profiles Python 2/3, PyPy, and embedded Python.",
+  "use_cases": [
+    "Agent live CPU monitoring — py-spy top --pid $(pgrep -f agent.py) — live terminal view of hottest Python functions; agent developer identifies which function consumes CPU during load spike without stopping production agent; similar to Unix top but for Python call stack",
+    "Agent flamegraph generation — py-spy record -o agent_flamegraph.svg --pid PID --duration 30 -- python agent.py — records 30 seconds of sampling and generates interactive SVG flamegraph; agent performance engineer visualizes CPU hotspots across all call paths; widest frames are biggest CPU consumers",
+    "Agent stack dump on hang — py-spy dump --pid PID — prints current stack trace of all threads; agent developer diagnoses deadlock or infinite loop by dumping state without restart; shows GIL state and whether agent is blocked in C code or Python",
+    "Agent process profiling without PID — py-spy record -o output.svg -- python agent_script.py — profile new process from startup; agent benchmark captures full startup and warm-up overhead not visible in attached profiling; alternative to cProfile without code modification",
+    "Agent Docker container profiling — docker exec -it container py-spy top --pid 1 — profile Python process inside running container; agent production profiling without container restart or code change; requires SYS_PTRACE capability in container security profile"
+  ],
+  "not_for": [
+    "Memory profiling — py-spy is CPU-only; for memory use memray or tracemalloc",
+    "Line-level profiling — py-spy shows function-level (frames); for line-level use line_profiler",
+    "Windows process attachment — py-spy top/dump attaching to existing process is limited on Windows; use on Linux/macOS for best results"
+  ],
+  "best_when": "Profiling running Python agents and services without modifying code or restarting — py-spy attaches to live processes (including production) for real workload profiling that development benchmarks miss.",
+  "avoid_when": "You need memory profiling (use memray), line-level detail (use line_profiler), or are on Windows without ptrace support.",
+  "alternatives": ["memray-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": false,
+    "sdk_languages": [],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — CLI tool. Requires ptrace permissions or root to attach to processes."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "py-spy is MIT licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Sampling overhead: <1% CPU impact on profiled process (default 100 samples/sec). Sampling rate configurable with --rate. Zero-overhead design — uses ptrace/process_vm_readv to read stack without pausing Python.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 88,
+    "error_message_quality": 85,
+    "error_message_notes": "PermissionError when ptrace denied — clear message about needing root or ptrace_scope. ProcessStopped if target process exits during profiling. FailedToConnectError for Docker containers without SYS_PTRACE. Error messages include fix suggestions.",
+    "idempotency_support": "full",
+    "idempotency_notes": "py-spy dump is read-only observation of process state. record produces deterministic output file from same profiling session. Sampling is non-destructive — no effect on profiled process behavior.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Root or ptrace_scope=0 required on Linux — py-spy top --pid 1234 as non-root fails with 'Operation not permitted' on Linux with ptrace_scope > 0; agent developers must: sudo py-spy top --pid PID OR echo 0 | sudo tee /proc/sys/kernel/yama/ptrace_scope; Docker requires --cap-add=SYS_PTRACE",
+      "Docker containers need SYS_PTRACE capability — py-spy inside Docker or attaching to Docker process fails without: docker run --cap-add=SYS_PTRACE container; agent profiling in container orchestration (Kubernetes) requires securityContext.capabilities.add: ['SYS_PTRACE'] in pod spec",
+      "Flamegraph SVG requires browser to view — py-spy record -o profile.svg generates SVG not HTML; opening in terminal fails; agent developer must copy to local machine or serve via HTTP: python -m http.server; SVG can also be converted to HTML with speedscope for better interactivity",
+      "Subprocesses not profiled by default — py-spy record -- python script.py profiles only main process; agent code using multiprocessing or subprocess workers not profiled; add --subprocesses flag: py-spy record --subprocesses -- python agent.py to capture all child process profiles",
+      "Sampling misses short functions — py-spy samples at 100 Hz by default; functions executing in <10ms may not appear in flamegraph; agent profiling of fast hot loops needs higher rate: py-spy record --rate 1000 --pid PID; higher rate increases overhead slightly",
+      "C extension hotspots show as opaque frames — py-spy shows Python frames; time spent in C extensions (numpy.dot, torch.matmul) appears as single frame with no C-level detail; for C-level profiling use perf or heaptrack alongside py-spy; --native flag shows C stack but requires debug symbols"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 88,
+    "error_handling_score": 85,
+    "auth_complexity_score": 98,
+    "rate_limit_clarity_score": 98
+  },
+  "security_score_components": {
+    "tls_enforcement": 92,
+    "auth_strength": 90,
+    "scope_granularity": 88,
+    "dependency_hygiene": 88,
+    "secret_handling": 85,
+    "security_notes": "py-spy reads process memory — running as root with ptrace access is a privileged operation. Use in production only with authorized access. Stack dumps may contain sensitive data (function arguments, local variables visible in frame names). Treat flamegraphs as potentially sensitive artifacts."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 85,
+    "breaking_changes_history": 85,
+    "error_recovery": 82
+  }
+}

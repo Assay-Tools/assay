@@ -1,0 +1,106 @@
+{
+  "id": "aioboto3-python-api",
+  "name": "aioboto3",
+  "version_evaluated": "12.x",
+  "homepage": "https://aioboto3.readthedocs.io/",
+  "repo_url": "https://github.com/terrycain/aioboto3",
+  "category": "cloud",
+  "subcategories": ["aws", "python", "asyncio", "s3", "boto3"],
+  "tags": ["python", "aioboto3", "aws", "asyncio", "async", "s3", "dynamodb", "boto3", "aiohttp"],
+  "what_it_does": "Async AWS SDK for Python — wraps boto3 with asyncio support for non-blocking AWS service calls. aioboto3 features: async context manager pattern (async with aioboto3.Session() as session), async S3 operations (await s3.put_object, await s3.get_object, transfer.upload_file), async DynamoDB operations, async SQS (await sqs.send_message, receive_message), async SNS, async Secrets Manager, aiobotocore underneath (wraps botocore with aiohttp), paginator async iteration (async for page in paginator.paginate()), and transfer manager for multipart upload/download. Required for async Python web services that need non-blocking AWS access in FastAPI/aiohttp handlers.",
+  "use_cases": [
+    "Agent async S3 upload — async with aioboto3.Session().client('s3') as s3: await s3.put_object(Bucket='agent-results', Key='output.json', Body=json.dumps(results).encode()) — non-blocking S3 upload in async agent; FastAPI endpoint uploads agent output to S3 without blocking event loop; concurrent with other request handling",
+    "Agent async S3 download — async with session.client('s3') as s3: response = await s3.get_object(Bucket='agent-data', Key='config.json'); body = await response['Body'].read(); config = json.loads(body) — async S3 read; agent loads configuration from S3 at startup without blocking other init tasks",
+    "Agent async DynamoDB — async with session.resource('dynamodb') as dynamodb: table = await dynamodb.Table('agent-state'); await table.put_item(Item={'agent_id': aid, 'status': 'running', 'ts': str(now)}); item = await table.get_item(Key={'agent_id': aid}) — non-blocking DynamoDB state persistence; async agent stores and retrieves state without blocking",
+    "Agent async S3 paginator — async with session.client('s3') as s3: paginator = s3.get_paginator('list_objects_v2'); async for page in paginator.paginate(Bucket='data', Prefix='2024/'): for obj in page['Contents']: process(obj['Key']) — async pagination over large S3 buckets; agent discovery iterates all objects without blocking event loop between pages",
+    "Agent async SQS consumer — async with session.client('sqs') as sqs: while True: resp = await sqs.receive_message(QueueUrl=queue_url, MaxNumberOfMessages=10, WaitTimeSeconds=20); for msg in resp.get('Messages', []): await process(msg); await sqs.delete_message(QueueUrl=queue_url, ReceiptHandle=msg['ReceiptHandle']) — async SQS long-poll consumer; agent async microservice processes tasks from SQS without blocking"
+  ],
+  "not_for": [
+    "Sync Python codebases — use boto3 directly for synchronous AWS access; aioboto3 requires asyncio event loop",
+    "Simple scripts — boto3 sync is simpler for scripts; aioboto3 adds async overhead for no benefit in non-async code",
+    "Lambda functions — Lambda runs sync by default; use boto3 unless using async Lambda handlers with asyncio.run()"
+  ],
+  "best_when": "Async Python web services (FastAPI, aiohttp, asyncio microservices) making AWS API calls — aioboto3 enables non-blocking S3/DynamoDB/SQS operations that would otherwise block the async event loop with boto3.",
+  "avoid_when": "Your Python code is synchronous (use boto3), you're writing scripts (use boto3), or running standard sync Lambda (use boto3).",
+  "alternatives": ["boto3-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["aws_credentials", "iam_role", "assume_role"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "AWS credentials via environment (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY), ~/.aws/credentials, EC2/ECS/Lambda instance role, or aioboto3.Session(aws_access_key_id=...). IAM roles preferred for production."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, Apache 2.0 licensed. AWS service costs apply separately.",
+    "paid_tiers": "AWS service costs (S3, DynamoDB, SQS) charged by AWS separately",
+    "requires_credit_card": false,
+    "notes": "aioboto3 library is Apache 2.0 licensed. AWS API costs are standard AWS pricing."
+  },
+  "performance": {
+    "latency_p50_ms": 50,
+    "latency_p99_ms": 500,
+    "uptime_sla_percent": 99.99,
+    "rate_limits": "AWS service-specific limits apply. S3: 5500 PUT/sec, 5500 GET/sec per prefix. DynamoDB: provisioned or on-demand throughput. SQS: 3000 req/sec standard queue. Async enables higher concurrency than boto3 for same thread count.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": true,
+    "domain_verification": false,
+    "data_residency": ["aws-us-east-1", "aws-us-west-2", "aws-eu-west-1", "aws-ap-southeast-1"],
+    "compliance": ["SOC2", "ISO27001", "GDPR", "HIPAA", "FedRAMP"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 78,
+    "error_message_quality": 80,
+    "error_message_notes": "botocore.exceptions.ClientError with Code and Message for AWS API errors. botocore.exceptions.NoCredentialsError for missing credentials. aiohttp.ClientConnectionError for network issues. AWS error codes consistent with boto3. response['Error']['Code'] for programmatic error handling.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "S3 PutObject is idempotent. DynamoDB PutItem is idempotent. SQS messages not idempotent (exactly-once requires deduplication). Use S3/DynamoDB idempotency for at-least-once agent retry patterns.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Must use async context manager — async with aioboto3.Session().client('s3') as s3: is required; creating client without context manager leaks connections; agent code doing s3 = await session.client('s3') without async with causes connection pool exhaustion; always use 'async with'",
+      "Session should be created once not per request — aioboto3.Session() is lightweight but creating per-request creates connection overhead; agent FastAPI app should create Session at startup: app.state.session = aioboto3.Session(); reuse session across requests for connection pooling",
+      "response['Body'].read() must be awaited — s3.get_object() returns dict with 'Body' as StreamingBody; body = response['Body'].read() is sync (wrong); must await: body = await response['Body'].read(); agent code copying boto3 patterns fails silently with coroutine object instead of bytes",
+      "Paginator iteration is async for not for — boto3 paginator uses for page in paginator.paginate(); aioboto3 paginator requires async for page in paginator.paginate(); agent code using sync for loop over aioboto3 paginator gets coroutine objects not page dicts",
+      "ClientError needs Code extraction — except botocore.exceptions.ClientError as e: error_code = e.response['Error']['Code']; if error_code == 'NoSuchKey': handle_missing(); agent code catching ClientError must extract Code from response dict; comparing exception message string is fragile",
+      "Transfer manager for large files — await s3.put_object(Body=large_bytes) is fine for <100MB but uses more memory; for >100MB use: async with session.client('s3') as s3: await s3.upload_file('local.file', 'bucket', 'key') which uses multipart; agent ML model uploads must use transfer manager for >5GB files"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 78,
+    "error_handling_score": 80,
+    "auth_complexity_score": 82,
+    "rate_limit_clarity_score": 85
+  },
+  "security_score_components": {
+    "tls_enforcement": 95,
+    "auth_strength": 92,
+    "scope_granularity": 90,
+    "dependency_hygiene": 85,
+    "secret_handling": 90,
+    "security_notes": "Use IAM roles not access keys for production agent deployments. Never hardcode AWS credentials — use environment variables or instance roles. Enable S3 server-side encryption for sensitive agent data. VPC endpoints for private network access without internet routing."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 78,
+    "breaking_changes_history": 75,
+    "error_recovery": 82
+  }
+}

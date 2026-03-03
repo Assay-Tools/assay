@@ -1,0 +1,106 @@
+{
+  "id": "geopy-python-api",
+  "name": "geopy",
+  "version_evaluated": "2.4.x",
+  "homepage": "https://geopy.readthedocs.io/",
+  "repo_url": "https://github.com/geopy/geopy",
+  "category": "developer-tools",
+  "subcategories": ["geospatial", "python", "geocoding", "location"],
+  "tags": ["python", "geopy", "geocoding", "geospatial", "location", "nominatim", "google-maps", "distance"],
+  "what_it_does": "Geocoding library for Python — convert addresses to coordinates and back, calculate distances. geopy features: Nominatim geocoder (OpenStreetMap, free), GoogleV3 geocoder, ArcGIS, Bing, HERE, and 20+ other geocoders, geocode() for address→coordinates, reverse() for coordinates→address, GeocoderTimedOut handling, geopy.distance.geodesic() for great-circle distance calculation, geopy.distance.great_circle() for haversine, and User-Agent rate limiting compliance. Unified interface across 20+ geocoding providers — switch backends with one line change.",
+  "use_cases": [
+    "Agent address geocoding — from geopy.geocoders import Nominatim; geolocator = Nominatim(user_agent='my-agent-app'); location = geolocator.geocode('1600 Pennsylvania Ave, Washington DC'); print(location.latitude, location.longitude) — convert address to coordinates; agent location-aware service geocodes user-provided addresses for mapping or proximity queries",
+    "Agent reverse geocoding — from geopy.geocoders import Nominatim; geolocator = Nominatim(user_agent='my-agent'); location = geolocator.reverse('48.8566, 2.3522') — GPS coordinates to human address; agent fleet tracker converts vehicle GPS coordinates to human-readable locations for driver logs",
+    "Agent distance calculation — from geopy.distance import geodesic; nyc = (40.7128, -74.0060); london = (51.5074, -0.1278); dist = geodesic(nyc, london).km; dist_miles = geodesic(nyc, london).miles — accurate great-circle distance in km or miles; agent delivery optimizer calculates distances between depot and customer locations",
+    "Agent proximity filtering — from geopy.distance import geodesic; center = (37.7749, -122.4194); nearby = [loc for loc in locations if geodesic(center, (loc.lat, loc.lng)).km < 5] — filter locations within 5km radius; agent local search finds nearby restaurants, stores, or agents within proximity threshold",
+    "Agent batch geocoding with rate limiting — from geopy.extra.rate_limiter import RateLimiter; geocode = RateLimiter(geolocator.geocode, min_delay_seconds=1); results = [geocode(addr) for addr in address_list] — rate-limited batch geocoding; agent data enrichment pipeline adds coordinates to address list without violating Nominatim 1 req/sec policy"
+  ],
+  "not_for": [
+    "High-volume geocoding — Nominatim is 1 req/sec limited; for 100K+ geocodes use Google Maps API (paid) or batch geocoding services",
+    "Routing and directions — geopy is geocoding only; for turn-by-turn routing use OSRM, GraphHopper, or Google Directions API",
+    "Geospatial analysis — geopy does distance and geocoding; for polygon operations and spatial joins use Shapely and GeoPandas"
+  ],
+  "best_when": "Converting addresses to coordinates, reverse geocoding GPS positions, or calculating geographic distances — geopy's unified interface supports 20+ geocoding providers and handles the tedious API-specific formatting.",
+  "avoid_when": "You need routing/directions, high-volume geocoding (>1M/month), or complex geospatial analysis (use Shapely/GeoPandas).",
+  "alternatives": ["geopandas-api", "shapely-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["api_key"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Nominatim (OpenStreetMap) requires User-Agent string only — no API key. Google Maps requires API key. Most commercial geocoders need API keys. Keys passed to geocoder constructor."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Nominatim is free with 1 req/sec limit. Other geocoders have their own pricing.",
+    "paid_tiers": "Commercial geocoders (Google Maps, HERE, Bing) charged per geocode by their providers",
+    "requires_credit_card": false,
+    "notes": "geopy library is MIT licensed and free. Geocoding API costs depend on chosen provider. Nominatim (OpenStreetMap) is free for non-commercial and light commercial use."
+  },
+  "performance": {
+    "latency_p50_ms": 200,
+    "latency_p99_ms": 2000,
+    "uptime_sla_percent": null,
+    "rate_limits": "Nominatim: 1 req/sec (enforced by ToS). Google Maps: 50 req/sec default. Use RateLimiter for batch processing. Commercial geocoders offer higher rate limits with paid tiers.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["cloud"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 80,
+    "error_message_notes": "GeocoderTimedOut for slow responses. GeocoderUnavailable when service down. GeocoderQuotaExceeded for rate limit violations. ConfigurationError for missing API key. geocode() returns None for unresolvable addresses (not exception).",
+    "idempotency_support": "full",
+    "idempotency_notes": "geocode() for same address returns same location (deterministic for stable geocoding services). reverse() for same coordinates returns same address. Results may vary if geocoding database is updated.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "geocode() returns None not exception for failed lookup — geolocator.geocode('nonexistent address 99999') returns None, not raises exception; agent code doing location.latitude fails with AttributeError on None; always check: location = geolocator.geocode(addr); if location is None: handle_not_found()",
+      "Nominatim requires unique User-Agent — Nominatim ToS requires identifying User-Agent: Nominatim(user_agent='my-agent-app/1.0 (contact@example.com)'); using generic user_agent='test' or 'myapp' risks being blocked; blocked Nominatim users get 403 responses for all requests",
+      "Nominatim 1 req/sec limit must be respected — sending more than 1 request/second to Nominatim violates ToS and results in ban; agent batch geocoding must use RateLimiter: from geopy.extra.rate_limiter import RateLimiter; geocode = RateLimiter(geolocator.geocode, min_delay_seconds=1)",
+      "GeocoderTimedOut should be retried — network timeouts are transient; agent code must wrap in retry: from tenacity import retry, stop_after_attempt; @retry(stop=stop_after_attempt(3)); geopy doesn't retry automatically; add tenacity or similar retry logic for production agent geocoding",
+      "location.raw contains full geocoder response — location.address is formatted string; location.raw is the full provider JSON/dict response with detailed fields (neighborhood, city, country_code); agent code needing specific address components should access location.raw directly rather than parsing location.address string",
+      "Different geocoders return different accuracy — Nominatim returns neighborhood-level for some addresses where Google returns exact building location; agent geocoding for delivery routing should test accuracy with representative addresses before choosing provider; accuracy varies significantly by geography"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 80,
+    "auth_complexity_score": 90,
+    "rate_limit_clarity_score": 85
+  },
+  "security_score_components": {
+    "tls_enforcement": 88,
+    "auth_strength": 85,
+    "scope_granularity": 82,
+    "dependency_hygiene": 85,
+    "secret_handling": 85,
+    "security_notes": "API keys for commercial geocoders must be stored in environment variables. Location data sent to geocoding providers — use self-hosted Nominatim for sensitive address data. No credential storage in geopy itself."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 82,
+    "version_stability": 85,
+    "breaking_changes_history": 85,
+    "error_recovery": 80
+  }
+}
