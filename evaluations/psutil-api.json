@@ -1,0 +1,106 @@
+{
+  "id": "psutil-api",
+  "name": "psutil",
+  "version_evaluated": "5.9+",
+  "homepage": "https://psutil.readthedocs.io/",
+  "repo_url": "https://github.com/giampaolo/psutil",
+  "category": "developer-tools",
+  "subcategories": ["system-monitoring", "process-management", "python"],
+  "tags": ["system", "monitoring", "process", "cpu", "memory", "disk", "network", "python", "cross-platform"],
+  "what_it_does": "Cross-platform Python library for accessing system and process information. psutil provides CPU usage, memory stats, disk I/O, network connections, and process management (list, kill, inspect) through a unified Python API that works on Linux, macOS, and Windows. Used in monitoring agents, resource-aware task schedulers, and system health checks.",
+  "use_cases": [
+    "Build agent health checks that verify system resource availability before starting compute-intensive tasks — check CPU, memory, and disk usage",
+    "Monitor agent process resource consumption (CPU%, memory RSS) and implement auto-scaling or throttling based on psutil metrics",
+    "Enumerate running processes to detect required services (databases, queues) are up before agent workflows begin",
+    "Collect system telemetry for agent observability dashboards — CPU per-core, network bytes sent/received, disk read/write rates",
+    "Implement graceful degradation in agent pipelines by monitoring available memory and reducing batch size when resources are constrained"
+  ],
+  "not_for": [
+    "Distributed system monitoring across multiple hosts — use Prometheus node_exporter or Datadog agent for fleet monitoring; psutil is single-host only",
+    "Container-aware resource monitoring — psutil reads host metrics in containers, not container-scoped cgroup limits; use docker stats API for container resource usage",
+    "Long-term metrics storage and alerting — psutil is a point-in-time snapshot library; use Prometheus/Grafana for time-series monitoring"
+  ],
+  "best_when": "You need simple, cross-platform system resource inspection in a Python script or agent without external monitoring infrastructure.",
+  "avoid_when": "You need distributed fleet monitoring, container-aware cgroup metrics, or time-series metric collection — use proper observability infrastructure.",
+  "alternatives": ["prometheus-client-api", "datadog-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No authentication — local Python library. Elevated privileges required for some operations (process memory maps, other users' processes)."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, BSD 3-Clause license",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "psutil is open source and free."
+  },
+  "performance": {
+    "latency_p50_ms": 5,
+    "latency_p99_ms": 50,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — local execution. Rapid polling of process stats can increase CPU overhead.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["local"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 90,
+    "error_message_quality": 85,
+    "error_message_notes": "Raises AccessDenied for privileged operations with clear permission context. NoSuchProcess raised when a PID disappears between listing and inspection. ZombieProcess for completed but unreaped processes. All documented with specific exception types.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Read-only by default — system queries are idempotent. Process termination (kill) is obviously not idempotent.",
+    "pagination_style": "none",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "psutil.process_iter() can raise NoSuchProcess mid-iteration as processes die — always wrap in try/except NoSuchProcess when iterating",
+      "In Docker containers, psutil reads host system metrics (all CPUs, all memory) not container cgroup limits — cpu_count() returns host CPU count, not container CPU quota",
+      "CPU percent on first call always returns 0.0 — must call twice with an interval or use per_cpu=True with a sleep between calls to get meaningful readings",
+      "Memory info types vary by OS — 'rss' is reliable cross-platform; 'vms', 'shared', 'text' are platform-specific and may be 0 on some systems",
+      "Process.connections() requires elevated privileges on macOS for processes owned by other users — use try/except AccessDenied in agents running as non-root",
+      "Disk I/O counters (disk_io_counters) may be None on some virtual machines and container environments — always check for None before using"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 90,
+    "error_handling_score": 85,
+    "auth_complexity_score": 100,
+    "rate_limit_clarity_score": 100
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 100,
+    "scope_granularity": 100,
+    "dependency_hygiene": 92,
+    "secret_handling": 90,
+    "security_notes": "Local execution only. Process inspection capabilities could leak sensitive info (command lines with passwords) — ensure agents using psutil don't log raw process command lines."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 100,
+    "version_stability": 92,
+    "breaking_changes_history": 90,
+    "error_recovery": 88
+  }
+}

@@ -1,0 +1,106 @@
+{
+  "id": "gevent-api",
+  "name": "gevent",
+  "version_evaluated": "23+",
+  "homepage": "http://www.gevent.org/",
+  "repo_url": "https://github.com/gevent/gevent",
+  "category": "developer-tools",
+  "subcategories": ["async", "concurrency", "networking", "python"],
+  "tags": ["greenlet", "coroutine", "networking", "monkey-patch", "python", "gunicorn", "concurrency", "libev"],
+  "what_it_does": "Python concurrency library using greenlets (cooperative coroutines) with monkey-patching to make blocking stdlib calls non-blocking. gevent.monkey.patch_all() transparently makes socket, threading, and I/O operations async without code changes — existing synchronous code becomes concurrent. Powers Gunicorn's gevent worker and used in legacy Python services for I/O concurrency without async/await syntax.",
+  "use_cases": [
+    "Add concurrency to existing synchronous Python code bases without rewriting to async/await — monkey-patch once and get greenlet-based concurrency",
+    "Run high-concurrency Gunicorn web servers with gevent workers for I/O-bound workloads without migrating to ASGI",
+    "Build concurrent web scrapers using gevent's gevented requests/urllib without async code — spawn thousands of greenlets for parallel HTTP",
+    "Parallelize I/O-bound agent operations (file reads, network calls) in legacy codebases that can't adopt asyncio",
+    "Create event-driven socket servers with gevent.server.StreamServer for high-connection-count TCP services"
+  ],
+  "not_for": [
+    "New Python projects — use asyncio or Trio for new code; gevent's monkey-patching approach is legacy and harder to reason about",
+    "CPU-bound parallelism — gevent uses cooperative coroutines in a single thread; use multiprocessing or Joblib for CPU-bound work",
+    "Code that interacts with C extensions that don't release the GIL — monkey-patching won't help with C-level blocking calls"
+  ],
+  "best_when": "You have legacy synchronous Python code that needs I/O concurrency without a full async rewrite — monkey-patching provides concurrency with minimal code changes.",
+  "avoid_when": "Starting a new project — use asyncio or Trio. gevent is a pragmatic solution for legacy code, not a first choice for greenfield work.",
+  "alternatives": ["anyio-api", "trio-api", "asyncio-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No authentication — local Python library."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT license",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "gevent is open source and free."
+  },
+  "performance": {
+    "latency_p50_ms": 1,
+    "latency_p99_ms": 10,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — performance depends on greenlet count and I/O throughput.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["local"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 75,
+    "error_message_quality": 68,
+    "error_message_notes": "gevent error messages are often greenlet tracebacks that are harder to read than regular Python tracebacks. GreenletExit is used for cancellation. Monkey-patching errors are particularly cryptic.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Monkey-patching is global and not reversible — calling patch_all() twice is idempotent but unpatching is not supported. Greenlet operations themselves are idempotent.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "gevent.monkey.patch_all() must be called BEFORE any other imports that use socket/threading — import order is critical; call at the very top of main module",
+      "Monkey-patching incompatible with some C extensions (psycopg2 without green mode, some SSL libraries) — test thoroughly; subtle bugs can appear under load",
+      "CPU-bound greenlets starve all others since cooperative scheduling requires explicit yield points (gevent.sleep(0)) — use threads for CPU-heavy work",
+      "gevent.pool.Pool size must be tuned — unlimited greenlets (Pool(None)) can exhaust file descriptors and memory on high-traffic systems",
+      "Greenlet stack traces are harder to read than regular Python tracebacks — gevent provides gevent.util.print_run_info() for debugging stuck greenlets",
+      "The requests library works with gevent after monkey-patch, but urllib3's connection pool may need explicit gevent pool patching for correct behavior"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 75,
+    "error_handling_score": 68,
+    "auth_complexity_score": 100,
+    "rate_limit_clarity_score": 100
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 100,
+    "scope_granularity": 100,
+    "dependency_hygiene": 78,
+    "secret_handling": 85,
+    "security_notes": "Local execution. Monkey-patching modifies SSL/TLS socket behavior globally — verify TLS certificate validation still works correctly after patch_all() in production."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 100,
+    "version_stability": 78,
+    "breaking_changes_history": 75,
+    "error_recovery": 70
+  }
+}

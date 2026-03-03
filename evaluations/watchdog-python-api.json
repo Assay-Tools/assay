@@ -1,0 +1,106 @@
+{
+  "id": "watchdog-python-api",
+  "name": "Watchdog (Python)",
+  "version_evaluated": "4.0+",
+  "homepage": "https://python-watchdog.readthedocs.io/",
+  "repo_url": "https://github.com/gorakhargosh/watchdog",
+  "category": "developer-tools",
+  "subcategories": ["file-watching", "event-driven", "python"],
+  "tags": ["file-watching", "inotify", "fsevents", "kqueue", "python", "event-driven", "hot-reload", "automation"],
+  "what_it_does": "Cross-platform Python library for monitoring filesystem events — file creation, modification, deletion, and directory changes. Uses native OS APIs (inotify on Linux, FSEvents on macOS, ReadDirectoryChangesW on Windows) with polling fallback for network filesystems. Used for hot-reload dev servers, file-triggered pipelines, and watch-based automation.",
+  "use_cases": [
+    "Trigger agent workflows when new files arrive in a watched directory — process uploads, outputs, or data drops automatically",
+    "Build file-based event pipelines where agent actions are triggered by file system changes (new model checkpoints, data exports)",
+    "Implement hot-reload functionality in agent development environments that restart or reload configs when source files change",
+    "Monitor agent output directories and trigger downstream processing steps when output files are written",
+    "Watch configuration files for changes and apply live config updates to long-running agent processes without restart"
+  ],
+  "not_for": [
+    "Distributed file system monitoring across multiple hosts — Watchdog monitors local filesystem only; use S3 event notifications or cloud storage triggers for distributed monitoring",
+    "High-frequency file changes at scale — many rapid changes can overwhelm the event queue; debounce events for high-frequency write scenarios",
+    "Network filesystems without polling — inotify/FSEvents don't work on NFS/SMB; use polling observer for network mounts"
+  ],
+  "best_when": "You need cross-platform filesystem event monitoring in Python for local files — triggering actions on file changes without polling loops.",
+  "avoid_when": "You're watching network-mounted filesystems or need distributed file event streaming — use cloud storage event notifications instead.",
+  "alternatives": ["inotify-tools-api", "s3-event-notifications-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No authentication — local Python library. Uses OS filesystem permissions for access control."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, Apache 2.0 license",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Watchdog is open source and free."
+  },
+  "performance": {
+    "latency_p50_ms": 50,
+    "latency_p99_ms": 500,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — local execution. inotify queue size limits apply on Linux (default 8192 events).",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["local"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 82,
+    "error_message_quality": 75,
+    "error_message_notes": "Observer thread exceptions are silently swallowed by default — must subclass or set unhandled_exception_handler to surface errors from event handlers.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "File system events are not idempotent — the same file modification produces a single event. Agents must handle event deduplication if the same file is processed multiple times across restarts.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "FileCreatedEvent may fire before the file is fully written — use a small delay or watch for FileModifiedEvent to ensure file is complete before processing",
+      "On macOS with FSEvents, events are delivered in batches every ~1s — not true real-time; use polling observer for lower latency on macOS",
+      "inotify watch limits on Linux default to 8192 — monitoring deep directory trees can exhaust watches; increase fs.inotify.max_user_watches in /proc/sys/fs/inotify",
+      "ObservedWatch paths must exist at observer start time — watching a directory that doesn't exist yet requires polling or creating the directory first",
+      "Recursive=True on Windows uses polling for subdirectories > 2 levels deep and can miss events for deeply nested structures",
+      "Event handler exceptions crash the observer thread silently — always wrap handler logic in try/except and log errors to prevent silent failures"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 82,
+    "error_handling_score": 72,
+    "auth_complexity_score": 100,
+    "rate_limit_clarity_score": 100
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 100,
+    "scope_granularity": 100,
+    "dependency_hygiene": 85,
+    "secret_handling": 88,
+    "security_notes": "Local filesystem only. Event handlers in agent pipelines should validate file paths to prevent path traversal if watch directories are user-controllable."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 100,
+    "version_stability": 80,
+    "breaking_changes_history": 78,
+    "error_recovery": 72
+  }
+}
