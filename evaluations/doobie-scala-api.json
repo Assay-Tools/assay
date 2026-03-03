@@ -1,0 +1,106 @@
+{
+  "id": "doobie-scala-api",
+  "name": "Doobie",
+  "version_evaluated": "1.x",
+  "homepage": "https://tpolecat.github.io/doobie/",
+  "repo_url": "https://github.com/tpolecat/doobie",
+  "category": "developer-tools",
+  "subcategories": ["database", "functional-programming", "scala", "jdbc", "postgresql"],
+  "tags": ["scala", "database", "jdbc", "postgresql", "functional-programming", "typelevel", "cats-effect", "sql", "pure-fp"],
+  "what_it_does": "Pure functional JDBC layer for Scala built on Cats Effect. Doobie wraps JDBC in IO effects — SQL queries are values, not side effects. Provides composable fragments (fr'SQL'), type-safe query construction, automatic Scala type mapping for query results, and connection pool management (HikariCP). Queries are simple string interpolation with typed results: sql'SELECT name FROM users WHERE id = $id'.query[String].unique",
+  "use_cases": [
+    "Query PostgreSQL/MySQL from Scala agent backends using simple SQL string interpolation with automatic result mapping to case classes",
+    "Compose SQL queries as values using doobie's Fragment type — build dynamic WHERE clauses by combining fragments without string concatenation SQL injection risks",
+    "Manage database connections in Cats Effect agents using HikariTransactor with proper resource lifecycle management",
+    "Test database queries in isolation using Doobie's Check trait — verifies column types and nullability match Scala types at compile time against a real database",
+    "Execute transactional agent operations atomically using transact — wraps multiple queries in a single Cats Effect IO transaction"
+  ],
+  "not_for": [
+    "Non-Scala stacks — Doobie is Scala-specific; use SQLAlchemy (Python), JOOQ (Java), or Ecto (Elixir) for other languages",
+    "Teams preferring ORM-style models over SQL — Doobie is SQL-first; use Slick or Quill for ORM-style table mapping",
+    "Simple scripts not using Cats Effect — if you're not already using Cats Effect IO, Doobie's transactor setup adds friction"
+  ],
+  "best_when": "You're building a Typelevel/Cats Effect Scala backend that needs PostgreSQL/MySQL and want to write plain SQL with type-safe result mapping and proper effect management.",
+  "avoid_when": "You prefer an ORM abstraction over SQL (use Slick or Quill), or aren't using the Cats Effect ecosystem. Doobie's value is tightly coupled to its IO/Resource integration.",
+  "alternatives": ["slick-scala-api", "quill-scala-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["scala"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Doobie manages database credentials via HikariTransactor configuration. Database username/password passed through Transactor.fromHikariConfig or environment variables. No web auth."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Doobie is MIT licensed, maintained by Rob Norris (tpolecat). Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 2,
+    "latency_p99_ms": 20,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — local JDBC library. HikariCP connection pool manages concurrency.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 82,
+    "error_message_notes": "Doobie SQL errors include JDBC exception with query context. Check.run in tests validates Scala/SQL type mappings against live DB schema. Type mapping errors are compile-time when using strongly typed queries. Error wrapping in Cats Effect IO chain.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Read queries are idempotent. Write operations require application idempotency. Transactor.trans wraps multiple queries in one transaction — all succeed or all fail.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "HikariTransactor must be created inside Resource — using Transactor.fromHikariConfig directly without Resource leaks the connection pool on application shutdown",
+      "Doobie queries are not type-safe at compile time for column names — incorrect column name in SQL string only fails at runtime; use Check.run in tests to catch schema mismatches early",
+      "Fragment interpolation prevents SQL injection by using prepared statements — but fr'...' fragments must be composed, not concatenated with Scala string interpolation, to maintain injection safety",
+      "Streams from doobie (sql'...'.stream) require transact — Doobie streams must be transacted before fs2 Stream operations; failing to transact releases the connection before data is consumed",
+      "Null handling in Doobie requires Option types — non-optional Scala types in queries mapped to nullable SQL columns throw NullPointerException at runtime; always use Option[T] for nullable columns",
+      "Large result sets should use .stream not .list — sql'...'.query[T].list loads all rows into memory; use .stream for paginated consumption of large agent datasets"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 82,
+    "auth_complexity_score": 90,
+    "rate_limit_clarity_score": 88
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 88,
+    "scope_granularity": 82,
+    "dependency_hygiene": 88,
+    "secret_handling": 85,
+    "security_notes": "Prepared statements via JDBC prevent SQL injection. Fragment composition is injection-safe. Database credentials via HikariCP config from environment. TLS via JDBC URL ssl=true parameter."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 85,
+    "version_stability": 82,
+    "breaking_changes_history": 78,
+    "error_recovery": 85
+  }
+}
