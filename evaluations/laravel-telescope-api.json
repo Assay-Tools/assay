@@ -1,0 +1,106 @@
+{
+  "id": "laravel-telescope-api",
+  "name": "Laravel Telescope",
+  "version_evaluated": "5.x",
+  "homepage": "https://laravel.com/docs/telescope",
+  "repo_url": "https://github.com/laravel/telescope",
+  "category": "developer-tools",
+  "subcategories": ["debugging", "php", "laravel", "observability", "monitoring"],
+  "tags": ["php", "laravel", "debugging", "monitoring", "profiling", "requests", "queries", "jobs"],
+  "what_it_does": "Debug assistant for Laravel applications — provides a web UI showing all requests, database queries, exceptions, jobs, mail, notifications, cache operations, and scheduled tasks. Telescope captures: HTTP request/response with headers and payload, SQL queries with bindings and execution time, queue job execution with payload and result, exception details with stack trace, mail previews, Redis commands, and log entries. All data stored in database (telescope_entries table). Dashboard at /telescope for real-time debugging. Watcher configuration controls what is captured. Essential for agent service debugging — shows exactly what SQL queries agent handlers execute and what jobs are queued.",
+  "use_cases": [
+    "Debug agent API request slow queries — Telescope Queries watcher shows all SQL queries per request with execution times; identify N+1 queries in agent list endpoints by seeing 50+ similar SELECT statements for single agent page load",
+    "Inspect agent job payloads — Telescope Jobs watcher shows agent job class, queue, payload data, and execution result; debug why agent task jobs are failing without adding debug logging",
+    "Agent exception investigation — Telescope Exceptions watcher captures full exception with stack trace, context, and related request; investigate agent service errors with full context including request parameters and user",
+    "Agent email preview — Telescope Mail watcher previews emails sent by agent notification system; verify agent welcome emails and alert notifications render correctly without real email delivery",
+    "Monitor agent cache performance — Telescope Cache watcher shows cache hits/misses/writes per request; identify agent endpoints with poor cache utilization or unexpected cache invalidation patterns"
+  ],
+  "not_for": [
+    "Production monitoring at scale — Telescope stores everything in database; high-traffic agent production apps generate massive Telescope data volume; use for local development and staging, not as production APM",
+    "Performance profiling — Telescope shows query times but not full PHP call stack profiling; for agent service CPU profiling and memory analysis, use Xdebug or Blackfire",
+    "Distributed tracing — Telescope captures per-request data on single server; for agent microservices across multiple services, use OpenTelemetry with distributed trace propagation"
+  ],
+  "best_when": "You're developing a Laravel agent service locally or on staging and need to understand what SQL queries are generated, what jobs are enqueued, and what exceptions are thrown — Telescope is the complete development debug assistant.",
+  "avoid_when": "You're in production with high traffic (too much data), you need real performance profiling (use Xdebug), or you need distributed tracing across agent microservices.",
+  "alternatives": ["laravel-debugbar-api", "laravel-pulse-api", "blackfire-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["php"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["session"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Telescope dashboard gated by gate in TelescopeServiceProvider: Gate::define('viewTelescope', fn($user) => $user->isAdmin()). Disabled in production by default (TELESCOPE_ENABLED env)."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Laravel Telescope is MIT licensed, maintained by Laravel team. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 5,
+    "latency_p99_ms": 50,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Telescope adds ~5ms per request for data capture and storage. Significant disk space usage at scale; configure pruning schedule (php artisan telescope:prune) to prevent telescope_entries table from growing unbounded.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 90,
+    "error_message_quality": 88,
+    "error_message_notes": "Telescope itself rarely errors. telescope_entries table overflow or migration failure causes watcher capture failures (silent for non-critical watchers). Dashboard 500 errors from database schema mismatch after updates — run php artisan telescope:publish to update migrations.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Telescope is append-only read tool — no mutation of application state. Entry capture is independent per request.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Telescope must be disabled in production or heavily filtered — TELESCOPE_ENABLED=false in production .env prevents capturing; if enabled, use filterUsing() callback to capture only exceptions and failed jobs in production; full capture in production degrades agent API performance and stores sensitive request payloads in database",
+      "telescope_entries table grows without pruning — Telescope captures every request by default; agent development server running for weeks accumulates millions of rows; schedule App\\Console\\Kernel::schedule with $schedule->command('telescope:prune --hours=48') to automatically prune old agent debug entries",
+      "Sensitive agent data captured in request payloads — Telescope captures full request body including agent passwords, API keys in POST data; configure hiddenRequestParameters in config/telescope.php to filter sensitive agent fields from captured payloads; never store Telescope data in version-controlled files",
+      "Telescope uses separate database connection in high-traffic scenarios — by default Telescope uses same database as application; queue watcher stores agent job payloads in telescope_entries causing DB contention in busy agent services; configure TELESCOPE_DB_CONNECTION to separate database for agent job-heavy workloads",
+      "Slow query detection requires query watcher enabled — QueryWatcher must be enabled in config/telescope.php watchers; slow_threshold config (default 100ms) tags slow agent queries; without QueryWatcher or with threshold too high, slow agent queries are invisible in Telescope dashboard",
+      "Horizon and Telescope require separate storage configuration — if using both Laravel Horizon (Redis) and Telescope (database) for agent job monitoring, they capture redundant failed job data; configure Horizon for job metrics and Telescope for per-request query analysis to avoid storage overlap in agent observability stack"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 90,
+    "error_handling_score": 88,
+    "auth_complexity_score": 85,
+    "rate_limit_clarity_score": 90
+  },
+  "security_score_components": {
+    "tls_enforcement": 85,
+    "auth_strength": 82,
+    "scope_granularity": 80,
+    "dependency_hygiene": 88,
+    "secret_handling": 72,
+    "security_notes": "CRITICAL: Telescope captures full request payloads including passwords and agent API keys — disable in production or configure sensitive field filtering. Dashboard must be authenticated — exposes all agent request history. Never commit telescope_entries database dumps to version control. Limit Telescope data retention with pruning schedule."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 90,
+    "version_stability": 88,
+    "breaking_changes_history": 85,
+    "error_recovery": 85
+  }
+}
