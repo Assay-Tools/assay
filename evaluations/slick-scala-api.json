@@ -1,0 +1,106 @@
+{
+  "id": "slick-scala-api",
+  "name": "Slick",
+  "version_evaluated": "3.x",
+  "homepage": "https://scala-slick.org/",
+  "repo_url": "https://github.com/slick/slick",
+  "category": "developer-tools",
+  "subcategories": ["database", "scala", "sql", "orm", "reactive"],
+  "tags": ["scala", "database", "sql", "orm", "jdbc", "reactive", "functional", "type-safe", "query"],
+  "what_it_does": "Functional Relational Mapping (FRM) library for Scala — the standard Scala database access layer. Slick maps Scala collections operations (filter, map, flatMap, join) to SQL queries at compile time, providing type-safe database queries without raw SQL strings. Supports PostgreSQL, MySQL, SQLite, H2, and Oracle via JDBC. Key features: type-safe queries via Slick's lifted embedding DSL, async non-blocking database access via Scala Futures, plain SQL support (sql\"SELECT...\"), and schema code generation from existing databases. Alternative to Doobie (more functional) and Quill (macro-based).",
+  "use_cases": [
+    "Build type-safe database access for Scala agent backends using Slick — compile-time query validation prevents SQL mistakes in agent data persistence code",
+    "Implement async non-blocking database access for Play Framework agent APIs using Slick's Future-based execution model",
+    "Use Slick's schema code generation (slick-codegen) to generate Scala table definitions from existing agent databases — reverse-engineer schemas into type-safe Table classes",
+    "Query agent data with Scala collection-like syntax — filter(_.status === \"active\").sortBy(_.createdAt.desc).take(10) compiles to SELECT SQL with type safety",
+    "Write complex agent data queries mixing Slick DSL and plain SQL — Slick's sql\"\" interpolator for queries too complex for the DSL, with automatic type mapping"
+  ],
+  "not_for": [
+    "Teams wanting a more functional database layer — Doobie (Cats Effect/ZIO) provides a more purely functional approach; Slick's Future-based model is less composable with pure FP",
+    "Simple CRUD without complex queries — Exposed (Kotlin) or Quill (compile-time SQL generation) may be simpler for straightforward CRUD in Scala/JVM projects",
+    "Non-Scala JVM applications — use Spring Data JPA (Java) or Exposed (Kotlin) for Java/Kotlin; Slick is Scala-specific"
+  ],
+  "best_when": "You're building Scala applications that need type-safe SQL access with async Futures, particularly when using Play Framework or Akka where Slick's Future model integrates naturally.",
+  "avoid_when": "You're using Cats Effect/ZIO (use Doobie instead — better FP integration), want ORM-style active record patterns, or need a lighter database library without Slick's DSL learning curve.",
+  "alternatives": ["doobie-scala-api", "quill-scala-api", "exposed-kotlin-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["scala"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Database library — no auth concepts. Database credentials configured in application.conf or environment variables passed to Database.forConfig."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, BSD 2-Clause licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Slick is BSD 2-Clause licensed, maintained by Lightbend. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 5,
+    "latency_p99_ms": 50,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — database performance governed by JDBC connection pool. Slick uses HikariCP for connection pooling by default.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 78,
+    "error_message_quality": 80,
+    "error_message_notes": "Slick query compile errors are Scala type errors — column type mismatches fail at compile time. Runtime JDBC errors include SQL state codes and vendor messages. Future failures carry exception context. Slick's error messages for invalid column references can be verbose.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Database operations designed by developer. Slick DBIO transactions are composable and atomic. transactionally combinator wraps operations in SQL transaction for atomic agent data writes.",
+    "pagination_style": "offset",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Slick 3.x async model requires db.run() — all Slick DBIO actions must be executed via db.run(action) which returns a Future; Slick queries don't execute until run() is called; building complex query chains before run() is correct",
+      "Table definitions require auto-lifting — simple Scala case classes need TableQuery[T] lift; forgetting to call tableQuery.result vs tableQuery alone is a common mistake returning a Query not a DBIOAction",
+      "Slick DSL operator precedence — === for equality (not ==), =!= for inequality; using == instead of === compiles but compares column objects not values, returning wrong results silently",
+      "N+1 query problem — Slick doesn't auto-join like ORMs; loading related data requires explicit join queries or sequential db.run calls; agent data with associations needs explicit query planning",
+      "Connection pool exhaustion under load — default DatabaseConfig pool settings may be too small; configure numThreads and queueSize in application.conf; pool exhaustion causes TimeoutException in Futures",
+      "Slick 3.x and Cats Effect/ZIO integration requires bridges — slick-cats or zio-slick provide interop; don't mix raw Slick Futures with Cats IO directly without proper unsafeRun bridging"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 78,
+    "error_handling_score": 80,
+    "auth_complexity_score": 92,
+    "rate_limit_clarity_score": 92
+  },
+  "security_score_components": {
+    "tls_enforcement": 95,
+    "auth_strength": 85,
+    "scope_granularity": 80,
+    "dependency_hygiene": 85,
+    "secret_handling": 85,
+    "security_notes": "Parameterized queries prevent SQL injection. Type-safe DSL makes injection structurally impossible for DSL queries. Plain sql interpolator (sql\"\") requires careful use — use $column.bind for parameterized values not string interpolation. TLS via JDBC URL for database connection."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 80,
+    "version_stability": 78,
+    "breaking_changes_history": 75,
+    "error_recovery": 85
+  }
+}
