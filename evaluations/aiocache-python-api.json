@@ -1,0 +1,106 @@
+{
+  "id": "aiocache-python-api",
+  "name": "aiocache",
+  "version_evaluated": "0.12.x",
+  "homepage": "https://aiocache.readthedocs.io/",
+  "repo_url": "https://github.com/aio-libs/aiocache",
+  "category": "developer-tools",
+  "subcategories": ["caching", "python", "asyncio", "redis", "memcached"],
+  "tags": ["python", "aiocache", "async", "cache", "redis", "memcached", "asyncio", "decorator", "aio-libs"],
+  "what_it_does": "Async caching library for Python with pluggable backends — provides async cache operations for Redis, Memcached, and in-memory caching. aiocache features: @cached() decorator for async function memoization, @multi_cached() for batch cache, Cache.get()/set()/delete()/exists(), TTL support, serializers (JSON, pickle, msgpack), BaseCache for custom backends, RedisCache (aioredis), MemcachedCache (aiomcache), SimpleMemoryCache, namespace support, and plugins (HitMissRatioPlugin, TimingPlugin). Part of aio-libs ecosystem. Required for async web frameworks (FastAPI, aiohttp) where sync caching libraries would block the event loop.",
+  "use_cases": [
+    "Agent async function caching — from aiocache import cached; from aiocache.serializers import JsonSerializer; @cached(ttl=300, serializer=JsonSerializer()); async def get_agent_config(agent_id: str): return await db.fetch_config(agent_id) — async function result cached for 5 minutes; agent config lookup hits Redis cache on subsequent calls; zero code change to implement cache",
+    "Agent Redis caching — from aiocache import Cache; cache = Cache(Cache.REDIS, endpoint='redis', port=6379, namespace='agent'); await cache.set('session:123', session_data, ttl=3600); data = await cache.get('session:123') — async Redis cache for agent session state; FastAPI agent shares session cache across workers via Redis",
+    "Agent expensive computation caching — @cached(ttl=600, key_builder=lambda f, *args, **kwargs: f'embedding:{args[0]}'): async def compute_embedding(text: str): return await embedding_model.encode(text) — cache expensive embedding computation; agent caches repeated text embeddings for 10 minutes; reduces LLM API calls for repeated queries",
+    "Agent multi-key caching — @multi_cached(keys_from_attr='user_ids'): async def get_users(user_ids: list): return await db.bulk_fetch(user_ids) — multi_cached returns cached values and only fetches uncached IDs from DB; agent batch processing retrieves cached users and queries only new ones; reduces DB load for repeated ID sets",
+    "Agent cache invalidation — cache = Cache(Cache.REDIS, namespace='products'); await cache.delete('product:456'); await cache.clear(namespace='products') — targeted and bulk cache invalidation; agent product catalog invalidates specific product cache on update; clear() nukes all product cache on bulk import"
+  ],
+  "not_for": [
+    "Sync Python codebases — use cachetools or diskcache for sync caching; aiocache requires asyncio event loop",
+    "Persistent disk caching — aiocache is in-memory or network cache; for disk persistence use diskcache or shelve",
+    "Complex cache topologies — aiocache is simple get/set/delete; for complex caching strategies (L1/L2, write-behind) implement custom logic"
+  ],
+  "best_when": "Async Python services (FastAPI, aiohttp) needing Redis or Memcached caching without blocking the event loop — aiocache's @cached decorator integrates caching into async functions with one line.",
+  "avoid_when": "Your codebase is synchronous (use cachetools/diskcache), need persistent disk caching, or need complex cache topologies.",
+  "alternatives": ["cachetools-api", "diskcache-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none", "password"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth for SimpleMemoryCache. Redis auth via password parameter. Memcached typically no auth. Network caches in production should use VPC/firewall isolation."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, BSD licensed",
+    "paid_tiers": "Redis/Memcached hosting costs are separate",
+    "requires_credit_card": false,
+    "notes": "aiocache is BSD licensed. Cache backend hosting costs depend on provider."
+  },
+  "performance": {
+    "latency_p50_ms": 1,
+    "latency_p99_ms": 10,
+    "uptime_sla_percent": null,
+    "rate_limits": "No client-side rate limits. SimpleMemoryCache: <1ms. RedisCache: 1-5ms local. Network Redis: 1-50ms. Serialization adds overhead — use JSON for interoperability, msgpack for performance.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted", "cloud"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 75,
+    "error_message_quality": 72,
+    "error_message_notes": "ConnectionRefusedError when Redis/Memcached unavailable. CacheSerializationError for pickle/JSON serialization failure. RuntimeError when cache used outside asyncio context. aiocache exceptions wrap backend-specific errors. Error messages are Python exceptions without aiocache-specific context.",
+    "idempotency_support": "full",
+    "idempotency_notes": "@cached is idempotent — same function args return same cached value within TTL. cache.set() overwrites previous value. cache.delete() is idempotent (no error if key missing).",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Backend dependency not installed by default — Cache(Cache.REDIS) requires pip install aiocache[redis]; Cache(Cache.MEMCACHED) requires pip install aiocache[memcached]; agent code failing with ImportError on RedisCache must install extras; base aiocache only includes SimpleMemoryCache",
+      "SimpleMemoryCache does not share across workers — Cache(Cache.MEMORY) is per-process; FastAPI with multiple workers has separate cache per worker; agent expecting shared cache across workers must use Cache(Cache.REDIS) with shared Redis instance; in-process cache is only useful for single-worker deployments",
+      "TTL of None means forever — cache.set(key, value) without ttl stores indefinitely; cache.set(key, value, ttl=None) same; agent code caching API responses without TTL fills Redis with stale data; always set explicit TTL for external API response caching",
+      "Serializer must match on get and set — @cached(serializer=JsonSerializer()) caches as JSON; reading back with different serializer raises CacheSerializationError; agent code switching from pickle to JSON serializer must flush old cache: await cache.clear(); cached data format must be consistent across deployments",
+      "Key collision between different functions — @cached without custom key_builder uses function name + args as key; two functions with same name in different modules collide in shared Redis; agent code must use: key_builder=lambda f, *args: f'{f.__module__}.{f.__name__}:{args}' for unique keys across agent components",
+      "Cache misses on exception do not cache — @cached does not cache exceptions; function raising exception always calls underlying function; agent functions that raise on API error will bypass cache on every error; implement negative caching manually if needed for error responses"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 72,
+    "error_handling_score": 68,
+    "auth_complexity_score": 88,
+    "rate_limit_clarity_score": 90
+  },
+  "security_score_components": {
+    "tls_enforcement": 82,
+    "auth_strength": 78,
+    "scope_granularity": 75,
+    "dependency_hygiene": 80,
+    "secret_handling": 82,
+    "security_notes": "Redis connection should use password and TLS in production. Cached data in Redis is accessible to all clients with Redis access — do not cache secrets or PII in shared Redis without encryption. SimpleMemoryCache is process-local — safer for sensitive temporary data."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 72,
+    "version_stability": 68,
+    "breaking_changes_history": 70,
+    "error_recovery": 72
+  }
+}

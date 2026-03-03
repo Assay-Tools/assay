@@ -1,0 +1,106 @@
+{
+  "id": "urllib3-python-api",
+  "name": "urllib3",
+  "version_evaluated": "2.x",
+  "homepage": "https://urllib3.readthedocs.io/",
+  "repo_url": "https://github.com/urllib3/urllib3",
+  "category": "developer-tools",
+  "subcategories": ["http", "python", "networking", "requests"],
+  "tags": ["python", "urllib3", "http", "https", "connection-pool", "retry", "ssl", "networking"],
+  "what_it_does": "Thread-safe HTTP client library for Python — the foundational HTTP layer underneath requests. urllib3 features: PoolManager for connection pooling (reuse TCP connections), HTTPSConnectionPool for TLS connections, Retry() for configurable retry logic, response.read()/response.json() for body consumption, streaming with preload_content=False, multipart form upload, proxy support (ProxyManager), timeout tuples (connect, read), SNI support, client certificates, certificate verification, and response headers as HTTPHeaderDict. Lower-level than requests but with explicit connection pool management. Used directly when requests is too heavy or when building libraries.",
+  "use_cases": [
+    "Agent HTTP with connection pooling — import urllib3; http = urllib3.PoolManager(num_pools=10, maxsize=10); resp = http.request('GET', 'https://api.example.com/data', headers={'Authorization': f'Bearer {token}'}, timeout=30); data = resp.json() — reuse TCP connections across 100 agent requests; faster than requests for high-frequency API calls",
+    "Agent retry with backoff — from urllib3.util.retry import Retry; retry = Retry(total=5, backoff_factor=0.5, status_forcelist=[429, 500, 502, 503]); http = urllib3.PoolManager(retries=retry); resp = http.request('GET', url) — automatic retry on transient failures with exponential backoff; agent pipeline handles rate limiting and server errors without manual retry logic",
+    "Agent streaming download — resp = http.request('GET', url, preload_content=False); with open('file.bin', 'wb') as f: for chunk in resp.stream(65536): f.write(chunk); resp.release_conn() — stream large file download without loading into memory; agent downloads 1GB model file without OOM; release_conn() returns connection to pool",
+    "Agent proxy configuration — proxy = urllib3.ProxyManager('http://proxy:8080', proxy_headers={'Proxy-Authorization': f'Basic {creds}'}); resp = proxy.request('GET', 'https://internal.api.company.com/data') — route agent requests through corporate proxy; agent in enterprise network uses proxy for all external HTTP calls",
+    "Agent library building — http = urllib3.HTTPSConnectionPool('api.example.com', port=443, maxsize=5, cert_reqs='CERT_REQUIRED', ca_certs=certifi.where()); resp = http.request('GET', '/v1/endpoint') — urllib3 used as foundation for building custom HTTP client libraries; avoids requests overhead when building SDK for specific API"
+  ],
+  "not_for": [
+    "Most Python HTTP needs — use requests for simpler API with session management, cookie handling, and authentication helpers; urllib3 is lower-level",
+    "Async HTTP — use httpx or aiohttp for async; urllib3 is sync only",
+    "Modern high-level HTTP client — use httpx which adds HTTP/2, async, and better API while using urllib3 underneath"
+  ],
+  "best_when": "Building Python HTTP libraries, needing explicit connection pool control, or needing retry logic with fine-grained control — urllib3 is the battle-tested HTTP foundation under requests and pip.",
+  "avoid_when": "You want a simpler API (use requests), need async (use httpx/aiohttp), or just making occasional API calls (use requests).",
+  "alternatives": ["httpx-api", "requests-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["api_key", "bearer_token", "basic_auth"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No built-in auth handling — pass Authorization headers manually. Client certificate auth via cert_file/key_file parameters. requests library adds auth helpers on top of urllib3."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "urllib3 is MIT licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 50,
+    "latency_p99_ms": 500,
+    "uptime_sla_percent": null,
+    "rate_limits": "No client-side rate limits. PoolManager connection pooling avoids TCP overhead. maxsize controls max open connections per host. Streaming avoids memory pressure for large responses.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted", "cloud"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 80,
+    "error_message_notes": "urllib3.exceptions.MaxRetryError after retry exhaustion. urllib3.exceptions.TimeoutError for connection/read timeout. urllib3.exceptions.SSLError for certificate verification failure. urllib3.exceptions.NewConnectionError for DNS/refused connection. Specific exception hierarchy for different failure modes.",
+    "idempotency_support": "full",
+    "idempotency_notes": "GET requests are idempotent. POST requests depend on server. Connection pool reuse is transparent. Retry logic is idempotent for idempotent methods.",
+    "pagination_style": "none",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "response.data reads entire body — resp = http.request('GET', url); resp.data returns all bytes; for large responses this OOMs; agent downloading large files must use: resp = http.request('GET', url, preload_content=False); then stream; resp.release_conn() after reading to return connection to pool",
+      "urllib3 2.x dropped Python 2 and changed API — urllib3 2.x removed contrib modules and changed import paths; agent code using from urllib3.contrib.pyopenssl import inject_into_urllib3 fails in v2; many tutorials use v1 API; check version in requirements.txt if agent fails on import",
+      "PoolManager not thread-safe per pool object — PoolManager itself is thread-safe for different hosts; the individual HTTPConnectionPool is not thread-safe; agent multi-threaded code must use one PoolManager shared across threads, not share connection pool objects directly",
+      "Retries not enabled by default — urllib3.PoolManager() without retries parameter does not retry on failures; agent code must explicitly create: Retry(total=3, backoff_factor=1); and pass retries=retry to request() or PoolManager(); default behavior fails on first transient error",
+      "SSL verification requires certifi — urllib3 checks SSL certificates against system CA bundle by default; in Docker containers without system CAs: pip install certifi; ca_certs=certifi.where(); agent containers without certifi get SSL verification failures for all HTTPS connections",
+      "resp.release_conn() required after streaming — preload_content=False streams response; when done reading, call resp.release_conn() to return connection to pool; agent streaming code that forgets release_conn() exhausts connection pool after maxsize requests and hangs waiting for available connection"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 82,
+    "auth_complexity_score": 88,
+    "rate_limit_clarity_score": 90
+  },
+  "security_score_components": {
+    "tls_enforcement": 92,
+    "auth_strength": 85,
+    "scope_granularity": 82,
+    "dependency_hygiene": 90,
+    "secret_handling": 85,
+    "security_notes": "urllib3 verifies SSL certificates by default (cert_reqs='CERT_REQUIRED'). Never disable SSL verification (cert_reqs='NONE') in production. Use certifi for CA bundle in containers. API keys in Authorization headers should come from environment variables not source code."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 90,
+    "version_stability": 88,
+    "breaking_changes_history": 78,
+    "error_recovery": 88
+  }
+}
