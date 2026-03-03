@@ -1,0 +1,106 @@
+{
+  "id": "sortedcontainers-python-api",
+  "name": "sortedcontainers",
+  "version_evaluated": "2.x",
+  "homepage": "http://www.grantjenks.com/docs/sortedcontainers/",
+  "repo_url": "https://github.com/grantjenks/python-sortedcontainers",
+  "category": "developer-tools",
+  "subcategories": ["data-structures", "python", "sorted", "utilities"],
+  "tags": ["python", "sortedcontainers", "sorted-list", "sorted-dict", "sorted-set", "bisect", "priority-queue"],
+  "what_it_does": "Sorted collection types for Python — provides SortedList, SortedDict, and SortedSet that maintain sorted order with O(log n) add/discard and O(1) min/max. sortedcontainers features: SortedList with bisect_left/bisect_right, add() O(log n), pop() O(log n), SortedDict with peekitem(), irange() for range queries, islice() for sorted slices, SortedSet with irange(), set operations preserving sort order, key= parameter for custom sort keys, and pure Python implementation beating C extensions. Used in Redis-py, SciPy, and other major projects.",
+  "use_cases": [
+    "Agent priority queue — from sortedcontainers import SortedList; queue = SortedList(key=lambda x: x.priority); queue.add(task); next_task = queue.pop(0) — O(log n) insert and O(1) min access; agent task scheduler maintains priority-ordered queue; SortedList beats heapq for random access and iteration needs",
+    "Agent time-ordered event log — from sortedcontainers import SortedList; events = SortedList(key=lambda e: e.timestamp); events.add(new_event); recent = events.irange_key(start_ts, end_ts) — irange_key for efficient range queries; agent event stream stores events sorted by time; range query without scanning all events",
+    "Agent sorted dict — from sortedcontainers import SortedDict; scores = SortedDict(); scores['agent_a'] = 0.95; scores['agent_b'] = 0.87; top_agent = scores.peekitem(-1) — SortedDict maintains key-sorted order; agent leaderboard with efficient min/max access; peekitem(0) for minimum, peekitem(-1) for maximum",
+    "Agent range queries — sorted_data = SortedList(timestamps); idx_start = sorted_data.bisect_left(start_time); idx_end = sorted_data.bisect_right(end_time); window = sorted_data[idx_start:idx_end] — bisect for binary search; agent time-window queries on sorted data; O(log n) search + O(k) slice for k results",
+    "Agent unique sorted collection — from sortedcontainers import SortedSet; seen = SortedSet(); seen.add(url); unseen = [u for u in candidate_urls if u not in seen] — SortedSet: O(log n) add and O(log n) membership; agent web crawler deduplication with sorted iteration; use irange() for alphabetical range of processed URLs"
+  ],
+  "not_for": [
+    "Standard dict/list replacements — sortedcontainers adds overhead over unsorted collections; only use when sorted order is needed",
+    "Concurrent modifications — sortedcontainers is not thread-safe; for concurrent sorted collections use threading.Lock() or database indexes",
+    "Massive datasets — sortedcontainers is pure Python; for 100M+ elements use database indexes or numpy sorted arrays"
+  ],
+  "best_when": "Maintaining sorted collections with frequent insertions and range queries — sortedcontainers provides O(log n) operations without the complexity of balanced BST implementation, faster than alternatives including C extensions.",
+  "avoid_when": "You don't need sorted order (use list/dict/set), need thread safety without locks, or have 100M+ elements (use database indexes).",
+  "alternatives": ["heapq-stdlib"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — pure Python data structure library."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, Apache 2.0 licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "sortedcontainers is Apache 2.0 licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Performance: add() O(log n), discard() O(log n), __contains__ O(log n), __getitem__ O(log n), irange() O(log n + k) for k results. Benchmarks show performance comparable to C extensions (BTrees). Memory: ~130% of list for same elements.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 90,
+    "error_message_quality": 88,
+    "error_message_notes": "ValueError when adding None to SortedList without key function. KeyError for missing key in SortedDict. IndexError for out-of-bounds pop. TypeError when elements are not comparable without key function. Error messages are clear standard Python exceptions.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "SortedList.add() is idempotent if element is already present (SortedSet.add() is idempotent). SortedList.add() adds duplicates. SortedDict assignment is idempotent. discard() is idempotent (no error if missing).",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "SortedList allows duplicates, SortedSet does not — sl = SortedList([1,1,2]); len(sl) == 3; ss = SortedSet([1,1,2]); len(ss) == 2; agent code using SortedList expecting unique elements gets duplicates; use SortedSet for unique constraint; SortedList with duplicates: sl.count(1) returns 2",
+      "key= function applied to stored values not indices — SortedList(key=lambda x: x.priority) sorts by .priority attribute; add() receives full object; bisect_key_left(5.0) searches by key value (priority=5.0); agent code using bisect_left() with element must use bisect_key_left() with key value when key function is set",
+      "Not thread-safe for concurrent modifications — multiple threads calling sl.add() concurrently corrupts internal structure; agent concurrent task scheduler must use threading.Lock(): with lock: queue.add(task); next = queue.pop(0); no built-in locking; concurrent reads are safe, concurrent writes are not",
+      "irange(minimum, maximum) is inclusive on both ends — SortedList.irange(start, end) includes both start and end values; agent code wanting exclusive range must use: sl.irange(start, end, inclusive=(True, False)); irange is different from Python slice which is exclusive on upper bound",
+      "Mutation during iteration raises RuntimeError — for item in sorted_list: sorted_list.add(new_item) raises RuntimeError: deque mutated during iteration; agent code adding items based on iteration must collect new items and add after: new_items = []; for item in sl: new_items.extend(generate(item)); sl.update(new_items)",
+      "SortedDict iteration order is key order not insertion — for k, v in sorted_dict.items() iterates in sorted key order; agent code expecting insertion order must use regular dict (Python 3.7+); SortedDict.keys() returns SortedKeysView in sorted order; combining with list comprehension: sorted order guaranteed"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 90,
+    "error_handling_score": 88,
+    "auth_complexity_score": 99,
+    "rate_limit_clarity_score": 99
+  },
+  "security_score_components": {
+    "tls_enforcement": 92,
+    "auth_strength": 92,
+    "scope_granularity": 90,
+    "dependency_hygiene": 95,
+    "secret_handling": 92,
+    "security_notes": "Pure data structure library with no network calls and zero external dependencies. No security concerns. Sorting comparisons are done in Python — avoid using user-controlled objects as keys if custom __lt__ has side effects."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 90,
+    "version_stability": 92,
+    "breaking_changes_history": 92,
+    "error_recovery": 90
+  }
+}

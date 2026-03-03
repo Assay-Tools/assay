@@ -1,0 +1,106 @@
+{
+  "id": "boltons-python-api",
+  "name": "boltons",
+  "version_evaluated": "23.x",
+  "homepage": "https://boltons.readthedocs.io/",
+  "repo_url": "https://github.com/mahmoud/boltons",
+  "category": "developer-tools",
+  "subcategories": ["utilities", "python", "stdlib-extensions", "data-structures"],
+  "tags": ["python", "boltons", "utilities", "stdlib", "iterutils", "funcutils", "strutils", "typeutils", "cacheutils"],
+  "what_it_does": "Extended Python standard library — provides utilities that 'should be in the stdlib' covering iterables, strings, functions, types, caching, time, stats, and more. boltons modules: iterutils (chunked, flatten, pairwise, windowed, first, one, remap), strutils (slugify, strip_ansi, bytes2human, html2text), funcutils (wraps, partial, FunctionBuilder), typeutils (make_sentinel), cacheutils (LRU, LRI, ThresholdCounter), timeutils (relative_time, decimal_time), statsutils (median, trimean, Histogram), ecoutils (get_process_tree), fileutils (atomic_save, mkdir_p), jsonutils (reverse_iter_lines), and tableutils (Table). Zero-dependency pure Python.",
+  "use_cases": [
+    "Agent list chunking — from boltons.iterutils import chunked, windowed, pairwise; chunks = list(chunked(agent_results, 10)); windows = list(windowed(time_series, 3)) — chunked splits into N-sized chunks; windowed slides window over sequence; agent batch processing splits results into chunks for parallel processing; pairwise for consecutive element comparison",
+    "Agent recursive data transformation — from boltons.iterutils import remap; clean = remap(raw_api_data, lambda p, k, v: v is not None) — remap walks nested structure and rebuilds with filter; agent cleans None values from nested LLM response dict; remap(data, visit=lambda p, k, v: (k, str(v))) converts all values to strings",
+    "Agent string utilities — from boltons.strutils import slugify, bytes2human, strip_ansi; slug = slugify('Agent Task: Run #1!') — 'agent-task-run-1'; size_str = bytes2human(file_size) — '1.5 GB'; clean_text = strip_ansi(terminal_output) — agent display formatting, file naming, terminal output cleaning in one library",
+    "Agent bounded LRU cache — from boltons.cacheutils import LRU; cache = LRU(max_size=1000); cache['key'] = value; result = cache.get('key', default) — dict-like LRU with size limit; agent embedding cache with bounded memory; ThreadSafe=True option for concurrent access; LRI for insertion-ordered cache",
+    "Agent atomic file save — from boltons.fileutils import atomic_save; with atomic_save('/path/to/agent_state.json') as f: json.dump(state, f) — writes to temp file then renames; agent state persistence is crash-safe; partial writes never corrupt state file; atomic_save handles temp file and rename atomically"
+  ],
+  "not_for": [
+    "High-performance data processing — boltons is pure Python; for numerical arrays use numpy; for DataFrames use pandas",
+    "Async code — boltons is synchronous; async alternatives exist for specific use cases",
+    "Replacing purpose-built libraries — boltons provides breadth not depth; for advanced caching use cachetools; for advanced itertools use more-itertools"
+  ],
+  "best_when": "Python utility functions that are nearly-stdlib quality — boltons fills gaps in Python standard library (chunked iterables, slugify, atomic saves, LRU cache) with zero dependencies and simple API.",
+  "avoid_when": "You need high-performance data processing (use numpy/pandas), async utilities, or deep functionality in any one area (use specialized libraries).",
+  "alternatives": ["more-itertools-python-api", "toolz-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — pure Python utility library with no network calls."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, BSD licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "boltons is BSD licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Pure Python performance. chunked/windowed return generators — memory efficient. LRU cache: O(1) get/set. atomic_save: two filesystem operations (write + rename). remap: O(n) for nested structure traversal.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 82,
+    "error_message_notes": "Standard Python exceptions. chunked raises ValueError for non-positive size. LRU raises KeyError for missing key (no default). atomic_save raises OSError if target directory not writable. remap callback exceptions propagate directly. Error messages are clear Python exceptions.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Pure utility functions are idempotent. atomic_save is idempotent — can be called multiple times, last write wins. LRU cache is stateful but operations are idempotent (set overwrites). remap returns new structure without mutation.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "chunked returns lists not generator — from boltons.iterutils import chunked; chunked(range(10), 3) returns list of lists immediately; not lazy; agent processing very large sequences should use chunked_iter for lazy evaluation: from boltons.iterutils import chunked_iter; chunked_iter(large_seq, 1000) yields chunks on demand",
+      "LRU cache is not thread-safe by default — boltons.cacheutils.LRU() has no locking; concurrent reads/writes from multiple threads corrupt cache state; agent code using LRU in multithreaded context must use threading.Lock() or use LRU(on_miss=...) with external synchronization; simpler: use functools.lru_cache or cachetools.LRUCache(maxsize=N) with RLock",
+      "remap visit function signature is (path, key, value) — remap(data, visit=fn) calls fn(path, key, value); path is tuple of keys from root; agent code with visit=lambda k, v: ... has wrong signature and receives (path, key) as positional args k and v; correct: visit=lambda path, key, value: ...; wrong signature causes subtle bugs where path is treated as filter key",
+      "atomic_save requires writable directory — atomic_save('/path/file.json') writes temp file to same directory as target; if directory not writable or on different filesystem, rename fails; agent code saving to read-only dirs or cross-filesystem paths raises OSError; ensure temp and target are on same filesystem (same partition)",
+      "strutils.slugify behavior differs from other slug libraries — boltons slugify('Hello World') returns 'hello-world'; handles Unicode by transliterating; for non-ASCII text: slugify('Héllo') returns 'hello' (strips accents); agent internationalization may need custom slugify for non-Latin scripts; boltons slugify works best for ASCII/Latin text",
+      "boltons.iterutils.first() returns None not raising — first(empty_list) returns None not StopIteration or KeyError; agent code using first() to get required element must check: result = first(items); if result is None: raise ValueError('expected item'); omitting check silently propagates None downstream"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 80,
+    "auth_complexity_score": 99,
+    "rate_limit_clarity_score": 99
+  },
+  "security_score_components": {
+    "tls_enforcement": 92,
+    "auth_strength": 92,
+    "scope_granularity": 90,
+    "dependency_hygiene": 95,
+    "secret_handling": 90,
+    "security_notes": "Pure utility library with zero dependencies and no network calls. atomic_save uses os.rename() which is atomic on POSIX — safe for concurrent writers. No security concerns beyond standard file permissions."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 85,
+    "version_stability": 85,
+    "breaking_changes_history": 85,
+    "error_recovery": 88
+  }
+}

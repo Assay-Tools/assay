@@ -1,0 +1,106 @@
+{
+  "id": "grpc-python-api",
+  "name": "gRPC Python",
+  "version_evaluated": "1.x",
+  "homepage": "https://grpc.io/docs/languages/python/",
+  "repo_url": "https://github.com/grpc/grpc",
+  "category": "developer-tools",
+  "subcategories": ["rpc", "python", "networking", "microservices", "protobuf"],
+  "tags": ["python", "grpc", "protobuf", "rpc", "microservices", "streaming", "http2", "service-mesh"],
+  "what_it_does": "High-performance RPC framework for Python — generates client/server stubs from Protocol Buffer definitions for typed, efficient inter-service communication. gRPC Python features: grpc.server() and stub classes from protoc-generated code, unary/server-streaming/client-streaming/bidirectional streaming RPCs, grpc.secure_channel() with TLS, metadata for headers, interceptors for middleware, health checking (grpc_health_checking), reflection, grpc.aio for async support, channel credentials and call credentials, deadlines/timeouts, and grpc.StatusCode error codes. Standard choice for agent-to-agent and microservice communication.",
+  "use_cases": [
+    "Agent microservice client — import grpc; from myproto import agent_pb2, agent_pb2_grpc; channel = grpc.secure_channel('agent-service:443', grpc.ssl_channel_credentials()); stub = agent_pb2_grpc.AgentServiceStub(channel); response = stub.Execute(agent_pb2.ExecuteRequest(task='search', query='AI news')) — typed RPC call; agent calls remote service with generated types; TLS by default; response is typed protobuf object",
+    "Agent server streaming — def Stream(request, context): for chunk in generate_chunks(request.query): yield agent_pb2.Chunk(data=chunk); stub.Stream(request) returns iterator — server streams responses; agent LLM streaming returns tokens as they generate; client receives partial results incrementally; back-pressure built in via gRPC flow control",
+    "Agent bidirectional streaming — def Chat(request_iterator, context): for req in request_iterator: yield agent_pb2.Response(text=process(req.message)) — simultaneous send and receive; agent real-time conversation with remote service; both sides stream concurrently; WebSocket replacement with typing",
+    "Agent async gRPC — import grpc.aio; async with grpc.aio.secure_channel('service:443', creds) as channel: stub = agent_pb2_grpc.ServiceStub(channel); response = await stub.Execute(request) — async gRPC client; agent FastAPI handler calls gRPC service without blocking event loop; grpc.aio integrates with asyncio",
+    "Agent with deadline — stub.Execute(request, timeout=5.0) — timeout raises grpc.RpcError with StatusCode.DEADLINE_EXCEEDED; agent enforces SLA on microservice calls; timeout propagates through service mesh; grpc.StatusCode.DEADLINE_EXCEEDED distinguishes timeout from other errors"
+  ],
+  "not_for": [
+    "Browser clients — gRPC requires HTTP/2 framing not available in browsers natively; use gRPC-Web or REST for browser-to-service communication",
+    "Simple internal communication — gRPC requires proto file compilation step; for simple internal Python-to-Python calls use REST or even function calls",
+    "Human-readable APIs — protobuf messages are binary; for human-inspectable APIs use REST/JSON"
+  ],
+  "best_when": "High-performance typed inter-service communication in agent systems — gRPC's protobuf schema provides type safety, streaming support, and efficient binary serialization for agent-to-agent RPC.",
+  "avoid_when": "You need browser clients (use REST/gRPC-Web), human-readable wire format (use REST/JSON), or simple one-off service calls without schema.",
+  "alternatives": ["fastapi-python-api", "grpc-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": true,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["tls", "token", "oauth"],
+    "oauth": true,
+    "scopes": false,
+    "notes": "TLS via grpc.ssl_channel_credentials(). Token auth via call credentials (grpc.access_token_call_credentials). mTLS for service-to-service auth. Interceptors for custom auth middleware."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, Apache 2.0 licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "gRPC is Apache 2.0 licensed by Google. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 1,
+    "latency_p99_ms": 10,
+    "uptime_sla_percent": null,
+    "rate_limits": "No client rate limits. gRPC over HTTP/2 multiplexes multiple RPCs over single connection — more efficient than REST for high-QPS. Protobuf serialization: 3-10x smaller than JSON. Streaming: back-pressure prevents overwhelming slow consumers.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted", "cloud"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 82,
+    "error_message_quality": 80,
+    "error_message_notes": "grpc.RpcError with .code() (StatusCode) and .details() (string message). StatusCode.DEADLINE_EXCEEDED, UNAVAILABLE, NOT_FOUND, UNAUTHENTICATED, PERMISSION_DENIED. context.abort(StatusCode.NOT_FOUND, 'message') on server side. Error codes are machine-readable. Server-side exceptions not automatically converted — must use context.abort().",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Unary RPCs are idempotent if server implements them idempotently. gRPC retries (via service config) assume idempotent RPCs. Streaming RPCs are stateful — not idempotent. gRPC retry policies configured in service config JSON.",
+    "pagination_style": "none",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Proto file must be compiled before use — gRPC requires protoc compiler to generate Python stubs: python -m grpc_tools.protoc -I. --python_out=. --grpc_python_out=. myservice.proto; agent projects must include proto compilation in build step; generated files (*_pb2.py, *_pb2_grpc.py) must be committed or generated in CI; forgetting recompilation after proto changes causes version mismatch errors",
+      "grpc.RpcError is both exception and response — except grpc.RpcError as e: e.code() returns StatusCode; e.details() returns error message; in streaming: for response in stub.Stream(request) raises grpc.RpcError mid-iteration; agent streaming consumer must wrap entire iteration in try/except grpc.RpcError not just the initial call",
+      "Channel must be closed or used as context manager — channel = grpc.insecure_channel('localhost:50051'); stub = Stub(channel); forgetting channel.close() leaks connections; agent code must: with grpc.insecure_channel(...) as channel: use stub; or call channel.close() explicitly in finally block; long-lived agents should reuse channels not create per-request",
+      "Insecure channel exposes all traffic — grpc.insecure_channel() sends unencrypted; all RPC data including metadata visible on network; agent production systems must use grpc.secure_channel() with valid TLS certificates; insecure channel acceptable only for localhost/loopback or development; CI environments should use secure channels for integration tests",
+      "Metadata is list of tuples not dict — stub.Execute(request, metadata=[('authorization', 'Bearer token'), ('x-trace-id', trace_id)]) not metadata={'key': 'val'}; agent code passing dict as metadata raises TypeError; use list of 2-tuples; binary metadata keys must end in '-bin': ('custom-data-bin', bytes_value)",
+      "grpc.aio and grpc have separate channel types — grpc.aio.insecure_channel() is async; grpc.insecure_channel() is sync; mixing them raises RuntimeError; agent code using grpc.aio must create stubs from grpc.aio channel not grpc channel; AgentServiceStub(grpc_channel) and AgentServiceStub(grpc_aio_channel) are not interchangeable"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 82,
+    "error_handling_score": 80,
+    "auth_complexity_score": 85,
+    "rate_limit_clarity_score": 90
+  },
+  "security_score_components": {
+    "tls_enforcement": 90,
+    "auth_strength": 88,
+    "scope_granularity": 85,
+    "dependency_hygiene": 85,
+    "secret_handling": 85,
+    "security_notes": "gRPC supports TLS (required for production), mTLS for service-to-service auth, and call credentials for bearer tokens. Always use secure_channel() in production — insecure_channel() transmits plaintext. Protobuf messages are not encrypted at rest. Interceptors provide centralized auth enforcement. gRPC reflection should be disabled in production to prevent service enumeration."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 85,
+    "version_stability": 85,
+    "breaking_changes_history": 82,
+    "error_recovery": 85
+  }
+}
