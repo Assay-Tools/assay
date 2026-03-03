@@ -1,0 +1,106 @@
+{
+  "id": "zalando-problem-api",
+  "name": "Zalando Problem (RFC 7807)",
+  "version_evaluated": "0.29.x",
+  "homepage": "https://github.com/zalando/problem",
+  "repo_url": "https://github.com/zalando/problem",
+  "category": "developer-tools",
+  "subcategories": ["java", "spring", "api", "error-handling", "rest"],
+  "tags": ["java", "kotlin", "spring", "error-handling", "rfc7807", "problem-json", "api", "rest", "exceptions"],
+  "what_it_does": "Java library for producing RFC 7807 Problem Details for HTTP APIs — the IETF standard for machine-readable error responses. Problem Details format: JSON object with 'type' (URI identifying error type), 'title' (human-readable summary), 'status' (HTTP status code), 'detail' (human-readable explanation), and 'instance' (URI for specific occurrence). Zalando Problem library provides: Problem interface and ThrowableProblem (exceptions as Problems), Jackson serialization, Spring MVC and Spring WebFlux integration via problem-spring-web, and Spring Boot auto-configuration. Enables consistent error responses across all agent API endpoints without custom exception mapper boilerplate.",
+  "use_cases": [
+    "Return standardized RFC 7807 error responses from agent APIs — throw Problem.builder().withStatus(Status.NOT_FOUND).withDetail('Agent not found: ' + agentId).build() for consistent agent error format",
+    "Map Spring validation errors to Problem Details in agent REST API — problem-spring-web auto-maps MethodArgumentNotValidException, ConstraintViolationException, and 404s to RFC 7807 format",
+    "Create typed agent exception hierarchy with Problem — extend AbstractThrowableProblem for AgentNotFoundProblem, AgentQuotaExceededProblem with type URIs for client error handling",
+    "Enable client-side error type discrimination — agent API clients distinguish error types by 'type' URI field and handle AgentRateLimitExceeded differently from AgentNotFound without string parsing",
+    "Auto-configure Spring Boot agent API error handling — problem-spring-boot-autoconfigure adds Problem Details to all standard Spring error responses (404, 405, 415) without per-exception configuration"
+  ],
+  "not_for": [
+    "Non-REST APIs — Problem Details is HTTP-specific; for gRPC agent services, use Status proto with google.rpc.Status; for async agent messaging, use domain-specific error envelopes",
+    "APIs already using custom error formats — if agent API has established non-RFC-7807 error format used by many clients, migration cost may exceed benefit; adopt RFC 7807 for new agent APIs",
+    "Teams on Spring Boot 3.x — Spring Framework 6+ has built-in RFC 7807 support via ProblemDetail class; Zalando Problem's Spring integration is less necessary on Spring Boot 3.x with built-in support"
+  ],
+  "best_when": "You're building a Java REST agent API on Spring Boot 2.x or want rich RFC 7807 error type hierarchies — Zalando Problem provides typed Problem exceptions and Spring auto-integration for consistent agent error responses.",
+  "avoid_when": "You're on Spring Boot 3.x (use built-in ProblemDetail), you have existing custom error formats with many clients, or you're building non-HTTP agent interfaces.",
+  "alternatives": ["spring-boot-api", "problem-spring-web-api", "custom-exception-handler-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["java", "kotlin"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Error handling library — no auth concepts. Problem Details error responses should not include sensitive information that would expose internal agent service details."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Zalando Problem is MIT licensed, maintained by Zalando. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 0,
+    "latency_p99_ms": 1,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — error serialization library. Problem serialization overhead is negligible compared to error handling logic.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["local", "self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 82,
+    "error_message_quality": 95,
+    "error_message_notes": "RFC 7807 is specifically designed for machine-readable error responses — this IS the error message format. Problem Details give agent clients structured, type-discriminated error information. 'detail' field provides human-readable context. 'type' URI enables programmatic error type handling.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Error response generation is deterministic — same exception produces same Problem Details JSON. No side effects from Problem construction.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Spring Boot 3.x has built-in ProblemDetail — Spring Framework 6 includes RFC 7807 support natively; Zalando Problem's Spring integration may conflict with Spring Boot 3 built-in; use spring.mvc.problemdetails.enabled=true for Spring Boot 3 native support instead",
+      "Content-Type must be application/problem+json — clients must send Accept: application/problem+json or problem-spring-web must be configured to always return problem content type; mismatched Accept header returns generic JSON without Problem wrapper",
+      "type URI must be dereferenceable (per spec) — RFC 7807 recommends 'type' URIs be actual URLs that return problem description; in practice most implementations use urn: URIs or non-resolving URLs; document agent error types in API spec instead",
+      "Stack traces must be excluded from production responses — problem-spring-web may include stack trace in 'stackTrace' extension in debug mode; ensure spring.profiles.active=production disables this; leaking stack traces exposes agent service internals",
+      "ThrowableProblem interacts with exception handling chains — @ExceptionHandler ordering matters; Spring's ResponseEntityExceptionHandler must be extended or replaced; multiple @ControllerAdvice beans handling same exception type causes unpredictable Problem format",
+      "Extensions fields require custom Problem subclass — adding agent-specific fields (agentId, requestId, retryAfter) to Problem requires extending ThrowableProblem or using Problem.builder().with('agentId', id); Jackson serializes extension fields at top level of JSON"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 82,
+    "error_handling_score": 95,
+    "auth_complexity_score": 100,
+    "rate_limit_clarity_score": 100
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 95,
+    "scope_granularity": 90,
+    "dependency_hygiene": 85,
+    "secret_handling": 90,
+    "security_notes": "Problem Details format standardizes error responses — reduces information leakage compared to unformatted exception messages. 'detail' field should never include stack traces, internal paths, or database connection strings in agent API responses. Use sanitized error messages."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 85,
+    "version_stability": 80,
+    "breaking_changes_history": 78,
+    "error_recovery": 90
+  }
+}

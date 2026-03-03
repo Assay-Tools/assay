@@ -1,0 +1,106 @@
+{
+  "id": "spring-data-r2dbc-api",
+  "name": "Spring Data R2DBC",
+  "version_evaluated": "3.x",
+  "homepage": "https://spring.io/projects/spring-data-r2dbc",
+  "repo_url": "https://github.com/spring-projects/spring-data-r2dbc",
+  "category": "developer-tools",
+  "subcategories": ["database", "java", "reactive", "spring", "r2dbc"],
+  "tags": ["java", "kotlin", "reactive", "r2dbc", "spring", "postgresql", "mysql", "spring-webflux", "non-blocking"],
+  "what_it_does": "Reactive relational database access for Spring applications — Spring Data abstractions (repositories, templates) over R2DBC (Reactive Relational Database Connectivity), the non-blocking alternative to JDBC. Spring Data R2DBC provides: ReactiveCrudRepository with Flux<T>/Mono<T> return types, R2dbcEntityTemplate for fluent query building, @Query annotation for custom SQL, and Spring Boot auto-configuration. Supports PostgreSQL (r2dbc-postgresql), MySQL (r2dbc-mysql), MariaDB, SQL Server, H2, and Oracle. Designed for Spring WebFlux reactive stacks where blocking JDBC would block event loop threads. No JPA/Hibernate — intentionally limited ORM (no lazy loading, no relationship management) for simplicity.",
+  "use_cases": [
+    "Build non-blocking Spring WebFlux agent APIs with reactive PostgreSQL access — R2DBC repository returns Flux<Agent> instead of blocking List<Agent> for agent data endpoints",
+    "Implement reactive agent event sourcing with Spring Data R2DBC — write agent events to PostgreSQL reactively using R2dbcEntityTemplate.insert() returning Mono<AgentEvent>",
+    "Reactive agent repository with custom SQL — @Query annotation with Spring Data R2DBC for complex agent filtering queries that return Flux<AgentDto> without blocking Spring WebFlux thread pool",
+    "Batch insert agent data reactively — R2dbcEntityTemplate.insertAll() with Flux<Agent> input for bulk agent record creation without blocking threads",
+    "Paginate agent results reactively — ReactiveSortingRepository with Pageable returns Flux<Agent> slice for reactive agent browsing APIs"
+  ],
+  "not_for": [
+    "Spring MVC (blocking) applications — R2DBC reactive types add complexity with no benefit in blocking Spring MVC; use Spring Data JPA with HikariCP for blocking Spring apps",
+    "Complex ORM with relationships — R2DBC intentionally has no lazy loading or relationship management; use Spring Data JPA or jOOQ for complex agent domain models with multiple table joins",
+    "Teams new to reactive programming — reactive SQL with Flux/Mono is significantly more complex than blocking JPA; ensure team understands Project Reactor before adopting R2DBC for agent services"
+  ],
+  "best_when": "You're building a Spring WebFlux agent service that queries a relational database and need non-blocking database access to avoid starving the event loop — R2DBC provides familiar Spring Data APIs with reactive execution.",
+  "avoid_when": "You're using Spring MVC, your team isn't comfortable with Project Reactor, you need JPA features like lazy loading, or you're using Spring Boot with virtual threads (Loom) where blocking JDBC is acceptable.",
+  "alternatives": ["spring-data-jpa-api", "jooq-api", "hibernate-reactive-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["java", "kotlin"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Database access library — no auth concepts. Database credentials configured via spring.r2dbc.url, username, password properties or environment variables. Connection pool managed by R2DBC connection factory."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, Apache 2.0 licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Spring Data R2DBC is Apache 2.0 licensed, maintained by Broadcom/VMware. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 5,
+    "latency_p99_ms": 50,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — self-hosted. Non-blocking R2DBC connection pool requires fewer connections than JDBC for same concurrency. r2dbc-pool manages connection lifecycle reactively.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 82,
+    "error_message_quality": 80,
+    "error_message_notes": "R2DBC errors surface as R2dbcException subclasses (R2dbcDataIntegrityViolationException for constraints, R2dbcNonTransientException for connectivity). Spring Data wraps these in DataAccessException hierarchy consistent with Spring Data JPA. Reactive stack traces can be hard to follow due to async execution.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "R2DBC queries are idempotent for reads. Writes require application-level idempotency (unique constraints, upsert patterns). @Transactional with @Transactional(propagation=REQUIRES_NEW) works reactively via Spring's reactive transaction manager.",
+    "pagination_style": "offset",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "No lazy loading — R2DBC has no JPA-style lazy loading; @OneToMany relationships are not managed; fetch related entities explicitly with separate queries and combine with Mono.zip() or flatMap(); agent domain models need explicit join queries",
+      "@Transactional requires reactive transaction manager — Spring's @Transactional works with R2DBC but requires ReactiveTransactionManager bean; mixing blocking TransactionManager with reactive code causes transactions to not apply",
+      "R2DBC connection pool is separate from JDBC pool — if using both R2DBC and JDBC in same app, configure both r2dbc-pool and HikariCP; sharing connections between R2DBC and JDBC is not supported",
+      "Kotlin coroutines integration requires co-routines extension — add spring-data-r2dbc Kotlin extension for coroutine-friendly suspend functions and Flow<T> instead of Flux<T>; without extension, must manually handle Mono/Flux in suspend contexts",
+      "Custom queries return Map not entities by default — @Query methods returning non-entity types need explicit RowMapper or projection interface; @Query without mapped return type returns Flux<Map<String, Object>> which requires manual mapping for agent DTOs",
+      "Spring Data R2DBC lacks @OneToMany — no relationship mapping; complex agent queries with joins must use R2dbcEntityTemplate.select() with custom SQL or R2dbcEntityTemplate join queries; ORM comfort of JPA is intentionally absent"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 82,
+    "error_handling_score": 80,
+    "auth_complexity_score": 92,
+    "rate_limit_clarity_score": 95
+  },
+  "security_score_components": {
+    "tls_enforcement": 92,
+    "auth_strength": 85,
+    "scope_granularity": 80,
+    "dependency_hygiene": 88,
+    "secret_handling": 88,
+    "security_notes": "Parameterized queries prevent SQL injection. TLS for database connections via r2dbc URL ssl parameter. Credentials via Spring Boot environment/secrets. No JPA caching layer — each query hits database directly, reducing stale data risk for agent services."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 85,
+    "version_stability": 82,
+    "breaking_changes_history": 80,
+    "error_recovery": 85
+  }
+}
