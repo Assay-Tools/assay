@@ -1,0 +1,106 @@
+{
+  "id": "arrow-python-api",
+  "name": "Arrow",
+  "version_evaluated": "1.x",
+  "homepage": "https://arrow.readthedocs.io/",
+  "repo_url": "https://github.com/arrow-py/arrow",
+  "category": "developer-tools",
+  "subcategories": ["datetime", "python", "utilities", "time", "timezone"],
+  "tags": ["python", "arrow", "datetime", "timezone", "time", "date", "parsing", "humanize"],
+  "what_it_does": "Sensible datetime library for Python — wraps Python datetime with better API, timezone handling, and human-friendly operations. Arrow features: arrow.now() with timezone, arrow.get() flexible parsing (strings, timestamps, datetimes), .shift() for natural time math (shift(days=+1, hours=-3)), .humanize() for relative time ('3 hours ago'), .format() with natural token syntax, .span() for time ranges, .floor()/.ceil() for time buckets, timezone conversion (.to('America/New_York')), and factory methods. Replaces datetime.datetime + pytz + dateutil with single clean API for agent time handling.",
+  "use_cases": [
+    "Agent task scheduling — deadline = arrow.now().shift(hours=+24).floor('hour'); agent.run_before = deadline.isoformat() — intuitive relative time math without timedelta arithmetic; agent task deadlines, expiry times, retry schedules",
+    "Agent log timestamp parsing — event_time = arrow.get('2026-03-02T14:30:00+00:00'); event_time.humanize() returns '3 hours ago'; arrow.get(log_entry['timestamp']) handles ISO, Unix, and custom formats; agent log analysis with human-readable time diffs",
+    "Agent timezone handling — user_tz = 'America/Los_Angeles'; arrow.now(user_tz).format('YYYY-MM-DD HH:mm') — correct local time for agent user notifications without manual UTC offset calculation; agent scheduling respects user timezone",
+    "Agent time bucketing — arrow.now().floor('day') gives today midnight; arrow.now().ceil('hour') gives next hour; agent analytics aggregation by hour/day/week without complex datetime arithmetic",
+    "Agent event time spans — start, end = arrow.now().span('day') returns (midnight, 23:59:59) for today; agent daily report queries use span('week') for current week; time range queries without edge case datetime math"
+  ],
+  "not_for": [
+    "High-performance datetime — Arrow creates new objects per operation; for tight loops with millions of datetime operations use Python datetime directly",
+    "Pandas/NumPy time series — Arrow objects don't integrate with pandas datetime index natively; for agent data analysis use pandas Timestamp or numpy datetime64",
+    "Production-critical timezone logic — verify Arrow timezone handling matches your agent's requirements; some edge cases (DST transitions, historical timezone changes) may differ from pytz"
+  ],
+  "best_when": "Your Python agent code needs frequent datetime operations — parsing varied formats, timezone conversion, relative time, human-readable output — and the Python datetime + pytz combination feels verbose.",
+  "avoid_when": "You need Pandas datetime integration, performance-critical datetime loops, or have specific pytz DST handling requirements.",
+  "alternatives": ["pendulum-api", "python-dateutil-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — local Python library."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, Apache 2.0 licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Arrow is Apache 2.0 licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 0,
+    "latency_p99_ms": 0,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — in-process datetime library. Arrow has ~2x overhead vs raw datetime for object creation. Acceptable for typical agent datetime operations; switch to datetime for tight loops.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 82,
+    "error_message_notes": "arrow.get() raises arrow.parser.ParserError for unparseable strings with format hint. arrow.Arrow.to() raises zoneinfo.ZoneInfoNotFoundError for unknown timezone strings. shift() raises ValueError for invalid granularity names. Timezone errors include the unrecognized timezone name in message.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Arrow objects are immutable — all operations return new Arrow instances. arrow.now() returns current time (not idempotent between calls). Arrow parsing and formatting operations are fully idempotent.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "arrow.get() auto-detection is fragile for ambiguous dates — arrow.get('01/02/03') is ambiguous (Jan 2 vs Feb 1 vs other); agent log parsers must pass explicit format: arrow.get('01/02/03', 'MM/DD/YY'); without format hint, Arrow guesses and may parse incorrectly for agent timestamp ingestion",
+      "humanize() locale defaults to English — arrow.now().shift(hours=-3).humanize() returns '3 hours ago' in English; agent apps serving non-English users need locale: arrow.now().shift(hours=-3).humanize(locale='fr_fr'); locale must be installed; Arrow uses babel for localization",
+      "Arrow 1.x changed .replace() to .shift() — older agent code using arrow_obj.replace(hours=+1) must be updated to .shift(hours=+1); .replace() in Arrow 1.x replaces field values (like datetime.replace) not shifts; common migration error when upgrading agent codebases from Arrow 0.x",
+      "UTC vs local time — arrow.now() returns local time with local timezone; arrow.utcnow() returns UTC; agent systems storing timestamps should use arrow.utcnow().isoformat(); mixing local and UTC Arrow objects without explicit timezone causes incorrect comparisons in agent scheduling",
+      ".format() token syntax differs from strftime — arrow uses 'YYYY-MM-DD HH:mm:ss' not '%Y-%m-%d %H:%M:%S'; agent developers mixing Arrow format and strftime format strings produce wrong output; Arrow tokens are uppercase YYYY/MM/DD, strftime uses %Y/%m/%d",
+      "span() returns naive-looking boundaries — arrow.now().span('day') returns (midnight_today, end_of_today) in local timezone; agent queries using span for date ranges get correct boundaries but must ensure database queries use matching timezone; PostgreSQL timestamp comparison with Arrow span bounds requires timezone-aware comparison"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 80,
+    "auth_complexity_score": 98,
+    "rate_limit_clarity_score": 98
+  },
+  "security_score_components": {
+    "tls_enforcement": 95,
+    "auth_strength": 95,
+    "scope_granularity": 92,
+    "dependency_hygiene": 88,
+    "secret_handling": 95,
+    "security_notes": "Local datetime library — no network access, no security concerns. Ensure agent code uses UTC for all stored timestamps to prevent timezone-related data inconsistencies."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 85,
+    "version_stability": 85,
+    "breaking_changes_history": 78,
+    "error_recovery": 88
+  }
+}
