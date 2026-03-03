@@ -1,28 +1,28 @@
 {
   "id": "aiohttp-api",
   "name": "aiohttp",
-  "version_evaluated": "3.9.x",
+  "version_evaluated": "3.x",
   "homepage": "https://docs.aiohttp.org/",
   "repo_url": "https://github.com/aio-libs/aiohttp",
   "category": "developer-tools",
-  "subcategories": ["http-client", "web-framework"],
-  "tags": ["python", "async", "http", "websocket", "sse", "library"],
-  "what_it_does": "Async Python HTTP client and server framework with native WebSocket, SSE, and streaming support built on asyncio.",
+  "subcategories": ["http-client", "web-framework", "async", "python"],
+  "tags": ["aiohttp", "python", "async", "http-client", "web-server", "websocket", "asyncio"],
+  "what_it_does": "Asynchronous HTTP client and server framework for Python asyncio. Provides both an async HTTP client (aiohttp.ClientSession) for making concurrent HTTP requests and an async web server for building APIs. Supports WebSockets (both client and server), streaming, middleware, and connection pooling. Predates FastAPI — used by applications needing both client and server HTTP in one library.",
   "use_cases": [
-    "Sending high-concurrency async HTTP requests from an agent that manages many parallel tool calls",
-    "Consuming Server-Sent Events (SSE) streams from LLM APIs in real time",
-    "Establishing WebSocket connections to streaming data sources within an async agent",
-    "Tuning TCPConnector limits to control connection pool size under heavy agent load",
-    "Building a lightweight async HTTP server to expose agent endpoints without a full ASGI framework"
+    "Make concurrent async HTTP requests in Python agent pipelines — download multiple URLs simultaneously",
+    "Build WebSocket-based agent communication servers with aiohttp's WebSocket server support",
+    "Implement high-concurrency agent web scrapers that make thousands of concurrent HTTP requests",
+    "Create lightweight async HTTP servers when FastAPI's Pydantic/OpenAPI overhead is unnecessary",
+    "Build agent HTTP clients with session management, cookie handling, and connection pooling"
   ],
   "not_for": [
-    "Synchronous codebases where asyncio is not in use (use requests instead)",
-    "Production gRPC transport (use grpcio stubs instead)",
-    "Simple one-off scripts where the event loop setup overhead is not justified"
+    "Simple async HTTP clients in modern Python — httpx has better ergonomics and drop-in requests compatibility",
+    "Production REST APIs — FastAPI provides better validation, documentation, and ecosystem",
+    "CPU-bound workloads — async doesn't help with CPU parallelism; use multiprocessing"
   ],
-  "best_when": "Your agent is fully async and needs WebSocket support, SSE streaming, or very high connection concurrency from a single process.",
-  "avoid_when": "You only need occasional synchronous HTTP calls — the asyncio event loop requirement adds unnecessary complexity.",
-  "alternatives": ["httpx-api", "requests-api"],
+  "best_when": "You need both async HTTP client and server in the same library, especially for WebSocket support or high-concurrency scraping pipelines.",
+  "avoid_when": "You only need an async HTTP client — httpx is easier to use. For web APIs, FastAPI has better developer experience and ecosystem.",
+  "alternatives": ["httpx-api", "fastapi-api", "starlette-api"],
   "interface": {
     "has_rest_api": false,
     "has_graphql": false,
@@ -38,68 +38,69 @@
     "methods": ["none"],
     "oauth": false,
     "scopes": false,
-    "notes": "Library — auth is implemented by the application via headers, BasicAuth helper, or custom connectors."
+    "notes": "Local library — no authentication required. Apache 2.0 licensed."
   },
   "pricing": {
     "model": "open_source",
     "free_tier_exists": true,
-    "free_tier_limits": "Unlimited, open source",
+    "free_tier_limits": "Apache 2.0 licensed — completely free",
     "paid_tiers": "None",
     "requires_credit_card": false,
-    "notes": "Apache 2.0-licensed open source project under the aio-libs organisation."
+    "notes": "Apache 2.0 licensed. Zero cost."
   },
   "performance": {
-    "latency_p50_ms": null,
-    "latency_p99_ms": null,
+    "latency_p50_ms": 50,
+    "latency_p99_ms": 500,
     "uptime_sla_percent": null,
-    "rate_limits": "None (library)",
+    "rate_limits": "No rate limits. Connection pooling via ClientSession. Supports thousands of concurrent requests via asyncio event loop.",
     "data_source": "llm_estimated"
   },
   "requirements": {
     "requires_signup": false,
     "requires_credit_card": false,
     "domain_verification": false,
-    "data_residency": ["self_hosted"],
+    "data_residency": ["local"],
     "compliance": [],
     "min_contract": "none"
   },
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
-    "documentation_accuracy": 87,
-    "error_message_quality": 84,
-    "error_message_notes": "ClientConnectorError and ServerDisconnectedError are descriptive; aiohttp.ClientResponseError carries status, headers, and message for easy classification.",
+    "documentation_accuracy": 85,
+    "error_message_quality": 82,
+    "error_message_notes": "Rich exception hierarchy — ClientConnectorError, ServerTimeoutError, ContentTypeError. Response.raise_for_status() for HTTP error checking. WebSocket disconnection handling available.",
     "idempotency_support": "full",
-    "idempotency_notes": "Stateless per-request; retry logic must be added by the caller (e.g., aiohttp-retry or manual exponential backoff).",
+    "idempotency_notes": "HTTP client — idempotency depends on the API being called.",
     "pagination_style": "none",
-    "retry_guidance_documented": true,
+    "retry_guidance_documented": false,
     "known_agent_gotchas": [
-      "ClientSession must be created once and shared across all requests in the agent — creating a new session per request leaks file descriptors and defeats connection pooling",
-      "Connector must be explicitly closed (await connector.close()) or used as an async context manager; unclosed connectors log ResourceWarning and can exhaust OS sockets",
-      "TCPConnector defaults to limit=100 total connections and limit_per_host=0 (unlimited per host); agents hammering a single host should set limit_per_host to avoid overwhelming the target",
-      "SSL verification is enabled by default but can be disabled via ssl=False on individual requests; this flag is easy to scatter throughout agent code accidentally",
-      "Response body must be consumed before the next request on the same connection; if an agent discards a response without reading it, the connection cannot be reused"
+      "Must use async with aiohttp.ClientSession() as session: — create ONE session per application, not per request; sessions manage connection pools",
+      "aiohttp.ClientSession is NOT thread-safe — create in event loop context; for multi-threaded use, create separate sessions per thread",
+      "Response body must be read within the context manager: async with session.get(url) as resp: data = await resp.json() — reading after context exits fails",
+      "SSL verification disabled by default warning: use ssl=False only for development; use ssl=aiohttp.SSLContext for custom CA certs in production",
+      "Timeouts: aiohttp.ClientTimeout(total=30, connect=10, sock_read=20) — fine-grained timeout control; default has no timeout (dangerous)",
+      "Connector limits: aiohttp.TCPConnector(limit=100) limits concurrent connections — prevent overwhelming targets with connection pooling"
     ]
   },
   "af_score_components": {
     "mcp_score": 0,
-    "api_doc_score": 87,
-    "error_handling_score": 84,
-    "auth_complexity_score": 100,
-    "rate_limit_clarity_score": 100
+    "api_doc_score": 85,
+    "error_handling_score": 82,
+    "auth_complexity_score": 92,
+    "rate_limit_clarity_score": 85
   },
   "security_score_components": {
-    "tls_enforcement": 88,
-    "auth_strength": 0,
-    "scope_granularity": 0,
-    "dependency_hygiene": 84,
-    "secret_handling": 79,
-    "security_notes": "TLS verified by default; ssl=False disables verification per-request. Depends on yarl and multidict — keep dependencies updated. Secrets in URLs will appear in access logs."
+    "tls_enforcement": 90,
+    "auth_strength": 88,
+    "scope_granularity": 85,
+    "dependency_hygiene": 88,
+    "secret_handling": 88,
+    "security_notes": "Apache 2.0 licensed. SSL verification enabled by default. Trust only verified certificates in production. Regular security updates from aio-libs maintainers."
   },
   "reliability_score_components": {
-    "uptime_documented": 0,
-    "version_stability": 86,
-    "breaking_changes_history": 78,
-    "error_recovery": 84
+    "uptime_documented": 98,
+    "version_stability": 85,
+    "breaking_changes_history": 80,
+    "error_recovery": 85
   }
 }

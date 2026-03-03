@@ -1,28 +1,28 @@
 {
   "id": "structlog-api",
   "name": "structlog",
-  "version_evaluated": "current",
+  "version_evaluated": "24.x",
   "homepage": "https://www.structlog.org/",
   "repo_url": "https://github.com/hynek/structlog",
   "category": "developer-tools",
-  "subcategories": ["logging"],
-  "tags": ["python", "library", "structured-logging", "json-logging", "observability", "async", "stdlib-integration"],
-  "what_it_does": "Structured logging library for Python that produces machine-readable key-value or JSON log output, supports async, integrates with stdlib logging, and uses a composable processor pipeline.",
+  "subcategories": ["logging", "python", "observability"],
+  "tags": ["structlog", "python", "structured-logging", "json-logging", "observability", "async", "processors"],
+  "what_it_does": "Structured logging library for Python that makes logging output consistent, processable, and observable. Provides a processor pipeline for enriching log events (timestamp, request ID, user context), supports JSON output for log aggregation, context management via bound loggers, and async support. More powerful than loguru for complex structured logging needs in production services.",
   "use_cases": [
-    "Emitting structured JSON logs from agent workflows for ingestion into Datadog, Splunk, or ELK with consistent field schemas",
-    "Binding per-request or per-agent-run context (agent_id, task_id, user_id) to all log entries in a thread or async context",
-    "Integrating structured logging into FastAPI or Django services where stdlib logging is already configured by frameworks",
-    "Building audit trails for agent tool calls with structured fields that are queryable in log aggregation systems",
-    "Async agent pipelines using asyncio where context variables must be propagated correctly across coroutines"
+    "Add consistent structured JSON logging to Python agent services with automatic context propagation",
+    "Bind request-scoped metadata (request_id, user_id, trace_id) to agent loggers for correlated logging",
+    "Build processor pipelines that enrich all log events with service metadata before JSON output",
+    "Integrate with Python stdlib logging to capture third-party library logs in structured format",
+    "Implement OpenTelemetry-compatible trace context injection into log events for distributed tracing"
   ],
   "not_for": [
-    "Simple scripts where human-readable colorized output matters more than machine-parseable structure — use Loguru instead",
-    "Teams that want zero-configuration logging out of the box — structlog requires explicit processor pipeline configuration",
-    "Applications that need built-in log file rotation — structlog delegates output handling to stdlib logging or custom sinks"
+    "Simple logging for scripts — Python's stdlib logging or loguru is simpler for basic use cases",
+    "Applications where developer experience matters more than structure — loguru has a much simpler API",
+    "Projects avoiding configuration complexity — structlog requires explicit processor configuration for production setup"
   ],
-  "best_when": "You need production-grade structured logging with consistent JSON output, stdlib compatibility, and async support for agent services going into log aggregation infrastructure.",
-  "avoid_when": "You want a quick drop-in logger with minimal configuration and human-friendly output for development scripts or small projects.",
-  "alternatives": ["loguru-api", "python-stdlib-logging", "opentelemetry-sdk"],
+  "best_when": "You're building a production Python service where consistent structured JSON logging with context binding and custom processor pipelines matters for observability.",
+  "avoid_when": "You want simple, beautiful logging with minimal configuration — use loguru instead. Structlog's power comes with configuration complexity.",
+  "alternatives": ["loguru-api", "python-logging"],
   "interface": {
     "has_rest_api": false,
     "has_graphql": false,
@@ -38,68 +38,69 @@
     "methods": ["none"],
     "oauth": false,
     "scopes": false,
-    "notes": "Local Python library, no auth required"
+    "notes": "Local library — no authentication required. MIT licensed."
   },
   "pricing": {
     "model": "open_source",
     "free_tier_exists": true,
-    "free_tier_limits": "Unlimited",
-    "paid_tiers": "none",
+    "free_tier_limits": "MIT licensed — completely free",
+    "paid_tiers": "None",
     "requires_credit_card": false,
-    "notes": "MIT license"
+    "notes": "MIT licensed. Zero cost."
   },
   "performance": {
-    "latency_p50_ms": null,
-    "latency_p99_ms": null,
-    "uptime_sla_percent": null,
-    "rate_limits": "None — local library",
-    "data_source": "self_hosted"
+    "latency_p50_ms": 0,
+    "latency_p99_ms": 1,
+    "uptime_sla_called": null,
+    "rate_limits": "No rate limits. Processor pipeline has minimal overhead. JSON serialization is the main cost.",
+    "data_source": "llm_estimated"
   },
   "requirements": {
     "requires_signup": false,
     "requires_credit_card": false,
     "domain_verification": false,
-    "data_residency": ["self_hosted"],
+    "data_residency": ["local"],
     "compliance": [],
     "min_contract": "none"
   },
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
-    "documentation_accuracy": 90,
-    "error_message_quality": 86,
-    "error_message_notes": "Processor pipeline errors surface clearly; context binding errors are informative; async context variable issues can produce silent missing-context bugs",
+    "documentation_accuracy": 88,
+    "error_message_quality": 82,
+    "error_message_notes": "Structured error events with full context. Well-documented processor pipeline. Exception info capture via structlog.processors.ExceptionRenderer.",
     "idempotency_support": "full",
-    "idempotency_notes": "Logging operations are append-only and do not affect application state",
+    "idempotency_notes": "Logging is append-only — fully idempotent.",
     "pagination_style": "none",
     "retry_guidance_documented": false,
     "known_agent_gotchas": [
-      "structlog.contextvars.bind_contextvars() uses Python contextvars which do not propagate automatically to new threads — must explicitly copy context for thread pool executors",
-      "Processor pipeline order is critical and not validated at configuration time — wrong order silently produces malformed output",
-      "Mixing structlog and stdlib logging requires careful setup of stdlib integration or third-party library logs will bypass structlog processors",
-      "structlog is not thread-safe by default for shared logger instances — use thread-local or contextvars-based context for concurrent agents",
-      "JSON output field ordering is not guaranteed unless using a renderer that sorts keys, which can break downstream schema validation"
+      "Must configure structlog before use — structlog.configure(processors=[...]) sets global pipeline; do this once at app startup before any logging",
+      "Bound loggers: log = structlog.get_logger().bind(request_id='123') creates logger with bound context — all subsequent log calls include request_id automatically",
+      "Async support: use structlog.stdlib.AsyncBoundLogger or structlog.contextvars for asyncio context propagation — standard bound loggers aren't async-context-aware",
+      "Stdlib integration: structlog.stdlib.add_log_level, add_logger_name processors bridge to Python's logging module — needed to capture third-party library logs",
+      "Development vs production config differs significantly — dev: ConsoleRenderer with colors; prod: JSONRenderer with timestamps and structured fields",
+      "structlog.contextvars.bind_contextvars(request_id=req_id) for request-scoped context in async code — automatically cleared per contextvars context"
     ]
   },
   "af_score_components": {
     "mcp_score": 0,
-    "api_doc_score": 90,
-    "error_handling_score": 86,
+    "api_doc_score": 88,
+    "error_handling_score": 82,
     "auth_complexity_score": 100,
     "rate_limit_clarity_score": 100
   },
   "security_score_components": {
-    "tls_enforcement": 95,
-    "auth_strength": 95,
-    "scope_granularity": 90,
-    "dependency_hygiene": 90,
+    "tls_enforcement": 100,
+    "auth_strength": 100,
+    "scope_granularity": 100,
+    "dependency_hygiene": 92,
     "secret_handling": 88,
-    "security_notes": "No network layer; secure by default. Bound context variables persist for the duration of the context — ensure secrets are not bound as context vars."
+    "security_notes": "MIT licensed. Structured logging — avoid including sensitive data in log events. Use custom processors to redact sensitive fields."
   },
   "reliability_score_components": {
-    "uptime_documented": 85,
+    "uptime_documented": 100,
     "version_stability": 90,
-    "breaking_changes_history": 88,
-    "error_recovery": 87
+    "breaking_changes_history": 85,
+    "error_recovery": 90
   }
 }
