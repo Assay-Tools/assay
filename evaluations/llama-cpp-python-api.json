@@ -1,0 +1,106 @@
+{
+  "id": "llama-cpp-python-api",
+  "name": "llama-cpp-python",
+  "version_evaluated": "0.3.x",
+  "homepage": "https://llama-cpp-python.readthedocs.io/",
+  "repo_url": "https://github.com/abetlen/llama-cpp-python",
+  "category": "ai-ml",
+  "subcategories": ["llm", "inference", "python", "local-ai", "cpu"],
+  "tags": ["python", "llama", "llm", "inference", "cpu", "gguf", "local-ai", "llama-cpp"],
+  "what_it_does": "Python bindings for llama.cpp — runs quantized LLMs locally on CPU/GPU without PyTorch or CUDA required. llama-cpp-python features: Llama class (load GGUF model, generate text), OpenAI-compatible API server (llama_cpp.server), llama(prompt) call interface, n_gpu_layers for partial/full GPU offload, chat completion format (llm.create_chat_completion), streaming responses, function calling support, embedding generation (llm.create_embedding), context window control, and mmap for large model loading. Runs Llama, Mistral, Phi, Gemma, and other GGUF-format models. Primary tool for CPU-only LLM inference in agent pipelines.",
+  "use_cases": [
+    "Agent CPU LLM inference — from llama_cpp import Llama; llm = Llama(model_path='mistral-7b-q4.gguf', n_ctx=4096); output = llm('Agent task: analyze this log', max_tokens=512) — run 7B quantized LLM on CPU; agent inference without GPU; 4-bit quantization fits 7B model in 4GB RAM",
+    "Agent OpenAI-compatible server — python -m llama_cpp.server --model mistral-7b-q4.gguf --n_gpu_layers 20 — starts OpenAI-compatible API on localhost:8000; existing agent code using openai.ChatCompletion works against local model with base_url change; drop-in local LLM for development",
+    "Agent chat completion — llm.create_chat_completion(messages=[{'role': 'user', 'content': 'Analyze this agent log'}], temperature=0.0) — OpenAI-compatible chat format with local model; agent prompting code is identical whether using OpenAI API or local llama-cpp model",
+    "Agent streaming inference — for chunk in llm('Process this data', stream=True, max_tokens=1024): print(chunk['choices'][0]['text'], end='') — streaming token-by-token output; agent UIs show progressive LLM output; no memory overhead of waiting for full response",
+    "Agent local embeddings — llm = Llama(model_path='nomic-embed-gguf', embedding=True); emb = llm.create_embedding('Agent task description')['data'][0]['embedding'] — generate embeddings locally with GGUF embedding models; agent RAG pipeline without OpenAI API dependency"
+  ],
+  "not_for": [
+    "Training or fine-tuning — llama-cpp-python is inference-only; for fine-tuning use Unsloth or TRL with PyTorch",
+    "Large batch throughput at scale — CPU inference is 5-50 tokens/sec; for high-throughput production use vLLM with GPU or Groq API",
+    "Models larger than available RAM — 7B Q4 needs ~4GB, 70B Q4 needs ~40GB; agent hardware must have sufficient RAM for chosen model"
+  ],
+  "best_when": "Running local LLMs for agent inference on CPU-only machines, development environments without GPU, or privacy-sensitive deployments where data cannot leave the server — llama-cpp-python provides quantized inference for 1B-70B models without PyTorch.",
+  "avoid_when": "You need GPU-optimized throughput (use vLLM), training (use PyTorch), or models that don't have GGUF quantizations available.",
+  "alternatives": ["ollama-api", "vllm-api", "openai-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth for local inference. llama_cpp.server can be configured with API key for network-exposed deployments."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "llama-cpp-python is MIT licensed. GGUF model weights downloaded separately from HuggingFace Hub (free for most open models). Compute costs on your own hardware."
+  },
+  "performance": {
+    "latency_p50_ms": 500,
+    "latency_p99_ms": 5000,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — local inference. CPU: 5-20 tokens/sec for 7B Q4. GPU offload (n_gpu_layers): 50-200 tokens/sec. Apple Silicon with Metal: 30-80 tokens/sec. First load reads model from disk (5-30 sec depending on model size and disk speed).",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 78,
+    "error_message_quality": 72,
+    "error_message_notes": "RuntimeError if model file not found or corrupt GGUF. ValueError for n_ctx exceeding model's max context. OSError if insufficient RAM for model load. CUDA errors if n_gpu_layers exceeds GPU VRAM. Output truncation when max_tokens exceeded.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Deterministic at temperature=0.0. Non-zero temperature produces different outputs per call. Model loading is idempotent — same model, same context window. Seed parameter controls randomness for reproducibility.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "pip install llama-cpp-python installs CPU-only by default — GPU support requires special install: CMAKE_ARGS='-DGGML_CUDA=on' pip install llama-cpp-python for CUDA; GGML_METAL=on for Apple Silicon; agent containers must install with correct backend flags or inference runs on CPU even with available GPU",
+      "n_ctx must match prompt + completion length — Llama(model_path=..., n_ctx=2048) limits total context to 2048 tokens; agent prompt + response exceeding n_ctx silently truncates output; set n_ctx to maximum expected agent context (4096-32768 for modern models); larger n_ctx uses more RAM",
+      "Model must be GGUF format — llama.cpp only loads .gguf files; HuggingFace Hub .safetensors or .bin models require conversion with convert.py; agent pipelines downloading models must verify GGUF format or use TheBloke/bartowski GGUF model repos on HuggingFace",
+      "Thread count affects CPU performance — Llama(n_threads=4) limits CPU cores; default often uses all cores; agent servers running multiple llama instances must set n_threads to balance cores across instances; too many threads with multiple instances causes thrashing",
+      "Llama object is not thread-safe — calling llm() from multiple threads concurrently causes corruption; agent API servers must serialize requests to single Llama instance or use one Llama instance per thread; use asyncio with single Llama instance for async agent inference",
+      "chat_format must match model — Llama(chat_format='chatml') for ChatML models, 'llama-2' for Llama-2 chat; wrong chat_format garbles system/user/assistant message boundaries; agent chat completions produce confused outputs with wrong format; check model card for correct chat template"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 75,
+    "error_handling_score": 70,
+    "auth_complexity_score": 95,
+    "rate_limit_clarity_score": 98
+  },
+  "security_score_components": {
+    "tls_enforcement": 88,
+    "auth_strength": 82,
+    "scope_granularity": 80,
+    "dependency_hygiene": 78,
+    "secret_handling": 88,
+    "security_notes": "Local inference — no data sent to external APIs, strong privacy for agent data. llama_cpp.server exposed on network should use API key and TLS reverse proxy (nginx). GGUF model weights should be downloaded from trusted sources (TheBloke, model authors). Prompt injection via user input into llm() is the primary security concern for agent deployments."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 72,
+    "version_stability": 68,
+    "breaking_changes_history": 65,
+    "error_recovery": 72
+  }
+}

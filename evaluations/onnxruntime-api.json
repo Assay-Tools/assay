@@ -1,0 +1,106 @@
+{
+  "id": "onnxruntime-api",
+  "name": "ONNX Runtime",
+  "version_evaluated": "1.x",
+  "homepage": "https://onnxruntime.ai/",
+  "repo_url": "https://github.com/microsoft/onnxruntime",
+  "category": "ai-ml",
+  "subcategories": ["ml-inference", "python", "cross-platform", "model-deployment", "optimization"],
+  "tags": ["python", "onnxruntime", "onnx", "inference", "ml", "model-deployment", "optimization", "cross-platform"],
+  "what_it_does": "Cross-platform ML model inference engine — runs ONNX format models on CPU, GPU, or specialized hardware with graph optimizations. ONNX Runtime features: InferenceSession (load .onnx model), session.run() for inference, execution providers (CPUExecutionProvider, CUDAExecutionProvider, TensorRTExecutionProvider, CoreMLExecutionProvider), graph-level optimizations (constant folding, operator fusion), quantization (INT8/FP16), model profiling, dynamic shapes, IoBinding for zero-copy GPU inference, and Python/C++/C#/Java/JavaScript APIs. Exports from PyTorch (torch.onnx.export), TensorFlow, and scikit-learn via skl2onnx. Microsoft production inference runtime — used by Azure ML, Windows ML, and Hugging Face Optimum.",
+  "use_cases": [
+    "Agent optimized model deployment — session = ort.InferenceSession('agent_model.onnx', providers=['CUDAExecutionProvider']); outputs = session.run(['logits'], {'input_ids': input_array}) — PyTorch model exported to ONNX runs 2-5x faster in production; agent inference latency drops without PyTorch framework overhead",
+    "Agent CPU inference without PyTorch — session = ort.InferenceSession('classifier.onnx') — 50MB ONNX Runtime vs 1GB PyTorch; agent Docker container exports ONNX model from training machine; production container runs inference with onnxruntime-cpu only; no CUDA or GPU required",
+    "Agent model quantization — from onnxruntime.quantization import quantize_dynamic; quantize_dynamic('model.onnx', 'model_int8.onnx', weight_type=QuantType.QInt8) — 4x model size reduction; agent INT8 inference 2-3x faster than FP32 on CPU; slight accuracy tradeoff acceptable for agent classification",
+    "Agent HuggingFace Optimum deployment — from optimum.onnxruntime import ORTModelForSequenceClassification; model = ORTModelForSequenceClassification.from_pretrained('bert-base', export=True) — HuggingFace transformer exported and optimized for ONNX Runtime; agent NLP inference 2-4x faster than PyTorch",
+    "Agent cross-platform inference — onnxruntime-web runs same ONNX model in browser JavaScript; agent browser client runs same model as Python backend; single model training pipeline exports to ONNX once, deploys on Python server, mobile, and web without retraining"
+  ],
+  "not_for": [
+    "Model training — ONNX Runtime is inference-only; for training use PyTorch or TensorFlow; ONNX Training API exists but is experimental",
+    "Models not exportable to ONNX — some PyTorch dynamic control flow, custom ops, or new architectures fail ONNX export; verify export before committing to ONNX Runtime",
+    "Rapid model iteration — ONNX export → optimize → deploy cycle adds friction vs direct PyTorch inference; for development/research iterate in PyTorch then deploy with ONNX Runtime"
+  ],
+  "best_when": "Deploying trained ML models in production agent services where inference latency, container size, and cross-platform compatibility matter — ONNX Runtime provides graph optimization and hardware acceleration without framework overhead.",
+  "avoid_when": "You're still in active model development, your model can't be exported to ONNX, or you need training (not inference).",
+  "alternatives": ["torch-api", "tensorflow-api", "triton-inference-server-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "c++", "csharp", "java", "javascript"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — local inference library."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "ONNX Runtime is MIT licensed by Microsoft. onnxruntime (CPU), onnxruntime-gpu (CUDA), onnxruntime-directml (Windows GPU) are separate pip packages."
+  },
+  "performance": {
+    "latency_p50_ms": 5,
+    "latency_p99_ms": 50,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — local inference. 2-5x faster than equivalent PyTorch inference. INT8 quantization 2-3x faster than FP32. TensorRT provider (NVIDIA) 5-10x faster than CPU. First session.run() triggers graph optimization (1-10 sec); subsequent runs use optimized graph.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 78,
+    "error_message_quality": 75,
+    "error_message_notes": "InvalidGraph errors when ONNX export has dynamic shapes not specified. OrtFail for operator not implemented in execution provider. Shape mismatch errors show expected vs actual tensor dimensions. Execution provider unavailable falls back to CPU with warning (not error).",
+    "idempotency_support": "full",
+    "idempotency_notes": "session.run() is deterministic for same inputs and weights. Graph optimizations are deterministic. Quantized model may have minor numerical differences from FP32 — acceptable for classification, needs verification for regression agent tasks.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "ONNX export must use dynamic axes for variable batch — torch.onnx.export(model, dummy_input, 'model.onnx', dynamic_axes={'input': {0: 'batch'}}) enables variable batch size; without dynamic_axes, session.run() with different batch size than export raises shape error; agent inference serving requires dynamic batch axis",
+      "CUDAExecutionProvider must be first in providers list — InferenceSession(model, providers=['CUDAExecutionProvider', 'CPUExecutionProvider']) uses CUDA if available, falls back to CPU; reversing order always uses CPU even with CUDA available; agent GPU inference silently runs on CPU with wrong provider order",
+      "Input/output names must match export — session.run(['output'], {'input': array}); names must match names used during torch.onnx.export input_names/output_names; agent code using default names 'input.1', '183' from unnamed export is fragile; always specify input_names and output_names in torch.onnx.export",
+      "opset version compatibility — torch.onnx.export opset_version=17 generates ONNX with operators only in opset 17; older ONNX Runtime versions don't support newer opsets; agent deployment targets must have ONNX Runtime version supporting the export opset; pin opset_version to minimum supported by deployment target",
+      "Graph optimization level affects accuracy — SessionOptions.graph_optimization_level = GraphOptimizationLevel.ORT_ENABLE_ALL enables aggressive fusion; some fused operators have different numerical precision; agent models sensitive to floating point precision should test ORT_ENABLE_BASIC vs ORT_ENABLE_ALL",
+      "onnxruntime and onnxruntime-gpu conflict — pip install onnxruntime-gpu and pip install onnxruntime cannot coexist; agent environments with both packages get import conflicts; use only one: onnxruntime-gpu for GPU-capable machines, onnxruntime for CPU-only; check with pip list | grep onnxruntime before building agent Docker images"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 78,
+    "error_handling_score": 72,
+    "auth_complexity_score": 98,
+    "rate_limit_clarity_score": 98
+  },
+  "security_score_components": {
+    "tls_enforcement": 92,
+    "auth_strength": 92,
+    "scope_granularity": 88,
+    "dependency_hygiene": 85,
+    "secret_handling": 92,
+    "security_notes": "Local inference — no data sent externally. ONNX model files can be deserialized into arbitrary graphs — verify ONNX files from trusted sources before loading in agent production. Microsoft-maintained with regular CVE patching."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 82,
+    "version_stability": 80,
+    "breaking_changes_history": 78,
+    "error_recovery": 80
+  }
+}
