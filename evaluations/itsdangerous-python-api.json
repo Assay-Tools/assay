@@ -1,0 +1,106 @@
+{
+  "id": "itsdangerous-python-api",
+  "name": "itsdangerous",
+  "version_evaluated": "2.x",
+  "homepage": "https://itsdangerous.palletsprojects.com/",
+  "repo_url": "https://github.com/pallets/itsdangerous",
+  "category": "developer-tools",
+  "subcategories": ["security", "python", "cryptography", "tokens", "signing"],
+  "tags": ["python", "itsdangerous", "hmac", "signing", "token", "url-safe", "flask", "serialization"],
+  "what_it_does": "Cryptographically signed data serialization for Python — generates and verifies HMAC-signed tokens for safe data transmission. itsdangerous features: URLSafeSerializer for signed JSON tokens (like JWT but simpler), URLSafeTimedSerializer for time-limited tokens, Signer for raw string signing, TimestampSigner with expiry, SignatureExpired and BadSignature exceptions, salt= for namespace separation, separator customization, and BadData parent exception. Used in Flask for session cookies. Alternative to JWT for same-site signed data.",
+  "use_cases": [
+    "Agent password reset token — from itsdangerous import URLSafeTimedSerializer; s = URLSafeTimedSerializer('SECRET_KEY'); token = s.dumps({'user_id': 42, 'action': 'reset'}, salt='password-reset'); # ... later: data = s.loads(token, salt='password-reset', max_age=3600) — signed time-limited token; agent generates reset link; token expires in 1 hour; SignatureExpired raised if expired",
+    "Agent email confirmation — s = URLSafeTimedSerializer(app.secret_key); token = s.dumps(user.email, salt='email-confirm'); confirm_url = f'https://app.com/confirm/{token}'; # later: email = s.loads(token, salt='email-confirm', max_age=86400) — email confirmation link; agent user onboarding sends confirmation; 24-hour expiry; BadSignature if tampered",
+    "Agent signed API state — s = URLSafeSerializer('SECRET'); state_token = s.dumps({'session': session_id, 'csrf': csrf_token}, salt='oauth-state'); # OAuth callback: data = s.loads(state, salt='oauth-state') — CSRF protection for OAuth; agent OAuth flow signs state parameter; prevents CSRF in callback; no database needed for state storage",
+    "Agent same-process signed cookies — from flask import Flask; from itsdangerous import URLSafeSerializer; s = URLSafeSerializer(app.secret_key, salt='session'); cookie = s.dumps({'user_id': user_id, 'role': 'admin'}) — Flask uses itsdangerous internally for session cookies; agent Flask app signs session data; data stored in cookie not server; no session database",
+    "Agent namespace separation with salt — email_ser = URLSafeTimedSerializer(SECRET, salt='email'); reset_ser = URLSafeTimedSerializer(SECRET, salt='reset'); token_for_email_context = email_ser.dumps(user_id); email_ser.loads(reset_ser.dumps(user_id)) raises BadSignature — salt prevents cross-namespace token reuse; agent cannot use email confirmation token for password reset even with same secret"
+  ],
+  "not_for": [
+    "JWT standard compliance — itsdangerous uses custom format not JWT standard; for OAuth2/OIDC JWT use python-jose or PyJWT",
+    "Stateless auth tokens for external APIs — itsdangerous tokens are opaque; for interoperable auth tokens use JWT",
+    "Encryption — itsdangerous signs but does not encrypt; data in token is base64-decodable (not encrypted); use Fernet from cryptography for encrypted tokens"
+  ],
+  "best_when": "Same-application signed tokens — password reset links, email confirmations, CSRF state, session cookies — where you control both signing and verification and don't need JWT interoperability.",
+  "avoid_when": "You need JWT standard (use PyJWT), cross-service token sharing (use JWT), or encrypted tokens where data must not be readable (use Fernet).",
+  "alternatives": ["pyjwt-python-api", "cryptography-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["hmac"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "HMAC signing with secret key. No network auth. Secret key must be kept secret and rotated on compromise."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, BSD licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "itsdangerous is BSD licensed by the Pallets team (Flask creators). Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. HMAC signing: ~100K tokens/sec. Verification (loads): ~80K/sec. Timed tokens add timestamp parsing overhead. Performance dominated by HMAC-SHA1/SHA512 computation.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 88,
+    "error_message_quality": 85,
+    "error_message_notes": "SignatureExpired (subclass of BadTimeSignature, BadSignature) when max_age exceeded. BadSignature when signature doesn't match. BadData parent exception for all itsdangerous errors. SignatureExpired.date_signed attribute shows when token was created. Clear exception hierarchy for specific error handling.",
+    "idempotency_support": "full",
+    "idempotency_notes": "dumps() is deterministic for same data + secret + salt (within same timestamp second for timed serializer). loads() is idempotent for valid tokens. Expired tokens always raise SignatureExpired consistently.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "itsdangerous data is NOT encrypted — URLSafeSerializer.dumps({'user_id': 42}) produces base64-decodable token; the payload is visible to anyone who decodes it; import base64; base64.b64decode(token.split('.')[0] + '==') reveals the data; agent code putting secrets (passwords, SSNs) in token data exposes them; use itsdangerous for integrity, not confidentiality",
+      "salt= namespace isolation is critical — s.dumps(data, salt='email') and s.dumps(data, salt='reset') produce different signatures for same data; omitting salt makes all tokens in same namespace interchangeable; agent using same serializer for email confirmation and password reset without different salts allows token reuse attacks; always specify different salts per use case",
+      "max_age must be set explicitly — URLSafeTimedSerializer.loads(token) without max_age accepts any age token including 10-year-old tokens; agent password reset without max_age allows token reuse indefinitely; always specify max_age=3600 (seconds); omitting max_age is a security bug for time-limited tokens",
+      "SignatureExpired vs BadSignature require separate handling — except itsdangerous.BadSignature catches both expired and tampered; except itsdangerous.SignatureExpired is subclass of BadData not BadSignature in some versions; agent code: try: data = s.loads(token); except itsdangerous.SignatureExpired: show_expired_message(); except itsdangerous.BadSignature: show_invalid_message()",
+      "Secret key rotation invalidates all existing tokens — changing SECRET_KEY makes all existing tokens invalid; agent must handle graceful rotation: try new key first, then old key; itsdangerous.Serializer([new_secret, old_secret]) for multi-key validation; agent password reset tokens become invalid on secret rotation causing UX issues",
+      "Token size grows with data size — URLSafeSerializer.dumps({'large': 'object' * 1000}) produces long token; itsdangerous is not designed for large payloads; URL length limits (2000 chars) constrain token size in reset links; agent should store large session data server-side and put only ID in token; keep token payload minimal"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 88,
+    "error_handling_score": 85,
+    "auth_complexity_score": 92,
+    "rate_limit_clarity_score": 98
+  },
+  "security_score_components": {
+    "tls_enforcement": 88,
+    "auth_strength": 88,
+    "scope_granularity": 85,
+    "dependency_hygiene": 92,
+    "secret_handling": 85,
+    "security_notes": "CRITICAL: itsdangerous provides integrity not confidentiality — token payload is base64-decodable. Use salt= for namespace isolation to prevent cross-context token reuse. Always set max_age for time-limited tokens. Rotate secret key on suspected compromise (invalidates all existing tokens). Use cryptographically random secret key (secrets.token_hex(32)). Store secret key in environment variable not source code."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 90,
+    "version_stability": 90,
+    "breaking_changes_history": 88,
+    "error_recovery": 90
+  }
+}

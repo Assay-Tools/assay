@@ -1,0 +1,106 @@
+{
+  "id": "fakeredis-python-api",
+  "name": "fakeredis",
+  "version_evaluated": "2.x",
+  "homepage": "https://github.com/cunla/fakeredis-py",
+  "repo_url": "https://github.com/cunla/fakeredis-py",
+  "category": "developer-tools",
+  "subcategories": ["testing", "python", "redis", "mock", "in-memory"],
+  "tags": ["python", "fakeredis", "redis", "testing", "mock", "in-memory", "pytest"],
+  "what_it_does": "In-memory Redis implementation for Python testing — drop-in replacement for redis-py that runs entirely in-memory without a Redis server. fakeredis features: fakeredis.FakeRedis() matching redis-py API, fakeredis.FakeServer for shared state between clients, async support (fakeredis.aioredis.FakeRedis), all Redis data structures (string, hash, list, set, sorted set, stream), TTL support, Lua scripting, pub/sub, transaction support, pytest plugin (pytest-fakeredis), and version-specific behavior modes. Used for unit testing Redis-dependent code without external Redis server.",
+  "use_cases": [
+    "Agent unit testing with Redis — import fakeredis; r = fakeredis.FakeRedis(); r.set('session:123', json.dumps(session_data), ex=3600); data = json.loads(r.get('session:123')) — identical API to redis-py; agent session code tested without real Redis; no server required for CI; test runs in milliseconds",
+    "Agent pytest fixture — import pytest; import fakeredis; @pytest.fixture; def redis_client(): server = fakeredis.FakeServer(); client = fakeredis.FakeRedis(server=server); yield client; client.flushall() — shared FakeServer across test functions; agent tests share in-memory Redis state; flushall() resets between tests; independent from other test suites",
+    "Agent async testing — import pytest; import fakeredis.aioredis; @pytest.fixture; async def async_redis(): r = fakeredis.aioredis.FakeRedis(); yield r; await r.aclose() — async redis-py compatible API; agent FastAPI testing uses async FakeRedis without real server; same test code as sync but with await",
+    "Agent cache testing — from unittest.mock import patch; with patch('myagent.cache.redis', fakeredis.FakeRedis()): result1 = get_cached_data('key'); result2 = get_cached_data('key'); assert call_count == 1 — test cache hit behavior; agent cache layer tested in isolation; verify caching logic without external dependency",
+    "Agent pub/sub testing — r = fakeredis.FakeRedis(); p = r.pubsub(); p.subscribe('agent_events'); r.publish('agent_events', 'task_completed'); message = p.get_message() — test pub/sub without real Redis; agent event system tested synchronously; verify subscriber receives published messages"
+  ],
+  "not_for": [
+    "Production use — fakeredis is for testing only; it runs in-memory in Python process; use real Redis for production",
+    "Persistence testing — fakeredis state is lost on process exit; for testing Redis persistence behavior use real Redis with test containers",
+    "Performance testing — fakeredis Python implementation is slower than real Redis; for performance benchmarks use real Redis"
+  ],
+  "best_when": "Unit testing Python code that depends on Redis — fakeredis eliminates Redis server dependency in tests, making them faster, more isolated, and CI-friendly without docker-compose.",
+  "avoid_when": "You need production Redis (use real Redis), are testing persistence behavior (use testcontainers), or benchmarking performance (use real Redis).",
+  "alternatives": ["redis-py-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — in-memory testing implementation. No network connections."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, BSD licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "fakeredis is BSD licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Operations: <0.1ms (pure Python in-memory). Slower than real Redis (no C optimization). Suitable for test workloads not benchmarks.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 82,
+    "error_message_notes": "redis.ResponseError for command errors (matching real Redis). redis.ConnectionError not raised (no real connection). ResponseError messages match real Redis error format. NotImplementedError for unimplemented commands. Error compatibility with redis-py is high.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Same commands produce same results — fully deterministic. FakeServer state is shared and persistent within process. flushall() resets to clean state. TTL behavior matches real Redis timing within test execution speed.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "FakeRedis instances without FakeServer don't share state — r1 = fakeredis.FakeRedis(); r2 = fakeredis.FakeRedis(); r1.set('key', 'val'); r2.get('key') returns None; each FakeRedis creates isolated server; agent tests with multiple Redis clients must share: server = fakeredis.FakeServer(); r1 = fakeredis.FakeRedis(server=server); r2 = fakeredis.FakeRedis(server=server)",
+      "TTL expiry uses real wall clock not test control — fakeredis TTL: r.set('key', 'val', ex=1); time.sleep(1.1); r.get('key') returns None correctly; but tests that need to advance time without sleeping cannot — fakeredis has no time-travel; agent TTL tests must actually sleep or use large TTL and avoid testing expiry in unit tests",
+      "Not all Redis commands implemented — fakeredis implements most common commands but exotic commands (MODULE LOAD, DEBUG SLEEP, some ACL commands) raise ResponseError or NotImplementedError; agent code using advanced Redis features must verify fakeredis support; check fakeredis changelog for unimplemented commands",
+      "redis-py version pinning required — fakeredis versions correspond to specific redis-py versions; fakeredis 2.x works with redis-py 4.x and 5.x; using fakeredis 1.x with redis-py 4.x raises AttributeError; pin both in requirements-test.txt: redis==5.0.0; fakeredis==2.20.0",
+      "async FakeRedis uses different import path — sync: import fakeredis; r = fakeredis.FakeRedis(); async: from fakeredis import aioredis; r = aioredis.FakeRedis(); mixing sync FakeRedis in async code causes RuntimeError; async agent tests must import from fakeredis.aioredis not fakeredis directly",
+      "pub/sub requires polling not blocking — real Redis pubsub: p.listen() blocks until message; fakeredis pubsub: p.get_message() returns None immediately if no message; agent pub/sub tests: r.publish('channel', 'msg'); time.sleep(0.01); msg = p.get_message(ignore_subscribe_messages=True); fakeredis pub/sub is non-blocking by design"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 82,
+    "auth_complexity_score": 99,
+    "rate_limit_clarity_score": 99
+  },
+  "security_score_components": {
+    "tls_enforcement": 92,
+    "auth_strength": 92,
+    "scope_granularity": 90,
+    "dependency_hygiene": 88,
+    "secret_handling": 90,
+    "security_notes": "Testing library with no network connections and no security concerns. Do not use in production — testing data is in-memory and not persisted. No sensitive data should be stored in fakeredis for testing — use mock values not real credentials or PII."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 85,
+    "version_stability": 82,
+    "breaking_changes_history": 80,
+    "error_recovery": 85
+  }
+}
