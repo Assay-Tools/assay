@@ -1,0 +1,106 @@
+{
+  "id": "bun-runtime-api",
+  "name": "Bun",
+  "version_evaluated": "1.x",
+  "homepage": "https://bun.sh/",
+  "repo_url": "https://github.com/oven-sh/bun",
+  "category": "developer-tools",
+  "subcategories": ["javascript", "typescript", "runtime", "bundler", "package-manager"],
+  "tags": ["javascript", "typescript", "bun", "runtime", "bundler", "package-manager", "node-alternative", "zig"],
+  "what_it_does": "All-in-one JavaScript/TypeScript runtime — fast Node.js-compatible runtime built in Zig with native bundler, package manager, and test runner. Bun features: bun run (execute JS/TS without transpilation), bun install (npm-compatible package manager, 10-25x faster), bun build (bundler, replaces webpack/esbuild), bun test (Jest-compatible test runner), native TypeScript execution (no tsc needed), Node.js API compatibility, Web APIs (fetch, WebSocket, crypto), Bun.serve() HTTP server, SQLite built-in (bun:sqlite), bun:ffi for native code, .env loading built-in, and bun --hot for hot reload. Single binary, cross-platform (macOS, Linux, Windows).",
+  "use_cases": [
+    "Agent TypeScript execution — bun agent.ts — runs TypeScript directly without tsc compilation step; agent scripts written in TypeScript execute immediately; no tsconfig.json or build step required for simple agent scripts",
+    "Agent fast package installation — bun install in 1.2 seconds vs npm install in 30 seconds; agent Docker builds use bun install for CI speed; bun.lockb lockfile is binary for faster parsing; bun add openai installs and updates package.json in one command",
+    "Agent HTTP server — Bun.serve({ port: 3000, fetch(req) { return new Response('Agent ready') } }) — built-in HTTP server with Web API fetch handler; agent webhook receivers and API servers start with zero config; Bun.serve handles 100K+ req/s on single core",
+    "Agent SQLite data — import { Database } from 'bun:sqlite'; const db = new Database('agent.db'); const rows = db.query('SELECT * FROM tasks').all() — built-in SQLite without npm package; agent persistent storage with zero dependencies; faster than better-sqlite3",
+    "Agent test suite — bun test — discovers *.test.ts files, runs Jest-compatible tests with describe/it/expect; agent test suites run 3-5x faster than Jest; bun test --watch re-runs on file change; no jest.config.js needed"
+  ],
+  "not_for": [
+    "Production Node.js replacement without testing — Bun has ~95% Node.js compatibility but edge cases exist; audit agent code for Node.js-only APIs before switching to Bun in production",
+    "Native npm ecosystem modules with C++ addons — some npm packages with native .node addons may not work with Bun; test critical agent dependencies before committing to Bun",
+    "Legacy CommonJS-heavy codebases — Bun prefers ESM; CJS works but mixing CJS/ESM in agent code causes require() vs import() confusion"
+  ],
+  "best_when": "Building new JavaScript/TypeScript agent tools, scripts, or servers where fast startup, built-in TypeScript, and zero-config are priorities — Bun's all-in-one approach eliminates npm + webpack + ts-node + jest configuration overhead.",
+  "avoid_when": "Your agent code depends on C++ native addons, you need maximum Node.js compatibility guarantees, or your organization requires a stable LTS runtime.",
+  "alternatives": ["node-api", "deno-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": false,
+    "sdk_languages": [],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — local JavaScript runtime. npm registry auth uses .npmrc or bun login for private registries."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Bun is MIT licensed, maintained by Oven Inc. Free for all use including commercial."
+  },
+  "performance": {
+    "latency_p50_ms": 1,
+    "latency_p99_ms": 5,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Startup 3-10x faster than Node.js. HTTP server 2-4x faster than Express/Node. bun install 10-25x faster than npm. bun test 3-5x faster than Jest. SQLite built-in faster than better-sqlite3 npm package.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 80,
+    "error_message_quality": 78,
+    "error_message_notes": "Node.js compatibility errors show as 'ERR_NOT_SUPPORTED' or 'not implemented'. bun:sqlite errors mirror better-sqlite3 error messages. TypeScript errors shown as Bun transpiler errors without tsc output. Missing module errors show package name and suggest bun add.",
+    "idempotency_support": "full",
+    "idempotency_notes": "bun install is idempotent with lockfile (bun.lockb). bun run scripts are idempotent. bun test reruns all tests deterministically. bun build produces same output for same input.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "bun.lockb is binary and not human-readable — bun install generates binary bun.lockb lockfile instead of package-lock.json; agent code reviews cannot diff bun.lockb in git; use bun install --frozen-lockfile in CI to prevent lockfile changes; commit bun.lockb to git for reproducible installs",
+      "Bun.serve() requires explicit return — fetch(req) { processRequest(req) } missing return undefined is valid JS but returns 404; agent HTTP handlers must return Response or Promise<Response>; missing return is silent bug in Bun.serve handlers",
+      "bun:test expect matchers differ from Jest — Bun's test runner is Jest-compatible but not 100% identical; some Jest matchers (toMatchInlineSnapshot with complex objects) may behave differently; agent test suites migrating from Jest should run full test suite to verify matcher compatibility",
+      "TypeScript decorators require experimentalDecorators — Bun's TypeScript transpiler supports decorators but requires experimentalDecorators: true in tsconfig.json; agent code using class decorators (@Injectable, @Controller) silently strips decorators without tsconfig; always include tsconfig.json for decorator-heavy agent frameworks",
+      "bun install --production flag required for deploy — bun install without --production installs devDependencies; agent production Docker images without --production flag include test dependencies and are 2-5x larger; use bun install --production in Dockerfile for minimal agent container size",
+      "Node.js vm module not fully supported — require('vm') / new vm.Script() may not work in Bun; agent sandboxing code using Node.js vm module for LLM output evaluation fails in Bun; use Bun's plugin system or separate process for agent code sandboxing"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 80,
+    "error_handling_score": 75,
+    "auth_complexity_score": 95,
+    "rate_limit_clarity_score": 98
+  },
+  "security_score_components": {
+    "tls_enforcement": 88,
+    "auth_strength": 85,
+    "scope_granularity": 82,
+    "dependency_hygiene": 80,
+    "secret_handling": 85,
+    "security_notes": "Bun loads .env files automatically (no dotenv needed) — ensure .env not committed to git. bun:ffi allows calling native code — validate FFI inputs for agent security. Bun runs with same OS permissions as Node.js — no sandboxing by default."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 75,
+    "version_stability": 72,
+    "breaking_changes_history": 68,
+    "error_recovery": 75
+  }
+}

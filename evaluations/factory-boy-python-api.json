@@ -1,0 +1,106 @@
+{
+  "id": "factory-boy-python-api",
+  "name": "factory_boy",
+  "version_evaluated": "3.x",
+  "homepage": "https://factoryboy.readthedocs.io/",
+  "repo_url": "https://github.com/FactoryBoy/factory_boy",
+  "category": "developer-tools",
+  "subcategories": ["testing", "python", "factories", "fixtures", "django"],
+  "tags": ["python", "factory-boy", "testing", "fixtures", "django", "sqlalchemy", "factories", "faker"],
+  "what_it_does": "Test factory library for Python — creates test data using declarative factory definitions. factory_boy features: Factory class declaration (DjangoModelFactory, SQLAlchemyModelFactory), factory.build() for in-memory, factory.create() for DB-persisted, factory.Sequence for unique values, factory.Faker for realistic fake data, factory.SubFactory for associations, factory.LazyAttribute for computed fields, factory.Trait for variations, batch creation (factory.build_batch), @factory.post_generation hooks, and create_batch for N records. Django equivalent of Ruby's FactoryBot. Integrates with Faker for realistic data.",
+  "use_cases": [
+    "Agent Django test data — AgentFactory.create(name='SearchAgent', status='idle') creates Agent model instance with defaults; factory defined with class AgentFactory(DjangoModelFactory): class Meta: model = Agent; agent test setup in 1 line vs 10 lines of manual model creation",
+    "Agent with associations — TaskFactory.create(agent=AgentFactory.create()) creates Task with associated Agent; factory.SubFactory(AgentFactory) in TaskFactory auto-creates agent if not provided; agent relationship tests use factory composition without manual FK management",
+    "Unique value sequences — factory.Sequence(lambda n: f'agent-{n}@example.com') generates unique emails per factory call; agent tests creating multiple users avoid unique constraint violations; sequences are thread-safe and reset with factory.reset_sequence()",
+    "Realistic agent test data — name = factory.Faker('name'); email = factory.Faker('email'); ip = factory.Faker('ipv4'); agent factories produce human-realistic test data using Faker library; tests are more representative than 'test_name_1' placeholder strings",
+    "Agent factory traits — class AgentFactory(DjangoModelFactory): class Params: active = factory.Trait(status='active', last_ping=timezone.now()); AgentFactory.create(active=True) creates active agent; test scenarios defined as traits not repetitive attribute overrides"
+  ],
+  "not_for": [
+    "Non-Django/SQLAlchemy ORMs — factory_boy has built-in support for Django and SQLAlchemy; for other ORMs use base Factory with custom _create classmethod",
+    "Production data seeding — factory_boy is for tests; for database seeds use Django data migrations or management commands",
+    "Complex state machine factories — factory_boy doesn't model state transitions; for complex lifecycle testing, build each state factory separately"
+  ],
+  "best_when": "Your Django or SQLAlchemy agent app needs clean, composable test data factories — factory_boy is the Python standard for creating test agent records with realistic fake data, associations, and trait variations.",
+  "avoid_when": "You prefer plain pytest fixtures with direct ORM calls, your ORM isn't supported, or you need production seeding.",
+  "alternatives": ["polyfactory-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — local test library that interacts with Django ORM or SQLAlchemy directly."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "factory_boy is MIT licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 0,
+    "latency_p99_ms": 0,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — test data generation. create_batch(100, :agent) creates 100 DB records. Each create() is a separate ORM save() call — use bulk_create for very large fixtures.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 82,
+    "error_message_quality": 80,
+    "error_message_notes": "Django validation errors from factory creation surface as ValidationError. IntegrityError on unique constraint violations from sequence misconfiguration. AttributeError if factory field references non-existent model field. SubFactory circular dependency raises RecursionError.",
+    "idempotency_support": "full",
+    "idempotency_notes": "factory.build() is idempotent for same params (no sequences). Sequences increment per-call — not idempotent. factory.create() DB records persist per ORM transaction. Django TestCase rolls back between tests — factory data doesn't persist.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "DjangoModelFactory requires Django setup — import factory; class AgentFactory(factory.django.DjangoModelFactory) fails with django.core.exceptions.ImproperlyConfigured if Django settings not configured; agent test files must import django.conf.settings or run via pytest-django with DJANGO_SETTINGS_MODULE set",
+      "factory.build() vs factory.create() confusion — build() returns unsaved model instance (no DB); create() saves to DB; agent tests that call build() and then query the DB for the created object get zero results; use create() for DB-backed agent test data, build() for unit tests not touching DB",
+      "SubFactory creates associations on create not build — factory.SubFactory(AgentFactory) in TaskFactory calls AgentFactory.create() when TaskFactory.create() is called; this inserts an Agent even if test only needs Task; use factory.SubFactory(AgentFactory, _create=False) or build() to avoid unwanted DB inserts in agent unit tests",
+      "Sequence numbers are global per factory — factory.Sequence(lambda n: f'agent-{n}') increments globally across all test runs in a session; agent tests depending on specific sequence numbers (agent-0, agent-1) are fragile; design factories to assert uniqueness not specific values",
+      "factory.Faker locale must match test expectations — factory.Faker('name') uses default locale (en_US); agent tests expecting French names must use factory.Faker('name', locale='fr_FR'); mismatched locale causes name format assertion failures in agent internationalization tests",
+      "@factory.post_generation hooks receive extracted kwargs — @factory.post_generation def tags(self, create, extracted, **kwargs): if extracted: self.tags.set(extracted); AgentFactory.create(tags=[tag1, tag2]) passes list as extracted; agent factories with M2M relationships must use post_generation; forgetting create check causes M2M errors on build()"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 82,
+    "error_handling_score": 78,
+    "auth_complexity_score": 98,
+    "rate_limit_clarity_score": 98
+  },
+  "security_score_components": {
+    "tls_enforcement": 95,
+    "auth_strength": 95,
+    "scope_granularity": 92,
+    "dependency_hygiene": 88,
+    "secret_handling": 90,
+    "security_notes": "Test-only library — no network access. Factory files may define test passwords or tokens — use non-realistic placeholders (never real credentials). Ensure factory files in tests/ directory not compiled into production package."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 85,
+    "version_stability": 88,
+    "breaking_changes_history": 85,
+    "error_recovery": 85
+  }
+}
