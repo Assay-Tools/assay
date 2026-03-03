@@ -1,0 +1,106 @@
+{
+  "id": "lark-python-api",
+  "name": "lark",
+  "version_evaluated": "1.x",
+  "homepage": "https://lark-parser.readthedocs.io/",
+  "repo_url": "https://github.com/lark-parser/lark",
+  "category": "developer-tools",
+  "subcategories": ["parsing", "python", "grammar", "compiler"],
+  "tags": ["python", "lark", "parser", "grammar", "EBNF", "Earley", "LALR", "DSL", "compiler"],
+  "what_it_does": "Modern Python parsing library using standard EBNF grammar notation — generates parsers from grammar files with Earley or LALR(1) algorithms. lark features: EBNF grammar syntax in string or file, Earley parser for any context-free grammar (including ambiguous), LALR(1) for high-performance unambiguous grammars, automatic parse tree construction, Transformer/Visitor patterns for tree processing, terminal/rule disambiguation, priority-based ambiguity resolution, grammar imports/inheritance, standalone parser generation (no lark dependency at runtime), regex terminal support, and lark-cython for C-speed parsing.",
+  "use_cases": [
+    "Agent LALR grammar parser — from lark import Lark; grammar = '''start: WORD (',' WORD)*\\nWORD: /[a-z]+/'''; parser = Lark(grammar, parser='lalr'); tree = parser.parse('hello,world') — LALR parsing; agent parses comma-separated words using efficient LALR algorithm; tree is a Tree object with children; fast for unambiguous grammars",
+    "Agent Earley ambiguous grammar — from lark import Lark; grammar = '''sentence: noun verb noun | noun noun verb'''; parser = Lark(grammar, parser='earley', ambiguity='resolve'); tree = parser.parse('dog cat bites') — natural language parsing; agent handles ambiguous grammars where multiple parses exist; Earley handles all context-free grammars",
+    "Agent tree transformation — from lark import Transformer; class MyTransformer(Transformer): def add(self, items): return items[0] + items[1]; def number(self, items): return int(items[0]); result = MyTransformer().transform(parser.parse('1 + 2')) — tree transformation; agent evaluates parsed expression trees by transforming bottom-up",
+    "Agent standalone parser — from lark.tools import standalone; code = standalone(parser); open('parser.py', 'w').write(code) — code generation; agent generates standalone parser that works without lark installed; useful for deployment where lark adds too much dependency weight",
+    "Agent JSON parser example — from lark import Lark; json_grammar = open('json.lark').read(); parser = Lark(json_grammar, parser='lalr', lexer='basic'); tree = parser.parse(json_string) — LALR JSON parsing; agent learns grammar design by using lark's included example grammars; lark ships with example grammars for JSON, Python, EBNF"
+  ],
+  "not_for": [
+    "Simple pattern extraction — for simple regex patterns use Python's re module; lark is overkill for single-pattern extraction",
+    "Non-context-free grammars — lark handles context-free grammars only; for context-sensitive or format-specific parsing use dedicated parsers (HTML: BeautifulSoup)",
+    "Quick prototyping without grammar files — for rapid grammar prototyping pyparsing's Python-native notation is more convenient"
+  ],
+  "best_when": "Building parsers for DSLs, config formats, or small languages where formal EBNF grammar notation produces correct, maintainable parsers — especially when LALR performance is needed.",
+  "avoid_when": "Simple string splitting/regex patterns, HTML/XML (use BeautifulSoup/lxml), quick prototyping without grammar files (use pyparsing), or context-sensitive grammars.",
+  "alternatives": ["pyparsing-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — pure Python parsing library."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "lark is MIT licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Performance: LALR: ~10-50 MB/s parsing speed in Python. Earley: 10-100x slower than LALR for unambiguous grammars. lark-cython or lark[interegular] for C-speed. Grammar compilation takes ~100ms-1s — cache parser object, don't recreate per parse call. Standalone parser removes runtime overhead.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 88,
+    "error_message_quality": 85,
+    "error_message_notes": "UnexpectedInput for parse errors with expected tokens listed. UnexpectedCharacters for lexer-level failures. UnexpectedToken for parser-level failures. GrammarError for invalid grammar syntax. Error messages include line/column and set of expected tokens — useful for error messages to users.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Parser object is stateless — parsing same input always produces same tree. Grammar compilation is deterministic. Transformers/Visitors are stateless pure functions by design. Side effects possible if Transformer methods have state.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Create parser once, parse many times — Lark(grammar) compiles the grammar which takes 100ms-1s; agent code creating Lark() inside a loop or per-request is slow; create parser at module level or in __init__; parser.parse(text) is fast after compilation; same parser handles multiple inputs safely (stateless)",
+      "LALR requires unambiguous grammar, Earley handles ambiguity — agent code using parser='lalr' with ambiguous grammar raises GrammarError or produces wrong parses silently; if grammar has shift/reduce conflicts use Earley first to prototype, then refactor to unambiguous for LALR; use lark grammar validator to check",
+      "Terminals are uppercase, rules are lowercase in EBNF — WORD, NUMBER are terminal (regex); word, number are grammar rules; mixing case produces GrammarError or silent wrong behavior; agent grammar files must follow this convention; lark is case-sensitive in terminal/rule distinction",
+      "Tree children include both terminals and subtrees — tree.children is a list that may contain Token objects (strings with extra metadata) and Tree objects; tree.children[0] may be Token (has .type and .value) or Tree (has .data and .children); agent Transformer methods receive children as list — check isinstance to handle both",
+      "?rule inline removes rule from tree — grammar: ?expr: term | sum means expr rule is inlined (its child promoted directly); useful to remove intermediate nodes; but agent code expecting tree.find_data('expr') won't find inlined rules; use ? judiciously to simplify tree structure without surprising Transformer implementations",
+      "Whitespace handling requires explicit terminal — lark does not skip whitespace by default unless using common.lark import; agent grammar must include: %ignore /\\s+/ or %import common.WS_INLINE to ignore whitespace; forgetting this causes UnexpectedCharacters on whitespace in input; common patterns available via %import common"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 88,
+    "error_handling_score": 85,
+    "auth_complexity_score": 99,
+    "rate_limit_clarity_score": 99
+  },
+  "security_score_components": {
+    "tls_enforcement": 92,
+    "auth_strength": 92,
+    "scope_granularity": 90,
+    "dependency_hygiene": 92,
+    "secret_handling": 92,
+    "security_notes": "Pure parsing library with no network calls. Parsing user-controlled input: lark uses PEG/CFG algorithms, not regex backtracking, so ReDoS not applicable. Deeply nested input may cause Python recursion limits with Earley — set sys.setrecursionlimit() or use iterative Earley. Transformer executing code on parse: validate transformer methods don't eval user data."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 88,
+    "breaking_changes_history": 85,
+    "error_recovery": 88
+  }
+}

@@ -1,0 +1,106 @@
+{
+  "id": "pyparsing-python-api",
+  "name": "pyparsing",
+  "version_evaluated": "3.x",
+  "homepage": "https://pyparsing-docs.readthedocs.io/",
+  "repo_url": "https://github.com/pyparsing/pyparsing",
+  "category": "developer-tools",
+  "subcategories": ["parsing", "python", "text-processing", "utilities"],
+  "tags": ["python", "pyparsing", "parser", "grammar", "expression", "DSL", "text"],
+  "what_it_does": "Python library for building recursive descent parsers using object-oriented PEG-like grammar notation — creates parsers directly in Python without separate grammar files. pyparsing features: Literal/Keyword/Word/Regex for terminals, And/Or/MatchFirst for combinators, Optional/ZeroOrMore/OneOrMore/Group for repetition, Suppress for ignoring tokens, setResultsName for named captures, pyparsing_common for common patterns (integer, real, identifier), nestedExpr for bracket matching, infixNotation for operator precedence grammars, ParserElement.parseString/scanString/transformString, and parse actions (callbacks) triggered on successful matches.",
+  "use_cases": [
+    "Agent config file parser — from pyparsing import Word, alphas, alphanums, Suppress, Literal; key = Word(alphas, alphanums + '_'); value = Word(alphanums + '.-_/'); pair = key + Suppress(Literal('=')) + value; result = pair.parseString('host=localhost') — simple DSL parsing; agent parses custom config format without writing tokenizer by hand",
+    "Agent arithmetic expression parser — from pyparsing import pyparsing_common, infixNotation, opAssoc; integer = pyparsing_common.integer; expr = infixNotation(integer, [('+', 2, opAssoc.LEFT), ('*', 2, opAssoc.LEFT)]) — operator precedence; agent evaluates mathematical expressions from user input with proper precedence; infixNotation handles recursion and precedence automatically",
+    "Agent log line parser — from pyparsing import Regex, Suppress, Optional, pyparsing_common; timestamp = Regex(r'\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}'); level = Word(alphas).setResultsName('level'); message = Regex(r'.+').setResultsName('msg'); log_line = timestamp + level + message; result = log_line.parseString(line) — structured log parsing; agent extracts fields from custom log formats",
+    "Agent command DSL — from pyparsing import Keyword, Optional, restOfLine; cmd = Keyword('GET') | Keyword('SET') | Keyword('DEL'); key = Word(alphanums + '_-'); value = Optional(restOfLine); statement = cmd + key + value; cmd.setParseAction(lambda t: t[0].upper()) — mini command language; agent interprets simple command DSL for tool invocations",
+    "Agent nested bracket parsing — from pyparsing import nestedExpr; nested = nestedExpr('(', ')'); result = nested.parseString('(a (b c) d)') — recursive bracket matching; agent parses Lisp-style or nested parenthesis structures; nestedExpr handles arbitrary nesting depth; result is nested Python lists"
+  ],
+  "not_for": [
+    "High-performance parsing — pyparsing is Python-speed not C-speed; for parsing millions of lines use lark (Earley/LALR) or custom tokenizer",
+    "Complex ambiguous grammars — pyparsing uses PEG (ordered choice); for ambiguous grammars use lark with Earley parser",
+    "Simple splits/regex — for basic string splitting or regex matching, Python's built-in re/str.split is faster and simpler"
+  ],
+  "best_when": "Building small DSLs and parsers directly in Python without separate grammar tools — pyparsing's Python-native grammar notation is ideal for prototyping and moderate-complexity parsing tasks.",
+  "avoid_when": "High-performance bulk parsing (use lark or C extension), ambiguous grammars, or simple regex patterns (use re module).",
+  "alternatives": ["lark-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — pure Python parsing library."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "pyparsing is MIT licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Performance: pure Python — ~1-10 MB/s for complex grammars. enablePackrat() caches intermediate results — 2-10x speedup for ambiguous grammars. For performance-critical parsing use lark with LALR backend. pyparsing best for moderate data volumes (<1M tokens).",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 80,
+    "error_message_notes": "ParseException with line/column number and expected token. ParseSyntaxException for lookahead failures. ParseBaseException for all parse errors. Error messages include position in string and expected grammar element — useful for debugging grammars.",
+    "idempotency_support": "full",
+    "idempotency_notes": "pyparsing grammars are stateless — same grammar applied to same input always produces same parse result. Parse actions (setParseAction) may have side effects if user code is stateful. enablePackrat() adds cache state but results are identical.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "pyparsing 3.x changed API from 2.x — parseString() renamed to parse_string() (snake_case); setResultsName() renamed to set_results_name(); ParseException location in pyparsing 3.x; agent code upgrading from pyparsing 2.x must update method names; pyparsing 3.x adds compatibility shims but they may be removed; check version: import pyparsing; pyparsing.__version__",
+      "ParseResults acts like list AND dict — result = expr.parseString('a=1'); result[0] is 'a'; result['key'] if setResultsName was used; result.asDict() converts to plain dict; result.asList() converts to plain list; agent code must know which access pattern applies; print(result) shows the structure",
+      "Or vs MatchFirst (| vs ^) — expr1 | expr2 tries expr1 first, returns first match (ordered choice); expr1 ^ expr2 tries both and returns longest match (greedy); for unambiguous grammars | is faster; for keywords that could prefix each other use ^; agent grammar using | with keywords may silently match wrong alternative",
+      "Suppress does not remove named results — Suppress(expr) removes expr from results list; but if expr has a name set (setResultsName), the name still appears in result dict; use Suppress(expr.copy()) or remove the name; agent code expecting clean results must check for unexpected named entries",
+      "enablePackrat() must be called before grammar construction — pyparsing_common.enable_packrat() or ParserElement.enablePackrat() should be called at module level before defining grammar; calling after grammar defined has no effect on existing elements; agent code enabling packrat: call at start of script before any grammar definition",
+      "ZeroOrMore and OneOrMore can cause infinite loops — if the repeated expression matches empty string (e.g., Optional inside ZeroOrMore): ZeroOrMore(Optional(Word(alphas))) loops forever; pyparsing 3.x raises RecursionError; agent grammar must ensure the repeated element always consumes at least one character; test with small inputs before large datasets"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 80,
+    "auth_complexity_score": 99,
+    "rate_limit_clarity_score": 99
+  },
+  "security_score_components": {
+    "tls_enforcement": 92,
+    "auth_strength": 92,
+    "scope_granularity": 90,
+    "dependency_hygiene": 92,
+    "secret_handling": 92,
+    "security_notes": "Pure parsing library with no network calls. Parsing user-controlled input: ReDoS not applicable (PEG not regex backtracking). Malformed input raises ParseException — always handle. Parse actions executing code on match: validate that parse actions don't execute arbitrary user input as Python code."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 85,
+    "breaking_changes_history": 80,
+    "error_recovery": 88
+  }
+}

@@ -1,0 +1,106 @@
+{
+  "id": "charset-normalizer-python-api",
+  "name": "charset-normalizer",
+  "version_evaluated": "3.x",
+  "homepage": "https://charset-normalizer.readthedocs.io/",
+  "repo_url": "https://github.com/Ousret/charset_normalizer",
+  "category": "developer-tools",
+  "subcategories": ["text-processing", "python", "encoding", "utilities"],
+  "tags": ["python", "charset", "encoding", "detection", "unicode", "chardet", "utf8"],
+  "what_it_does": "Modern character encoding detection library for Python — detects the encoding of bytes sequences using statistical analysis. charset-normalizer features: from_bytes()/from_path()/from_fp() for encoding detection, Results object with best match and alternatives, encoding property for detected encoding name, confidence score per result, normalize() for encoding conversion, cli tool (normalizer) for command-line detection, MYPYC compiled C extension for speed, multibyte encoding support (CJK, Arabic, Hebrew), chaos detection for garbled text, and requests-compatible interface. Drop-in replacement for chardet with better accuracy and active maintenance.",
+  "use_cases": [
+    "Agent file encoding detection — from charset_normalizer import from_path; results = from_path('unknown.txt'); best = results.best(); print(best.encoding, best.chaos) — detect encoding; agent reads files with unknown encoding; from_path detects encoding from file bytes; best() returns highest-confidence match; then: with open(path, encoding=best.encoding) as f",
+    "Agent bytes to string — from charset_normalizer import from_bytes; raw_bytes = some_api_response.content; result = from_bytes(raw_bytes).best(); if result: text = str(result) — bytes decode; agent processes API responses or scraped content with unknown encoding; str(result) decodes using detected encoding; returns None if no encoding detected",
+    "Agent encoding normalization — from charset_normalizer import normalize; normalized_path = normalize('old_file.txt', encoding='utf-8') — convert encoding; agent converts legacy files to UTF-8; normalize() reads file, detects encoding, writes UTF-8; original file backed up with .bak extension by default",
+    "Agent bulk file processing — from charset_normalizer import from_bytes; for file_bytes in batch: result = from_bytes(file_bytes); encoding = result.best().encoding if result.best() else 'utf-8'; text = file_bytes.decode(encoding, errors='replace') — batch encoding detection; agent processes mixed-encoding document collections; fallback to UTF-8 with errors='replace' for safety",
+    "Agent requests integration — import requests; from charset_normalizer import from_bytes; response = requests.get(url); detected = from_bytes(response.content).best(); text = response.content.decode(detected.encoding if detected else 'utf-8') — web scraping; agent correctly decodes web pages regardless of Content-Type header encoding declaration accuracy"
+  ],
+  "not_for": [
+    "Binary file detection — charset-normalizer detects text encodings not binary vs text; use python-magic for binary type detection",
+    "Guaranteed accuracy — encoding detection is probabilistic; short texts and mixed-encoding documents may be misdetected; validate results",
+    "Real-time streaming — from_bytes requires full byte sequence; for streaming text use codec detection via BOM or HTTP Content-Type header"
+  ],
+  "best_when": "Detecting character encoding of text files and API responses with unknown encoding — charset-normalizer provides better accuracy than chardet with active maintenance and faster C extension.",
+  "avoid_when": "Binary file type detection (use python-magic), guaranteed-accurate encoding detection (add BOM at creation time instead), or real-time streaming text.",
+  "alternatives": [],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — local text processing library."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "charset-normalizer is MIT licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Performance: C extension (MYPYC): ~10 MB/s detection. Pure Python fallback: ~1-2 MB/s. Detection accuracy improves with more bytes — use at least 512 bytes for reliable detection; ideally 4KB+. Short texts (<100 bytes) may have low confidence.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 80,
+    "error_message_notes": "from_bytes() returns empty Results (falsy) when no encoding detected, not exception. from_path() raises FileNotFoundError/PermissionError. IONormalizationError for normalize() failures. Agent code must check: if result.best() is None before accessing encoding.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Detection is deterministic — same bytes always produce same result with same library version. Confidence scores may change between library versions as detection algorithms improve.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "results.best() can return None — from_bytes(data).best() returns None if no encoding detected (empty bytes, binary data, or too ambiguous); agent code must check: result = from_bytes(data).best(); if result is None: handle_failure(); do NOT call result.encoding on None — raises AttributeError; always guard with if result check",
+      "import charset_normalizer not charset_normalizer.detect — the chardet-compatible interface is: from charset_normalizer import detect; result = detect(bytes_data) returns dict with encoding and confidence; the native interface is: from charset_normalizer import from_bytes; both work but native interface gives more information including alternatives and chaos score",
+      "Small byte sequences have low reliability — detection on <100 bytes is unreliable; UTF-8 with ASCII characters often detected as ASCII; agent code should pass as much of the file as available; for streaming: buffer first 4096 bytes then detect; confidence < 0.5 should be treated as uncertain",
+      "chaos score indicates garbled text — result.chaos is float 0.0-1.0 measuring % of weird characters; chaos > 0.1 suggests misdetected encoding or garbled data; agent code should: if result.chaos > 0.1: try alternative encodings or flag for human review; chaos = 0.0 means clean, well-formed text in detected encoding",
+      "normalize() creates output file, not in-memory — charset_normalizer.normalize(path, encoding='utf-8') writes a new file to same directory; it does NOT return string; agent code needing in-memory conversion: read file → from_bytes() → str(result); normalize() is a file-to-file utility",
+      "requests library uses charset-normalizer automatically since 2.26 — requests already detects encoding via charset-normalizer/chardet; response.text uses detected encoding; agent code using requests should use response.text directly; only use charset-normalizer manually when response.content needs custom processing or response.encoding is wrong"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 80,
+    "auth_complexity_score": 99,
+    "rate_limit_clarity_score": 99
+  },
+  "security_score_components": {
+    "tls_enforcement": 92,
+    "auth_strength": 92,
+    "scope_granularity": 90,
+    "dependency_hygiene": 92,
+    "secret_handling": 92,
+    "security_notes": "Pure text processing library with no network calls. Processing untrusted bytes: detection is safe (read-only analysis). normalize() writes files — validate output path to prevent path traversal. Decoded text from untrusted sources should be sanitized before use in SQL/HTML/shell contexts."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 85,
+    "version_stability": 88,
+    "breaking_changes_history": 88,
+    "error_recovery": 85
+  }
+}
