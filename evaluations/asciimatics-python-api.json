@@ -1,0 +1,106 @@
+{
+  "id": "asciimatics-python-api",
+  "name": "asciimatics",
+  "version_evaluated": "1.15.x",
+  "homepage": "https://asciimatics.readthedocs.io/",
+  "repo_url": "https://github.com/peterbrittain/asciimatics",
+  "category": "developer-tools",
+  "subcategories": ["terminal-ui", "python", "tui", "animation"],
+  "tags": ["python", "asciimatics", "tui", "terminal", "animation", "screen", "widgets", "ascii-art"],
+  "what_it_does": "Full-screen text UI and ASCII animation library for Python — provides terminal screen management, widgets, effects, and animation. asciimatics features: Screen wrapper with managed cursor control, Scene/Effect system for animated terminals, Parser for color markup (${1,1}text${7}), Print/Box/Cycle effects, SpeechBubble/Stars/Matrix visual effects, Frame/Layout widget system (Button, Text, ListBox, RadioButtons, CheckBox), widget validation, popup dialogs, keyboard input handling, mouse support, resizable screen handling, and ASCII art rendering. More animation-focused than urwid.",
+  "use_cases": [
+    "Agent animated TUI — from asciimatics.screen import Screen; from asciimatics.scene import Scene; from asciimatics.effects import Stars, Print, FigletText; def demo(screen): effects = [Stars(screen, 200), Print(screen, FigletText('Hello!'), 3, 0)]; screen.play([Scene(effects, 200)]); Screen.wrapper(demo) — animated TUI; agent creates animated terminal with stars and text",
+    "Agent form UI — from asciimatics.widgets import Frame, Layout, Text, Button; class MyForm(Frame): def __init__(self, screen): super().__init__(screen, screen.height, screen.width, title='Input'); layout = Layout([1,2,1]); self.add_layout(layout); layout.add_widget(Text('Name:', 'name')); layout.add_widget(Button('OK', self._ok)); self.fix() — widget form; agent builds input forms with validation",
+    "Agent matrix animation — from asciimatics.effects import Matrix; effects = [Matrix(screen, stop_frame=200)]; screen.play([Scene(effects, 200)]) — ASCII animation; agent creates eye-catching terminal animations; Matrix, Julia, Explosions, Wipe are built-in effects",
+    "Agent color text display — from asciimatics.parsers import ColourParser; effects = [Print(screen, ColourParser(), '${1,1}Red Bold${7} Normal ${3}Yellow${7}', 0, 0)] — color markup; agent displays colored text using asciimatics color markup language; ${color,attribute}text${7} format for inline styling",
+    "Agent popup dialog — from asciimatics.widgets import PopupDialog; popup = PopupDialog(screen, 'Confirm delete?', ['Yes', 'No'], on_load=handler) — dialog; agent shows modal confirmation dialogs in TUI; PopupDialog handles keyboard navigation; callback receives selected button label"
+  ],
+  "not_for": [
+    "Simple terminal colors — asciimatics is a full framework; for just colors use colorama or rich",
+    "Data-heavy applications — asciimatics excels at visuals not data display; for data tables use rich",
+    "Web or desktop GUI — asciimatics is terminal-only; for web use Flask/FastAPI"
+  ],
+  "best_when": "Rich terminal animations and widget-based full-screen TUI applications — asciimatics is ideal for terminal games, dashboards with animation effects, and visually rich CLI tools.",
+  "avoid_when": "Simple colored output (use rich/colorama), data tables (use rich), static output (use print), or when urwid's widget set is sufficient without animations.",
+  "alternatives": ["urwid-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — terminal UI library."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, Apache 2.0 licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "asciimatics is Apache 2.0 licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Performance: Screen.wrapper() manages terminal at ~25fps. Animation frame rate controlled by scene duration. Widget rendering is synchronous — update loop runs in main thread. Complex effects with many characters may slow on older hardware.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 78,
+    "error_message_quality": 72,
+    "error_message_notes": "ResizeScreenError when terminal resizes — must catch and restart screen. KeyboardInterrupt for Ctrl+C — raise StopApplication('User quit') instead. InvalidFields for widget validation failures. Error messages can be cryptic for terminal capability issues.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Screen.wrapper() sets up and tears down terminal state. Effects/scenes are stateful (frame counters). Widget forms maintain state in model dict. Re-running Screen.wrapper() creates fresh state.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "ResizeScreenError must be caught and handled — when terminal resizes, asciimatics raises ResizeScreenError; agent code must: while True: try: Screen.wrapper(demo); break; except ResizeScreenError: pass — restart on resize; without this, terminal resize crashes agent",
+      "Screen.wrapper vs Screen.open — Screen.wrapper(fn) calls fn(screen) and manages setup/teardown; Screen.open() is manual with explicit close(); agent code: always prefer Screen.wrapper() for automatic terminal restoration; manual open() risks leaving terminal in bad state on exception",
+      "raise StopApplication not sys.exit inside Screen — sys.exit() inside Screen.wrapper callback bypasses terminal cleanup; agent code quitting TUI: raise StopApplication('reason') or raise NextScene('other_scene'); these are caught by asciimatics event loop and handled cleanly",
+      "Frame.data dict for form values — widget form data accessed via frame.data; button callback: def _ok(self): self.save(); data = self.data; — data is dict of {field_name: value}; call self.save() before reading self.data to flush widget state to dict",
+      "Effects need stop_frame for duration — Effect(screen, stop_frame=200) runs for 200 frames then stops; stop_frame=0 means forever; Scene(effects, -1) repeats indefinitely; agent code: calculate stop_frame from FPS to get desired duration in seconds: stop_frame = fps * seconds",
+      "asciimatics requires Windows conEmu or similar — on Windows, default cmd.exe may not support all ANSI/curses features; agent code targeting Windows: test in Windows Terminal or ConEmu; some effects work but others require Unix terminal capabilities; Linux/macOS has full support"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 78,
+    "error_handling_score": 72,
+    "auth_complexity_score": 99,
+    "rate_limit_clarity_score": 99
+  },
+  "security_score_components": {
+    "tls_enforcement": 92,
+    "auth_strength": 92,
+    "scope_granularity": 90,
+    "dependency_hygiene": 88,
+    "secret_handling": 90,
+    "security_notes": "Terminal UI library with no network calls. Terminal input handling — validate all user input from widget forms before use. Screen.wrapper() restores terminal on exit. No network calls or external data access."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 75,
+    "version_stability": 78,
+    "breaking_changes_history": 78,
+    "error_recovery": 72
+  }
+}
