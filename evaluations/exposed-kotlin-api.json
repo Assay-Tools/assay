@@ -1,0 +1,106 @@
+{
+  "id": "exposed-kotlin-api",
+  "name": "Exposed",
+  "version_evaluated": "0.50.x",
+  "homepage": "https://github.com/JetBrains/Exposed",
+  "repo_url": "https://github.com/JetBrains/Exposed",
+  "category": "developer-tools",
+  "subcategories": ["database", "kotlin", "sql", "orm", "dsl"],
+  "tags": ["kotlin", "database", "sql", "orm", "dsl", "jetbrains", "jdbc", "type-safe", "ktor"],
+  "what_it_does": "JetBrains' SQL ORM library for Kotlin — provides two APIs: DSL (type-safe Kotlin SQL DSL) and DAO (ActiveRecord-style entity objects). The DSL API maps Kotlin operations to SQL: SchemaUtils.create(Users), Users.select { Users.name eq \"agent\" }.firstOrNull(). The DAO API provides Entity classes (similar to Hibernate) with automatic CRUD. Supports PostgreSQL, MySQL, SQLite, Oracle, H2, SQL Server, and MariaDB. Designed for Kotlin-first usage (coroutine support, Kotlin data types). The go-to database library for Ktor backend services.",
+  "use_cases": [
+    "Build type-safe database access for Ktor agent backends using Exposed DSL — agent queries written in Kotlin DSL with compile-time type checking",
+    "Implement Kotlin-idiomatic agent data access using Exposed DAO — AgentEntity extends IntEntity with automatic CRUD (Agent.new { name = \"agent\" })",
+    "Use Exposed with coroutines for async agent database access — newSuspendedTransaction { ... } wraps database operations in coroutine context",
+    "Create and manage agent database schemas using Exposed SchemaUtils — SchemaUtils.create(AgentTable, TaskTable) in application startup; SchemaUtils.createMissingTablesAndColumns for incremental updates",
+    "Write complex agent query joins using Exposed DSL — (Agents innerJoin Tasks).select { Agents.status eq \"active\" } compiles to SQL JOIN with type safety"
+  ],
+  "not_for": [
+    "Non-Kotlin JVM projects — Exposed is Kotlin-specific; use jOOQ (Java DSL), MyBatis, or Hibernate for Java projects",
+    "Teams preferring Slick (Scala) or Doobie (Scala FP) — Exposed is the Kotlin equivalent; for Scala, use Slick or Doobie",
+    "Production apps requiring mature migration tooling — Exposed has basic SchemaUtils.createMissingTablesAndColumns; for robust migrations use Flyway or Liquibase alongside Exposed"
+  ],
+  "best_when": "You're building Kotlin backend services (especially with Ktor) and want a Kotlin-native database DSL with type-safe queries and optional DAO layer without Java ORM complexity.",
+  "avoid_when": "You need robust migration tooling (use Flyway + JDBI), you're in a Java project (use jOOQ or MyBatis), or you need reactive JDBC (use R2DBC).",
+  "alternatives": ["slick-scala-api", "jooq-api", "mybatis-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["kotlin"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Database library — no auth concepts. Database credentials via HikariCP DataSource or Exposed's Database.connect(url, driver, user, password)."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, Apache 2.0 licensed",
+    "paid_tiers": "None (JetBrains maintains as OSS)",
+    "requires_credit_card": false,
+    "notes": "Exposed is Apache 2.0 licensed, maintained by JetBrains. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 5,
+    "latency_p99_ms": 50,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — JDBC library. Performance governed by database and connection pool. Exposed generates standard SQL with JDBC overhead.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 78,
+    "error_message_quality": 78,
+    "error_message_notes": "Exposed SQL errors include generated SQL statement and JDBC exception. Type mismatch in DSL is Kotlin compile error. DAO not-found returns null not exception. Transaction block exception rolls back — exception propagates to caller.",
+    "idempotency_support": "full",
+    "idempotency_notes": "upsert() available in Exposed 0.41+ for idempotent write. transaction {} blocks are atomic. DSL SELECT queries are inherently idempotent.",
+    "pagination_style": "offset",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "All operations must be inside transaction { } — Exposed throws IllegalStateException if DSL operations called outside transaction context; wrap all DB access in transaction { } or newSuspendedTransaction { } for coroutines",
+      "Exposed version is still pre-1.0 — active development with API changes between minor versions; pin exact version in build.gradle.kts; breaking changes in 0.x releases are common",
+      "DAO Entity classes are thread-unsafe — Exposed DAO Entity instances are tied to the transaction that loaded them; don't pass DAO entities across transaction boundaries or to other threads without reloading",
+      "Missing column after schema change — SchemaUtils.createMissingTablesAndColumns adds missing columns but doesn't rename or modify existing ones; schema drift requires manual migration SQL or Flyway scripts",
+      "Coroutine support requires exposed-kotlin-coroutines dependency — newSuspendedTransaction is in a separate artifact; missing dependency causes NoClassDefFoundError for coroutine transaction API",
+      "N+1 with DAO references — accessing .agentTasks on an AgentEntity within a loop triggers per-entity query; use DSL JOINs or eagerly load with preloadLinkedObjects for agent-tasks relationships"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 78,
+    "error_handling_score": 78,
+    "auth_complexity_score": 92,
+    "rate_limit_clarity_score": 92
+  },
+  "security_score_components": {
+    "tls_enforcement": 92,
+    "auth_strength": 85,
+    "scope_granularity": 80,
+    "dependency_hygiene": 85,
+    "secret_handling": 85,
+    "security_notes": "Parameterized DSL queries prevent SQL injection. Type-safe DSL structurally prevents SQL injection for DSL queries. Raw SQL via exec() requires careful parameterization. TLS via JDBC URL configuration."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 78,
+    "version_stability": 72,
+    "breaking_changes_history": 65,
+    "error_recovery": 85
+  }
+}

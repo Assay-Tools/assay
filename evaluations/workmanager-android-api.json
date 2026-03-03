@@ -1,0 +1,106 @@
+{
+  "id": "workmanager-android-api",
+  "name": "WorkManager (Android Jetpack)",
+  "version_evaluated": "2.9.x",
+  "homepage": "https://developer.android.com/topic/libraries/architecture/workmanager",
+  "repo_url": "https://github.com/androidx/work",
+  "category": "developer-tools",
+  "subcategories": ["background-jobs", "android", "kotlin", "scheduling", "jetpack"],
+  "tags": ["android", "kotlin", "java", "background-jobs", "scheduling", "jetpack", "workmanager", "doze", "battery"],
+  "what_it_does": "Android Jetpack's recommended solution for deferrable, guaranteed background work — handles the complexity of Android Doze mode, battery optimization, and background restrictions. WorkManager abstracts over JobScheduler, AlarmManager, and Firebase JobDispatcher for API compatibility. Key features: guaranteed execution (persisted across app restart/device reboot), constraints (network required, charging), chaining (sequential/parallel work chains), periodic work, input/output data passing, and progress observation via LiveData/Flow.",
+  "use_cases": [
+    "Schedule agent data sync to remote server when device has WiFi connectivity using WorkManager constraints — NetworkType.UNMETERED constraint ensures sync only on WiFi",
+    "Process agent ML inference tasks in background using WorkManager — long-running CoroutineWorker for background inference without keeping the app alive",
+    "Chain agent data processing steps sequentially using WorkManager.beginWith().then().enqueue() — download agent data → parse → store in Room → notify user",
+    "Schedule periodic agent check-in tasks (heartbeat, telemetry upload) using PeriodicWorkRequest — minimum 15-minute interval enforced by Android",
+    "Show agent background task progress using setProgressAsync() — report agent processing percentage to UI via WorkInfo.getProgress() LiveData"
+  ],
+  "not_for": [
+    "Immediate/real-time agent work — WorkManager is for deferrable work; use Kotlin coroutines or services for immediate agent responses",
+    "Precise timing requirements — WorkManager has no exact time guarantees; Doze mode can delay execution; use AlarmManager with exact alarms for precise scheduling",
+    "Non-Android platforms — WorkManager is Android-only; use platform schedulers (cron, Heroku Scheduler) for server-side or iOS BackgroundTasks for Apple platforms"
+  ],
+  "best_when": "You need guaranteed background task execution on Android that survives app restart, handles battery restrictions, and supports constraints — the standard choice for all deferrable background agent work.",
+  "avoid_when": "You need immediate task execution, precise scheduling, real-time responses, or you're not on Android.",
+  "alternatives": ["android-services-api", "firebase-functions-api", "alarmmanager-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["kotlin", "java"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Background task scheduler — no auth concepts. Worker implementations access credentials via application-level stores (EncryptedSharedPreferences, Hilt injection)."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, Apache 2.0 licensed, bundled with Android Jetpack",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "WorkManager is Apache 2.0 licensed, maintained by Google as part of Android Jetpack. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 1000,
+    "latency_p99_ms": 60000,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Android Doze mode can defer execution by minutes or hours in aggressive power saving. WorkManager guarantees execution when constraints are met, not at a specific time.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["local"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 90,
+    "error_message_quality": 85,
+    "error_message_notes": "WorkManager Worker failures tracked via WorkInfo.state == FAILED. setFailure(workDataOf()) can include error details. Exception in Worker.doWork() causes FAILED state without surfacing exception to UI by default. Use Result.failure(data) with error data for downstream chain handling.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "WorkManager may retry failed workers — Worker.doWork() must be idempotent; duplicate execution on retry should not cause data corruption. Use unique work names with ExistingWorkPolicy for deduplication.",
+    "pagination_style": "none",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "PeriodicWorkRequest minimum interval is 15 minutes — Android OS enforces minimum 15-minute period; shorter periods are silently rounded up; don't design agent sync to run more frequently than 15 minutes via WorkManager",
+      "Worker class must be public with no-arg constructor — WorkManager instantiates Workers via reflection; private classes or constructors with parameters require WorkerFactory implementation via Configuration.setWorkerFactory()",
+      "Unique work policy matters — enqueueUniqueWork with KEEP policy skips new request if pending exists; REPLACE cancels existing and enqueues new; APPEND_OR_REPLACE handles chains; choosing wrong policy causes duplicate or missed agent tasks",
+      "Input/output data size limit — Data object is limited to 10KB; large agent payloads (embeddings, response text) should be stored in Room/files and passed by ID/path reference, not directly in WorkData",
+      "Doze mode deferral is unpredictable — constrained work (network required) may not execute during Doze maintenance windows; critical agent uploads should use expedited work (setExpedited) which has higher Doze priority",
+      "Expedited work has quota limits — setExpedited() has an execution quota per app; exceeding quota causes work to run as regular work; use expedited sparingly for truly critical agent operations"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 90,
+    "error_handling_score": 85,
+    "auth_complexity_score": 98,
+    "rate_limit_clarity_score": 85
+  },
+  "security_score_components": {
+    "tls_enforcement": 95,
+    "auth_strength": 90,
+    "scope_granularity": 85,
+    "dependency_hygiene": 92,
+    "secret_handling": 85,
+    "security_notes": "Background worker credentials via injection — don't pass credentials in WorkData. App sandbox protects persisted WorkManager database. Network constraint ensures encrypted connections before sending agent data. Worker code runs in app process with full app permissions."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 90,
+    "version_stability": 88,
+    "breaking_changes_history": 85,
+    "error_recovery": 92
+  }
+}
