@@ -1,0 +1,106 @@
+{
+  "id": "grdb-swift-api",
+  "name": "GRDB.swift",
+  "version_evaluated": "6.x",
+  "homepage": "https://github.com/groue/GRDB.swift",
+  "repo_url": "https://github.com/groue/GRDB.swift",
+  "category": "developer-tools",
+  "subcategories": ["database", "swift", "sqlite", "ios", "macos"],
+  "tags": ["swift", "sqlite", "ios", "macos", "database", "fmdb-replacement", "migrations", "combine", "async"],
+  "what_it_does": "SQLite toolkit for Swift — covers the full spectrum from raw SQL to Swift-idiomatic ORM. GRDB provides: DatabaseQueue (serial SQLite access), DatabasePool (concurrent readers/serial writer), record types (FetchableRecord, PersistableRecord, TableRecord), migration support, query builder DSL, Combine publishers for reactive observation, and Swift async/await API. Alternative to Core Data and SQLite.swift for iOS/macOS. GRDB prioritizes SQLite's full power — write real SQL or use Swift query builder. DatabaseObservation (ValueObservation) notifies on database changes. Used widely in iOS agent apps requiring offline storage.",
+  "use_cases": [
+    "Store agent conversation history in SQLite on iOS/macOS using GRDB — Agent struct conforming to FetchableRecord + PersistableRecord enables agent.save(db) and Agent.fetchAll(db) without Core Data setup overhead",
+    "Observe agent data changes reactively with GRDB ValueObservation — ValueObservation.tracking { Agent.fetchAll($0) }.publisher(in: dbQueue) emits updated agent list whenever database changes",
+    "Write complex agent search queries with GRDB SQL interpolation — try Agent.fetchAll(db, sql: 'SELECT * FROM agents WHERE status = ? ORDER BY created_at DESC', arguments: ['active']) for type-safe parameterized SQL",
+    "Database migrations for agent schema evolution — DatabaseMigrator with numbered migrations ensures agent database schema is always up-to-date on app launch",
+    "Concurrent agent data reads with DatabasePool — multiple reader threads read agent data concurrently; writer uses serial queue; DatabasePool maximizes read throughput for agent-heavy read workloads"
+  ],
+  "not_for": [
+    "Cloud sync or server-side — GRDB is local SQLite only; use CloudKit/Firebase for synced agent data; Core Data for CloudKit integration (NSPersistentCloudKitContainer)",
+    "SwiftData (iOS 17+) projects — Apple's SwiftData is the modern replacement for Core Data with Swift-native API; for new iOS 17+ agent apps, evaluate SwiftData first unless you need GRDB's SQL control",
+    "Non-Apple platforms — GRDB is Apple platform only (iOS, macOS, watchOS, tvOS); use SQLite.swift or Room (Android) for cross-platform agent database needs"
+  ],
+  "best_when": "You're building an iOS/macOS agent app that needs reliable SQLite storage with Swift-idiomatic API and real SQL power — GRDB is the most complete SQLite toolkit for Swift with excellent async support.",
+  "avoid_when": "You need iCloud sync (use Core Data + CloudKit), you're targeting iOS 17+ only (consider SwiftData), or you need cross-platform storage.",
+  "alternatives": ["swiftdata-api", "realm-swift-api", "sqlite-swift-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["swift"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Local SQLite library — no auth concepts. SQLite file encryption via SQLCipher integration for sensitive agent data at rest."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "GRDB.swift is MIT licensed, maintained by Gwendal Roué. Free for all use including commercial apps."
+  },
+  "performance": {
+    "latency_p50_ms": 1,
+    "latency_p99_ms": 20,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — local SQLite. GRDB write performance comparable to raw SQLite. DatabasePool enables concurrent reads for agent list-heavy UIs.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["local"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 92,
+    "error_message_quality": 90,
+    "error_message_notes": "GRDB throws DatabaseError with SQLite error code, message, and SQL statement for database errors. Schema migration failures include migration name and error context. PersistableRecord validation errors are thrown from willSave/willInsert hooks. Excellent error context for debugging agent database issues.",
+    "idempotency_support": "full",
+    "idempotency_notes": "DatabaseQueue serializes writes — no concurrent write conflicts. PersistableRecord.save() is idempotent (insert or replace semantics with upsert(db)). Migrations run exactly once tracked in grdb_migrations table.",
+    "pagination_style": "offset",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "DatabaseQueue vs DatabasePool choice matters — DatabaseQueue allows one reader at a time (concurrent reads block); DatabasePool allows multiple concurrent readers; for agent apps with frequent background reads, always use DatabasePool to prevent UI blocking",
+      "ValueObservation captures scheduling — ValueObservation.publisher(in: dbQueue) emits on DatabaseQueue's writer thread by default; add .receive(on: DispatchQueue.main) for UI updates; missing main thread dispatch causes agent UI update from background thread",
+      "Transactions must be explicit for multi-step agent writes — multiple agent record saves without explicit transaction create N separate SQLite transactions; wrap in db.transaction { } for atomicity and 10-100x performance improvement for bulk agent data writes",
+      "PersistableRecord databaseTableName must match schema — default tableName is lowercased struct name; Agent maps to 'agent' table; schema using 'agents' (plural) requires explicit static var databaseTableName = 'agents'",
+      "Migration renaming requires care — DatabaseMigrator runs migrations by name in order; renaming a migration in code leaves applied migration history in grdb_migrations table with old name; new migration name runs again causing duplicate schema changes in agent database",
+      "Cursor vs array fetch for large agent datasets — Agent.fetchAll(db) loads all agents into memory at once; Agent.fetchCursor(db) returns lazy cursor for large datasets; always use fetchCursor for agent datasets >10k rows to avoid memory spikes"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 92,
+    "error_handling_score": 90,
+    "auth_complexity_score": 100,
+    "rate_limit_clarity_score": 100
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 95,
+    "scope_granularity": 90,
+    "dependency_hygiene": 92,
+    "secret_handling": 90,
+    "security_notes": "Local SQLite — no network exposure. SQLite database file in app's Documents directory is backed up to iCloud by default; use NSFileProtectionComplete and opt out of iCloud backup for sensitive agent data. GRDB + SQLCipher extension provides encryption at rest for agent sensitive data."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 92,
+    "version_stability": 88,
+    "breaking_changes_history": 85,
+    "error_recovery": 92
+  }
+}

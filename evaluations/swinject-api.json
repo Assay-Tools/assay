@@ -1,0 +1,106 @@
+{
+  "id": "swinject-api",
+  "name": "Swinject",
+  "version_evaluated": "2.x",
+  "homepage": "https://github.com/Swinject/Swinject",
+  "repo_url": "https://github.com/Swinject/Swinject",
+  "category": "developer-tools",
+  "subcategories": ["dependency-injection", "swift", "ios", "macos", "di-container"],
+  "tags": ["swift", "ios", "macos", "dependency-injection", "di", "ioc", "container", "testing"],
+  "what_it_does": "Dependency injection framework for Swift and Objective-C. Swinject provides a DI Container with type-safe registration and resolution: container.register(AgentProtocol.self) { _ in RealAgent() }, container.resolve(AgentProtocol.self). Supports named registrations for multiple implementations, object scopes (transient, container, graph, weak), circular dependency detection, and SwinjectStoryboard for UIKit storyboard DI. Works alongside Swift's protocol-oriented design — register protocols, resolve implementations. Enables testability by swapping real agent implementations with mocks by registering different types in test container.",
+  "use_cases": [
+    "Wire agent service dependencies in iOS app — Container registers AgentNetworkService, AgentCacheService, AgentRepository; ViewModel resolved with all dependencies injected; test uses mock registrations for isolated agent unit tests",
+    "Feature flag-based agent implementation switching — container.register(AgentService.self) { _ in featureFlags.newAgent ? NewAgentService() : LegacyAgentService() } for runtime agent implementation selection",
+    "Named registrations for multiple agent implementations — container.register(AgentProtocol.self, name: 'fast') { _ in FastAgent() } and register(AgentProtocol.self, name: 'accurate') { _ in AccurateAgent() }",
+    "Scoped agent services with container scope — .inObjectScope(.container) creates singleton agent service per Container; .inObjectScope(.transient) creates new instance per resolution for stateful agent components",
+    "Assembly pattern for modular agent DI — separate Assembly classes for each feature module (AgentAssembly, NetworkAssembly, AnalyticsAssembly) assembled into root Container at app startup"
+  ],
+  "not_for": [
+    "Teams using Swift's @Observable and dependency injection via environment — modern SwiftUI apps can use @Environment and @Observable for lightweight DI without Swinject; evaluate fit before adding framework dependency",
+    "Compile-time DI verification — Swinject resolves dependencies at runtime; resolution failure throws at runtime not compile time; use Needle (by Uber) for compile-time checked DI in large iOS agent apps",
+    "Android/cross-platform — Swinject is iOS/macOS only; use Hilt (Android) or Koin (Kotlin Multiplatform) for agent apps needing cross-platform DI"
+  ],
+  "best_when": "You're building an iOS/macOS agent app with complex dependency graphs that need to be swapped for testing — Swinject provides clean DI container with protocol-based resolution that makes agent services testable.",
+  "avoid_when": "Your app is simple enough for SwiftUI @Environment injection, you need compile-time dependency verification (use Needle), or you're not targeting Apple platforms.",
+  "alternatives": ["needle-di-api", "factory-swift-api", "resolver-swift-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["swift", "objc"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "DI framework — no auth concepts. Auth services registered as dependencies in Container like any other agent service."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Swinject is MIT licensed, community-maintained. Free for all use including commercial apps."
+  },
+  "performance": {
+    "latency_p50_ms": 0,
+    "latency_p99_ms": 1,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — local DI container. Container resolution is O(1) per registered type. Container initialization runs at app startup; registration overhead is negligible.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["local"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 82,
+    "error_message_quality": 78,
+    "error_message_notes": "Swinject returns nil on failed resolution unless using resolve!() which fatalErrors. Container.resolve() returns optional — nil means no registration found for that type. Circular dependency detection logs error before crash. Missing registration errors are runtime, not compile-time.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Container registration is deterministic. Object scopes define lifecycle — container-scoped services are singletons within Container lifetime. Transient services create new instances per resolution.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Runtime resolution failure returns nil — container.resolve(AgentService.self) returns nil if not registered; missing registration in agent app delegate setup causes nil service silently; use container.resolve(AgentService.self)! only if 100% certain it's registered, or add precondition with clear message",
+      "Circular dependencies cause infinite loop — Swinject detects some circular dependencies but not all patterns; A depends on B, B depends on A causes stack overflow; redesign agent service graph to break cycles with lazy injection or initialization injection pattern",
+      "Assembly registration order matters for overrides — registering same type twice keeps last registration; in test assemblies that override production assemblies, register test implementations after production assembly; wrong order uses production agent implementations in tests",
+      "Thread safety requires explicit synchronization — Swinject Container is not thread-safe by default; concurrent resolve() calls from background agent threads require thread-safe container wrapper (Swinject's ThreadSafeResolver) or single-threaded DI resolution at startup",
+      "Object scope graph prevents cycles in tree resolution — .inObjectScope(.graph) shares instance within single resolve() call tree; useful for agent factory methods that should share a single instance during construction but create new instance per top-level resolve",
+      "SwinjectStoryboard requires registration before storyboard loads — SwinjectStoryboard must have Container registered before first storyboard instantiation; late registration (after viewDidLoad) causes nil injection for agent view controllers loaded from storyboard"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 82,
+    "error_handling_score": 78,
+    "auth_complexity_score": 100,
+    "rate_limit_clarity_score": 100
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 95,
+    "scope_granularity": 90,
+    "dependency_hygiene": 88,
+    "secret_handling": 90,
+    "security_notes": "DI framework — no network exposure. Dependency container can be used to inject security-sensitive services; ensure mock/test registrations never leak into production build. Container-scoped singleton agent auth services should be carefully lifecycle managed."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 82,
+    "version_stability": 80,
+    "breaking_changes_history": 78,
+    "error_recovery": 82
+  }
+}
