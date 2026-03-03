@@ -3,26 +3,26 @@
   "name": "arq",
   "version_evaluated": "0.26+",
   "homepage": "https://arq-docs.helpmanual.io/",
-  "repo_url": "https://github.com/python-poetry/arq",
+  "repo_url": "https://github.com/python-trio/arq",
   "category": "developer-tools",
-  "subcategories": ["task-queue", "async", "python", "redis"],
-  "tags": ["python", "async", "redis", "task-queue", "worker", "background-jobs", "asyncio"],
-  "what_it_does": "Fast async job queue for Python using Redis. arq is designed for asyncio applications where celery feels too heavy — enqueue async Python coroutines as background jobs with Redis as the broker. Much simpler than Celery: no separate broker config, native async, and minimal boilerplate. Used by FastAPI applications that need lightweight background task processing.",
+  "subcategories": ["task-queue", "background-jobs", "python", "async"],
+  "tags": ["python", "redis", "async", "task-queue", "background-jobs", "asyncio", "lightweight", "cron"],
+  "what_it_does": "Lightweight async job queue for Python using Redis, designed for asyncio. Simpler than Celery: define async functions as jobs, enqueue them from any async code, and run workers that execute them. Supports cron scheduling, job deduplication, priorities, and result storage in Redis. The modern asyncio alternative to Celery for Python.",
   "use_cases": [
-    "Background job processing for agent APIs — enqueue slow operations (LLM calls, data processing) without blocking requests",
-    "Scheduled and deferred agent tasks — run jobs at specific times or after a delay using arq's scheduler",
-    "Async worker pools for parallel agent task execution with controlled concurrency limits",
-    "Lightweight alternative to Celery for FastAPI agent services that already use Redis",
-    "Retry-capable background processing for agent workflows with configurable retry counts and delays"
+    "Queue async LLM API calls as background jobs from FastAPI agent endpoints using arq's Redis-backed queue",
+    "Run async Python agent tasks (API calls, DB writes, notifications) without blocking HTTP request handlers",
+    "Schedule recurring agent maintenance jobs (data sync, cache refresh) with arq's cron scheduling",
+    "Implement job deduplication in agent pipelines to prevent duplicate processing of webhook events",
+    "Build Python agent workers that process async tasks with full asyncio compatibility for concurrent I/O"
   ],
   "not_for": [
-    "Synchronous Python applications — arq is async-only; use Celery or RQ for sync workers",
-    "Complex workflow DAGs — use Prefect or Celery Chord for complex task dependencies",
-    "Applications without Redis — arq requires Redis as its only supported broker"
+    "Complex workflow orchestration with task chains, chords, and DAGs — Celery has richer workflow primitives",
+    "Environments without Redis — arq requires Redis as its only broker option",
+    "Synchronous Python codebases — arq is designed for asyncio; sync tasks require wrapping in executor calls"
   ],
-  "best_when": "You're building a FastAPI/asyncio application that needs lightweight background job processing and already uses Redis — simpler than Celery for async Python.",
-  "avoid_when": "You need synchronous workers, complex task DAGs, or a broker other than Redis — use Celery or Dramatiq.",
-  "alternatives": ["celery-api", "dramatiq-api", "rq-api", "pg-boss-api"],
+  "best_when": "You're building an async Python (FastAPI/asyncio) application and need background job processing with Redis — arq is simpler and more asyncio-native than Celery.",
+  "avoid_when": "You need complex task workflows (chains, chords), multiple broker support, or are not using asyncio — use Celery for more complex distributed task needs.",
+  "alternatives": ["celery-api", "rq-api", "dramatiq-api"],
   "interface": {
     "has_rest_api": false,
     "has_graphql": false,
@@ -38,28 +38,28 @@
     "methods": ["none"],
     "oauth": false,
     "scopes": false,
-    "notes": "Auth via Redis connection string (password, TLS). arq itself has no auth layer."
+    "notes": "Redis URL includes auth. No application-level auth in arq itself."
   },
   "pricing": {
     "model": "open_source",
     "free_tier_exists": true,
-    "free_tier_limits": "Completely free, MIT licensed",
-    "paid_tiers": "none",
+    "free_tier_limits": "MIT licensed, completely free",
+    "paid_tiers": "None",
     "requires_credit_card": false,
-    "notes": "Completely free and open source."
+    "notes": "MIT license. Maintained by Samuel Colvin (creator of Pydantic)."
   },
   "performance": {
-    "latency_p50_ms": 10,
-    "latency_p99_ms": 100,
+    "latency_p50_ms": 5,
+    "latency_p99_ms": 50,
     "uptime_sla_percent": null,
-    "rate_limits": "Limited by Redis throughput and worker concurrency settings",
+    "rate_limits": "No rate limits. Worker concurrency configurable. Redis throughput is the limiting factor.",
     "data_source": "llm_estimated"
   },
   "requirements": {
     "requires_signup": false,
     "requires_credit_card": false,
     "domain_verification": false,
-    "data_residency": ["self-hosted"],
+    "data_residency": ["local", "self-hosted"],
     "compliance": [],
     "min_contract": "none"
   },
@@ -68,18 +68,18 @@
     "mcp_security_score": null,
     "documentation_accuracy": 80,
     "error_message_quality": 78,
-    "error_message_notes": "Job failures include traceback in Redis. arq.exceptions.Retry for explicit retry. Worker logs job errors with context. Limited built-in monitoring UI.",
+    "error_message_notes": "Job failures include exception tracebacks stored in Redis. Worker logs show job execution details. arq's error model is simpler than Celery — direct Python exceptions.",
     "idempotency_support": "partial",
-    "idempotency_notes": "Job deduplication requires application-level unique job IDs. arq supports job_id parameter for explicit deduplication.",
+    "idempotency_notes": "Jobs can be deduplicated via job_id parameter — same job_id prevents duplicate enqueuing. At-least-once delivery still requires idempotent job logic.",
     "pagination_style": "none",
     "retry_guidance_documented": true,
     "known_agent_gotchas": [
-      "arq workers must be started as separate processes — they don't auto-start; deployment requires a separate worker process alongside the FastAPI app",
-      "Job serialization uses msgpack — function arguments must be msgpack-serializable; custom objects require custom serialization",
-      "Job deduplication: enqueuing a job with the same job_id won't create duplicates — but different job_id (default) creates new job every time",
-      "arq doesn't have a built-in monitoring UI — use arq's programmatic API or external Redis monitoring for job visibility",
-      "Scheduled jobs (cron_jobs) are defined in WorkerSettings — changing schedules requires worker restart, not live update",
-      "Job timeouts must be configured in WorkerSettings.job_timeout — there's no per-job timeout override without creating separate worker classes"
+      "arq worker requires WorkerSettings class with functions list — all job functions must be registered in WorkerSettings.functions; unregistered functions fail silently at enqueue time",
+      "Job context (ctx dict) is passed as first argument to all job functions — function signatures must accept ctx; this differs from Celery's self parameter pattern",
+      "Job results are stored in Redis by default — results expire after job_completion_wait default; long-lived pipelines must poll results before expiry or extend TTL",
+      "arq uses asyncio.gather for concurrent job execution within a worker — CPU-bound jobs must use loop.run_in_executor() to avoid blocking the event loop",
+      "Cron jobs in arq are class-based (CronJob) and must be added to WorkerSettings.cron_jobs — mixing cron and regular jobs requires careful WorkerSettings configuration",
+      "Redis connection pool is shared in the worker — Redis connection errors affect all concurrent jobs; implement health checks and reconnection logic for production reliability"
     ]
   },
   "af_score_components": {
@@ -87,20 +87,20 @@
     "api_doc_score": 80,
     "error_handling_score": 78,
     "auth_complexity_score": 90,
-    "rate_limit_clarity_score": 85
+    "rate_limit_clarity_score": 88
   },
   "security_score_components": {
-    "tls_enforcement": 90,
+    "tls_enforcement": 88,
     "auth_strength": 82,
     "scope_granularity": 78,
-    "dependency_hygiene": 85,
+    "dependency_hygiene": 88,
     "secret_handling": 82,
-    "security_notes": "Redis TLS and auth supported. Job arguments serialized to Redis — avoid storing sensitive data in job payloads. No built-in access control for job inspection."
+    "security_notes": "Redis URL contains credentials — use environment variables. TLS Redis connections supported. Job payloads stored in Redis — avoid putting sensitive data in job arguments."
   },
   "reliability_score_components": {
-    "uptime_documented": 82,
-    "version_stability": 80,
-    "breaking_changes_history": 78,
+    "uptime_documented": 80,
+    "version_stability": 82,
+    "breaking_changes_history": 80,
     "error_recovery": 80
   }
 }

@@ -1,29 +1,28 @@
 {
   "id": "celery-api",
   "name": "Celery",
-  "version_evaluated": "current",
-  "homepage": "https://docs.celeryq.dev",
+  "version_evaluated": "5.x",
+  "homepage": "https://docs.celeryq.dev/",
   "repo_url": "https://github.com/celery/celery",
   "category": "developer-tools",
-  "subcategories": ["task-queues", "distributed-computing", "background-jobs"],
-  "tags": ["celery", "task-queue", "distributed", "python", "redis", "rabbitmq", "async", "background-jobs", "workers", "open-source"],
-  "what_it_does": "Distributed task queue for Python that enables asynchronous, scheduled, and periodic task execution via message brokers (Redis, RabbitMQ). Flower provides a web UI and limited REST API for monitoring.",
+  "subcategories": ["task-queue", "background-jobs", "python", "distributed"],
+  "tags": ["python", "task-queue", "background-jobs", "distributed", "redis", "rabbitmq", "async", "workers", "scheduling"],
+  "what_it_does": "Distributed task queue for Python. Executes background tasks asynchronously across worker processes, supports task scheduling (celery beat), retry logic, task chaining (chord, group, chain), and result backends (Redis, database). The standard Python solution for background processing, email sending, image processing, and long-running agent operations.",
   "use_cases": [
-    "Offloading slow or compute-intensive work from agents to background workers",
-    "Scheduling periodic tasks (cron-style) in Python applications",
-    "Distributing AI inference or data processing workloads across multiple workers",
-    "Retry logic for unreliable external API calls with configurable backoff",
-    "Fan-out workflows where an agent triggers parallel task execution"
+    "Offload long-running LLM API calls to Celery workers to avoid HTTP timeout issues in Python agent web services",
+    "Schedule periodic agent maintenance tasks (data refresh, cache warming, report generation) with Celery Beat",
+    "Build distributed Python agent pipelines using Celery chains and chords for parallel/sequential task composition",
+    "Process high-volume agent tasks (embeddings, document parsing, API calls) across a worker pool for throughput",
+    "Implement reliable agent background processing with automatic retries, dead letter queues, and failure alerting"
   ],
   "not_for": [
-    "Non-Python environments (Celery is Python-only)",
-    "Long-running durable workflows requiring persistent state across failures (use Temporal instead)",
-    "Teams without Redis or RabbitMQ infrastructure to manage",
-    "Real-time sub-second task execution with strict latency requirements"
+    "Real-time sub-second task execution — Celery has scheduling overhead; use asyncio or actor frameworks for <100ms latency",
+    "Simple single-server async tasks — Python's asyncio, ThreadPoolExecutor, or APScheduler are lighter for single-process use",
+    "Teams without Redis or RabbitMQ infrastructure — Celery requires a message broker as a hard dependency"
   ],
-  "best_when": "A Python application needs to offload background work to distributed workers with retry logic and scheduling, and your team is comfortable managing a message broker.",
-  "avoid_when": "You need durable workflow orchestration with human-in-the-loop steps, non-Python workers, or a managed service without infrastructure overhead.",
-  "alternatives": ["temporal-api", "bull-mq-api", "rq-api", "prefect-api"],
+  "best_when": "You need distributed background task processing in Python with reliable delivery, retries, scheduling, and horizontal worker scaling.",
+  "avoid_when": "You need sub-second latency or don't have a message broker — asyncio or arq (Redis-based lightweight queue) are better for simpler use cases.",
+  "alternatives": ["arq-api", "rq-api", "dramatiq-api", "huey-api"],
   "interface": {
     "has_rest_api": false,
     "has_graphql": false,
@@ -36,60 +35,72 @@
     "webhooks": false
   },
   "auth": {
-    "methods": ["broker_credentials"],
+    "methods": ["none"],
     "oauth": false,
     "scopes": false,
-    "notes": "No built-in auth API. Authentication is delegated to the message broker (Redis AUTH, RabbitMQ credentials) and the transport layer. Flower monitoring UI has basic HTTP auth. No API key or token system."
+    "notes": "Task queue library — broker (Redis/RabbitMQ) auth configured via broker URL. No application-level auth in Celery itself."
   },
   "pricing": {
-    "model": "open-source",
+    "model": "open_source",
     "free_tier_exists": true,
-    "free_tier_limits": "Fully free and open source (BSD license). Infrastructure costs (Redis, RabbitMQ, workers) are separate.",
-    "paid_tiers": "No paid tiers. Commercial support available from third parties.",
+    "free_tier_limits": "BSD licensed, completely free",
+    "paid_tiers": "None",
     "requires_credit_card": false,
-    "notes": "Celery itself is free. The cost is the infrastructure: Redis or RabbitMQ broker, and compute for worker processes. Managed Redis/RabbitMQ from cloud providers is the typical operational cost."
+    "notes": "BSD license. Community-maintained with broad commercial adoption."
   },
   "performance": {
-    "latency_p50_ms": 10,
-    "latency_p99_ms": 100,
+    "latency_p50_ms": 50,
+    "latency_p99_ms": 500,
     "uptime_sla_percent": null,
-    "rate_limits": "No inherent rate limits; throughput depends on broker and worker capacity",
+    "rate_limits": "No rate limits in Celery itself. Worker concurrency configurable. Rate limiting per task queue available.",
     "data_source": "llm_estimated"
   },
   "requirements": {
     "requires_signup": false,
     "requires_credit_card": false,
     "domain_verification": false,
-    "data_residency": [],
+    "data_residency": ["local", "self-hosted"],
     "compliance": [],
     "min_contract": "none"
   },
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
-    "documentation_accuracy": 75,
-    "error_message_quality": 65,
-    "error_message_notes": "Task exceptions are captured and stored in the result backend with full Python tracebacks. Worker-level errors (broker disconnect, serialization) surface as logs rather than structured errors. Flower REST API returns basic task status without rich error context.",
+    "documentation_accuracy": 80,
+    "error_message_quality": 75,
+    "error_message_notes": "Task failure tracebacks stored in result backend. Worker log captures exceptions. Celery Flower dashboard provides visual task monitoring. Error messages in broker are JSON task metadata.",
     "idempotency_support": "partial",
-    "idempotency_notes": "Tasks can be made idempotent by setting task_acks_late=True and using custom task IDs. No built-in idempotency key mechanism — developers must implement deduplication. Chord/group workflows can produce duplicate results on retry if not carefully designed.",
+    "idempotency_notes": "Tasks may execute more than once (at-least-once delivery). Use task.apply_async(task_id=...) with idempotency keys in task logic. acks_late=True for more reliable delivery.",
     "pagination_style": "none",
     "retry_guidance_documented": true,
     "known_agent_gotchas": [
-      "No built-in REST API — agents cannot dispatch or query tasks without embedding Celery as a Python dependency or using Flower's limited API",
-      "Result backend must be configured separately (Redis, database) — without it task results are lost",
-      "Serialization format defaults to JSON but complex Python objects require pickle — pickle introduces security risks",
-      "Task visibility timeout must be tuned or long-running tasks get re-queued (ghost tasks)",
-      "Celery 5.x broke backward compatibility — pin version carefully in production",
-      "Worker concurrency model (prefork vs gevent vs eventlet) must match workload — wrong choice causes subtle bugs",
-      "Periodic tasks (beat scheduler) require a separate beat process — forgetting to run it silently breaks cron jobs",
-      "No native support for task dependencies with complex DAG structures beyond basic chains and chords"
+      "Celery uses pickle serialization by default for task arguments — this is a security risk if broker is accessible from untrusted networks; always set task_serializer='json' in production",
+      "At-least-once delivery means tasks can execute multiple times on broker failures — agent tasks must be idempotent or use database-level deduplication",
+      "Celery 5.x requires Python 3.7+ and dropped Python 2 support — also changed default broker URL format; check migration guide when upgrading from Celery 4.x",
+      "Task results expire after 1 day by default (result_expires=86400) — long-running agent workflows that check results after 24 hours will find expired/missing results",
+      "Chord synchronization requires a result backend (Redis recommended) — chords fail silently without a configured result backend",
+      "Worker preforking model forks before loading your app — database connections (SQLAlchemy, Django ORM) must be re-established after fork using worker process lifecycle signals"
     ]
   },
-  "af_score": 45,
-  "fq_score": 60,
-  "score_rationale": "Celery is the battle-tested Python task queue with a large ecosystem and proven reliability for background job processing. However, its agent-friendliness is severely limited by the absence of a REST API (agents must be Python), no built-in idempotency, opaque worker-level error handling, and significant operational complexity (broker management, beat scheduler, result backend). Suitable for agents embedded in Python applications but poor for cross-language or externally-orchestrated agent systems.",
-  "score_version": "1.0",
-  "evaluated_at": "2026-03-02",
-  "evaluator": "claude-sonnet-4-6",
-  "confidence": "medium"
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 80,
+    "error_handling_score": 75,
+    "auth_complexity_score": 85,
+    "rate_limit_clarity_score": 80
+  },
+  "security_score_components": {
+    "tls_enforcement": 85,
+    "auth_strength": 80,
+    "scope_granularity": 72,
+    "dependency_hygiene": 80,
+    "secret_handling": 78,
+    "security_notes": "Use JSON serializer, not pickle. Broker URL contains credentials — use environment variables. Network isolation for broker is recommended. Worker processes run arbitrary Python code."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 85,
+    "version_stability": 80,
+    "breaking_changes_history": 72,
+    "error_recovery": 82
+  }
 }
