@@ -1,0 +1,106 @@
+{
+  "id": "nsubstitute-dotnet-api",
+  "name": "NSubstitute",
+  "version_evaluated": "5.x",
+  "homepage": "https://nsubstitute.github.io/",
+  "repo_url": "https://github.com/nsubstitute/NSubstitute",
+  "category": "developer-tools",
+  "subcategories": ["testing", "dotnet", "csharp", "mocking", "unit-testing"],
+  "tags": ["dotnet", "csharp", "mocking", "unit-testing", "nsubstitute", "test-double", "substitute"],
+  "what_it_does": "Mocking library for .NET with a cleaner, more concise syntax than Moq — uses extension method syntax that reads more naturally. NSubstitute: var repo = Substitute.For<IAgentRepository>(); repo.GetByIdAsync(agentId).Returns(agent) stubs return; repo.Received(1).SaveAsync(agent) verifies call occurred; repo.DidNotReceive().DeleteAsync(Arg.Any<string>()) verifies method not called. No Lambda wrappers — setup and verify directly on the substituted interface. ReceivedWithAnyArgs(), Arg.Is<T>(), Arg.Do<T> for argument matching. Returns multiple values in sequence with Returns(first, second, third). NSubstitute's concise syntax reduces test boilerplate compared to Moq's Setup/Verify chains.",
+  "use_cases": [
+    "Clean agent repository mocking — var repo = Substitute.For<IAgentRepository>(); repo.FindActiveAsync().Returns(Task.FromResult(agents)); cleaner syntax than Moq's mock.Setup(r => r.FindActiveAsync()).ReturnsAsync(agents) for agent service unit tests",
+    "Agent service method verification — agentService.Received(1).ProcessTask(Arg.Is<string>(id => id.StartsWith('task-'))); verifies agent service called with task ID matching pattern; cleaner than Moq's Verify lambda",
+    "Throw exceptions from agent stubs — repo.GetByIdAsync(Arg.Any<string>()).Throws<NotFoundException>() makes stub throw on any ID call; test agent error handling paths",
+    "Capture agent arguments — repo.When(r => r.SaveAsync(Arg.Any<Agent>())).Do(ci => capturedAgent = ci.Arg<Agent>()); captures agent argument for assertions without Moq's Callback complexity",
+    "Sequential agent responses — llmClient.CompleteAsync(Arg.Any<string>()).Returns('first response', 'second response', 'third response') returns different responses on each successive agent call"
+  ],
+  "not_for": [
+    "Mocking static methods — NSubstitute cannot mock static/sealed classes without interfaces; same limitation as Moq; refactor agent code to use interfaces",
+    "Teams deeply invested in Moq — NSubstitute and Moq have different syntax; mixing both in same agent test project creates confusion; pick one and standardize",
+    "Complex argument matchers — Moq's It.Is<T>(x => complex expression) is more flexible than NSubstitute's Arg.Is; for complex agent argument matching scenarios, Moq may be cleaner"
+  ],
+  "best_when": "Your .NET agent team wants cleaner, less verbose mock syntax than Moq — NSubstitute's extension method approach reads more naturally and reduces test setup verbosity for agent service unit tests.",
+  "avoid_when": "Your team is already invested in Moq, you need complex argument matchers, or you prefer Moq's explicit Setup/Verify pattern for clarity.",
+  "alternatives": ["moq-dotnet-api", "fakeiteasy-api", "justmock-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["csharp"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Mocking library — no auth concepts."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, BSD-3 licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "NSubstitute is BSD-3 licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 0,
+    "latency_p99_ms": 0,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — in-process mocking using Castle.DynamicProxy. Performance comparable to Moq.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 88,
+    "error_message_quality": 85,
+    "error_message_notes": "NSubstitute ReceivedCallsException shows expected vs actual call count with argument details. ReceivedWithAnyArgs failure shows all received calls. Returns without setup returns default (null for reference types). UnexpectedCallException in strict substitute mode.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Substitute configuration is deterministic. ClearReceivedCalls() resets call tracking for reuse. Same Returns() produces same result for same args.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Returns() must come after the method call expression — var result = repo.GetAsync(id); result.Returns(agent) is WRONG; correct: repo.GetAsync(id).Returns(Task.FromResult(agent)); NSubstitute intercepts the last call on the substitute; calling Returns() after other substitute operations configures wrong method for agent stubs",
+      "Received() checks all calls since creation — repo.Received(1).SaveAsync(agent) fails if SaveAsync was called 0 or 2+ times; use ClearReceivedCalls() between test phases if substitute used in multiple agent test operations; Received accumulates across all method calls not just the last",
+      "Arg.Any<T>() must match exact type — Arg.Any<string>() doesn't match Arg.Any<object>() even when string is assignable to object; for agent methods accepting object, use Arg.Any<object>() not Arg.Any<string>() in substitute argument matchers",
+      "Returns on async methods needs Task return — repo.GetAsync(id).Returns(agent) returns Task<Agent> containing agent; repo.GetAsync(id).Returns(Task.FromResult(agent)) is equivalent; both work but Returns with non-Task value for async methods causes incorrect behavior; NSubstitute wraps in Task automatically for Returns() with direct value",
+      "Partial substitutes for abstract classes lose real behavior — Substitute.ForPartsOf<AgentBase>() creates partial substitute; unset virtual methods call real implementation; non-virtual methods always call real implementation; for agent abstract classes with shared logic, test carefully which methods are being tested vs passed through",
+      "Thread safety: verifying after parallel agent calls may miss — NSubstitute call tracking is not fully thread-safe for concurrent verifications; for agent tests with parallel code under test, add synchronization before Received() verification; race condition in call tracking causes intermittent Received failures in parallel agent integration tests"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 88,
+    "error_handling_score": 85,
+    "auth_complexity_score": 98,
+    "rate_limit_clarity_score": 98
+  },
+  "security_score_components": {
+    "tls_enforcement": 95,
+    "auth_strength": 95,
+    "scope_granularity": 90,
+    "dependency_hygiene": 88,
+    "secret_handling": 95,
+    "security_notes": "Test-only mocking library. Same security considerations as Moq — don't use in production, ensure test agent stubs don't contain real credentials."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 92,
+    "version_stability": 90,
+    "breaking_changes_history": 88,
+    "error_recovery": 90
+  }
+}

@@ -1,0 +1,106 @@
+{
+  "id": "spring-actuator-api",
+  "name": "Spring Boot Actuator",
+  "version_evaluated": "3.x",
+  "homepage": "https://docs.spring.io/spring-boot/docs/current/reference/html/actuator.html",
+  "repo_url": "https://github.com/spring-projects/spring-boot",
+  "category": "developer-tools",
+  "subcategories": ["monitoring", "java", "spring", "observability", "health"],
+  "tags": ["java", "kotlin", "spring", "spring-boot", "actuator", "health", "metrics", "monitoring"],
+  "what_it_does": "Production-ready monitoring and management features for Spring Boot applications — exposes HTTP endpoints for health checks, metrics, environment info, thread dumps, and application management. Actuator endpoints: /actuator/health (liveness/readiness probes), /actuator/metrics (Micrometer metrics), /actuator/info (app metadata), /actuator/env (environment properties), /actuator/loggers (runtime log level changes), /actuator/threaddump, /actuator/heapdump. Health indicators: DataSource, Redis, Elasticsearch, and custom HealthIndicator for agent service dependencies. Kubernetes integration: /actuator/health/liveness and /actuator/health/readiness for separate probe endpoints. Metrics exposed to Prometheus, Datadog, and other backends via Micrometer.",
+  "use_cases": [
+    "Kubernetes health probes for agent service — /actuator/health/liveness (is process healthy?) and /actuator/health/readiness (is agent service ready for traffic?) as separate K8s probeHttpGet paths; Spring Boot 2.3+ configures both automatically",
+    "Agent dependency health monitoring — custom HealthIndicator checks LLM API availability; AgentLlmHealthIndicator implements HealthIndicator { return pingLlm() ? Health.up() : Health.down().withDetail('reason', error) } surface as /actuator/health component",
+    "Agent service Prometheus metrics — management.endpoints.web.exposure.include=health,metrics,prometheus exposes /actuator/prometheus; Micrometer auto-instruments agent request counts, timing, and JVM metrics for Prometheus scraping",
+    "Dynamic log level for agent debugging — POST /actuator/loggers/com.example.agent body {\"configuredLevel\":\"DEBUG\"} enables debug logging for agent package at runtime without restart; essential for production agent issue investigation",
+    "Agent build info endpoint — management.info.git.mode=full with git-commit-id-plugin exposes /actuator/info with Git commit, branch, and build time; agent deployment verification and version tracking"
+  ],
+  "not_for": [
+    "APM and distributed tracing — Actuator exposes local metrics and health; for distributed agent request tracing across microservices, use Spring Cloud Sleuth + Zipkin or OpenTelemetry",
+    "Custom dashboards — Actuator exposes data; for agent dashboard UI, use Grafana + Prometheus consuming /actuator/prometheus or Spring Boot Admin server aggregating multiple Actuator endpoints",
+    "Business metrics — Actuator auto-instruments technical metrics; for agent business KPIs (tasks completed, LLM tokens used), create custom Micrometer metrics and add to Actuator"
+  ],
+  "best_when": "Every Spring Boot agent service in production — Actuator is a must-have for Kubernetes health probes, Prometheus metrics, and operational visibility into running agent services.",
+  "avoid_when": "There is no scenario to avoid Actuator — include it in every Spring Boot agent service. Secure endpoints appropriately but never disable.",
+  "alternatives": ["micronaut-health-api", "quarkus-health-api", "dropwizard-metrics-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["java", "kotlin"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["bearer_token", "api_key"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Actuator endpoints secured via Spring Security. Expose only /health publicly; protect /env, /loggers, /heapdump with authentication. Use management.endpoint.env.enabled=false for sensitive endpoints in production."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, Apache 2.0 licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Spring Boot Actuator is Apache 2.0 licensed, part of Spring Boot. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 5,
+    "latency_p99_ms": 50,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits on Actuator endpoints. Health check endpoints should respond in <500ms; slow health indicators delay Kubernetes probe responses and cause pod restarts for agent services.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 90,
+    "error_message_quality": 85,
+    "error_message_notes": "Health endpoint returns structured JSON with component status and details. DOWN status includes component-level details for diagnosis. Metrics endpoint provides Micrometer metric names and values with tags. Environment endpoint shows property sources and values (sensitive values masked by default).",
+    "idempotency_support": "full",
+    "idempotency_notes": "Actuator endpoints are read-only (GET) except /actuator/loggers (POST for level change) and /actuator/shutdown. Health checks are idempotent reads. Metrics queries are idempotent.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Actuator endpoints not exposed by default — Spring Boot 2.x exposes only /health and /info by default; management.endpoints.web.exposure.include=* or explicit list required for Prometheus, metrics, loggers; agent K8s deployments failing Prometheus scraping usually have /prometheus not exposed in actuator config",
+      "Separate management port recommended for production — management.server.port=8081 separates Actuator from agent API traffic; Kubernetes health probes hit management port while agent traffic uses 8080; prevents health probe traffic from appearing in agent API metrics and allows different firewall rules",
+      "Custom HealthIndicator affects overall health status — if custom AgentLlmHealthIndicator returns DOWN, /actuator/health aggregate status is DOWN; Kubernetes readiness probe sees DOWN and stops routing traffic to agent pod; make external dependency checks ADVISORY for optional dependencies using HealthContributorRegistry",
+      "Heapdump and threaddump expose sensitive data — /actuator/heapdump dumps full JVM heap including agent in-memory secrets, user data, and LLM API keys; /actuator/threaddump shows all threads with stack traces; these endpoints MUST be secured or disabled in production agent services",
+      "management.endpoint.health.show-details controls info exposure — show-details: always exposes health component details publicly; show-details: when-authorized requires authentication to see details; never-authorize reveals only UP/DOWN status; set to when-authorized for agent production health endpoints to hide internal component state from public",
+      "Micrometer metrics require explicit dependency — Spring Boot Actuator includes Micrometer core but not exporters; micrometer-registry-prometheus must be added as separate dependency for /actuator/prometheus endpoint; agent observability setup incomplete without explicit registry dependency despite Actuator being present"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 90,
+    "error_handling_score": 85,
+    "auth_complexity_score": 82,
+    "rate_limit_clarity_score": 92
+  },
+  "security_score_components": {
+    "tls_enforcement": 90,
+    "auth_strength": 82,
+    "scope_granularity": 85,
+    "dependency_hygiene": 90,
+    "secret_handling": 78,
+    "security_notes": "CRITICAL security concern: /actuator/env exposes all configuration properties including agent API keys and database passwords (partially masked by default but can be unmasked); /actuator/heapdump exposes full heap including secrets. Secure ALL actuator endpoints in production. Use Spring Security to restrict access. Disable sensitive endpoints (env, heapdump, threaddump) unless actively needed."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 92,
+    "version_stability": 90,
+    "breaking_changes_history": 85,
+    "error_recovery": 88
+  }
+}
