@@ -1,0 +1,106 @@
+{
+  "id": "action-cable-rails-api",
+  "name": "Action Cable",
+  "version_evaluated": "7.x",
+  "homepage": "https://guides.rubyonrails.org/action_cable_overview.html",
+  "repo_url": "https://github.com/rails/rails",
+  "category": "developer-tools",
+  "subcategories": ["websockets", "ruby", "rails", "real-time", "channels"],
+  "tags": ["ruby", "rails", "action-cable", "websockets", "real-time", "channels", "broadcasting"],
+  "what_it_does": "Built-in WebSocket framework for Ruby on Rails — integrates WebSockets with Rails app for real-time features using channels. Action Cable features: Channel classes (ApplicationCable::Channel), subscriptions via JavaScript consumer, broadcasting with ActionCable.server.broadcast, stream_from / stream_for for pub/sub, authentication via connection.rb (current_user), Redis or async adapter for pub/sub backend, cable.yml configuration, Action Cable JavaScript consumer (consumer.subscriptions.create), and full Rails session/cookie access in connection. Replaced Need for Pusher in many Rails apps. ChatChannel, NotificationChannel, AgentStatusChannel patterns enable real-time agent updates without external WebSocket service.",
+  "use_cases": [
+    "Agent task progress channel — class AgentTaskChannel < ApplicationCable::Channel { def subscribed { stream_from 'agent_task_#{params[:task_id]}' } }; ActionCable.server.broadcast('agent_task_123', { status: 'running', progress: 45 }) pushes agent progress to subscribed clients",
+    "Agent notification channel — stream_for current_user broadcasts user-specific agent notifications; ActionCable.server.broadcast_to(user, notification) in ActiveJob after agent task completes; real-time agent completion alerts without polling",
+    "Action Cable authentication — class ApplicationCable::Connection { identified_by :current_user; def connect { self.current_user = find_verified_user }; def find_verified_user { User.find_by(env['warden'].user) || reject_unauthorized_connection } } secures all agent channels",
+    "Agent collaborative editing — AgentEditorChannel streams changes to all editors of same agent; broadcast deltas to stream_from 'agent_editor_#{agent.id}'; multiple users editing agent config see changes in real-time",
+    "Redis adapter for agent cluster — config/cable.yml: production: adapter: redis url: <%= ENV['REDIS_URL'] %> enables Action Cable broadcasting across multiple agent Rails server processes; necessary for multi-pod Kubernetes agent deployments"
+  ],
+  "not_for": [
+    "High-throughput WebSocket connections — Action Cable uses Ruby threads per connection; for agent apps with 10K+ concurrent WebSocket connections, use Node.js/Elixir-based WebSocket servers or Falcon (Async Ruby)",
+    "Self-hosted WebSocket server — Action Cable is embedded in Rails app process; for separate WebSocket server infrastructure use Laravel Reverb or Ably",
+    "Binary WebSocket protocols — Action Cable uses JSON-serialized messages; for binary agent streaming (audio, video) use dedicated WebRTC or streaming infrastructure"
+  ],
+  "best_when": "Your Rails agent app needs WebSocket real-time features (notifications, progress updates, chat) and you want to avoid external services — Action Cable is zero-configuration for Rails with built-in auth and Redis pub/sub.",
+  "avoid_when": "You need >5K concurrent WebSocket connections per server, binary protocol streaming, or a separate WebSocket microservice.",
+  "alternatives": ["laravel-reverb-api", "pusher-api", "ably-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["ruby", "javascript"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["bearer_token"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Action Cable connections authenticate via connection.rb. Rails session cookie or warden user accessible during WebSocket handshake. reject_unauthorized_connection closes unauthenticated connections. Token-based auth: pass token in query params or cookies for agent mobile WebSocket clients."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free (part of Rails). Redis adapter requires Redis infrastructure.",
+    "paid_tiers": "None for Action Cable itself",
+    "requires_credit_card": false,
+    "notes": "Action Cable is MIT licensed as part of Rails. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 10,
+    "latency_p99_ms": 50,
+    "uptime_sla_percent": null,
+    "rate_limits": "No Action Cable rate limits. Connection limit is server memory/thread pool. Each WebSocket connection holds a Ruby thread. 1000 concurrent agent connections = 1000 threads; tune with async adapter or Puma thread pool size.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 82,
+    "error_message_quality": 78,
+    "error_message_notes": "Action Cable connection rejections appear in Rails logs as 'An unauthorized connection attempt was made'. Channel errors surface as unsubscribed callbacks in JavaScript. Redis adapter failures cause broadcast to silently fail — add error handling around ActionCable.server.broadcast. JavaScript consumer logs disconnection events to console.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Broadcasting is fire-and-forget — no delivery guarantee. Clients reconnect automatically but miss messages during disconnect. Use database + WebSocket for reliable agent event delivery. stream_from subscription is idempotent — subscribing twice to same stream is safe.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Redis adapter required for multi-process/multi-server — async adapter (default) only works for single Puma process; agent deployments with multiple Puma workers or multiple pods need Redis adapter; broadcasts from one worker don't reach connections on other workers with async adapter; missing Redis config causes silent broadcast failures in production agent clusters",
+      "Action Cable WebSocket URL must match Rails host — config.action_cable.url or cable.yml url must match domain agent clients connect to; CORS-like restrictions apply; in development, default ws://localhost:3000/cable works; production needs explicit wss://agent.example.com/cable; URL mismatch causes WebSocket upgrade failure without clear error",
+      "Authentication runs in connection.rb not channel — current_user is set once on WebSocket handshake in ApplicationCable::Connection#connect; channel actions can't reauthenticate; long-lived agent WebSocket connections don't see session changes; implement connection timeout or periodic re-auth for long agent sessions",
+      "stream_from uses string keys — stream_from 'agent_#{agent.id}' and ActionCable.server.broadcast('agent_#{agent.id}', data) must use identical string; typo in broadcast key means messages never arrive at agent channel subscribers; use named constant or method for stream key",
+      "JavaScript consumer must be explicitly created — Rails 7 with importmap requires import { createConsumer } from '@rails/actioncable'; consumer = createConsumer(); without explicit consumer creation, Rails UJS doesn't auto-setup Action Cable in importmap apps unlike older Webpacker setups; agent frontends on Rails 7 need explicit consumer initialization",
+      "Unsubscribed callback not called on server disconnect — client disconnect (browser close, network loss) calls unsubscribed; server restart closes all connections without calling unsubscribed on server side; agent channel cleanup (removing from presence list) on server restart must use Redis TTL or periodic cleanup job, not unsubscribed callback alone"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 82,
+    "error_handling_score": 78,
+    "auth_complexity_score": 82,
+    "rate_limit_clarity_score": 88
+  },
+  "security_score_components": {
+    "tls_enforcement": 85,
+    "auth_strength": 82,
+    "scope_granularity": 78,
+    "dependency_hygiene": 88,
+    "secret_handling": 82,
+    "security_notes": "Action Cable channels execute with authenticated user context — ensure channel actions verify authorization beyond just authentication (can this user subscribe to this agent channel?). Broadcast keys are not secret — any subscriber to stream 'agent_123' receives all broadcasts; use stream_for(agent) which generates obfuscated stream key. Use WSS (TLS) for all production agent WebSocket connections."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 85,
+    "version_stability": 85,
+    "breaking_changes_history": 82,
+    "error_recovery": 80
+  }
+}

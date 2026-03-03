@@ -1,0 +1,106 @@
+{
+  "id": "hypothesis-python-api",
+  "name": "Hypothesis",
+  "version_evaluated": "6.x",
+  "homepage": "https://hypothesis.works/",
+  "repo_url": "https://github.com/HypothesisWorks/hypothesis",
+  "category": "developer-tools",
+  "subcategories": ["testing", "python", "property-based-testing", "fuzzing"],
+  "tags": ["python", "testing", "hypothesis", "property-based", "fuzzing", "pytest", "quickcheck"],
+  "what_it_does": "Property-based testing library for Python — generates test inputs automatically based on strategies to find edge cases that example-based tests miss. Hypothesis features: @given() decorator with strategies (st.text(), st.integers(), st.lists(), st.from_type()), automatic shrinking to minimal failing example, database of failure cases between runs, Hypothesis profiles (CI vs local), assume() for preconditions, st.composite() for custom strategies, deadline control, and pytest integration. @given(st.text()) def test_agent_name_validation(name): passes thousands of generated strings to find agent validation edge cases. Finds: empty strings, Unicode, huge inputs, boundary values automatically.",
+  "use_cases": [
+    "Agent input validation fuzzing — @given(st.text()) def test_validate_agent_name(name): result = validate_agent_name(name); assert isinstance(result, bool) runs validation against thousands of text inputs including emoji, null bytes, extremely long strings that manual tests miss",
+    "Agent serialization roundtrip — @given(st.from_type(AgentConfig)) def test_config_roundtrip(config): serialized = config.to_json(); assert AgentConfig.from_json(serialized) == config ensures all agent config values survive JSON serialization for arbitrary inputs",
+    "Agent pagination boundary conditions — @given(st.integers(min_value=0, max_value=10000), st.integers(min_value=1, max_value=100)) def test_pagination(page, per_page): results = get_agents(page=page, per_page=per_page); assert len(results) <= per_page finds off-by-one bugs",
+    "Agent state machine testing — @initialize + @rule with stateful Hypothesis RuleBasedStateMachine models agent workflow state transitions; finds impossible state sequences that property-based random inputs wouldn't explore systematically",
+    "Agent LLM response parser — @given(st.text(alphabet=st.characters(max_codepoint=127))) def test_parse_agent_response(text): parse_llm_response(text) should not raise exception; Hypothesis finds parser crash inputs faster than manual fuzzing"
+  ],
+  "not_for": [
+    "Testing external API behavior — Hypothesis generates inputs for your code; not for testing how LLM APIs respond to inputs; mock LLM calls in hypothesis tests",
+    "Performance benchmarks — Hypothesis runs many iterations which distorts performance measurements; use pytest-benchmark or timeit for agent performance profiling",
+    "UI/E2E testing — Hypothesis is unit/integration testing focused; for agent UI property tests use Playwright with custom generators"
+  ],
+  "best_when": "You want to find edge cases in agent parsing, validation, and transformation logic that are hard to enumerate manually — Hypothesis automatically generates boundary values and shrinks failures to minimal reproducing examples.",
+  "avoid_when": "Your tests involve external services with rate limits (Hypothesis makes many calls), UI testing, or performance-sensitive benchmarks.",
+  "alternatives": ["pytest-api", "faker-python-api", "schemathesis-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — local testing library."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MPL-2.0 licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Hypothesis is MPL-2.0 licensed. HypothesisWorks also offers Hypothesis Enterprise for additional features. Core library is free."
+  },
+  "performance": {
+    "latency_p50_ms": 0,
+    "latency_p99_ms": 0,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — local test execution. Default 100 examples per test (settings.max_examples). CI profile reduces to 50 examples. Tests with expensive agent operations should set @settings(max_examples=20) to control execution time.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 90,
+    "error_message_quality": 92,
+    "error_message_notes": "Hypothesis failure output shows: generated input that failed, shrunk minimal failing example, Falsifying example: test_function(arg='minimal_input'), and reproducible seed. Database stores failing examples for regression. --hypothesis-seed CLI flag reproduces specific failure for agent debugging.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Hypothesis tests are deterministic with --hypothesis-seed. Default runs vary by database of previously found failures. @settings(deriving=True) with fixed seed produces identical runs. Shrinking produces same minimal example for same failure.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "assume() overuse causes Unsatisfied assumption warning — assume(len(name) > 0) inside @given test filters inputs; too many rejections cause Hypothesis to give up with 'Could not find valid data' or 'filter_too_much' health check failure; use st.text(min_size=1) to generate valid inputs instead of assume() for agent input constraints",
+      "Hypothesis database persists failures between runs — failed agent tests store examples in .hypothesis/examples/; reruns always test previous failures first; delete .hypothesis/ if test logic changed and old failures are no longer valid; CI caching .hypothesis/ makes past failures replay on unchanged code",
+      "st.from_type() requires type annotations — @given(st.from_type(AgentConfig)) requires AgentConfig to have complete type annotations and be resolvable by Hypothesis; missing or complex type annotations cause InvalidArgument exception; manually construct st.builds(AgentConfig, name=st.text()) for complex agent types",
+      "Deadline health check fails slow agent tests — Hypothesis imposes 200ms deadline per example by default; agent tests involving actual DB calls or network mocks may exceed deadline; use @settings(deadline=None) to disable or @settings(deadline=timedelta(seconds=5)) for agent integration tests with real operations",
+      "Stateful testing requires explicit invariant assertions — RuleBasedStateMachine finds state transitions but only reports failures when invariant() method raises AssertionError; agent state machine tests without invariant checks pass even with invalid state — add @invariant() methods to check agent state consistency after each rule",
+      "st.composite() functions must use draw — @composite def agent_strategy(draw): name = draw(st.text()); return AgentConfig(name=name) requires draw() for each sub-strategy; directly calling st.text() without draw() inside composite gives non-lazy value causing incorrect test behavior for agent composite strategies"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 90,
+    "error_handling_score": 92,
+    "auth_complexity_score": 98,
+    "rate_limit_clarity_score": 98
+  },
+  "security_score_components": {
+    "tls_enforcement": 95,
+    "auth_strength": 95,
+    "scope_granularity": 92,
+    "dependency_hygiene": 90,
+    "secret_handling": 95,
+    "security_notes": "Testing library — no production security concerns. Hypothesis is excellent for finding security-relevant edge cases (SQL injection patterns, parser crashes, integer overflow) in agent validation code. Failure database in .hypothesis/ may contain sensitive agent test inputs; add to .gitignore for agent repos with sensitive data in test fixtures."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 92,
+    "version_stability": 88,
+    "breaking_changes_history": 85,
+    "error_recovery": 92
+  }
+}

@@ -1,0 +1,106 @@
+{
+  "id": "cocoapods-api",
+  "name": "CocoaPods",
+  "version_evaluated": "1.x",
+  "homepage": "https://cocoapods.org/",
+  "repo_url": "https://github.com/CocoaPods/CocoaPods",
+  "category": "developer-tools",
+  "subcategories": ["ios", "swift", "objective-c", "package-management", "dependencies"],
+  "tags": ["ios", "swift", "objective-c", "cocoapods", "package-manager", "podfile", "dependencies"],
+  "what_it_does": "Dependency manager for iOS/macOS/tvOS/watchOS projects — manages Objective-C and Swift library integration via Podfile. CocoaPods features: Podfile with pod declarations, pod install / pod update lifecycle, .xcworkspace generation (must use instead of .xcodeproj), Podspec for publishing libraries, private Podspec repos, versioning with semantic version constraints (~> 5.0, '>= 5.0', '= 5.0.1'), pre/post install hooks, and library source customization. While Swift Package Manager is the modern Apple-endorsed solution, CocoaPods remains widely used for legacy codebases and libraries without SPM support. Many agent iOS SDK dependencies (Firebase, Facebook, certain AI SDKs) still publish CocoaPods specs.",
+  "use_cases": [
+    "Agent iOS app dependencies — Podfile with pod 'Firebase/Analytics', pod 'Alamofire', pod 'OpenAI-Swift' integrates agent SDK dependencies; pod install generates Pods/ directory and .xcworkspace for agent Xcode project",
+    "Agent SDK with CocoaPods distribution — create AgentSDK.podspec with name, version, source_files, dependencies; pod lib lint validates; pod trunk push publishes to CocoaPods trunk for agent SDK consumers using CocoaPods",
+    "Legacy agent app dependency management — existing Objective-C agent apps with CocoaPods can add Swift pod dependencies; CocoaPods handles mixed ObjC/Swift agent project dependency integration better than manual framework embedding",
+    "Private agent SDK via private Podspec repo — pod repo add company-specs https://github.com/company/pod-specs; pod 'InternalAgentSDK', source: 'https://github.com/company/pod-specs' distributes private agent libraries without CocoaPods trunk",
+    "Firebase integration for agent apps — pod 'Firebase/Analytics', pod 'Firebase/Crashlytics', pod 'Firebase/Messaging' integrates Firebase SDKs; Firebase still recommends CocoaPods as primary integration method for iOS agent apps alongside SPM"
+  ],
+  "not_for": [
+    "New Swift-only projects — Swift Package Manager is Apple's endorsed modern solution for new iOS agent projects; SPM integrates natively with Xcode without .xcworkspace complexity",
+    "macOS CLI tools — CocoaPods targets iOS/macOS app projects; for Swift command-line tools that are agent utilities, use Swift Package Manager",
+    "Pure Objective-C frameworks for SPM consumers — publishing frameworks that must support SPM consumers should use XCFramework or SPM, not CocoaPods-only distribution"
+  ],
+  "best_when": "Your iOS agent app has dependencies that don't support SPM yet (Firebase, some AI SDKs, legacy Objective-C libraries), or you're maintaining an existing Objective-C agent codebase already using CocoaPods.",
+  "avoid_when": "Starting a new Swift iOS agent project where all dependencies support SPM — use Swift Package Manager exclusively to avoid .xcworkspace complexity.",
+  "alternatives": ["swift-package-manager-api", "carthage-api", "xcode-spm-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": false,
+    "sdk_languages": [],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["api_key"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "CocoaPods trunk requires authentication token from pod trunk register for publishing. Private Podspec repos use git auth (SSH or HTTPS). No auth needed for consuming public pods."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "CocoaPods is MIT licensed. CocoaPods trunk (public pod hosting) is free. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 0,
+    "latency_p99_ms": 0,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits on pod install. pod update fetches new specs from trunk. CI caches Pods/ directory or runs pod install on cache miss. Large agent projects with many dependencies: pod install takes 30-120 seconds.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 82,
+    "error_message_quality": 80,
+    "error_message_notes": "pod install errors show dependency conflict resolution failures with conflicting version requirements. pod lib lint shows Podspec validation errors line-by-line. Missing source_files path shows warning during install. Trunk push failures show HTTP error code and message.",
+    "idempotency_support": "full",
+    "idempotency_notes": "pod install is idempotent — same Podfile.lock produces same Pods/ directory. Podfile.lock pins versions for reproducible builds. pod update updates Podfile.lock with latest allowed versions. CI should commit Podfile.lock for reproducible agent builds.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Must open .xcworkspace not .xcodeproj — pod install generates AgentApp.xcworkspace; opening AgentApp.xcodeproj after pod install causes 'Framework not found' build errors; agent developers must always open .xcworkspace; .xcworkspace should be committed to version control (not .xcodeproj's derived data)",
+      "Podfile.lock must be committed — Podfile.lock pins exact pod versions for reproducible agent builds; not committing Podfile.lock means pod install on different machines may resolve different versions; CI agent builds without committed Podfile.lock are non-reproducible",
+      "pod install vs pod update distinction — pod install respects Podfile.lock versions (reproducible); pod update fetches latest allowed versions and updates Podfile.lock; running pod update in CI accidentally upgrades agent dependencies; CI should always use pod install",
+      "CocoaPods Ruby version compatibility — CocoaPods is a Ruby gem; system Ruby on macOS changed in Ventura; gem install cocoapods may fail with permission errors; use rbenv or rvm to manage Ruby version for CocoaPods in agent CI; pin CocoaPods version in Gemfile for consistent agent CI behavior",
+      "Post-install hooks required for some pods — some pods (React Native, older Firebase) require use_frameworks! or use_modular_headers! in Podfile; missing modifier causes build errors like 'Module not found'; agent project Podfiles inherited from tutorials may be missing required hooks for newer pod versions",
+      "SPM and CocoaPods conflict in same project — mixing CocoaPods and Swift Package Manager in same agent Xcode project can cause duplicate symbol errors if same dependency included by both; audit agent dependencies carefully when migrating from CocoaPods to SPM incrementally; remove CocoaPods version before adding SPM version of same framework"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 82,
+    "error_handling_score": 80,
+    "auth_complexity_score": 90,
+    "rate_limit_clarity_score": 92
+  },
+  "security_score_components": {
+    "tls_enforcement": 85,
+    "auth_strength": 82,
+    "scope_granularity": 78,
+    "dependency_hygiene": 80,
+    "secret_handling": 82,
+    "security_notes": "CocoaPods trunk does not require code signing for pod publication — any account can publish any pod name; verify pod sources match expected GitHub repos. Pods/ directory contains third-party code; review pod licenses for agent app compliance. Private pods via git SSH have same security properties as git repository access control."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 80,
+    "version_stability": 78,
+    "breaking_changes_history": 75,
+    "error_recovery": 80
+  }
+}
