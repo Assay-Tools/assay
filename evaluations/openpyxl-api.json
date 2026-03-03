@@ -1,0 +1,106 @@
+{
+  "id": "openpyxl-api",
+  "name": "openpyxl",
+  "version_evaluated": "3.x",
+  "homepage": "https://openpyxl.readthedocs.io/",
+  "repo_url": "https://github.com/theorchard/openpyxl",
+  "category": "developer-tools",
+  "subcategories": ["office-automation", "python", "excel", "spreadsheets", "reporting"],
+  "tags": ["python", "openpyxl", "excel", "xlsx", "spreadsheets", "reporting", "automation"],
+  "what_it_does": "Python library for reading and writing Excel .xlsx files — creates, modifies, and reads modern Excel spreadsheets. openpyxl features: Workbook and Worksheet classes, cell reading/writing (ws['A1'].value = 'data'), row/column iteration, named styles and cell formatting (Font, PatternFill, Alignment, Border), formula cells, data validation, charts (BarChart, LineChart, PieChart), images (Image), merged cells, freeze panes, filters and sorting, workbook properties, password protection, and large file write-only mode (write_only=True). Standard Python library for Excel report generation and spreadsheet data extraction for agent data pipelines.",
+  "use_cases": [
+    "Agent report generation — wb = openpyxl.Workbook(); ws = wb.active; ws['A1'] = 'Agent Report'; ws.append(['Name', 'Status', 'Score']); for agent in agents: ws.append([agent.name, agent.status, agent.score]); wb.save('report.xlsx') — generate Excel report from agent data; business-ready output",
+    "Agent Excel data extraction — wb = openpyxl.load_workbook('data.xlsx', read_only=True); ws = wb.active; rows = list(ws.values); df = pd.DataFrame(rows[1:], columns=rows[0]) — extract data from Excel files; agent processes business data delivered as Excel without pandas Excel dependency",
+    "Agent formatted report — font = Font(bold=True, color='FFFFFF'); fill = PatternFill(fill_type='solid', fgColor='366092'); ws['A1'].font = font; ws['A1'].fill = fill — styled Excel with corporate colors; agent produces professional-looking reports with headers, alternating row colors, borders",
+    "Agent chart creation — chart = BarChart(); data = Reference(ws, min_col=2, min_row=1, max_row=10); chart.add_data(data); ws.add_chart(chart, 'E5') — agent generates Excel with embedded bar chart; business dashboards in Excel format; chart data linked to worksheet cells",
+    "Agent large dataset export — wb = openpyxl.Workbook(write_only=True); ws = wb.create_sheet(); ws.append(['col1', 'col2']); for row in large_dataset: ws.append(row); wb.save('large.xlsx') — write-only mode for 100K+ rows; constant memory usage regardless of row count; agent exports large query results to Excel"
+  ],
+  "not_for": [
+    "Old .xls format — openpyxl only handles .xlsx (Excel 2007+); for legacy .xls use xlrd or xlwt",
+    "Complex data analysis — use pandas; openpyxl is for reading/writing Excel files, not data analysis",
+    "PDF or Word documents — openpyxl is Excel-only; for Word use python-docx, for PDF use reportlab or weasyprint"
+  ],
+  "best_when": "Generating Excel reports, extracting data from Excel files, or creating styled spreadsheets from agent data — openpyxl is the standard Python library for .xlsx manipulation with full formatting, chart, and formula support.",
+  "avoid_when": "You need legacy .xls support, complex data analysis (use pandas), or non-Excel document formats.",
+  "alternatives": ["pandas-api", "xlsxwriter-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — local file manipulation library."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "openpyxl is MIT licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 10,
+    "latency_p99_ms": 1000,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Load time scales with file size — 10MB Excel: ~2 seconds. write_only mode enables constant-memory large file generation. read_only=True for faster reading without full object model construction.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 82,
+    "error_message_quality": 80,
+    "error_message_notes": "InvalidFileException for non-xlsx files. ReadOnlyWorkbookException when writing to read_only workbook. MergedCellRange errors when accessing merged cells. ValueError for invalid cell addresses. File corruption errors on incomplete write if exception occurs before save().",
+    "idempotency_support": "full",
+    "idempotency_notes": "wb.save() is idempotent — same data produces same file. load_workbook is read-only and idempotent. File locking not managed by openpyxl — concurrent writes cause corruption.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "load_workbook loads entire file into memory — openpyxl.load_workbook('large.xlsx') reads all cells into memory; 50MB Excel file uses 500MB+ RAM; agent code processing large Excel files must use read_only=True for iteration-only access: load_workbook('file.xlsx', read_only=True)",
+      "Merged cells require handling — ws['B3'] in a merged cell (A1:D5) returns None or raises error; agent code iterating rows with merged cells must check ws.merged_cells; use ws.unmerge_cells() before value access or handle MergedCell sentinels in iteration",
+      "Data types are preserved differently than displayed — Excel stores 1.0 as float, displays as '1'; ws['A1'].value may return 1.0 not '1'; agent code expecting string values must convert: str(int(ws['A1'].value)) for integer-displayed numbers; dates stored as datetime objects not strings",
+      "write_only workbooks cannot be read back — openpyxl.Workbook(write_only=True) creates streaming workbook; cannot read cells back after writing; agent report generation code cannot both write and verify content in write_only mode; use regular Workbook for small files needing verification",
+      "Formulas stored as strings not computed — ws['C1'] = '=A1+B1' stores formula string; ws['C1'].value returns '=A1+B1' not computed result; agent code reading formula results must open with data_only=True: load_workbook('file.xlsx', data_only=True) to get last-computed values instead of formulas",
+      "Save must complete before file is valid — wb.save() must finish completely; exceptions during save leave partial/corrupt file; agent code must handle save exceptions and delete partial file; use temporary file + atomic rename pattern: save to temp, rename to final on success"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 82,
+    "error_handling_score": 78,
+    "auth_complexity_score": 98,
+    "rate_limit_clarity_score": 98
+  },
+  "security_score_components": {
+    "tls_enforcement": 95,
+    "auth_strength": 95,
+    "scope_granularity": 90,
+    "dependency_hygiene": 88,
+    "secret_handling": 90,
+    "security_notes": "Local file manipulation — no network access. Excel files (.xlsx) are ZIP archives of XML — validate trusted source before processing; malformed xlsx can trigger parsing vulnerabilities. Macro-enabled .xlsm files not supported by openpyxl. Avoid processing untrusted Excel files in agent pipelines."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 85,
+    "version_stability": 82,
+    "breaking_changes_history": 80,
+    "error_recovery": 82
+  }
+}

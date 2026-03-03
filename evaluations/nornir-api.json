@@ -1,0 +1,106 @@
+{
+  "id": "nornir-api",
+  "name": "Nornir",
+  "version_evaluated": "3.x",
+  "homepage": "https://nornir.readthedocs.io/",
+  "repo_url": "https://github.com/nornir-automation/nornir",
+  "category": "developer-tools",
+  "subcategories": ["networking", "python", "automation", "parallel", "network-devices"],
+  "tags": ["python", "nornir", "network-automation", "parallel", "inventory", "tasks", "netmiko", "napalm"],
+  "what_it_does": "Network automation framework for Python — parallel task execution across network device inventories. Nornir features: InitNornir for initialization with inventory (YAML/SimpleInventory), nr.run() for parallel task execution across all/filtered hosts, built-in tasks (netmiko_send_command, napalm_get), nornir-netmiko and nornir-napalm plugins, host/group filtering (nr.filter()), results processing (Result.result), failed_hosts tracking, task functions as plain Python, connection management (nornir.core.connections), and JSON/YAML output. Pure-Python alternative to Ansible for network automation — agent runs tasks on 100s of devices simultaneously.",
+  "use_cases": [
+    "Agent parallel device config — nr = InitNornir(config_file='config.yaml'); result = nr.run(task=netmiko_send_config, config_commands=['logging buffered 10000']); print_result(result) — push config to all devices simultaneously; agent configures 200 switches in parallel in seconds instead of minutes sequentially",
+    "Agent inventory-based automation — nr = InitNornir(config_file='config.yaml'); routers = nr.filter(type='router', site='NYC'); result = routers.run(task=napalm_get, getters=['interfaces', 'bgp_neighbors']) — filter devices by attributes; agent collects BGP state from all NYC routers simultaneously",
+    "Agent custom task function — def backup_config(task): output = task.run(task=netmiko_send_command, command_string='show running-config'); Path(f'backups/{task.host.name}.cfg').write_text(output.result) — Python function as Nornir task; agent runs backup_config on all devices in parallel; full Python flexibility inside tasks",
+    "Agent failed device handling — result = nr.run(task=deploy_acl); failed = result.failed_hosts; if failed: nr.filter(filter_func=lambda h: h.name in failed).run(task=deploy_acl, retry=True) — re-run failed hosts; agent automation handles partial failure gracefully; Nornir tracks which hosts succeeded and failed",
+    "Agent multi-vendor workflow — cisco = nr.filter(platform='cisco_ios'); juniper = nr.filter(platform='junos'); cisco.run(task=netmiko_send_config, config_commands=cisco_acl); juniper.run(task=napalm_configure, configuration=junos_config) — agent handles different vendors with appropriate tasks; one inventory, multiple execution strategies"
+  ],
+  "not_for": [
+    "Single device automation — Nornir's framework overhead isn't worth it for single device; use Netmiko directly",
+    "Non-network Python parallelism — Nornir is network-automation focused; for general parallel task execution use concurrent.futures or Ray",
+    "GUI or low-code network automation — Nornir is code-first; for low-code network automation use Ansible or NetBox"
+  ],
+  "best_when": "Automating tasks across a fleet of network devices (10+ devices) in Python — Nornir provides inventory management, parallel execution, and task composability that Netmiko/NAPALM lack, with full Python flexibility that Ansible YAML lacks.",
+  "avoid_when": "You need single-device automation (use Netmiko directly), GUI tooling, or your team prefers YAML playbooks (use Ansible).",
+  "alternatives": ["netmiko-api", "ansible-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["password", "ssh_key"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Device credentials in inventory YAML or via environment variables. Inventory supports password and SSH key auth per host or group. Secrets should come from environment not hardcoded in inventory."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, Apache 2.0 licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Nornir is Apache 2.0 licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 2000,
+    "latency_p99_ms": 30000,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits from library. Parallel workers (num_workers) default to 20 concurrent SSH connections. Increase for faster execution, limited by device SSH session limits and operator SSH throughput.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 80,
+    "error_message_quality": 78,
+    "error_message_notes": "ConnectionException for device SSH failures tracked per host in Result. Task exceptions captured in Result.exception not raised globally. print_result() displays all host results and failures. InventoryError for missing required host attributes.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "nr.run() task execution results depend on device state. Declarative NAPALM tasks (napalm_configure) are more idempotent. Imperative Netmiko send_config tasks may apply duplicate config. Agent automation should check state before applying changes.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Plugins installed separately — nornir_netmiko and nornir_napalm are separate packages; pip install nornir alone gives empty task library; agent Nornir scripts must: pip install nornir nornir-netmiko nornir-napalm; import from correct module: from nornir_netmiko.tasks import netmiko_send_command",
+      "num_workers affects device SSH load — InitNornir(runner={'plugin': 'threaded', 'options': {'num_workers': 20}}) runs 20 parallel SSH sessions; too many workers overwhelms device SSH daemon (default max 10 sessions); agent automation must tune num_workers per device type and SSH capacity",
+      "result.failed_hosts doesn't re-run — result = nr.run(task=fn); result.failed_hosts returns dict of failed hosts; Nornir doesn't retry automatically; agent code must explicitly: failed_nr = nr.filter(filter_func=lambda h: h.name in result.failed_hosts); failed_nr.run(task=fn)",
+      "Inventory must use group defaults for credentials — hosts.yaml credentials override group.yaml defaults; if credentials in group 'all' and host has no credentials, host inherits; agent inventory architecture must use group 'all' defaults with per-host overrides for device-specific credentials",
+      "Connection plugin keeps connection open — Nornir caches SSH connections across task runs; task2 reuses task1's SSH session; if device reboots between tasks, cached connection fails; call task.host.close_connections() before tasks requiring fresh connection in agent workflows with device restarts",
+      "Task result.result may be None on exception — if task raises exception, result.exception has traceback but result.result is None; agent code checking result.result without checking result.failed first raises TypeError; always check 'if not result[host].failed:' before accessing result.result"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 80,
+    "error_handling_score": 75,
+    "auth_complexity_score": 75,
+    "rate_limit_clarity_score": 88
+  },
+  "security_score_components": {
+    "tls_enforcement": 82,
+    "auth_strength": 78,
+    "scope_granularity": 72,
+    "dependency_hygiene": 82,
+    "secret_handling": 70,
+    "security_notes": "Network device credentials in inventory files — must use environment variables or secrets manager, never commit credentials to git. Parallel SSH to production devices can cause SSH daemon overload. Agent network automation requires change window and rollback plan. hosts.yaml should be gitignored if containing credentials."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 78,
+    "version_stability": 80,
+    "breaking_changes_history": 78,
+    "error_recovery": 75
+  }
+}

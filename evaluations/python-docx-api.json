@@ -1,0 +1,106 @@
+{
+  "id": "python-docx-api",
+  "name": "python-docx",
+  "version_evaluated": "1.x",
+  "homepage": "https://python-docx.readthedocs.io/",
+  "repo_url": "https://github.com/python-openxml/python-docx",
+  "category": "developer-tools",
+  "subcategories": ["office-automation", "python", "word", "document-generation", "reporting"],
+  "tags": ["python", "python-docx", "word", "docx", "document-generation", "reporting", "office"],
+  "what_it_does": "Python library for creating and modifying Microsoft Word .docx files — generates structured Word documents programmatically. python-docx features: Document class (new or existing), add_paragraph() and add_heading(), add_run() for inline text with formatting (bold, italic, font size, color), add_table() with cell access, add_picture() for inline images, styles (Heading 1, Normal, Quote), paragraph formatting (alignment, indentation, spacing), section page setup (landscape, margins), add_page_break(), list styles (bulleted, numbered), hyperlinks via XML, and core properties (author, title). Standard library for generating Word document reports from agent data.",
+  "use_cases": [
+    "Agent document generation — doc = Document(); doc.add_heading('Agent Report', 0); doc.add_paragraph(f'Generated: {datetime.now()}'); doc.add_heading('Findings', 1); doc.add_paragraph('Critical issues found: ...'); doc.save('report.docx') — generate Word report from agent findings; business-readable output for non-technical stakeholders",
+    "Agent table report — table = doc.add_table(rows=1, cols=4, style='Table Grid'); table.rows[0].cells[0].text = 'Agent'; for agent in agents: row = table.add_row(); row.cells[0].text = agent.name; row.cells[1].text = agent.status — tabular data in Word; agent risk assessment report with formatted table",
+    "Agent template filling — doc = Document('template.docx'); for para in doc.paragraphs: if '{{agent_name}}' in para.text: para.text = para.text.replace('{{agent_name}}', agent_name); doc.save('filled.docx') — fill Word template with agent data; document automation for contracts, reports with fixed structure",
+    "Agent formatted findings — para = doc.add_paragraph(); run = para.add_run('CRITICAL: '); run.bold = True; run.font.color.rgb = RGBColor(255, 0, 0); para.add_run(finding_text) — styled text for agent security report; red bold severity labels inline with body text; professional security finding documentation",
+    "Agent picture report — doc.add_picture('chart.png', width=Inches(6)) — embed chart image in Word document; agent includes matplotlib/plotly chart screenshots in report; Inches() and Cm() for precise image sizing"
+  ],
+  "not_for": [
+    "PDF generation — python-docx creates .docx only; convert to PDF via LibreOffice headless or docx2pdf; for direct PDF generation use reportlab or weasyprint",
+    "Complex layout (multi-column, precise positioning) — Word document layout is flow-based; for pixel-precise layouts use PDF libraries",
+    "Reading .doc (old Word) — python-docx only handles .docx (Word 2007+); for .doc use LibreOffice conversion first"
+  ],
+  "best_when": "Generating Word document reports for business users who need to edit or add to agent output — python-docx creates editable Word files with proper structure, styles, and tables that business stakeholders can work with in Microsoft Word.",
+  "avoid_when": "You need PDF output (use reportlab/weasyprint), complex page layouts, or legacy .doc format support.",
+  "alternatives": ["openpyxl-api", "sphinx-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — local document generation library."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "python-docx is MIT licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 50,
+    "latency_p99_ms": 500,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Document generation speed scales with content size. 100-page report generates in under 1 second. Images embedded as base64 increase file size.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 80,
+    "error_message_quality": 75,
+    "error_message_notes": "PackageNotFoundError for invalid .docx files. InvalidSpanError for corrupt documents. ValueError for unsupported style names. KeyError for missing template placeholder. Image dimension errors for too-large images.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Document generation from same inputs produces identical output. Template filling is idempotent for same template+data. doc.save() overwrites existing file idempotently.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "para.text = value clears all run formatting — paragraph.text = 'new text' replaces all runs with single unformatted run; losing bold/italic formatting from template; agent template filling must iterate runs: for run in para.runs: run.text = run.text.replace('{{var}}', value); not para.text = para.text.replace()",
+      "Styles must exist in document or template — doc.add_paragraph(style='Custom Style') raises KeyError if 'Custom Style' not in document styles; agent code using custom styles must either define styles or use documents with those styles already defined; use existing built-in styles safely",
+      "add_table() requires explicit cell content — table = doc.add_table(rows=3, cols=3); table.cell(0, 0).text = 'Header'; empty table cells display as blank in Word; agent code must explicitly set all cell text; iterating with table.rows and table.columns is reliable for all cells",
+      "Images must be on disk — doc.add_picture('path/to/image.png') requires file path; BytesIO works: doc.add_picture(io.BytesIO(img_bytes)); matplotlib agent charts must be saved to disk or BytesIO before embedding; fig.savefig(buf := io.BytesIO()); buf.seek(0); doc.add_picture(buf)",
+      "Hyperlinks require XML manipulation — python-docx has no built-in add_hyperlink(); adding hyperlinks requires direct XML manipulation via lxml; agent reports needing clickable links must use workaround: add_hyperlink() XML helper function from python-docx GitHub issues; display text without links if complexity not worth it",
+      "Table styles from Word template differ from built-in names — doc.add_table(style='Table Grid') works for built-in; table style from .dotx template has display name not programmatic name; agent code inheriting Word templates must inspect doc.tables[0].style.name to find correct style string"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 80,
+    "error_handling_score": 72,
+    "auth_complexity_score": 98,
+    "rate_limit_clarity_score": 98
+  },
+  "security_score_components": {
+    "tls_enforcement": 95,
+    "auth_strength": 95,
+    "scope_granularity": 90,
+    "dependency_hygiene": 88,
+    "secret_handling": 92,
+    "security_notes": "Local file generation — no network access. .docx files are ZIP archives of XML — validate source before opening untrusted documents. Macros (.docm) not supported. Agent template filling must sanitize user input to prevent XML injection in document content."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 82,
+    "version_stability": 80,
+    "breaking_changes_history": 78,
+    "error_recovery": 80
+  }
+}
