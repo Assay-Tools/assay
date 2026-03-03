@@ -1,0 +1,106 @@
+{
+  "id": "pynacl-python-api",
+  "name": "PyNaCl",
+  "version_evaluated": "1.5.x",
+  "homepage": "https://pynacl.readthedocs.io/",
+  "repo_url": "https://github.com/pyca/pynacl",
+  "category": "developer-tools",
+  "subcategories": ["security", "cryptography", "python", "encryption", "signing"],
+  "tags": ["python", "pynacl", "nacl", "libsodium", "cryptography", "box", "secretbox", "signing", "ed25519", "x25519"],
+  "what_it_does": "Python bindings to libsodium (NaCl) — modern, high-security cryptographic operations with simple API. PyNaCl features: nacl.public.Box for public-key authenticated encryption (X25519-XSalsa20-Poly1305), nacl.secret.SecretBox for symmetric authenticated encryption (XSalsa20-Poly1305), nacl.signing.SigningKey/VerifyKey for Ed25519 signatures, nacl.pwhash for Argon2 password hashing, nacl.utils.random() for secure randomness, and SealedBox for anonymous sender encryption. libsodium-backed — immune to timing attacks, no key management pitfalls. Simpler and more secure API than cryptography hazmat layer for public-key operations.",
+  "use_cases": [
+    "Agent public-key encryption — from nacl.public import PrivateKey, Box; sender_key = PrivateKey.generate(); recipient_key = PrivateKey.generate(); box = Box(sender_key, recipient_key.public_key); encrypted = box.encrypt(b'secret message') — authenticated encryption to specific recipient; agent-to-agent encrypted communication where both agents have keypairs; decryption authenticates sender identity",
+    "Agent symmetric encryption — from nacl.secret import SecretBox; key = nacl.utils.random(SecretBox.KEY_SIZE); box = SecretBox(key); encrypted = box.encrypt(b'agent secrets') — XSalsa20-Poly1305 authenticated encryption; simpler alternative to Fernet; agent secrets manager for storing credentials without authentication pitfalls of bare AES",
+    "Agent message signing — from nacl.signing import SigningKey; sk = SigningKey.generate(); signed = sk.sign(message_bytes); vk = sk.verify_key; vk.verify(signed) — Ed25519 signature for message authentication; agent workflow signs task payloads with private key; orchestrator verifies with public key without sharing secret",
+    "Agent anonymous message — from nacl.public import SealedBox; box = SealedBox(recipient_public_key); encrypted = box.encrypt(b'anonymous message') — encrypt to recipient without revealing sender; agent sends data to coordinator without identifying itself; recipient cannot determine sender identity",
+    "Agent Argon2 password hashing — from nacl.pwhash import argon2id; hashed = argon2id.str(password.encode()); argon2id.verify(hashed, password.encode()) — Argon2id password hashing; agent auth service stores and verifies user passwords with memory-hard hashing resistant to GPU cracking"
+  ],
+  "not_for": [
+    "TLS/X.509 certificates — PyNaCl is for application-level crypto; for TLS cert management use cryptography (pyca) library",
+    "Legacy algorithm compatibility — PyNaCl only supports modern NaCl/libsodium algorithms; for RSA/DSA/older algorithms use cryptography library",
+    "JWT handling — use PyJWT for JWT; PyNaCl provides lower-level primitives"
+  ],
+  "best_when": "Secure agent-to-agent communication, message signing, symmetric encryption, or password hashing — PyNaCl's libsodium backend provides state-of-the-art security with a simple API that avoids common cryptographic pitfalls.",
+  "avoid_when": "You need TLS/X.509 (use cryptography library), RSA/DSA compatibility, or JWT (use PyJWT).",
+  "alternatives": ["cryptography-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — local cryptographic library. Keys are the user's responsibility."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, Apache 2.0 licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "PyNaCl is Apache 2.0 licensed. libsodium is ISC licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 1,
+    "latency_p99_ms": 100,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. libsodium-backed — C performance. Ed25519 signing: <1ms. X25519 key exchange: <1ms. Argon2id is intentionally slow (memory-hard KDF). XSalsa20-Poly1305: ~1GB/sec on modern CPU.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 80,
+    "error_message_notes": "nacl.exceptions.CryptoError for decryption/verification failure. ValueError for key size violations. nacl.exceptions.BadSignatureError for invalid Ed25519 signature. Clear exception types — CryptoError is base class for all crypto failures.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Verification is deterministic. Encryption is non-deterministic (random nonce each call). Signing is deterministic for Ed25519 (RFC 8032 deterministic). Same message with same key signs to same signature.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "CryptoError does not distinguish wrong key from tampered — box.decrypt(encrypted) raises CryptoError for wrong key, wrong nonce, or modified ciphertext; agent code cannot distinguish wrong-key from attack; log 'decryption failed' without details; do not expose CryptoError message to untrusted callers",
+      "Box requires both parties keypairs — Box(my_private_key, their_public_key) requires my private key; to send without revealing sender use SealedBox(recipient_public_key) — anonymous sender; agent code wanting to broadcast encrypted data to recipient without identifying sender must use SealedBox not Box",
+      "Nonce must be unique per message — SecretBox.encrypt() generates random nonce automatically (safe); if implementing custom nonce: never reuse nonce with same key — XSalsa20-Poly1305 catastrophically fails on nonce reuse; always use nacl.utils.random(SecretBox.NONCE_SIZE) for nonce generation",
+      "Key serialization is bytes not hex — PrivateKey bytes (32 bytes raw); sk.encode() returns raw bytes; to store as hex: sk.encode().hex(); to load: PrivateKey(bytes.fromhex(hex_str)); agent code storing keys in config files must serialize/deserialize correctly",
+      "Argon2id parameters must match for verification — argon2id.str(password) generates hash with embedded parameters; argon2id.verify(stored_hash, password) extracts parameters from hash and verifies; agent code must store full hash string (not just derived key) for verification; parameters affect security level",
+      "Signed message includes message bytes — vk.verify(signed) returns the original message bytes (signed = signature + message); agent code doing assert vk.verify(signed) == expected_message extracts message from signed container; signature is first 64 bytes; use signed.message if you need just message without signature prefix"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 80,
+    "auth_complexity_score": 98,
+    "rate_limit_clarity_score": 98
+  },
+  "security_score_components": {
+    "tls_enforcement": 95,
+    "auth_strength": 95,
+    "scope_granularity": 92,
+    "dependency_hygiene": 92,
+    "secret_handling": 95,
+    "security_notes": "libsodium-backed — constant-time operations resistant to timing attacks. Modern algorithms only (Curve25519, Ed25519, XSalsa20) — no weak cipher support. Store private keys in secrets manager or HSM. PyNaCl is maintained by pyca (same team as cryptography library) — high security quality."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 88,
+    "breaking_changes_history": 88,
+    "error_recovery": 85
+  }
+}

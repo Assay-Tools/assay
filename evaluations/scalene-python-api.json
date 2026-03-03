@@ -1,0 +1,106 @@
+{
+  "id": "scalene-python-api",
+  "name": "Scalene",
+  "version_evaluated": "1.5.x",
+  "homepage": "https://github.com/plasma-umass/Scalene",
+  "repo_url": "https://github.com/plasma-umass/Scalene",
+  "category": "developer-tools",
+  "subcategories": ["profiling", "python", "cpu", "memory", "gpu", "debugging"],
+  "tags": ["python", "scalene", "profiling", "cpu", "memory", "gpu", "line-level", "performance"],
+  "what_it_does": "High-performance CPU, GPU, and memory profiler for Python with line-level granularity — profiles both Python and native code without significant overhead. Scalene features: scalene script.py for CLI profiling, @profile decorator, line-level CPU time (Python vs C), memory allocation/consumption per line, GPU time tracking (CUDA), memory leak detection, copy volume tracking (identifies data movement bottlenecks), web-based HTML report, JSON output for programmatic analysis, AI-powered optimization suggestions (--openai), minimal overhead (<10% CPU impact vs 100%+ for cProfile), and async/multiprocessing support.",
+  "use_cases": [
+    "Agent CPU+memory co-profiling — scalene agent.py --output-file profile.html — generates HTML report showing CPU time AND memory per line; agent developer sees that line 42 uses 80% CPU and 2GB memory simultaneously; standard profilers show CPU or memory separately — Scalene shows both in unified view",
+    "Agent Python vs native breakdown — Scalene report shows 'Python time' vs 'System time' per line; agent developer discovers numpy.dot() spends 5% in Python overhead and 95% in C BLAS — identified correctly as already optimal; line calling pure Python loop takes 90% Python time — prime optimization target",
+    "Agent memory leak detection — scalene agent_worker.py --memory-leak-threshold 10 — detects lines where memory grows monotonically across samples; agent long-running worker diagnosed: list appends inside loop never get garbage collected because list held in module-level cache dict",
+    "Agent GPU profiling — scalene ml_agent.py — tracks GPU time per line in CUDA code; agent ML engineer identifies data preprocessing on CPU consumes 60% of total time while GPU sits idle waiting; GPU time column shows where model inference actually runs vs wasted time",
+    "Agent copy volume tracking — Scalene reports 'Copy' column showing bytes copied between C and Python; agent code doing df.values repeatedly in loop copies 100MB per iteration; Scalene pinpoints exact line causing data movement overhead invisible to CPU/memory-only profilers"
+  ],
+  "not_for": [
+    "Tracing (exact call counts) — Scalene is sampling-based; for exact call counts use cProfile or py-trace",
+    "Windows — Scalene has limited Windows support; use cProfile/py-spy on Windows",
+    "Zero-overhead production monitoring — Scalene overhead is low (1-5%) but not zero; use py-spy for attach-and-detach production profiling"
+  ],
+  "best_when": "Finding Python performance bottlenecks at line level combining CPU, memory, and GPU — Scalene's simultaneous CPU+memory+GPU line-level view in one report is unique; identifies whether to optimize Python code, use numpy, or fix memory patterns.",
+  "avoid_when": "You need exact call counts (use cProfile), are on Windows, or need zero-overhead production attach (use py-spy).",
+  "alternatives": ["py-spy-python-api", "memray-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — local profiling tool. Optional AI suggestions use OpenAI API key."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, Apache 2.0 licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Scalene is Apache 2.0 licensed. Free for all use. AI suggestions feature uses OpenAI API separately (optional)."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Profiling overhead: 1-5% CPU (vs 100%+ for cProfile). HTML report generation: <1 second. GPU profiling requires CUDA. Memory tracking enabled by default. Statistical sampling at 100Hz.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 82,
+    "error_message_quality": 78,
+    "error_message_notes": "Clear CLI error for unsupported Python versions. ImportError on Windows for unsupported features. CUDA not found warning when GPU profiling unavailable. HTML output requires browser — headless environments need --json flag.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Scalene generates profile report from each run. Sampling-based — results vary slightly between runs but pattern is stable. @profile decorator provides programmatic access to profiling context.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "scalene must run script not import module — scalene agent.py runs agent.py as script; scalene cannot profile: python -m module; agent packages must have a runnable entry point script or use @scalene_profiler.profile() decorator for specific function profiling",
+      "HTML report opens browser by default — scalene agent.py opens browser with live HTML report; CI/headless environments need: scalene --json --outfile profile.json agent.py for machine-readable output; or scalene --html --outfile report.html to save file without opening",
+      "GPU profiling requires CUDA and cupy/torch — scalene shows GPU time only for GPU operations via CUDA; pure Python or NumPy CPU operations show 0 GPU time; agent ML profiling must have CUDA installed and GPU operations for GPU column to populate",
+      "Memory profiling shows current not peak — Scalene memory column shows memory in use at sampling time, not peak allocation; agent code that allocates and frees rapidly may show low memory despite high churn; use --memory-leak-threshold to track trends over time",
+      "Multiprocessing requires --profile-all — scalene agent.py only profiles main process by default; agent code with multiprocessing.Pool() workers not profiled; use scalene --profile-all agent.py to include child processes; pmap-parallel code requires explicit flag",
+      "Copy column indicates Python↔C data movement — high Copy values mean frequent conversion between Python objects and C arrays; agent code doing np.array(python_list) inside loop shows high copy cost; move numpy creation outside loop or use pre-allocated arrays to eliminate repeated copy"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 82,
+    "error_handling_score": 78,
+    "auth_complexity_score": 98,
+    "rate_limit_clarity_score": 98
+  },
+  "security_score_components": {
+    "tls_enforcement": 92,
+    "auth_strength": 90,
+    "scope_granularity": 88,
+    "dependency_hygiene": 85,
+    "secret_handling": 85,
+    "security_notes": "Profiling output may expose code structure and variable names — treat profile reports as sensitive. AI suggestion feature (--openai) sends code snippets to OpenAI — disable for sensitive code. No network calls during profiling itself."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 82,
+    "version_stability": 78,
+    "breaking_changes_history": 78,
+    "error_recovery": 80
+  }
+}
