@@ -1,0 +1,106 @@
+{
+  "id": "bumblebee-elixir-api",
+  "name": "Bumblebee",
+  "version_evaluated": "0.5.x",
+  "homepage": "https://hexdocs.pm/bumblebee/",
+  "repo_url": "https://github.com/elixir-nx/bumblebee",
+  "category": "ai-ml",
+  "subcategories": ["llm", "inference", "elixir", "huggingface", "nlp"],
+  "tags": ["elixir", "ml", "huggingface", "bert", "gpt", "whisper", "clip", "inference", "nx", "axon", "beam"],
+  "what_it_does": "Elixir library for running pre-trained HuggingFace neural network models — BERT, GPT-2, Whisper, CLIP, Stable Diffusion, and more — directly in Elixir without Python. Built on Nx (tensor operations) and Axon (neural network layers). Bumblebee downloads model weights from HuggingFace Hub and runs inference via EXLA (XLA GPU backend) or BinaryBackend (CPU). Enables LLM inference, text classification, NER, speech recognition, image classification, and text embedding in pure Elixir. Integrated with Livebook Smart Cells for notebook exploration.",
+  "use_cases": [
+    "Run local Whisper speech-to-text inference in Elixir agent backends — transcribe audio from agent interactions without Python or external API calls",
+    "Generate text embeddings in Elixir for agent semantic search using Bumblebee's BERT/sentence-transformer models — embed user queries and match against agent knowledge base",
+    "Classify agent input text (sentiment, intent, toxicity) using fine-tuned BERT models via Bumblebee — run model inference in the same Elixir process as agent logic",
+    "Use Bumblebee with Nx.Serving for batched inference — multiple agent requests share the same model instance with automatic batching for GPU efficiency",
+    "Explore HuggingFace models in Livebook using Bumblebee Smart Cells — test different models for agent tasks before integrating into production Elixir code"
+  ],
+  "not_for": [
+    "Teams expecting PyTorch/HuggingFace Transformers parity — Bumblebee supports a subset of popular models; exotic or newly released architectures may not be available; check hexdocs for supported models list",
+    "GPU-heavy model training — Bumblebee is inference-focused; model fine-tuning is not supported; use Python/PyTorch for training then export and load weights in Bumblebee",
+    "Non-Elixir stacks — Python + HuggingFace Transformers is the standard for ML; Bumblebee is for Elixir teams who want to stay in the BEAM ecosystem"
+  ],
+  "best_when": "You're building an Elixir application and need on-premise ML inference (NLP, speech, image classification) without Python microservices — Bumblebee keeps ML inference in the BEAM process.",
+  "avoid_when": "You need model training, require models not yet supported by Bumblebee, need GPU-heavy inference in a non-Elixir stack, or are building a Python data science pipeline (use HuggingFace Transformers directly).",
+  "alternatives": ["huggingface-inference-api", "openai-api", "ollama-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["elixir"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["api_key"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "HuggingFace API token required for downloading gated models (Llama, etc.) via Bumblebee.load_model/2 with HF Hub. Public models download without auth. Token set via HUGGING_FACE_HUB_TOKEN environment variable."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, Apache 2.0 licensed. HuggingFace model downloads are free for public models.",
+    "paid_tiers": "None for the library. HuggingFace Hub gated model access may require HF Pro account.",
+    "requires_credit_card": false,
+    "notes": "Bumblebee is Apache 2.0 licensed, maintained by Dashbit (José Valim). Free for all use. Model weights downloaded from HuggingFace Hub — public models free."
+  },
+  "performance": {
+    "latency_p50_ms": 100,
+    "latency_p99_ms": 1000,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — local inference. GPU via EXLA dramatically faster than CPU BinaryBackend. Nx.Serving provides automatic batching for throughput optimization.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["local", "self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 80,
+    "error_message_quality": 78,
+    "error_message_notes": "Bumblebee errors are Elixir exceptions. Model load failures show HuggingFace Hub error details. Tokenizer errors indicate sequence length exceeded or invalid input. EXLA compilation errors can be verbose; first-run compile errors are common and resolved by rerunning.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Inference is deterministic for same input and temperature=0. Nx.Serving handles concurrent requests safely. Model weights are loaded once and shared.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Model downloads on first use — Bumblebee.load_model/2 downloads weights from HuggingFace Hub on first call; large models (Whisper medium = 1.5GB) can take minutes; cache models in Docker images for production",
+      "EXLA backend requires XLA compilation on first run — first tensor operation with EXLA backend triggers JIT compilation taking 30-120 seconds; pre-warm in app startup via a dummy inference call",
+      "Nx.Serving is required for concurrent inference — direct Bumblebee.predict/2 calls block the caller process; use Nx.Serving for async, batched, and concurrent inference in production",
+      "Not all HuggingFace models are supported — Bumblebee supports specific architectures (BERT, GPT-2, Whisper, CLIP, Stable Diffusion, Llama, Mistral); unsupported architectures require manual Axon model definition",
+      "Tokenizer max sequence length — most models have 512 or 1024 token limits; inputs longer than max_length are silently truncated; set truncate: :longest option and validate input lengths",
+      "Memory management for model weights — loading multiple large models simultaneously consumes significant RAM; a Llama-7B model requires 14GB+ RAM in float32; use :bfloat16 or quantized models for memory efficiency"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 80,
+    "error_handling_score": 78,
+    "auth_complexity_score": 92,
+    "rate_limit_clarity_score": 95
+  },
+  "security_score_components": {
+    "tls_enforcement": 95,
+    "auth_strength": 85,
+    "scope_granularity": 80,
+    "dependency_hygiene": 88,
+    "secret_handling": 85,
+    "security_notes": "Local inference — no external API calls for model execution. HuggingFace download uses HTTPS. HUGGING_FACE_HUB_TOKEN via environment variable (not hardcoded). Model weights stored locally — verify model provenance from HuggingFace Hub."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 80,
+    "version_stability": 75,
+    "breaking_changes_history": 72,
+    "error_recovery": 85
+  }
+}
