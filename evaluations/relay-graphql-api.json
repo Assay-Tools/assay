@@ -1,0 +1,106 @@
+{
+  "id": "relay-graphql-api",
+  "name": "Relay",
+  "version_evaluated": "15.x",
+  "homepage": "https://relay.dev/",
+  "repo_url": "https://github.com/facebook/relay",
+  "category": "developer-tools",
+  "subcategories": ["graphql", "react", "javascript", "data-fetching", "colocation"],
+  "tags": ["graphql", "react", "relay", "data-fetching", "fragments", "colocation", "pagination", "facebook"],
+  "what_it_does": "Production-grade GraphQL client for React — opinionated framework for colocating GraphQL fragments with React components. Relay features: compile-time fragment compilation (relay-compiler), Suspense integration (useLazyLoadQuery, usePreloadedQuery), automatic query batching, normalized store (garbage collected), connection-based pagination (usePaginationFragment), optimistic updates, @refetchable, @argumentDefinitions, @relay(plural:true) for lists, entrypoint preloading, and strict TypeScript generation. Requires relay-compiler build step and conformant server (Node IDs, Connections spec). Used by Facebook, GitHub, Shopify for large agent-scale React apps.",
+  "use_cases": [
+    "Agent component data colocation — const AgentFragment = graphql`fragment AgentCard_agent on Agent { id name status lastTask { title } }`; AgentCard reads only its fields; agent components declare their own data requirements without prop drilling",
+    "Agent list with Relay pagination — usePaginationFragment with @connection(key: 'AgentList_agents') provides loadNext(10) for cursor-based pagination; Relay merges pages into normalized store; agent task history loads incrementally with correct cursor tracking",
+    "Agent real-time updates — useSubscription with GraphQL subscription + Relay store updater; incoming agent status events update normalized store; all AgentCard components showing same agent re-render automatically via store subscription",
+    "Optimistic agent task creation — commitMutation with optimisticUpdater adds task to Relay store immediately; agent task appears in UI before server confirmation; rollback on error restores previous store state automatically",
+    "Preloaded agent queries — preloadQuery(environment, AgentQuery, {id}) starts fetch before component mounts; usePreloadedQuery renders when data arrives; eliminates agent dashboard loading waterfall on route entry"
+  ],
+  "not_for": [
+    "Non-React UI frameworks — Relay is React-specific; for Vue/Angular GraphQL use urql or Apollo Client",
+    "Simple GraphQL needs — Relay requires relay-compiler build step, server conformance (Node IDs, Connections spec); for straightforward agent GraphQL queries use Apollo Client or urql",
+    "Non-conformant GraphQL schemas — Relay requires Relay-spec server (Node interface, Connections, global IDs); arbitrary GraphQL schemas don't work without wrapping; agent APIs must implement Relay server spec"
+  ],
+  "best_when": "Building a large-scale React agent dashboard that needs performant GraphQL data fetching with automatic normalization, colocated data requirements, and production-grade pagination — Relay shines at scale where Apollo's flexibility becomes a liability.",
+  "avoid_when": "Your GraphQL server doesn't implement Relay spec, you're using Vue/Angular, or your team isn't willing to learn Relay's opinionated patterns and compiler workflow.",
+  "alternatives": ["apollo-client-api", "urql-api", "react-query-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": true,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["javascript", "typescript"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["custom"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Auth handled via RelayEnvironment fetchFunction — inject Authorization headers in network layer. Relay itself has no auth; token management is application responsibility in the network layer function."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Relay is MIT licensed, maintained by Meta/Facebook. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 50,
+    "latency_p99_ms": 200,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Relay store is normalized — updates to shared records propagate to all components automatically. Compile-time query optimization reduces over-fetching. Garbage collection removes unused records from store automatically.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 75,
+    "error_message_quality": 72,
+    "error_message_notes": "relay-compiler catches invalid fragments and missing @argumentDefinitions at build time. Runtime errors include 'RelayNetwork: No data found for query' when store has no data. GraphQL errors from server propagate through usePreloadedQuery error boundary. Missing Node IDs cause store normalization failures with cryptic warnings.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Relay store mutations are idempotent by design — same query response updates store to same state. commitMutation with optimisticUpdater is idempotent if server confirms same mutation twice (last write wins in store). Subscription updates apply store updater idempotently.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "relay-compiler build step required in CI — Relay compiles GraphQL fragments at build time to generated __generated__/*.graphql.ts files; CI without relay-compiler step fails with 'Could not find generated module'; agent CI pipelines must run relay-compiler before TypeScript compilation; add relay-compiler to build scripts",
+      "Server must implement Relay spec — Node interface (node(id: ID!): Node), global opaque IDs, and Connections spec (edges/node/pageInfo/cursor) required; agent GraphQL backends not implementing these cause store normalization failures; migrating existing GraphQL API to Relay spec requires server changes, not just client changes",
+      "Fragments not usable outside Relay component tree — graphql`fragment X on Y {}` only works inside React components using useFragment; cannot call Relay fragment outside React render (e.g., in imperative agent task runner); use commitLocalUpdate or queryRenderer for imperative Relay access",
+      "Store garbage collection evicts non-retained records — Relay GC removes records not retained by active queries; agent navigating away from agent detail page evicts agent record from store; re-navigation triggers refetch even if data is fresh; use retain() or queryRetention to keep critical agent records in store",
+      "@argumentDefinitions required for reusable fragments with variables — fragment AgentCard_agent($showDetails: Boolean!) on Agent { @include(if: $showDetails) { details } }; spreading fragment without @arguments causes 'Missing @argumentDefinitions' compile error; agent fragments using variables must declare @argumentDefinitions",
+      "TypeScript types require relay-compiler TypeScript plugin — relay-compiler generates typed fragments only with language: typescript config; without it, types are any; agent TypeScript codebases need relay-compiler.json with language: 'typescript' and @types/relay-runtime for correct fragment type inference"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 72,
+    "error_handling_score": 70,
+    "auth_complexity_score": 78,
+    "rate_limit_clarity_score": 88
+  },
+  "security_score_components": {
+    "tls_enforcement": 85,
+    "auth_strength": 78,
+    "scope_granularity": 75,
+    "dependency_hygiene": 82,
+    "secret_handling": 80,
+    "security_notes": "Auth tokens injected in Relay network layer — store in memory or httpOnly cookie, never localStorage. Relay store is client-side only — no server-side data exposure. Fragment colocation means data requirements are auditable at component level — easier to review what data agent components access."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 72,
+    "version_stability": 70,
+    "breaking_changes_history": 65,
+    "error_recovery": 75
+  }
+}

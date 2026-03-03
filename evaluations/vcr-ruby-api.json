@@ -1,0 +1,106 @@
+{
+  "id": "vcr-ruby-api",
+  "name": "VCR",
+  "version_evaluated": "6.x",
+  "homepage": "https://github.com/vcr/vcr",
+  "repo_url": "https://github.com/vcr/vcr",
+  "category": "developer-tools",
+  "subcategories": ["testing", "ruby", "http-mocking", "fixtures", "recording"],
+  "tags": ["ruby", "testing", "vcr", "http-mocking", "cassette", "webmock", "record-replay", "api-testing"],
+  "what_it_does": "HTTP interaction recording and replay for Ruby tests — records real HTTP requests to cassette YAML files and replays them in subsequent test runs. VCR features: VCR.use_cassette('cassette_name') { } block wraps HTTP calls, record modes (:once, :new_episodes, :none, :all), WebMock/Faraday/Typhoeus adapter integration, cassette filtering for credentials (filter_sensitive_data), request matching customization (uri, body, headers), dynamic ERB cassettes, ignore hosts configuration, and before_record/before_playback hooks. Eliminates live HTTP calls in tests while keeping tests realistic with real response structure.",
+  "use_cases": [
+    "Agent LLM API test fixtures — VCR.use_cassette('openai_completion') { agent.generate_response('What is Ruby?') } records real OpenAI response on first run; subsequent test runs replay cassette without hitting API; agent tests fast, offline, and deterministic",
+    "Agent tool integration testing — VCR.use_cassette('web_search_results') { agent.search('Ruby tutorials') } records real search API response; cassette replay makes agent web search tests repeatable; filter_sensitive_data removes API keys from cassette files",
+    "Record once, run forever — configure VCR with record: :once; cassette recorded once from real API; all future CI runs use cassette; agent tests never hit rate limits or incur API costs after initial record",
+    "Credential filtering in cassettes — VCR.configure { |c| c.filter_sensitive_data('<API_KEY>') { ENV['OPENAI_API_KEY'] } } replaces actual API key with placeholder in recorded cassette; agent cassettes safely committed to git without credentials",
+    "New episode recording — record: :new_episodes adds new interactions to existing cassette without re-recording old ones; agent tests adding new API calls to existing flows record only the new interactions"
+  ],
+  "not_for": [
+    "Testing real HTTP behavior — VCR replays recorded responses; network failures, timeouts, and rate limits from live API not tested; for agent resilience testing use WebMock to simulate specific HTTP errors",
+    "Long-term cassette maintenance — external API responses change; cassettes become stale requiring re-recording; for agent tests against frequently-changing APIs use dynamic WebMock stubs",
+    "Binary HTTP responses — VCR cassettes are YAML text files; binary responses (images, PDFs) produce large YAML; for agent tests with binary API responses use WebMock with custom response bodies"
+  ],
+  "best_when": "Your agent tests make HTTP calls to external APIs (OpenAI, Slack, GitHub) and you want deterministic tests that don't require network access or incur API costs on every run.",
+  "avoid_when": "External APIs change responses frequently, you need to test network failure scenarios, or responses contain binary data.",
+  "alternatives": ["webmock-ruby-api", "httparty-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["ruby"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth on VCR itself. Recorded cassettes contain HTTP request/response including auth headers — always use filter_sensitive_data to remove credentials before committing cassettes."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "VCR is MIT licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 1,
+    "latency_p99_ms": 5,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — cassette playback is local file read. Cassette recording makes real HTTP calls (subject to external API limits). Large cassettes (many interactions or large response bodies) add milliseconds to test setup.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 82,
+    "error_message_quality": 80,
+    "error_message_notes": "VCR::Errors::CannotSendRequest raised when real HTTP attempted in :none mode. Cassette not found raises VCR::Errors::CassetteNotFoundError. Request not found in cassette raises VCR::Errors::UnhandledHTTPRequestError with details of unmatched request. Expired cassette with re_record_interval raises RecordingRequiredError.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Cassette playback is fully idempotent — same response replayed on every test run. :once record mode records only if cassette doesn't exist, then freezes. Re-recording requires deleting cassette file or using record: :all mode.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Cassettes must not contain real credentials — VCR records Authorization headers, API keys in query params, and tokens in request bodies; agent cassettes committed to git without filter_sensitive_data expose credentials; configure filter_sensitive_data for every credential type before any cassette is recorded",
+      "record: :once means first run must have network access — cassette doesn't exist on first CI run; CI must have API credentials and network access for initial cassette recording; agent CI without credentials fails first run; add cassettes to git after local recording so CI uses existing cassettes from repo",
+      "Request matching defaults miss body changes — default matching is on URI + method only; if agent POST body changes (different parameters), VCR replays old cassette with wrong request body; add match_requests_on: [:method, :uri, :body] for agent API calls where body matters",
+      "Cassette playback order matters for sequential requests — VCR replays interactions in recorded order; agent tests making same URL multiple times get responses in cassette sequence; if test makes requests in different order than recording, wrong responses are returned; use separate cassettes for tests making same URL with different payloads",
+      "Time-sensitive cassettes go stale — cassettes containing auth tokens with short TTL, timestamps, or cursor-based pagination become invalid over time; agent tests using JWT tokens in cassettes fail when token expires; use filter_sensitive_data + static token replacement or re_record_interval for time-sensitive agent API cassettes",
+      "VCR blocks all unmocked HTTP by default — after VCR.configure { |c| c.hook_into :webmock }, any uncassette-wrapped HTTP in tests raises VCR::Errors::UnhandledHTTPRequestError; agent test setup code making HTTP (e.g., Elasticsearch health check) needs allow_playback_repeats or ignore_hosts configuration"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 82,
+    "error_handling_score": 80,
+    "auth_complexity_score": 88,
+    "rate_limit_clarity_score": 92
+  },
+  "security_score_components": {
+    "tls_enforcement": 85,
+    "auth_strength": 70,
+    "scope_granularity": 72,
+    "dependency_hygiene": 85,
+    "secret_handling": 65,
+    "security_notes": "CRITICAL: VCR cassette files record all HTTP headers including Authorization — credentials exposed in cassettes without filter_sensitive_data. Always configure filter_sensitive_data for API keys, Bearer tokens, and passwords before committing cassettes to version control. Add cassette directory to git with full review of contents before first commit."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 82,
+    "version_stability": 85,
+    "breaking_changes_history": 82,
+    "error_recovery": 80
+  }
+}
