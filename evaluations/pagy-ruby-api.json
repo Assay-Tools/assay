@@ -1,0 +1,106 @@
+{
+  "id": "pagy-ruby-api",
+  "name": "Pagy",
+  "version_evaluated": "8.x",
+  "homepage": "https://ddnexus.github.io/pagy/",
+  "repo_url": "https://github.com/ddnexus/pagy",
+  "category": "developer-tools",
+  "subcategories": ["pagination", "ruby", "rails", "performance", "api"],
+  "tags": ["ruby", "rails", "pagination", "performance", "fast", "lightweight", "api", "frontend"],
+  "what_it_does": "The fastest and most efficient pagination Ruby gem — 40x faster and 100x more memory-efficient than kaminari or will_paginate. Pagy doesn't pollute models with pagination logic; works at the controller level. Key API: pagy(collection) returns [pagy, records] tuple; pagy_nav(pagy) renders pagination links in views. Supports: multiple pagination UI styles (bootstrap, bulma, tailwind, responsive), JSON API pagination metadata, cursor-based pagination (pagy-keyset for cursor), elasticsearch, searchkick, meilisearch integration. Pagy extras provide optional features without loading unused code. Rails standard includes pagy_metadata for JSON API pagination responses.",
+  "use_cases": [
+    "Paginate agent list API responses with Pagy — @pagy, @agents = pagy(Agent.active.order(created_at: :desc)) in Rails controller; pagy_metadata(@pagy) in JSON response includes count, pages, next/prev page info",
+    "Cursor-based agent pagination for stable ordering — pagy-keyset extra provides cursor pagination for agent lists that need stable pagination despite inserts/deletes",
+    "Frontend pagination UI for agent admin portal — pagy_bootstrap_nav(@pagy) renders Bootstrap-styled pagination links for agent management views",
+    "Elasticsearch agent search pagination — pagy_searchkick(@agents) paginates Elasticsearch search results for agent knowledge base search with Pagy's efficient handling",
+    "API pagination metadata for agent client SDK — JSON response with pagy_metadata includes total count, items_per_page, next_cursor enabling agent API clients to implement pagination"
+  ],
+  "not_for": [
+    "Non-Rails/Ruby apps — Pagy is Ruby-specific; use other pagination libraries for Python (paginate-py), JavaScript (server-side frameworks), or Java agents",
+    "Infinite scroll without JavaScript — Pagy provides page-based and cursor pagination; infinite scroll requires JavaScript integration with Pagy's JSON API response format",
+    "When ActiveRecord Relation pagination is in models — Pagy intentionally avoids model-level pagination; if existing code uses collection.page(n).per(m) model-level API, kaminari or will_paginate may be easier to integrate"
+  ],
+  "best_when": "You're building a Rails agent API or web app that paginates large collections — Pagy's performance advantage over kaminari/will_paginate matters at scale, and its minimal API keeps pagination logic clean.",
+  "avoid_when": "You're already using kaminari and migration isn't worth it, you need model-level pagination API compatibility, or you're not on Rails.",
+  "alternatives": ["kaminari-api", "will-paginate-api", "ransack-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["ruby"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Pagination library — no auth concepts."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Pagy is MIT licensed, maintained by Domizio Demichelis. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 0,
+    "latency_p99_ms": 1,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — local pagination library. 40x faster than kaminari; negligible overhead for agent pagination logic.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 88,
+    "error_message_quality": 85,
+    "error_message_notes": "Pagy raises Pagy::OverflowError when page exceeds total pages — catch and redirect to last page for agent list overflow handling. ArgumentError for invalid page parameters. Pagy::VariablesError for configuration issues with clear variable name context.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Pagination is deterministic — same page and collection produce same results. Cursor-based Pagy keyset is stable across inserts on non-paginated records.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "include Pagy::Backend in controller, not model — Pagy::Backend must be included in ApplicationController; calling pagy() in model context fails; agent controllers must include backend module; include Pagy::Frontend in helpers for view helpers",
+      "Pagy::OverflowError on page > last_page — requesting page 100 when only 5 pages exist raises Pagy::OverflowError; rescue in agent controller and redirect to last page or return 404; don't let it propagate as 500",
+      "pagy() count query can be expensive — Pagy issues separate COUNT query before fetching page records; for complex agent queries with many JOINs, count query can be slow; override count with pagy(collection, count: cached_count) for performance",
+      "Extras must be explicitly required — Pagy features are in extras (pagy/extras/bootstrap, pagy/extras/metadata); not including the extra causes undefined method errors; require in pagy initializer only extras you use for agent UI",
+      "Keyset pagination requires unique ordered column — pagy-keyset cursor pagination requires ORDER BY on unique column (id, created_at + id); non-unique order causes inconsistent cursor pagination for agent lists with ties",
+      "pagy_metadata JSON format changed in Pagy 7 — Pagy 7+ changed pagy_metadata key names (prev_page → prev, next_page → next); if agent API clients depend on old key names, lock pagy version or update clients when upgrading"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 88,
+    "error_handling_score": 85,
+    "auth_complexity_score": 100,
+    "rate_limit_clarity_score": 100
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 95,
+    "scope_granularity": 90,
+    "dependency_hygiene": 92,
+    "secret_handling": 95,
+    "security_notes": "Pagination library — no network exposure. Page parameter should be validated as integer to prevent injection. Cursor values in keyset pagination should be signed/verified to prevent agent data access without proper authorization."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 90,
+    "version_stability": 88,
+    "breaking_changes_history": 82,
+    "error_recovery": 90
+  }
+}

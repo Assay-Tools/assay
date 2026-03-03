@@ -1,0 +1,106 @@
+{
+  "id": "cancancan-ruby-api",
+  "name": "CanCanCan",
+  "version_evaluated": "3.x",
+  "homepage": "https://github.com/CanCanCommunity/cancancan",
+  "repo_url": "https://github.com/CanCanCommunity/cancancan",
+  "category": "developer-tools",
+  "subcategories": ["authorization", "ruby", "rails", "permissions", "access-control"],
+  "tags": ["ruby", "rails", "authorization", "permissions", "rbac", "ability", "access-control", "cancan"],
+  "what_it_does": "Authorization library for Ruby on Rails — defines user abilities (what actions users can perform on resources) in a central Ability class. CanCanCan: can :read, Agent (user can read agents), can :manage, Agent, user_id: user.id (user can manage their own agents), cannot :delete, Agent (overrides previous allow). Controller integration: authorize! :read, @agent raises CanCan::AccessDenied if unauthorized; load_and_authorize_resource macro auto-loads and authorizes resource. View helpers: can?(:edit, @agent) for conditional UI rendering. Successor to CanCan (which is unmaintained), community-maintained continuation.",
+  "use_cases": [
+    "Role-based agent access control — can :manage, Agent if user.admin?; can :read, Agent if user.operator?; can :create, Agent, :update if user.developer? defines tiered agent permissions",
+    "Agent resource ownership enforcement — can :manage, AgentTask, user_id: user.id restricts agent task management to the owning user without manual controller checks",
+    "Conditional agent UI with can? helper — <%= link_to 'Delete Agent', agent, method: :delete if can?(:delete, agent) %> shows delete button only to authorized users",
+    "Bulk authorization with load_and_authorize_resource — class AgentsController; load_and_authorize_resource automatically loads @agent and authorizes every controller action based on Ability class",
+    "Agent feature flags via abilities — can :use_experimental_agent if user.beta_tester? enables feature-flagged agent capabilities through authorization system"
+  ],
+  "not_for": [
+    "API-only services with JWT — CanCanCan integrates with Rails sessions; for API services using stateless JWT, attribute-based access control (ABAC) or Pundit's policy objects are cleaner",
+    "Complex attribute-level permissions — CanCanCan is action-based (can :read, Agent); for column-level permissions or complex conditional attribute access, use Pundit with dedicated policy objects",
+    "Non-Rails Ruby apps — CanCanCan assumes Rails conventions; use Pundit for non-Rails Ruby agent services needing authorization"
+  ],
+  "best_when": "You're building a Rails agent application with multiple user roles and resource-level permissions — CanCanCan's central Ability class makes authorization rules readable and testable.",
+  "avoid_when": "You're building API-only services with JWT (Pundit is cleaner), you need attribute-level permissions, or you prefer policy object pattern over central Ability class.",
+  "alternatives": ["pundit-ruby-api", "access-granted-api", "action-policy-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["ruby"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Authorization library — works with any authentication (Devise, JWT, etc.). Ability class initialized with current_user from application auth."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "CanCanCan is MIT licensed, maintained by CanCanCommunity. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 0,
+    "latency_p99_ms": 5,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — local authorization library. Ability evaluation is in-memory; database conditions (can :read, Agent, user_id: user.id) generate SQL conditions.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 82,
+    "error_message_notes": "CanCanCan raises CanCan::AccessDenied with action and subject when authorization fails; rescue in ApplicationController for custom 403 response. authorize! raises immediately on failure. load_and_authorize_resource raises on load failure (404) or authorization failure (403) separately.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Authorization checks are stateless and deterministic — same user, same resource, same result. Ability class initialization is pure computation.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Order of can/cannot matters — CanCanCan processes abilities in order; can :manage, Agent followed by cannot :delete, Agent correctly prevents delete; reversing order (cannot then can) results in can overriding cannot; agent permission definitions must be ordered from general to specific",
+      "load_and_authorize_resource needs custom finder for non-standard IDs — default load_and_authorize_resource uses params[:id] with Agent.find; custom: load_and_authorize_resource :agent, find_by: :slug for agents found by slug; wrong finder causes ActiveRecord::RecordNotFound instead of 403",
+      "Ability conditions generate SQL scope — can :read, Agent, user_id: user.id generates Agent.where(user_id: user.id) accessible scope; current_ability.accessible_by(current_user) returns scoped collection; condition hash must match database column names, not Ruby attribute names",
+      "cannot is not inverse of can for SQL conditions — cannot :manage, Agent, user_id: other_user.id doesn't generate NOT WHERE query; use explicit cannot with block for negative SQL conditions; agent permission SQL generation has edge cases with complex conditions",
+      "Ability class initializes per request — Ability.new(current_user) runs on each request; heavy computation (database queries) in Ability#initialize slows all agent controller actions; cache role lookups with memoization in Ability",
+      "Testing abilities requires CanCan::Matchers — RSpec matchers: is_expected.to be_able_to(:read, agent); requires require 'cancan/matchers' in spec_helper; testing ability class separately from controllers gives faster agent authorization unit tests"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 82,
+    "auth_complexity_score": 82,
+    "rate_limit_clarity_score": 95
+  },
+  "security_score_components": {
+    "tls_enforcement": 95,
+    "auth_strength": 85,
+    "scope_granularity": 85,
+    "dependency_hygiene": 88,
+    "secret_handling": 90,
+    "security_notes": "Authorization is security-critical — ensure Ability class correctly restricts agent resource access. always use authorize! or load_and_authorize_resource; forgetting authorization check is security vulnerability. accessible_by scope prevents unauthorized agent data access in list views. Test authorization with negative cases."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 85,
+    "breaking_changes_history": 82,
+    "error_recovery": 90
+  }
+}
