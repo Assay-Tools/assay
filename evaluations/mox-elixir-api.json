@@ -1,0 +1,106 @@
+{
+  "id": "mox-elixir-api",
+  "name": "Mox",
+  "version_evaluated": "1.x",
+  "homepage": "https://hexdocs.pm/mox/",
+  "repo_url": "https://github.com/dashbitco/mox",
+  "category": "developer-tools",
+  "subcategories": ["testing", "elixir", "mocking", "behaviours"],
+  "tags": ["elixir", "mox", "mocking", "testing", "behaviour", "dependency-injection", "concurrent"],
+  "what_it_does": "Mock library for Elixir that enforces behaviour-based contracts — creates test mocks that validate against Elixir @behaviour callbacks. Mox features: Mox.defmock/2 creates mock modules, expect/4 sets expectations with call count, stub/3 allows any number of calls, verify_on_exit!/1 asserts all expectations satisfied, allow/3 for async test access, global mode for non-concurrent tests, and strict adherence to @behaviour interface. Created by José Valim (Elixir creator) with explicit-contract philosophy — mocks must match a defined behaviour.",
+  "use_cases": [
+    "Agent external API mocking — defmodule HTTPClientMock, do: use(Mox); Mox.defmock(HTTPClientMock, for: MyApp.HTTPClient); expect(HTTPClientMock, :get, fn url -> {:ok, %{body: 'result'}} end); agent code under test calls behaviour, gets mock response",
+    "Agent behaviour contract testing — defbehaviour MyApp.LLMClient, do: @callback complete(String.t()) :: {:ok, String.t()} | {:error, term}; Mox ensures mock matches spec; agent LLM client mock can't accidentally implement wrong interface",
+    "Concurrent agent tests — Mox.allow(MockHTTP, self(), task_pid) allows background agent Task to use test process mock; async: true tests with Mox.allow share mocks safely; agent concurrent tests don't interfere via mock ownership",
+    "Stub for setup-heavy agent mocks — stub(MockLLM, :embed, fn _ -> {:ok, [0.1, 0.2, 0.3]} end) allows any number of embedding calls without strict count expectations; agent integration tests needing embedding without caring about call count use stub not expect",
+    "Agent test isolation — Mox.verify_on_exit!(context) in ExUnit setup; agent test that expects 2 LLM calls but makes 3 fails with clear error; prevents agent tests from silently over-calling external services"
+  ],
+  "not_for": [
+    "Mocking modules without behaviours — Mox requires @behaviour definition; for mocking arbitrary modules without behaviours use Patch or Mock libraries",
+    "Record-replay HTTP mocking — Mox doesn't record/replay HTTP; for cassette-style mocking use Bypass for Elixir or ExVCR",
+    "Mocking internal private functions — Mox works on public behaviour callbacks; for mocking private functions refactor to inject dependencies via behaviour"
+  ],
+  "best_when": "Your Elixir agent app uses dependency injection via @behaviour modules (recommended pattern) and you want strict contract-enforcing mocks for external services like HTTP clients, LLM APIs, and databases.",
+  "avoid_when": "You're mocking modules without defined behaviours, need HTTP recording/replay, or your codebase doesn't use dependency injection patterns.",
+  "alternatives": ["bypass-elixir-api", "exvcr-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["elixir"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — test library running in Elixir test environment."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, Apache 2.0 licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Mox is Apache 2.0 licensed, created by Dashbit (José Valim). Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 0,
+    "latency_p99_ms": 0,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — in-process test mocking. Mox uses Agent processes for expectation tracking. verify_on_exit! adds minimal overhead per test.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 88,
+    "error_message_quality": 88,
+    "error_message_notes": "UnexpectedCallError shows which function was called but not expected with call count. VerificationError shows which expectations were set but not called. ArgumentError raised if callback return value doesn't match behaviour spec. Clear error messages with function name and module.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Mox expectations are per-test via ExUnit context. verify_on_exit!/1 in setup ensures each test cleans up. Expectations don't leak between tests. async: true tests get isolated mock expectations via process ownership.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "@behaviour module must be defined before Mox.defmock — Mox.defmock(MyMock, for: MyApp.Behaviour) requires MyApp.Behaviour to exist; defining mock before behaviour causes ArgumentError; agent test setup ordering matters — define behaviours in lib/, mocks in test/support/mocks.ex",
+      "Mox.allow required for async Task processes — spawned agent Tasks run in separate processes without automatic mock access; Mox.allow(MockHTTP, self(), Task.async(fn -> agent.fetch() end).pid) grants Task access; forgetting allow causes 'no expectation set for process' error in concurrent agent workflows",
+      "Global mode unsafe for concurrent tests — Mox.set_mox_global() shares mocks across all test processes; async: true tests with global mocks interfere; use global mode only for tests with async: false; agent test suites with mixed async/sync tests must explicitly manage mode",
+      "expect count is exact not minimum — expect(MockLLM, :complete, 3, fn _ -> {:ok, 'response'} end) fails if complete called 2 or 4 times; agent tests that call LLM variable number of times should use stub not expect; stub allows any call count",
+      "Mox not Elixir structs — Mox.defmock creates a module not a struct; MyMock is a module name; agent code must be written to accept the mock module as an argument (dependency injection): def fetch(client \\\\ HTTPClient) — not hardcoded module names",
+      "stub/3 doesn't verify calls — stub(MockLLM, :embed, fn _ -> {:ok, []} end) sets no expectations; verify_on_exit! doesn't check stubs; agent tests using only stubs never fail even if the mocked function is never called; use expect for agent interactions you want to assert happened"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 88,
+    "error_handling_score": 88,
+    "auth_complexity_score": 98,
+    "rate_limit_clarity_score": 98
+  },
+  "security_score_components": {
+    "tls_enforcement": 95,
+    "auth_strength": 95,
+    "scope_granularity": 92,
+    "dependency_hygiene": 90,
+    "secret_handling": 95,
+    "security_notes": "Test-only library — no security surface. Mock implementations in tests should never use real credentials. Mox behaviour contracts improve production code security by enforcing explicit interface contracts."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 90,
+    "breaking_changes_history": 88,
+    "error_recovery": 90
+  }
+}

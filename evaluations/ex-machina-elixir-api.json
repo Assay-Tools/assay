@@ -1,0 +1,106 @@
+{
+  "id": "ex-machina-elixir-api",
+  "name": "ExMachina",
+  "version_evaluated": "2.x",
+  "homepage": "https://hexdocs.pm/ex_machina/",
+  "repo_url": "https://github.com/thoughtbot/ex_machina",
+  "category": "developer-tools",
+  "subcategories": ["testing", "elixir", "factories", "fixtures", "ecto"],
+  "tags": ["elixir", "ex-machina", "factory", "testing", "fixtures", "ecto", "thoughtbot"],
+  "what_it_does": "Test factory library for Elixir — creates test data using factory definitions. ExMachina features: ExMachina.Ecto strategy for Ecto-backed factories, build/2 for in-memory structs, insert/2 for DB-persisted records, build_pair/insert_pair for 2 records, build_list/insert_list for N records, factory inheritance with map_merge, sequences for unique values (sequence(:email, &'user-#{&1}@example.com')), traits for variations, and custom strategies. Works with Ecto.Repo for database insertion. Elixir equivalent of FactoryBot (Ruby) for agent test data setup.",
+  "use_cases": [
+    "Agent test data creation — insert(:agent, name: 'SearchAgent', status: :idle) creates persisted Agent with defaults; factory defined with build(:agent) returns %Agent{} struct; agent test setup creates realistic data without manual Repo.insert!",
+    "Agent with associations — insert(:agent_task, agent: insert(:agent), status: :running) creates task with associated agent in one line; ExMachina handles Ecto association IDs automatically; agent relationship tests use factory composition",
+    "Unique email sequences — sequence(:email, &'agent-#{&1}@example.com') generates unique emails per factory call; agent tests creating multiple users avoid unique constraint violations; sequences reset between test runs",
+    "Agent factory traits — build(:agent, :with_completed_tasks) where trait map_merges completed tasks; agent test scenarios (new agent, active agent, failed agent) defined as factory traits; tests use trait names not repetitive attribute overrides",
+    "In-memory agent testing — build(:agent, name: 'TestAgent') returns %Agent{} without DB insert; agent unit tests not requiring persistence get struct without DB round-trip; faster tests for agent logic not touching database"
+  ],
+  "not_for": [
+    "Non-Ecto data — ExMachina.Ecto requires Ecto.Repo; for Phoenix without Ecto use base ExMachina without Ecto strategy",
+    "Complex state machine factories — ExMachina doesn't sequence state transitions; for complex agent lifecycle factories build each state manually",
+    "Production data seeding — ExMachina is for tests; for seeds use Repo.insert! directly or priv/repo/seeds.exs"
+  ],
+  "best_when": "Your Elixir/Phoenix agent app uses Ecto and needs clean, composable test data factories — ExMachina is the standard Elixir factory library for creating test agent records with defaults, associations, and traits.",
+  "avoid_when": "You're using a non-Ecto data layer, need production seeding, or prefer plain Repo.insert! for test setup.",
+  "alternatives": ["ecto-elixir-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["elixir"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — test library that interacts with Ecto.Repo directly."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "ExMachina is MIT licensed, maintained by thoughtbot. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 0,
+    "latency_p99_ms": 0,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — test data generation. insert_list(100, :agent) creates 100 records in batch. Each insert is a separate Repo.insert! call — use Ecto.Multi for transactional batch inserts in fixtures.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 82,
+    "error_message_notes": "Ecto changeset errors from factory insertion surface as {:error, changeset} — ExMachina insert! raises on error. Missing required factory fields show as Ecto.InvalidChangesetError. Factory name not defined raises UndefinedFunctionError. Association not persisted raises Ecto foreign key constraint error.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Factory builds are idempotent given same params (no sequences). Sequences increment per-call — not idempotent across calls. Each insert creates new DB record. Tests using Ecto sandbox (DataCase) roll back after each test — factory data doesn't persist between tests.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "use ExMachina.Ecto with repo: option required — defmodule MyApp.Factory, do: use ExMachina.Ecto, repo: MyApp.Repo; omitting repo: causes 'undefined function insert/2' error; agent factory modules must specify Repo or insertion won't work",
+      "build/2 vs insert/2 confusion — build creates in-memory struct (no DB); insert creates DB record; agent tests that call build then use the struct's ID in queries get nil id (no DB record); use insert for DB-backed agent test data",
+      "Factory associations must be built correctly — %{agent: build(:agent)} in factory creates non-persisted association; insert(:task, agent: build(:agent)) inserts task with non-persisted agent (no agent_id); use insert(:task, agent: insert(:agent)) for proper FK relationship in agent test data",
+      "sequences are global per factory module — sequence(:email, ...) increments globally across all tests in test run; agent tests relying on specific email format get different numbers each run; design agent factories to not depend on sequence value, only on uniqueness",
+      "traits must be atoms not strings — insert(:agent, :active) passes :active trait; insert(:agent, 'active') raises FunctionClauseError; agent test code using string trait names from non-Elixir background causes confusing errors; traits are always atoms",
+      "ExMachina.Ecto insert! doesn't respect Ecto sandbox isolation by default — Ecto sandbox with :shared mode requires Ecto.Adapters.SQL.Sandbox.allow(MyApp.Repo, test_pid, factory_pid) when factories run in separate processes; agent test factories called from concurrent ExUnit tests need sandbox ownership"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 80,
+    "auth_complexity_score": 98,
+    "rate_limit_clarity_score": 98
+  },
+  "security_score_components": {
+    "tls_enforcement": 95,
+    "auth_strength": 95,
+    "scope_granularity": 92,
+    "dependency_hygiene": 88,
+    "secret_handling": 92,
+    "security_notes": "Test-only library — no network access. Factory files may define test passwords or tokens — use non-realistic placeholders, never real credentials. Ensure factory files are in test/ directory and not compiled into production release."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 85,
+    "version_stability": 88,
+    "breaking_changes_history": 85,
+    "error_recovery": 88
+  }
+}
