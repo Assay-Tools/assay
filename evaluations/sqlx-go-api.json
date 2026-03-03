@@ -5,23 +5,23 @@
   "homepage": "https://github.com/jmoiron/sqlx",
   "repo_url": "https://github.com/jmoiron/sqlx",
   "category": "developer-tools",
-  "subcategories": ["database", "orm", "golang", "sql"],
-  "tags": ["go", "sql", "database", "mysql", "postgres", "sqlite", "struct-scanning", "open-source"],
-  "what_it_does": "Extensions to Go's standard database/sql that add struct scanning, named query parameters, and in-query expansion. sqlx sits between raw database/sql and full ORMs — you still write SQL, but struct scanning eliminates manual field mapping. Supports PostgreSQL, MySQL, SQLite, and any database/sql driver. Popular choice for Go services that want SQL control without ORM magic.",
+  "subcategories": ["database", "go", "sql"],
+  "tags": ["go", "sql", "database", "postgres", "mysql", "sqlite", "struct-mapping", "open-source"],
+  "what_it_does": "Extensions to Go's standard database/sql package. sqlx adds struct scanning (DB.Get, DB.Select), named queries (:param syntax), IN clause expansion, and StructScan to avoid manual Scan() field-by-field mapping. A thin but highly practical layer over database/sql — not a full ORM, just ergonomic SQL with struct binding. The most common Go database helper library for teams that want raw SQL with less boilerplate.",
   "use_cases": [
-    "Scan SQL query results directly into Go structs using db:struct tags without manual field assignment",
-    "Use named parameters in queries (:name, :id) mapped from struct fields or maps for readable parameterized queries",
-    "Expand IN clauses dynamically with sqlx.In() to avoid manual slice-to-placeholder generation",
-    "Build Go database layers that write raw SQL but avoid the boilerplate of database/sql scanning",
-    "Use Get() and Select() for single-row and multi-row struct scanning as drop-in enhancements to database/sql"
+    "Map SQL query results directly to Go structs with DB.Get() and DB.Select() — eliminating manual rows.Scan() field-by-field assignment in agent database code",
+    "Use named parameters in SQL queries (:user_id, :status) with sqlx.Named() for more readable agent database operations",
+    "Expand Go slices into SQL IN clauses with sqlx.In() — avoiding manual query string construction for multi-value filters",
+    "Execute bulk inserts with named struct binding for batch agent data persistence without ORM overhead",
+    "Migrate existing database/sql code to sqlx incrementally — sqlx.DB is a drop-in replacement for sql.DB"
   ],
   "not_for": [
-    "Automatic migrations — sqlx is query-execution only; use golang-migrate or goose for schema migrations",
-    "Query building — sqlx requires you to write SQL; use squirrel or GORM's query builder for dynamic query construction",
-    "Full ORM with relationships — GORM handles associations, hooks, and model lifecycle; sqlx is deliberately lower-level"
+    "Full ORM features (associations, eager loading, model callbacks) — use GORM or Ent for ORM-style abstractions",
+    "Compile-time SQL verification — use Rust's SQLx (different project!) for type-checked SQL at build time",
+    "Teams wanting query builder DSL — use squirrel or goqu for programmatic query building"
   ],
-  "best_when": "You want to write raw SQL in Go with struct scanning convenience but without a full ORM's magic — the 'control with less boilerplate' sweet spot.",
-  "avoid_when": "You need automatic migrations, complex query building, or ORM-style relationships — use GORM or Ent.",
+  "best_when": "You're writing Go with raw SQL and want struct scanning + named parameters without a full ORM — sqlx is the pragmatic choice that stays close to database/sql while eliminating boilerplate.",
+  "avoid_when": "You need ORM-level abstractions (relationships, hooks, migrations) — GORM offers a more complete ORM experience for Go.",
   "alternatives": ["gorm-api"],
   "interface": {
     "has_rest_api": false,
@@ -38,21 +38,21 @@
     "methods": ["none"],
     "oauth": false,
     "scopes": false,
-    "notes": "Library with no auth — database credentials are handled by the underlying driver DSN."
+    "notes": "Library — no external auth. Database credentials via connection string. Drop-in replacement for database/sql."
   },
   "pricing": {
     "model": "open_source",
     "free_tier_exists": true,
-    "free_tier_limits": "MIT licensed, completely free",
+    "free_tier_limits": "Fully open source — MIT licensed",
     "paid_tiers": "None",
     "requires_credit_card": false,
-    "notes": "Free and open source. Note: sqlx is lightly maintained — last major release was several years ago but it's stable and widely used."
+    "notes": "MIT-licensed open source Go module. Note: project is lightly maintained (author considers it feature-complete)."
   },
   "performance": {
     "latency_p50_ms": null,
     "latency_p99_ms": null,
     "uptime_sla_percent": null,
-    "rate_limits": "No rate limits — local library",
+    "rate_limits": "No rate limits — thin wrapper over database/sql. Minimal overhead vs raw database/sql.",
     "data_source": "llm_estimated"
   },
   "requirements": {
@@ -66,41 +66,41 @@
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
-    "documentation_accuracy": 78,
-    "error_message_quality": 75,
-    "error_message_notes": "sqlx errors are database driver errors wrapped in Go errors — they include SQL state codes and driver-specific messages. Missing struct fields cause 'missing destination name' errors at runtime.",
+    "documentation_accuracy": 82,
+    "error_message_quality": 80,
+    "error_message_notes": "Inherits database/sql error messages. sqlx adds MissingName and TooManyColumns errors for struct scanning failures. Error messages include field name context.",
     "idempotency_support": "full",
-    "idempotency_notes": "Read queries are idempotent. Write queries require application-level idempotency handling.",
+    "idempotency_notes": "Read queries idempotent by nature. Write query idempotency is SQL-level (ON CONFLICT, INSERT OR IGNORE). sqlx does not add idempotency mechanisms.",
     "pagination_style": "none",
     "retry_guidance_documented": false,
     "known_agent_gotchas": [
-      "Struct tags use db:\"column_name\" not json:\"\" — agents generating structs must use the correct tag; mismatches cause silent zero-value scanning",
-      "NamedExec() with struct parameters scans ALL exported struct fields — extra fields that don't exist in query cause 'missing named parameter' errors",
-      "sqlx.In() modifies the query string and must be followed by sqlx.Rebind() for non-question-mark placeholder databases (PostgreSQL uses $1, $2)",
-      "Get() returns sql.ErrNoRows (not nil) when no row found — agents must check for this specific error to distinguish 'not found' from actual errors",
-      "sqlx is NOT safe for concurrent use on a single DB connection — always use connection pool (sqlx.DB) not single connections in production",
-      "The library has been in maintenance mode — some newer database features (pgx v5 improvements) require switching to database-specific drivers rather than sqlx"
+      "Struct field tags must match DB column names via `db:\"column_name\"` tag — without tags, sqlx uses lowercase field name which may not match snake_case column names",
+      "DB.Get() returns sql.ErrNoRows (not nil) when no record found — agents must check for this specific error to distinguish 'not found' from other errors",
+      "sqlx.In() requires rebind for database-specific placeholders — PostgreSQL needs DB.Rebind() to convert ? to $1,$2,$3 format after sqlx.In() expansion",
+      "Named queries require BindNamed() and the query must use :name syntax — mixing ? placeholders with named params in the same query causes errors",
+      "sqlx does not manage connection pool settings — must configure MaxOpenConns, MaxIdleConns, ConnMaxLifetime on the underlying sql.DB for production agent workloads",
+      "StructScan and Select() use reflection — performance-critical code scanning millions of rows should benchmark against raw Scan() to verify acceptable overhead"
     ]
   },
   "af_score_components": {
     "mcp_score": 0,
-    "api_doc_score": 78,
-    "error_handling_score": 75,
-    "auth_complexity_score": 100,
-    "rate_limit_clarity_score": 100
+    "api_doc_score": 82,
+    "error_handling_score": 80,
+    "auth_complexity_score": 90,
+    "rate_limit_clarity_score": 88
   },
   "security_score_components": {
-    "tls_enforcement": 85,
+    "tls_enforcement": 88,
     "auth_strength": 85,
-    "scope_granularity": 85,
-    "dependency_hygiene": 78,
+    "scope_granularity": 80,
+    "dependency_hygiene": 85,
     "secret_handling": 82,
-    "security_notes": "Parameterized queries via NamedExec and standard Exec prevent SQL injection. Raw query interpolation still possible — agents must use parameterized forms. Library maintenance slowdown is a minor dependency hygiene concern."
+    "security_notes": "Inherits database/sql security. Prepared statements prevent SQL injection. No additional security mechanisms — application responsibility for credential management."
   },
   "reliability_score_components": {
-    "uptime_documented": 82,
+    "uptime_documented": 85,
     "version_stability": 88,
     "breaking_changes_history": 90,
-    "error_recovery": 80
+    "error_recovery": 82
   }
 }

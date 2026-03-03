@@ -1,28 +1,28 @@
 {
   "id": "fiber-go-api",
-  "name": "Fiber",
-  "version_evaluated": "2.x",
-  "homepage": "https://docs.gofiber.io/",
+  "name": "Fiber (Go)",
+  "version_evaluated": "v2",
+  "homepage": "https://gofiber.io/",
   "repo_url": "https://github.com/gofiber/fiber",
   "category": "developer-tools",
-  "subcategories": ["web-framework", "go", "api", "http"],
-  "tags": ["go", "golang", "web-framework", "http", "rest", "fasthttp", "express-like", "high-performance"],
-  "what_it_does": "Express.js-inspired Go web framework built on fasthttp (not net/http). Familiar API for Node.js developers transitioning to Go. Claims the fastest Go framework by raw HTTP throughput due to fasthttp's zero-allocation design. Includes middleware, file serving, WebSocket, JWT, and rate limiting via middleware packages.",
+  "subcategories": ["web-framework", "go", "high-performance"],
+  "tags": ["go", "web", "http", "rest", "express-inspired", "fasthttp", "open-source", "router"],
+  "what_it_does": "Express.js-inspired Go web framework built on fasthttp instead of the standard net/http. Fiber prioritizes developer experience from Node.js backgrounds with familiar API patterns (app.Get, app.Post, c.JSON, c.Params) while delivering near-zero-memory-allocation performance. Ideal for building REST APIs and microservices where Go developers want Express ergonomics with Go performance.",
   "use_cases": [
-    "Build Go agent HTTP APIs with Express-like routing syntax for teams familiar with Node.js patterns",
-    "Create high-throughput Go agent microservices where raw HTTP performance (fasthttp backend) matters most",
-    "Port Express.js agent backends to Go with minimal routing API changes",
-    "Implement Go agent REST APIs with Fiber's rich built-in middleware (JWT, CORS, rate limiting, cache)",
-    "Build WebSocket-based agent communication endpoints in Go with Fiber's WebSocket middleware"
+    "Build REST APIs with familiar Express.js-style routing — get(path, handler), post(path, handler) — for teams migrating from Node.js to Go",
+    "Create high-performance Go microservices for agent backends with fasthttp's zero-copy request handling",
+    "Implement agent API gateways with Fiber's built-in middleware: rate limiting, CORS, JWT, caching",
+    "Build real-time agent communication endpoints with Fiber's built-in WebSocket support via gorilla/websocket",
+    "Deploy lightweight REST APIs with fast cold-start times and low memory footprint for serverless agent backends"
   ],
   "not_for": [
-    "Applications using standard net/http middleware — Fiber's fasthttp base is incompatible with net/http middleware; Gin or Chi are better for net/http compatibility",
-    "Production services requiring net/http compatibility — many Go libraries and proxies assume net/http; Fiber requires adaptation",
-    "Teams preferring idiomatic Go patterns — Fiber's Express-style API is non-idiomatic Go; Gin or Chi are more Go-idiomatic"
+    "Projects using standard net/http-compatible middleware — Fiber uses fasthttp which is incompatible with net/http middleware ecosystem",
+    "Applications requiring standard library HTTP compatibility — fasthttp diverges from net/http interface, breaking many Go stdlib ecosystem tools",
+    "Teams needing Gin's broader middleware ecosystem — Gin has more third-party middleware packages than Fiber"
   ],
-  "best_when": "You need maximum raw HTTP throughput in Go and your team has Express.js background — Fiber's familiar API reduces the Go learning curve.",
-  "avoid_when": "You need net/http middleware compatibility (common Go libraries assume net/http) — use Gin or Chi for better ecosystem compatibility.",
-  "alternatives": ["gin-go-api", "echo-go-api", "chi-go-api"],
+  "best_when": "You're building a high-performance Go REST API and want Express.js-familiar ergonomics without the cognitive overhead of net/http's more verbose patterns.",
+  "avoid_when": "You need compatibility with the standard net/http ecosystem (middleware, interceptors, testing tools) — Gin or Chi are better choices that preserve stdlib compatibility.",
+  "alternatives": ["gin-api", "echo-go-api"],
   "interface": {
     "has_rest_api": false,
     "has_graphql": false,
@@ -38,28 +38,28 @@
     "methods": ["none"],
     "oauth": false,
     "scopes": false,
-    "notes": "Web framework — auth via Fiber JWT middleware or custom middleware."
+    "notes": "Library — no external auth. JWT middleware available as gofiber/jwt. Auth implemented via middleware chain."
   },
   "pricing": {
     "model": "open_source",
     "free_tier_exists": true,
-    "free_tier_limits": "MIT licensed, completely free",
+    "free_tier_limits": "Fully open source — MIT licensed",
     "paid_tiers": "None",
     "requires_credit_card": false,
-    "notes": "MIT license. Community-maintained."
+    "notes": "MIT-licensed open source Go module."
   },
   "performance": {
-    "latency_p50_ms": 0,
-    "latency_p99_ms": 1,
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
     "uptime_sla_percent": null,
-    "rate_limits": "No rate limits built-in (middleware available). fasthttp backend delivers highest throughput of any Go framework in many benchmarks.",
+    "rate_limits": "No rate limits — self-hosted. Significantly faster than Gin/Echo in benchmarks due to fasthttp.",
     "data_source": "llm_estimated"
   },
   "requirements": {
     "requires_signup": false,
     "requires_credit_card": false,
     "domain_verification": false,
-    "data_residency": ["local"],
+    "data_residency": ["self-hosted"],
     "compliance": [],
     "min_contract": "none"
   },
@@ -68,39 +68,39 @@
     "mcp_security_score": null,
     "documentation_accuracy": 82,
     "error_message_quality": 78,
-    "error_message_notes": "Handler errors use Fiber's error types. c.JSON() and c.Status() control response. Custom error handler configurable for consistent API error shapes.",
+    "error_message_notes": "Handler errors returned via c.Status(code).JSON(errBody). Error handler customizable via app.Use(errHandler). Fasthttp errors less descriptive than net/http errors.",
     "idempotency_support": "full",
-    "idempotency_notes": "HTTP framework — idempotency is application responsibility.",
+    "idempotency_notes": "Stateless HTTP handlers are inherently idempotent for reads. Application-level idempotency for writes is developer responsibility.",
     "pagination_style": "none",
     "retry_guidance_documented": false,
     "known_agent_gotchas": [
-      "fasthttp is NOT compatible with net/http — Fiber cannot use net/http handlers or middleware directly; this is the biggest ecosystem limitation vs. Gin/Chi",
-      "ctx.Body() and ctx.Params() strings are only valid during the handler — strings become invalid after the handler returns due to fasthttp's buffer reuse; always copy strings you need to retain",
-      "Fiber uses goroutines with fasthttp's connection pool — Go race conditions in handler code are possible; use mutex or channels for shared state",
-      "Fiber 2.x to 3.x (in development) has significant API changes — pin versions carefully; 3.x betas break 2.x code",
-      "WebSocket in Fiber uses a different handler signature than net/http-based WebSocket libraries — code must be adapted for Fiber's c.Locals() pattern for passing data",
-      "Testing Fiber applications with httptest is not directly possible (no net/http compatibility) — use Fiber's built-in test utilities (app.Test()) instead"
+      "Fiber uses fasthttp which is NOT compatible with standard net/http — any middleware, test client, or tool expecting net/http.Handler will not work with Fiber handlers",
+      "c.BodyParser() reads the body once — calling it multiple times or after c.Body() results in empty data; always parse body once and pass to downstream",
+      "Fiber's context (c *fiber.Ctx) is not safe for use in goroutines — must call c.Copy() before passing context to a goroutine to avoid use-after-free panics",
+      "Route parameters use :param syntax but query parameters require c.Query('key') — mixing up params vs query is a common gotcha for Express developers",
+      "Fiber v2 and v3 have breaking API changes — ensure middleware versions match the Fiber major version in go.mod to avoid runtime panics",
+      "Static file serving caches files by default — during development, clear cache or disable caching to see file changes without restarting"
     ]
   },
   "af_score_components": {
     "mcp_score": 0,
     "api_doc_score": 82,
     "error_handling_score": 78,
-    "auth_complexity_score": 95,
-    "rate_limit_clarity_score": 90
+    "auth_complexity_score": 82,
+    "rate_limit_clarity_score": 85
   },
   "security_score_components": {
-    "tls_enforcement": 92,
-    "auth_strength": 88,
-    "scope_granularity": 85,
+    "tls_enforcement": 88,
+    "auth_strength": 80,
+    "scope_granularity": 75,
     "dependency_hygiene": 85,
-    "secret_handling": 88,
-    "security_notes": "Go memory safety. fasthttp's buffer reuse requires careful string handling to prevent data leaks between requests. TLS via standard Go net/tls."
+    "secret_handling": 82,
+    "security_notes": "Go memory safety prevents most memory vulnerabilities. Fasthttp does its own HTTP parsing — less audited than net/http stdlib. CORS, CSRF, Helmet middleware available but must be explicitly added."
   },
   "reliability_score_components": {
-    "uptime_documented": 88,
-    "version_stability": 80,
+    "uptime_documented": 82,
+    "version_stability": 78,
     "breaking_changes_history": 72,
-    "error_recovery": 88
+    "error_recovery": 80
   }
 }
