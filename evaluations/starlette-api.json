@@ -1,105 +1,106 @@
 {
   "id": "starlette-api",
   "name": "Starlette",
-  "version_evaluated": "0.41.x",
+  "version_evaluated": "0.37+",
   "homepage": "https://www.starlette.io",
   "repo_url": "https://github.com/encode/starlette",
   "category": "developer-tools",
-  "subcategories": ["web-framework", "asgi"],
-  "tags": ["python", "asgi", "web-framework", "websocket", "middleware", "fastapi-base"],
-  "what_it_does": "Lightweight ASGI toolkit providing routing, WebSocket support, background tasks, middleware, and request/response primitives — the foundation underlying FastAPI.",
+  "subcategories": ["web-framework", "backend", "python", "asgi"],
+  "tags": ["python", "asgi", "async", "lightweight", "middleware", "websockets", "testclient", "open-source"],
+  "what_it_does": "Lightweight ASGI framework and toolkit for building async Python web services. Starlette provides routing, middleware, WebSockets, background tasks, static files, and a test client. FastAPI is built on top of Starlette. Used directly when you want FastAPI's foundation without FastAPI's dependency injection and OpenAPI layer — maximum performance with full async support.",
   "use_cases": [
-    "Building custom ASGI middleware layers that intercept and transform agent HTTP traffic",
-    "Hosting lightweight agent-facing HTTP endpoints without the overhead of a full framework",
-    "Serving WebSocket connections for real-time bidirectional agent-to-client communication",
-    "Running background tasks (e.g., async job dispatch) that decouple from the HTTP request lifecycle",
-    "Writing integration tests for ASGI apps using Starlette's built-in TestClient without spinning up a server"
+    "Build high-performance async Python APIs with full ASGI support for HTTP/2, WebSockets, and server-sent events",
+    "Use as the foundation for custom frameworks or extend FastAPI with Starlette middleware",
+    "Implement WebSocket endpoints alongside HTTP routes in the same ASGI application",
+    "Run background tasks after HTTP responses with BackgroundTasks for fire-and-forget operations",
+    "Use Starlette TestClient for testing async endpoints without running a live server"
   ],
   "not_for": [
-    "Teams wanting automatic request validation and OpenAPI docs out of the box (use FastAPI instead)",
-    "Legacy WSGI deployments that cannot adopt an async server like uvicorn or hypercorn",
-    "Applications needing a batteries-included ORM, admin panel, or full MVC structure"
+    "Applications needing dependency injection and automatic OpenAPI — use FastAPI which adds these on top of Starlette",
+    "Teams unfamiliar with ASGI — Flask is more approachable for beginners",
+    "ORM, auth, and admin functionality — Starlette is a toolkit, not batteries-included"
   ],
-  "best_when": "You need full control over ASGI primitives with minimal abstraction, or you are building a framework layer on top of ASGI.",
-  "avoid_when": "You want automatic schema validation, dependency injection, and OpenAPI generation without writing boilerplate — use FastAPI.",
-  "alternatives": ["fastapi-api", "falcon-api", "sanic-api"],
+  "best_when": "You want maximum control over an async Python web service with ASGI fundamentals, or you're extending FastAPI with custom Starlette middleware.",
+  "avoid_when": "You need automatic OpenAPI docs, dependency injection, and request validation — use FastAPI directly.",
+  "alternatives": ["fastapi-api", "flask-api", "django-api"],
   "interface": {
-    "has_rest_api": false,
+    "has_rest_api": true,
     "has_graphql": false,
     "has_grpc": false,
     "has_mcp_server": false,
     "mcp_server_url": null,
-    "has_sdk": true,
-    "sdk_languages": ["python"],
+    "has_sdk": false,
+    "sdk_languages": [],
     "openapi_spec_url": null,
     "webhooks": false
   },
   "auth": {
-    "methods": ["custom"],
+    "methods": ["none"],
     "oauth": false,
     "scopes": false,
-    "notes": "No built-in auth — developers implement authentication via middleware (e.g., starlette-auth, authlib)."
+    "notes": "Toolkit with no built-in auth. Implement via Starlette Middleware or use with FastAPI's dependency injection."
   },
   "pricing": {
     "model": "open_source",
     "free_tier_exists": true,
-    "free_tier_limits": "Unlimited, open source (BSD-3 license)",
+    "free_tier_limits": "BSD licensed, completely free",
     "paid_tiers": "None",
     "requires_credit_card": false,
-    "notes": "Open source BSD-3."
+    "notes": "Free and open source, maintained by Encode and the community (Tom Christie)."
   },
   "performance": {
     "latency_p50_ms": null,
     "latency_p99_ms": null,
     "uptime_sla_percent": null,
-    "rate_limits": "None (library); rate limiting must be implemented via middleware",
+    "rate_limits": "No rate limits — self-hosted. One of the fastest Python async frameworks.",
     "data_source": "llm_estimated"
   },
   "requirements": {
     "requires_signup": false,
     "requires_credit_card": false,
     "domain_verification": false,
-    "data_residency": ["self_hosted"],
+    "data_residency": ["self-hosted"],
     "compliance": [],
     "min_contract": "none"
   },
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
-    "documentation_accuracy": 87,
+    "documentation_accuracy": 85,
     "error_message_quality": 80,
-    "error_message_notes": "HTTP exceptions are clean and structured; unhandled exceptions in ASGI scope produce terse 500 responses without detail by default.",
-    "idempotency_support": "partial",
-    "idempotency_notes": "No built-in idempotency keys; must be implemented at the application layer.",
+    "error_message_notes": "Starlette exceptions are HTTPException and custom exception handlers. TestClient provides synchronous interface to async app for testing. Debug mode shows exception details.",
+    "idempotency_support": "full",
+    "idempotency_notes": "HTTP endpoints follow standard idempotency semantics.",
     "pagination_style": "none",
     "retry_guidance_documented": false,
     "known_agent_gotchas": [
-      "Starlette does not validate request bodies automatically — agents that skip explicit parsing can silently receive None for missing fields",
-      "Background tasks run after the response is sent; if the ASGI server shuts down mid-task, the task is lost with no acknowledgment",
-      "WebSocket connections do not auto-reconnect — agents relying on long-lived sockets must implement their own reconnection logic",
-      "TestClient uses requests (sync) under the hood; async test patterns require httpx.AsyncClient with ASGITransport",
-      "Middleware ordering matters and is non-obvious — wrapping order is reversed (last added = outermost), which surprises many developers"
+      "Starlette route handlers must be async def or regular def — mixing sync routes blocks the event loop; use run_in_executor for CPU-bound sync operations",
+      "Middleware execution order: outer middleware wraps inner — add middleware in reverse order of intended execution; first added = outermost = first to run on request",
+      "WebSocket connections require explicit accept(), receive(), and send() calls — closing without explicit close() may leave connections hanging",
+      "Request body can only be read once — reading request.body() or request.json() consumes the stream; subsequent reads return empty; use body caching middleware if multiple reads needed",
+      "Starlette's TestClient is synchronous despite the async app — it uses threading internally; avoid using TestClient in async test functions without pytest-anyio handling",
+      "StaticFiles mounting requires exact path matching — mount('/static', StaticFiles(directory='static')) serves files at /static/file.ext, not /static/subdir/file.ext without directory=True"
     ]
   },
   "af_score_components": {
     "mcp_score": 0,
-    "api_doc_score": 87,
+    "api_doc_score": 85,
     "error_handling_score": 80,
-    "auth_complexity_score": 90,
-    "rate_limit_clarity_score": 85
+    "auth_complexity_score": 100,
+    "rate_limit_clarity_score": 95
   },
   "security_score_components": {
-    "tls_enforcement": 0,
-    "auth_strength": 0,
-    "scope_granularity": 0,
-    "dependency_hygiene": 88,
-    "secret_handling": 82,
-    "security_notes": "No TLS at library level — handled by ASGI server (uvicorn). No built-in CSRF or auth; developers must add these. Minimal dependency footprint."
+    "tls_enforcement": 90,
+    "auth_strength": 82,
+    "scope_granularity": 80,
+    "dependency_hygiene": 90,
+    "secret_handling": 85,
+    "security_notes": "No built-in security headers — add SecurityHeadersMiddleware or configure Nginx. CORS requires CORSMiddleware configuration. Input validation is developer responsibility unlike FastAPI."
   },
   "reliability_score_components": {
-    "uptime_documented": 0,
-    "version_stability": 85,
-    "breaking_changes_history": 82,
-    "error_recovery": 78
+    "uptime_documented": 88,
+    "version_stability": 88,
+    "breaking_changes_history": 85,
+    "error_recovery": 85
   }
 }
