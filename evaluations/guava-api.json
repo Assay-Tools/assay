@@ -1,0 +1,106 @@
+{
+  "id": "guava-api",
+  "name": "Guava",
+  "version_evaluated": "33.x",
+  "homepage": "https://github.com/google/guava",
+  "repo_url": "https://github.com/google/guava",
+  "category": "developer-tools",
+  "subcategories": ["java", "utilities", "collections", "caching", "concurrency"],
+  "tags": ["java", "kotlin", "utilities", "collections", "cache", "concurrency", "string", "io", "google"],
+  "what_it_does": "Google's core Java libraries — utilities that fill gaps in the Java standard library. Key components: Immutable collections (ImmutableList, ImmutableMap, ImmutableSet — truly immutable, not unmodifiable views), Multimap/Multiset/Table (missing JDK collection types), LoadingCache (in-memory cache with expiry and loading function), Optional (predates Java 8's Optional, still widely used), Preconditions (argument validation), Strings utilities, EventBus (pub/sub within JVM process), RateLimiter (token bucket rate limiting), and functional idioms (Function, Predicate before Java 8 lambdas were standard). Caffeine Cache largely supersedes Guava Cache for new projects.",
+  "use_cases": [
+    "Cache agent computation results with Guava LoadingCache — CacheBuilder.newBuilder().expireAfterWrite(10, MINUTES).maximumSize(1000).build(key -> computeAgentResult(key)) for memoized agent operations",
+    "Rate limit agent API calls with Guava RateLimiter — RateLimiter.create(10.0) permits 10 calls/second; rateLimiter.acquire() blocks until token available for agent outbound rate limiting",
+    "Build immutable agent configuration objects with ImmutableMap — ImmutableMap.of('model', 'gpt-4', 'temperature', '0.7') for thread-safe agent config sharing across threads",
+    "Validate agent service method preconditions — Preconditions.checkNotNull(agentId, 'agentId required'), checkArgument(temperature >= 0 && temperature <= 2, 'temperature out of range') for agent service validation",
+    "Index agent objects by multiple keys using Multimap — ArrayListMultimap<String, Agent> groups multiple agents per category without null-map manual management"
+  ],
+  "not_for": [
+    "Caffeine replaces Guava Cache — for new agent services needing in-memory caching, use Caffeine (successor library) for better performance and more features; Guava Cache is legacy",
+    "Modern Java 8+ projects can skip some Guava utilities — Java 8+ Optional, Streams, CompletableFuture replace many Guava utilities; evaluate which Guava components you actually need before adding the full dependency",
+    "Android development — Guava adds significant method count; use Guava-android artifact or prefer AndroidX alternatives for agent mobile apps"
+  ],
+  "best_when": "You need immutable collections, Multimap/Table/Multiset types, rate limiting, or LoadingCache in a JVM agent service — Guava is the battle-tested Google library for these well-defined utility needs.",
+  "avoid_when": "You only need caching (use Caffeine), your project is Android (too large), or you're on Java 21+ and can use built-in collection factories and Optional throughout.",
+  "alternatives": ["caffeine-cache-api", "apache-commons-api", "eclipse-collections-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["java", "kotlin"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Utility library — no auth concepts. Used entirely within JVM process."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, Apache 2.0 licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Guava is Apache 2.0 licensed, maintained by Google. Free for all use including commercial."
+  },
+  "performance": {
+    "latency_p50_ms": 0,
+    "latency_p99_ms": 0,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — local library. ImmutableCollections are allocation-heavy at creation time; LoadingCache is thread-safe with high read concurrency. RateLimiter uses System.nanoTime() for accurate token bucket.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["local"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 92,
+    "error_message_quality": 88,
+    "error_message_notes": "Guava Preconditions throw IllegalArgumentException, IllegalStateException, NullPointerException with custom messages. ImmutableCollection mutation throws UnsupportedOperationException clearly. LoadingCache loading exceptions are wrapped in ExecutionException with cause. RateLimiter acquisition failures are silent waits, not exceptions.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Immutable collections are inherently idempotent. Cache loading functions should be idempotent. RateLimiter.tryAcquire() is non-blocking and returns boolean for agent retry-on-failure patterns.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Guava Optional vs Java Optional — Guava Optional and Java 8 Optional are different classes; mixing them (passing Guava Optional to method expecting Java Optional) causes ClassCastException; prefer Java Optional in new agent code; Guava Optional exists for backward compatibility",
+      "ImmutableList.of() has 12-element overload limit — ImmutableList.of(a, b, c, ...) has overloads up to 12 elements then falls back to varargs; for agent config with many entries use ImmutableList.copyOf(list) or builder()",
+      "LoadingCache removal listener is async — CacheBuilder.removalListener() fires after entry is removed, potentially on a different thread; agent code that relies on removal for cleanup must handle threading; use synchronous removal listener explicitly if order matters",
+      "Guava Cache eviction is lazy — expired agent cache entries aren't immediately removed; they're evicted on next access or when maximumSize pressure triggers eviction; don't rely on expiration time for security-sensitive agent data invalidation",
+      "RateLimiter.acquire() blocks the calling thread — Guava RateLimiter.acquire() blocks until permit available; in async agent code, this blocks the event loop thread; use tryAcquire(0, SECONDS) for non-blocking check and reject/queue manually",
+      "EventBus exceptions are swallowed by default — Guava EventBus catches exceptions in subscriber methods and logs them but doesn't propagate; agent event handlers that throw will silently fail; use custom SubscriberExceptionHandler to propagate or alert on agent event processing failures"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 92,
+    "error_handling_score": 88,
+    "auth_complexity_score": 100,
+    "rate_limit_clarity_score": 100
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 100,
+    "scope_granularity": 95,
+    "dependency_hygiene": 88,
+    "secret_handling": 95,
+    "security_notes": "Utility library — no network exposure. Immutable collections prevent accidental agent state mutation. RateLimiter can protect agent API endpoints from internal abuse. No sensitive data handling by library itself."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 95,
+    "version_stability": 92,
+    "breaking_changes_history": 88,
+    "error_recovery": 95
+  }
+}

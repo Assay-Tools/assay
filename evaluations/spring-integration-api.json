@@ -1,0 +1,106 @@
+{
+  "id": "spring-integration-api",
+  "name": "Spring Integration",
+  "version_evaluated": "6.x",
+  "homepage": "https://spring.io/projects/spring-integration",
+  "repo_url": "https://github.com/spring-projects/spring-integration",
+  "category": "developer-tools",
+  "subcategories": ["messaging", "java", "spring", "enterprise-integration", "eip"],
+  "tags": ["java", "kotlin", "spring", "messaging", "eip", "enterprise-integration", "kafka", "rabbitmq", "ftp", "pipeline"],
+  "what_it_does": "Spring's Enterprise Integration Patterns (EIP) framework — provides message channels, transformers, routers, filters, service activators, and adapters for building integration flows. Spring Integration implements patterns from Gregor Hohpe's 'Enterprise Integration Patterns' book. Core concepts: Message (header + payload), MessageChannel (pipe between components), MessageHandler (process/transform messages), Adapters (inbound/outbound for Kafka, RabbitMQ, AMQP, JMS, FTP/SFTP, HTTP, TCP, JDBC, WebSocket, Redis, AWS S3/SQS, email). Java DSL: IntegrationFlow.from(source).transform().filter().handle(handler).get(). Used for data integration pipelines, event-driven workflows, and system-to-system messaging.",
+  "use_calls": [
+    "Build agent data ingestion pipeline with Spring Integration Java DSL — IntegrationFlow reads from Kafka inbound adapter, transforms agent events, routes to appropriate agent handler, writes to database outbound adapter",
+    "File-based agent data import via SFTP adapter — Spring Integration SFTP inbound adapter polls for new agent data files, moves to processing directory, invokes agent data transformation service",
+    "Retry failed agent API calls with Spring Integration retry advice — RetryOperationsInterceptor on service activator retries transient agent API failures with exponential backoff before sending to dead-letter channel",
+    "Route agent messages by type using MessageRouter — ContentBasedRouter sends agent_created events to onboarding flow, agent_completed events to analytics flow, agent_failed events to alerting flow",
+    "Aggregate agent partial results with Spring Integration Aggregator — collect partial agent tool call results into complete agent response before forwarding downstream"
+  ],
+  "not_for": [
+    "Simple message publishing/consuming — if just publishing to Kafka or RabbitMQ, use Spring Kafka or Spring AMQP directly; Spring Integration adds EIP complexity for basic pub/sub",
+    "Stream processing — Spring Integration handles discrete messages; use Spring Cloud Stream or Apache Kafka Streams for continuous agent event stream processing with windowing and aggregations",
+    "Teams unfamiliar with EIP patterns — Spring Integration's message/channel/transformer/router abstractions have steep learning curve; evaluate if simpler orchestration (plain services, Spring Batch) solves agent integration needs"
+  ],
+  "best_when": "You're building complex agent data integration flows with multiple sources, transformations, routing logic, and error handling that benefit from EIP message abstractions — Spring Integration's Java DSL makes these flows explicit and testable.",
+  "avoid_when": "Your integration is simple (use Spring Kafka/AMQP directly), you need stream processing semantics (use Kafka Streams), or your team hasn't used EIP patterns before.",
+  "alternatives": ["apache-camel-api", "spring-cloud-stream-api", "spring-batch-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["java", "kotlin"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Integration framework — auth handled by individual channel adapters (Kafka SASL, RabbitMQ credentials, SFTP keys). Spring Integration flows inherit credentials from underlying Spring beans."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, Apache 2.0 licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Spring Integration is Apache 2.0 licensed, maintained by Broadcom/VMware. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 1,
+    "latency_p99_ms": 20,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — self-hosted. Message throughput depends on channel type (DirectChannel synchronous vs QueueChannel asynchronous) and adapter. DirectChannel uses caller thread; QueueChannel uses thread pool.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 82,
+    "error_message_quality": 80,
+    "error_message_notes": "Spring Integration errors wrap in MessagingException with channel and message context. ErrorMessage sent to errorChannel on handler exception. Dead letter channel captures failed agent messages. MessageDeliveryException for channel send failures. Flow configuration errors are detected at context startup.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Message delivery guarantees depend on channel type. DirectChannel is in-process, no persistence. QueueChannel loses messages on restart unless backed by persistent store. JdbcChannelMessageStore provides persistent QueueChannel for agent messages.",
+    "pagination_style": "none",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "DirectChannel vs QueueChannel threading model — DirectChannel invokes handler in sender thread (synchronous); QueueChannel buffers and delivers via Poller thread (asynchronous); wrong channel type causes unexpected blocking in agent web request threads or lost messages on shutdown",
+      "Error handling requires explicit errorChannel subscription — unhandled exceptions in Spring Integration handlers are sent to global errorChannel; without subscribing a ServiceActivator to errorChannel, agent processing failures are silently swallowed",
+      "IntegrationFlow beans require @Configuration class — IntegrationFlow DSL beans must be defined in @Configuration class; defining in @Component classes causes 'no qualifying bean' errors; Java DSL flows must return IntegrationFlow from @Bean methods",
+      "Polling adapters require Poller configuration — file/FTP/database inbound adapters don't auto-poll; PollerSpec must be configured with fixedDelay or cron; missing Poller causes adapter to never trigger agent data ingestion",
+      "Message headers are immutable after creation — MessageBuilder creates new Message with headers; mutating headers after message creation requires new MessageBuilder.fromMessage(msg).setHeader(...).build(); in-place header mutation attempts are silently ignored or throw",
+      "Aggregator correlation strategy must be consistent — Aggregator groups messages by correlation ID; if agent messages have inconsistent correlation IDs (null, different types), aggregator never releases group; always set explicit correlationStrategy and releaseStrategy for agent result aggregation"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 82,
+    "error_handling_score": 80,
+    "auth_complexity_score": 85,
+    "rate_limit_clarity_score": 90
+  },
+  "security_score_components": {
+    "tls_enforcement": 88,
+    "auth_strength": 82,
+    "scope_granularity": 78,
+    "dependency_hygiene": 85,
+    "secret_handling": 85,
+    "security_notes": "Spring Integration channels are in-process or backed by external brokers. External adapter credentials (Kafka, RabbitMQ, SFTP) must be secured via Spring Boot secrets. Agent messages in QueueChannels may contain sensitive data — use encrypted persistent store for sensitive agent flow messages."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 85,
+    "breaking_changes_history": 82,
+    "error_recovery": 88
+  }
+}

@@ -1,0 +1,106 @@
+{
+  "id": "hazelcast-api",
+  "name": "Hazelcast",
+  "version_evaluated": "5.x",
+  "homepage": "https://hazelcast.com/",
+  "repo_url": "https://github.com/hazelcast/hazelcast",
+  "category": "infrastructure",
+  "subcategories": ["distributed-cache", "java", "cluster", "data-grid", "streaming"],
+  "tags": ["java", "distributed-cache", "in-memory", "cluster", "imap", "near-cache", "spring-boot", "kubernetes", "streaming"],
+  "what_it_does": "In-memory distributed data grid and stream processing platform. Hazelcast embeds in Java applications or runs as a standalone cluster. Core data structures: IMap (distributed HashMap with TTL, near-cache, entry listeners), IQueue, ISet, IList, ITopic (pub/sub), AtomicLong, Lock, Semaphore — all distributed across cluster members. Hazelcast Jet (unified in 5.x) enables distributed stream processing with SQL over streams. Spring Cache integration via @Cacheable maps to IMap. Hazelcast Platform includes IMDG + Jet. Use cases: session clustering, distributed locking, agent result caching across multiple service instances, and distributed counters.",
+  "use_cases": [
+    "Cache agent LLM responses across multiple service instances — Hazelcast IMap with TTL shares agent result cache across all pod replicas, preventing duplicate LLM API calls for same agent inputs",
+    "Implement distributed rate limiting for agent API — Hazelcast IAtomicLong or CRDT counter tracks request counts across all agent service instances for consistent cross-instance rate enforcement",
+    "Distribute agent session state across cluster — Hazelcast session clustering stores agent conversation state in IMap for failover — if one instance dies, another picks up agent session from shared IMap",
+    "Coordinate agent task assignment with distributed locking — Hazelcast ILock or FencedLock ensures only one agent service instance processes a specific task, preventing duplicate agent execution",
+    "Pub/sub agent events across microservices with ITopic — Hazelcast ITopic broadcasts agent status changes to all interested subscriber services without external message broker"
+  ],
+  "not_for": [
+    "Persistent storage — Hazelcast is in-memory; data is lost if all cluster members restart simultaneously; use with persistent database for agent data that must survive full cluster restarts",
+    "Simple single-instance caching — if one JVM instance only, use Caffeine Cache for far lower complexity; Hazelcast cluster overhead not justified for single-instance agent services",
+    "Kafka/stream processing replacement — Hazelcast Jet handles stream processing but Kafka is the industry standard for durable agent event streaming; Hazelcast is better for cache/state than durable message queuing"
+  ],
+  "best_when": "You have multiple instances of a Java agent service that need to share state (cache, session, locks, counters) without an external Redis cluster — Hazelcast embeds directly in your Spring Boot service and clusters automatically.",
+  "avoid_when": "You need durable storage, you have a single instance (use Caffeine), you already have Redis (use Redis), or your infrastructure team mandates a separate cache tier.",
+  "alternatives": ["redis-api", "caffeine-cache-api", "apache-ignite-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["java", "kotlin", "python", "go", "nodejs", "dotnet"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none", "bearer_token"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Hazelcast cluster members authenticate with shared token or TLS client certificates. Hazelcast Management Center has username/password. Embedded mode has no external auth. Enterprise version supports LDAP/Kerberos for agent cluster security."
+  },
+  "pricing": {
+    "model": "freemium",
+    "free_tier_exists": true,
+    "free_tier_limits": "Hazelcast Platform open source is free for unlimited use. Hazelcast Platform Enterprise requires license for advanced features (WAN replication, persistence, security).",
+    "paid_tiers": "Enterprise license for production advanced features",
+    "requires_credit_card": false,
+    "notes": "Hazelcast open source (Apache 2.0) includes core IMDG + Jet features. Enterprise adds WAN replication, persistence (Hot Restart), advanced security, and SLA support."
+  },
+  "performance": {
+    "latency_p50_ms": 1,
+    "latency_p99_ms": 10,
+    "uptime_sla_percent": 99.99,
+    "rate_limits": "No rate limits — self-hosted cluster. Sub-millisecond local IMap reads via near-cache. Network IMap operations: 1-5ms typical. Partition-local operations fastest; cross-partition operations require network hop.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 82,
+    "error_message_notes": "Hazelcast exceptions include cluster topology context. DistributedObjectDestroyedException when IMap is destroyed. OperationTimeoutException for network partition. HazelcastInstanceNotActiveException when instance is shutting down. EntryProcessor exceptions wrap original cause.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "IMap.put() is idempotent (overwrites). IMap.putIfAbsent() for conditional insert. Distributed transactions support ACID across multiple maps. EntryProcessor operations are atomic per entry but not across entries without transactions.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Embedded vs client-server mode have different cluster membership — embedded Hazelcast member joins the data cluster; Hazelcast client connects to an external cluster; mixing embedded and client mode in same deployment causes split clusters for agent data",
+      "Kubernetes discovery requires explicit config — Hazelcast default multicast discovery doesn't work in Kubernetes; use hazelcast-kubernetes plugin with hazelcast.kubernetes.service-name config; without this, agent service pods form isolated single-member 'clusters'",
+      "IMap.get() deserializes on every call — IMap returns deserialized copy of value; modifying the returned object doesn't update the map (unlike local HashMap); always use IMap.put() or EntryProcessor to update agent cache entries",
+      "Near cache stale reads are possible — IMap near-cache serves local cached copy; agent read-after-write from different cluster member may return stale data if near-cache TTL is longer than update interval; set near-cache invalidate-on-change=true for agent consistency",
+      "Serialization configuration must match across cluster — all Hazelcast cluster members must have identical serialization config for agent data classes; adding a new field to agent entity without versioning serializer causes deserialization failures on rolling deployment",
+      "Distributed locks require try-with-resources — FencedLock.lock() must be followed by unlock() in finally block; forgetting unlock on agent task processing exception leaves lock held until member timeout, blocking other agent instances"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 82,
+    "auth_complexity_score": 80,
+    "rate_limit_clarity_score": 88
+  },
+  "security_score_components": {
+    "tls_enforcement": 85,
+    "auth_strength": 80,
+    "scope_granularity": 75,
+    "dependency_hygiene": 82,
+    "secret_handling": 82,
+    "security_notes": "Hazelcast open source has limited security — enable TLS for cluster communication in production. Cluster members accept connections by default without auth; configure member-to-member auth token. Agent data in Hazelcast is unencrypted at rest (Enterprise has encryption at rest). Network isolation critical for production agent deployments."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 90,
+    "version_stability": 85,
+    "breaking_changes_history": 80,
+    "error_recovery": 88
+  }
+}
