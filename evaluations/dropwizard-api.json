@@ -1,0 +1,106 @@
+{
+  "id": "dropwizard-api",
+  "name": "Dropwizard",
+  "version_evaluated": "4.x",
+  "homepage": "https://www.dropwizard.io/",
+  "repo_url": "https://github.com/dropwizard/dropwizard",
+  "category": "developer-tools",
+  "subcategories": ["web-framework", "java", "rest", "microservices", "opinionated"],
+  "tags": ["java", "rest", "microservices", "jetty", "jersey", "jackson", "metrics", "health-checks", "yaml"],
+  "what_it_does": "Opinionated Java microservice framework — bundles Jetty (embedded HTTP server), Jersey (JAX-RS REST), Jackson (JSON), Hibernate Validator, Metrics (operational metrics), SLF4J/Logback (logging), and Liquibase (database migrations) into a single convention-over-configuration package. Dropwizard popularized the 'fat JAR' microservice pattern (single deployable JAR) before Spring Boot. Configuration via YAML. Built-in health check API (/healthcheck), metrics API (/metrics), and admin interface. Simpler than Spring Boot with fewer abstractions and explicit wiring.",
+  "use_cases": [
+    "Build production-ready Java REST agent APIs with minimal framework overhead — Dropwizard bundles everything needed (HTTP, JSON, validation, metrics) with clear conventions",
+    "Create agent microservices with built-in operational visibility — Dropwizard's /healthcheck and /metrics endpoints are production-ready without extra configuration",
+    "Deploy agent services as single self-contained fat JARs — java -jar agent-service.jar; no application server deployment needed",
+    "Write agent API integration tests against local embedded Jetty using Dropwizard Testing — DropwizardAppRule or DropwizardTestSupport spin up full app in tests",
+    "Configure agent service parameters via YAML configuration with environment variable substitution — Dropwizard's configuration model supports ${ENV_VAR:-default} in YAML"
+  ],
+  "not_for": [
+    "Teams already invested in Spring Boot ecosystem — Dropwizard's smaller ecosystem means fewer auto-configurations and starters than Spring Boot; Spring Boot is the industry standard",
+    "Reactive/non-blocking services — Dropwizard uses blocking Jersey/Jetty; use Micronaut, Quarkus, or Spring WebFlux for reactive agent services",
+    "Services needing Spring ecosystem integration (Spring Security, Spring Data, etc.) — Dropwizard doesn't integrate with Spring ecosystem; use Spring Boot if Spring dependencies are needed"
+  ],
+  "best_when": "You want a simple, opinionated Java REST framework with batteries included (metrics, health checks, fat JAR) and minimal Spring Boot complexity — especially for small teams or services that don't need Spring's breadth.",
+  "avoid_when": "You need Spring ecosystem integration, reactive programming, or require the extensive auto-configuration ecosystem of Spring Boot. Dropwizard is simpler but less extensible.",
+  "alternatives": ["spring-boot-api", "javalin-api", "micronaut-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["java"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["bearer_token", "basic"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Dropwizard provides auth via dropwizard-auth bundle — BasicAuthentication, OAuthCredentialAuthFilter. Custom Authenticator/Authorizer implementation required. JWT support via dropwizard-auth with custom JWT filter."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, Apache 2.0 licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Dropwizard is Apache 2.0 licensed, community-maintained. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 3,
+    "latency_p99_ms": 20,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — self-hosted. Dropwizard benchmarks competitive with Spring Boot for blocking REST; lower memory footprint.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 80,
+    "error_message_quality": 82,
+    "error_message_notes": "Dropwizard Jersey validation errors return JSON with field-level validation messages. Jackson deserialization errors include field path. Dropwizard health checks provide service-level status. Application errors surface via Jersey exception mappers.",
+    "idempotency_support": "full",
+    "idempotency_notes": "REST semantics — idempotency is developer responsibility. JAX-RS annotations don't enforce idempotency; implement in resource method logic.",
+    "pagination_style": "custom",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Application class must be registered — Dropwizard resource classes registered in Application.run() via environment.jersey().register(new AgentResource()); forgetting registration causes 404 for all endpoints",
+      "Configuration YAML binding to POJOs — configuration class fields must match YAML keys exactly; typos in YAML silently use default values not throw errors; validate config in Application.run()",
+      "Admin port runs separately — Dropwizard runs application on port 8080 and admin on port 8081 by default; health checks (/healthcheck) and metrics (/metrics) are on admin port; common mistake is sending health check requests to app port",
+      "Managed objects for lifecycle — database connections and background threads must implement Managed interface and registered via environment.lifecycle().manage(managed); un-managed resources don't clean up on shutdown",
+      "Jersey DI is HK2, not Spring — Dropwizard uses Jersey's HK2 DI, not Spring IoC; Spring @Autowired doesn't work; use constructor injection or AbstractBinder registration for Dropwizard resource DI",
+      "Testing requires complete application startup — DropwizardAppRule starts full Jetty/Jersey stack for integration tests; slow test startup compared to Spring MockMvc; use lightweight unit tests for resource logic, integration tests for endpoint contracts"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 80,
+    "error_handling_score": 82,
+    "auth_complexity_score": 82,
+    "rate_limit_clarity_score": 85
+  },
+  "security_score_components": {
+    "tls_enforcement": 90,
+    "auth_strength": 80,
+    "scope_granularity": 75,
+    "dependency_hygiene": 82,
+    "secret_handling": 82,
+    "security_notes": "HTTPS via Jetty TLS configuration. dropwizard-auth for authentication. Hibernate Validator for input validation. No default CSRF protection (API-first). Admin port must be secured — not exposed publicly in production."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 85,
+    "version_stability": 82,
+    "breaking_changes_history": 80,
+    "error_recovery": 85
+  }
+}

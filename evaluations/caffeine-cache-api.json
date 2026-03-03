@@ -1,0 +1,106 @@
+{
+  "id": "caffeine-cache-api",
+  "name": "Caffeine",
+  "version_evaluated": "3.x",
+  "homepage": "https://github.com/ben-manes/caffeine",
+  "repo_url": "https://github.com/ben-manes/caffeine",
+  "category": "developer-tools",
+  "subcategories": ["caching", "java", "in-memory", "performance"],
+  "tags": ["java", "kotlin", "caching", "in-memory", "guava-cache", "spring-boot", "performance", "eviction", "caffeine"],
+  "what_it_does": "High-performance near-optimal in-memory cache for Java — Spring Boot's default cache implementation replacing Guava Cache. Caffeine implements the Window TinyLFU eviction algorithm providing near-optimal hit rates (better than LRU/LFU). Key features: time-based expiry (expireAfterWrite, expireAfterAccess), size-based eviction, reference-based eviction (weak/soft keys/values), async loading (AsyncLoadingCache), stats collection, and Guava Cache API compatibility. Part of the Caffeine family that includes Simulator (for policy evaluation) and JCF (JSR-107/JCache implementation).",
+  "use_cases": [
+    "Cache agent LLM API responses to reduce latency and cost — cache repeated agent queries by prompt hash with TTL matching freshness requirements",
+    "Store agent session context in-process cache — CaffeineCache with expireAfterAccess for recently active agent sessions; auto-eviction prevents unbounded memory growth",
+    "Cache agent configuration and feature flags loaded from database or config service — LoadingCache<String, Config> auto-loads on miss with configurable refresh interval",
+    "Memoize expensive agent computation results using Caffeine's AsyncLoadingCache — async cache population doesn't block caller while computing agent embeddings or similarity scores",
+    "Use Spring Boot's @Cacheable annotations backed by Caffeine — spring.cache.type=caffeine + caffeine spec configuration for application-wide agent result caching"
+  ],
+  "not_for": [
+    "Distributed/shared cache between multiple JVM instances — Caffeine is JVM-local; use Redis (Jedis/Lettuce) or Hazelcast for distributed cache across agent service instances",
+    "Persistent cache surviving JVM restarts — Caffeine is in-memory only; use EhCache with disk store or Redis for persistent agent data caching",
+    "Very large data sets — JVM heap limits apply; for caches exceeding available heap, use off-heap solutions (EhCache 3 off-heap, MapDB) or Redis"
+  ],
+  "best_when": "You need a fast, self-managing in-memory cache within a single JVM process — Caffeine's Window TinyLFU algorithm gives best-in-class hit rates for repeated agent computations or API responses.",
+  "avoid_when": "You need distributed caching across multiple service instances (use Redis), persistence across restarts, or data sets larger than JVM heap.",
+  "alternatives": ["redis-api", "hazelcast-api", "ehcache-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["java", "kotlin"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "In-memory cache library — no auth concepts. Cache data is process-local."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, Apache 2.0 licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Caffeine is Apache 2.0 licensed, maintained by Ben Manes. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 0,
+    "latency_p99_ms": 0,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — in-memory operations are nanoseconds. Caffeine benchmarks show higher throughput than Guava Cache and Ehcache for concurrent access.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["local"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 90,
+    "error_message_quality": 85,
+    "error_message_notes": "Caffeine LoadingCache throws ExecutionException wrapping loader exceptions on get(). Cache.getIfPresent returns null on miss (not Optional). Async cache returns CompletableFuture — .get() blocking is a common mistake. Stats logging via cache.stats() for hit rate monitoring.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Cache get/put operations are inherently idempotent for same key. LoadingCache loads once per key per TTL window. Thread-safe concurrent access.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Cache miss returns null not Optional — Cache.getIfPresent(key) returns null on miss; always null-check or use LoadingCache.get(key) with automatic loading; getIfPresent in reactive code causes NullPointerException if not handled",
+      "expireAfterWrite vs expireAfterAccess — expireAfterWrite expires entries N time after write regardless of access; expireAfterAccess resets expiry on each access; choose based on whether agent data freshness is write-based or activity-based",
+      "Weak reference eviction is GC-dependent — weakKeys/weakValues uses WeakReference and entry may be evicted whenever GC runs, not just when cache is full; don't rely on weakKeys for cache entries that should persist across GC cycles",
+      "maximumSize vs maximumWeight — maximumSize limits entry count; maximumWeight uses a Weigher function for byte-based or complexity-based limits; mixing both in same cache spec throws IllegalStateException",
+      "Spring Boot @Cacheable key generation — Spring's default key is all method params; complex agent objects as cache keys need proper hashCode/equals; use @Cacheable(key = \"#agentId\") for explicit key selection",
+      "Stats collection has overhead — Caffeine.newBuilder().recordStats() enables hit/miss counting; small (~5%) overhead; disable in production if performance is critical and metrics aren't needed"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 90,
+    "error_handling_score": 85,
+    "auth_complexity_score": 100,
+    "rate_limit_clarity_score": 100
+  },
+  "security_score_components": {
+    "tls_enforcement": 98,
+    "auth_strength": 98,
+    "scope_granularity": 95,
+    "dependency_hygiene": 95,
+    "secret_handling": 90,
+    "security_notes": "In-memory process-local — no network exposure. Sensitive data cached in heap memory; JVM memory dump could expose cached agent data. Don't cache raw credentials or PII without encryption. Cache eviction prevents unbounded data accumulation."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 92,
+    "version_stability": 92,
+    "breaking_changes_history": 90,
+    "error_recovery": 92
+  }
+}

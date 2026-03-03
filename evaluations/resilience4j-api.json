@@ -1,0 +1,106 @@
+{
+  "id": "resilience4j-api",
+  "name": "Resilience4j",
+  "version_evaluated": "2.x",
+  "homepage": "https://resilience4j.readme.io/",
+  "repo_url": "https://github.com/resilience4j/resilience4j",
+  "category": "developer-tools",
+  "subcategories": ["resilience", "java", "circuit-breaker", "rate-limiting", "retry"],
+  "tags": ["java", "kotlin", "resilience", "circuit-breaker", "rate-limiter", "retry", "bulkhead", "timeout", "spring-boot"],
+  "what_it_does": "Lightweight fault tolerance library for Java 8+ and Kotlin — the modern replacement for Netflix Hystrix (deprecated). Resilience4j provides composable resilience decorators: CircuitBreaker (auto-open on failure threshold), RateLimiter (token bucket or fixed window), Retry (exponential backoff, configurable predicates), Bulkhead (concurrent call limiting), TimeLimiter (timeout), and Cache (memoization). Designed for functional composition — decorators wrap functions (Supplier, Callable, Function). Integrates with Spring Boot (spring-cloud-starter-circuitbreaker-resilience4j), Micrometer metrics, and RxJava.",
+  "use_cases": [
+    "Protect agent external API calls with circuit breakers — CircuitBreaker.decorateSupplier() wraps LLM API calls; auto-opens after N failures; fallback to cached responses during open state",
+    "Implement exponential backoff retry for flaky agent dependencies — Retry.of(config).executeSupplier(() -> apiCall()) with IntervalFunction.ofExponentialBackoff()",
+    "Rate-limit outbound agent API calls to respect third-party API quotas — RateLimiter.decorateSupplier limits calls per second to OpenAI, Anthropic, or external data APIs",
+    "Limit concurrent agent requests to expensive operations using Bulkhead — SemaphoreBulkhead limits concurrent agent inference calls to prevent GPU/CPU saturation",
+    "Add timeout protection to agent long-running operations — TimeLimiter wraps CompletableFuture with configurable timeout; prevents agent hung operations from blocking thread pools"
+  ],
+  "not_for": [
+    "Non-JVM stacks — use Polly (.NET), tenacity (Python), or Tokio retry (Rust) for resilience patterns in other languages",
+    "Distributed rate limiting — Resilience4j's RateLimiter is JVM-local; for distributed rate limiting across pods, use Redis + bucket4j or API gateway rate limiting",
+    "Teams on Spring Boot already using Spring Retry — Spring Retry covers basic retry cases; Resilience4j adds circuit breaker and bulkhead; evaluate if Spring Retry is sufficient before adding Resilience4j"
+  ],
+  "best_when": "You're building Java/Kotlin services that call external APIs or databases and need circuit breaker, retry, rate limiting, and bulkhead patterns — especially in Spring Boot where auto-configuration simplifies setup.",
+  "avoid_when": "Your resilience needs are met by Spring Retry, you need distributed (cross-pod) rate limiting, or you're not in a JVM environment.",
+  "alternatives": ["spring-retry-api", "polly-api", "bucket4j-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["java", "kotlin"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Resilience library — no auth concepts. Decorates existing service calls; auth is the underlying service's responsibility."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, Apache 2.0 licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Resilience4j is Apache 2.0 licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 0,
+    "latency_p99_ms": 1,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits on the library itself. RateLimiter decorator enforces configured limits on target calls.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["local"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 88,
+    "error_message_quality": 88,
+    "error_message_notes": "CircuitBreaker throws CallNotPermittedException when open with circuit state info. RateLimiter throws RequestNotPermitted with configured rate. Retry exhaustion throws the last exception. Micrometer metrics expose circuit breaker state for alerting.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Retry decorator replays the same operation — ensure underlying agent operations are idempotent before applying Retry; non-idempotent operations (payment processing) should not use Retry without idempotency keys.",
+    "pagination_style": "none",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "CircuitBreaker state is JVM-local — in multi-instance deployments (Kubernetes), each pod has independent circuit state; one pod may open circuit while others are still closed; use Redis-backed Resilience4j or API gateway for cluster-wide circuit breaking",
+      "Retry with exponential backoff and jitter — configure IntervalFunction.ofExponentialRandomBackoff() not ofExponentialBackoff(); without jitter, all retrying agents synchronize retry storms to the same moment (thundering herd)",
+      "RateLimiter period vs timeout — periodInNanos is the window size; timeoutDuration is how long to wait for a permit; setting timeoutDuration=0 returns RequestNotPermitted immediately when limit exceeded; positive timeout allows waiting for next window",
+      "Bulkhead type matters: Semaphore vs ThreadPool — SemaphoreBulkhead limits concurrent calls in calling thread; ThreadPoolBulkhead uses separate thread pool; mixing sync and async code requires matching bulkhead type to execution model",
+      "Spring Boot auto-configuration requires annotations — @CircuitBreaker, @Retry annotations need spring-cloud-starter-circuitbreaker-resilience4j; manual Resilience4j without Spring uses CircuitBreaker.of() directly; both approaches configure differently",
+      "Fallback method signature must match decorated method — @Fallback method must have same parameters plus a Throwable as last param; signature mismatch causes runtime BeanCreationException not compile error"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 88,
+    "error_handling_score": 88,
+    "auth_complexity_score": 100,
+    "rate_limit_clarity_score": 92
+  },
+  "security_score_components": {
+    "tls_enforcement": 98,
+    "auth_strength": 95,
+    "scope_granularity": 90,
+    "dependency_hygiene": 92,
+    "secret_handling": 92,
+    "security_notes": "No network exposure. Resilience patterns prevent cascade failures that could be exploited. Circuit breaker prevents resource exhaustion from malicious slow endpoints. No credentials needed."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 90,
+    "version_stability": 88,
+    "breaking_changes_history": 85,
+    "error_recovery": 95
+  }
+}
