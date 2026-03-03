@@ -1,0 +1,106 @@
+{
+  "id": "docker-compose-api",
+  "name": "Docker Compose",
+  "version_evaluated": "v2.x",
+  "homepage": "https://docs.docker.com/compose/",
+  "repo_url": "https://github.com/docker/compose",
+  "category": "developer-tools",
+  "subcategories": ["containerization", "devops", "local-dev", "orchestration", "docker"],
+  "tags": ["docker", "compose", "containerization", "local-dev", "orchestration", "yaml", "services"],
+  "what_it_does": "Multi-container Docker application management — defines and runs multi-container applications with a single docker-compose.yml file. Docker Compose v2 features: `docker compose up -d` starts all services, `docker compose down` stops and removes containers, service dependencies (depends_on with condition), health checks, named volumes, bind mounts, custom networks, environment variable files (.env), profiles for optional services, watch mode (docker compose watch) for file sync, and compose.override.yml for environment overrides. Replaces manual `docker run` with linked containers for agent local development stacks (app + PostgreSQL + Redis + LLM proxy).",
+  "use_cases": [
+    "Agent local development stack — compose.yml with services: app (agent API), db (PostgreSQL), redis (cache/queues), meilisearch (search); `docker compose up` starts full agent stack; developers get consistent environment without manual container management",
+    "Agent integration test infrastructure — docker compose -f compose.test.yml up --abort-on-container-exit runs agent tests with real PostgreSQL and Redis; CI creates isolated test environment per run; `--abort-on-container-exit` exits when test container finishes",
+    "Agent service health dependency — depends_on: { db: { condition: service_healthy } } with healthcheck: { test: ['CMD', 'pg_isready'] } starts agent service only after database is healthy; prevents agent startup race conditions without sleep hacks",
+    "Watch mode for agent development — docker compose watch triggers file sync and container rebuild when agent source files change; faster than full rebuild; watch: { action: sync, path: ./src, target: /app/src } syncs without restart",
+    "Agent profiles for optional services — profiles: ['debug'] on jaeger tracing service; `docker compose --profile debug up` adds distributed tracing to agent stack; production-like stack without always-on debug infrastructure"
+  ],
+  "not_for": [
+    "Production orchestration — Docker Compose is for development and simple single-host deployments; for agent production use Kubernetes, Docker Swarm, or ECS",
+    "Multi-host distributed services — Compose manages services on single Docker host; for agent distributed microservices across machines use Kubernetes or Nomad",
+    "Service mesh features — Compose provides basic networking; for agent service mesh (mTLS, traffic management, circuit breaking) use Istio or Linkerd"
+  ],
+  "best_when": "Every agent development environment needing multiple services (database, cache, queue, message broker) — Docker Compose creates reproducible, consistent local stacks with one command and eliminates 'works on my machine' issues.",
+  "avoid_when": "You need production container orchestration, multi-host deployment, or service mesh capabilities.",
+  "alternatives": ["kubernetes-api", "podman-compose-api", "devcontainer-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": false,
+    "sdk_languages": [],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth for Docker Compose itself. Container services (PostgreSQL, Redis) have their own credentials configured via environment variables in compose.yml. Use .env files for secrets in local development; use Docker secrets for production."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, Apache 2.0 licensed",
+    "paid_tiers": "Docker Desktop (commercial license for large orgs) includes Compose; Compose CLI plugin is free",
+    "requires_credit_card": false,
+    "notes": "Docker Compose v2 (compose plugin) is Apache 2.0 licensed. Docker Desktop has commercial licensing for large enterprises. compose CLI plugin is free on Linux."
+  },
+  "performance": {
+    "latency_p50_ms": 0,
+    "latency_p99_ms": 0,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Container startup time depends on image size and service startup (5-60 seconds for full agent stack). Watch mode sync is near-instantaneous for file changes.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 90,
+    "error_message_quality": 85,
+    "error_message_notes": "docker compose up errors show service name and container exit code with logs. Port binding conflicts show 'address already in use' with conflicting port. Health check failures show 'container is unhealthy' during startup. Volume mount permission errors show host path and container path. Image pull failures show registry URL and auth errors.",
+    "idempotency_support": "full",
+    "idempotency_notes": "docker compose up is idempotent — starting already-running stack has no effect. docker compose down is idempotent — stopping stopped containers is safe. Named volumes persist between down/up unless --volumes flag used. Compose state is stored in Docker daemon.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "compose.yml vs docker-compose.yml filename priority — Docker Compose v2 prefers compose.yml over docker-compose.yml when both exist; existing agent repos with docker-compose.yml work but new files should use compose.yml; mixing both in same directory causes confusion about which file is active",
+      "depends_on doesn't wait for service readiness — depends_on: [db] starts db container before app but doesn't wait for PostgreSQL to accept connections; agent services starting immediately after depends_on hit 'connection refused'; use depends_on with condition: service_healthy and healthcheck on db service for reliable agent service ordering",
+      "Volume permission issues on Linux — volumes bind-mounted from Linux host preserve host file ownership; agent containers running as non-root (uid 1000) may fail to write host-mounted directories owned by root; add user: '${UID}:${GID}' to compose service or chown mounted directories; less common on macOS/Windows where Docker VM handles permissions",
+      "Environment variable precedence surprises — .env file < compose.yml environment: < shell environment; agent developers setting POSTGRES_URL in shell override compose.yml environment; unexpected behavior when troubleshooting agent config issues; use docker compose config to see resolved environment for agent service debugging",
+      "Networks: default provides isolation per project — compose creates agent-app_default network isolating containers from other compose projects; services in different compose projects can't communicate by service name without explicit shared network; agent microservices spanning multiple compose.yml files need explicit external network",
+      "watch mode requires Compose v2.22+ and buildx — docker compose watch with sync action needs recent Docker Compose and Docker Buildx; agent CI running older Docker version gets 'unknown flag: --watch'; pin Docker version in CI or use polling-based file sync for agent development on older infrastructure"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 90,
+    "error_handling_score": 85,
+    "auth_complexity_score": 92,
+    "rate_limit_clarity_score": 95
+  },
+  "security_score_components": {
+    "tls_enforcement": 82,
+    "auth_strength": 75,
+    "scope_granularity": 72,
+    "dependency_hygiene": 85,
+    "secret_handling": 72,
+    "security_notes": "CRITICAL: .env files with agent secrets (DB passwords, API keys) must never be committed to version control; add .env to .gitignore. Compose environment: variables visible in docker inspect output; use Docker secrets for production agent credential management. Published ports (ports: '5432:5432') expose services on host network; only expose necessary agent service ports in compose.yml."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 90,
+    "version_stability": 88,
+    "breaking_changes_history": 82,
+    "error_recovery": 88
+  }
+}

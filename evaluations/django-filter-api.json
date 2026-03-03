@@ -1,0 +1,106 @@
+{
+  "id": "django-filter-api",
+  "name": "django-filter",
+  "version_evaluated": "24.x",
+  "homepage": "https://django-filter.readthedocs.io/",
+  "repo_url": "https://github.com/carltongibson/django-filter",
+  "category": "developer-tools",
+  "subcategories": ["filtering", "python", "django", "drf", "search"],
+  "tags": ["python", "django", "drf", "filtering", "querystring", "search", "filterset"],
+  "what_it_does": "URL parameter filtering for Django and Django REST Framework — translates URL query parameters into Django ORM queryset filters. django-filter features: FilterSet class with field declarations, filter_backends = [DjangoFilterBackend] in DRF ViewSet, filterset_fields shorthand for simple equality filters, CharFilter / NumberFilter / DateFilter / ChoiceFilter / BooleanFilter / RelatedFilter types, custom filter methods (method= parameter), ordering filter, DRF integration via DjangoFilterBackend, and web form rendering for filter forms. GET /api/agents/?status=active&category=chat&created_after=2024-01-01 filters agent list with declarative FilterSet instead of manual .filter() chaining.",
+  "use_cases": [
+    "Agent list API filtering — class AgentFilter(FilterSet) { status = ChoiceFilter(choices=Agent.STATUS_CHOICES); name = CharFilter(lookup_expr='icontains') } with filter_backends=[DjangoFilterBackend] and filterset_class=AgentFilter on AgentViewSet enables /api/agents/?status=active&name=chat",
+    "DRF shorthand filtering — filterset_fields = ['status', 'category', 'user'] on AgentViewSet enables exact-match filtering on those fields; /api/agents/?status=active&category=chat works without FilterSet class for simple agent list filtering",
+    "Agent date range filtering — class AgentFilter(FilterSet) { created_after = DateFilter(field_name='created_at', lookup_expr='gte'); created_before = DateFilter(field_name='created_at', lookup_expr='lte') } enables date range queries on agent creation time",
+    "Agent related model filtering — RelatedFilter(AgentTaskFilter, queryset=AgentTask.objects.all()) enables nested filtering: /api/agents/?tasks__status=completed filters agents with completed tasks via related filter",
+    "Custom agent filter method — status = CharFilter(method='filter_by_status'); def filter_by_status(self, queryset, name, value) { return queryset.filter_by_agent_status(value) } applies custom ORM logic for complex agent status business rules"
+  ],
+  "not_for": [
+    "Full-text search — django-filter uses SQL LIKE/exact matching; for agent full-text search with ranking use django-haystack with Elasticsearch or pg_search",
+    "Complex faceted search — django-filter handles simple field filters; for agent search with facet counts and aggregations use Elasticsearch/Opensearch",
+    "Cross-model search — django-filter filters single queryset; for searching across multiple agent model types use Whoosh or Elasticsearch"
+  ],
+  "best_when": "Your DRF agent API list endpoints need URL parameter filtering — django-filter provides declarative FilterSet classes that translate query params to ORM filters without manual filter logic.",
+  "avoid_when": "You need full-text search with relevance ranking, faceted search, or complex multi-model search.",
+  "alternatives": ["ransack-ruby-api", "django-haystack-api", "elasticsearch-dsl-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — filtering library. Filter parameters are from URL query string; FilterSet validates filter values. Invalid filter values return empty queryset (not error) by default."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, BSD-3-Clause licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "django-filter is BSD-3-Clause licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 10,
+    "latency_p99_ms": 100,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — generates SQL WHERE clauses. Complex agent filters across associations add JOIN overhead; add database indexes on commonly filtered agent columns. Ordering filter on non-indexed columns causes full table scan.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 80,
+    "error_message_notes": "Invalid filter values return empty queryset by default (no error). Invalid ChoiceFilter value excluded silently. NumberFilter with non-numeric value returns validation error in form context. DRF DjangoFilterBackend propagates FilterSet validation errors as 400 response when strict mode enabled.",
+    "idempotency_support": "full",
+    "idempotency_notes": "FilterSet filtering is read-only and deterministic — same query params produce same SQL WHERE. Idempotent by nature. Safe to retry filter requests.",
+    "pagination_style": "page",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "DEFAULT_FILTER_BACKENDS required in DRF settings — filter_backends = [DjangoFilterBackend] must be set per ViewSet OR in REST_FRAMEWORK['DEFAULT_FILTER_BACKENDS']; filterset_class on ViewSet without DjangoFilterBackend silently does nothing; agent list endpoints returning unfiltered results despite filterset_class is usually missing filter_backends",
+      "filterset_fields exact match only — filterset_fields = ['status'] generates exact equality filter; /api/agents/?status=act won't match 'active'; for contains/icontains filtering must use explicit FilterSet with CharFilter(lookup_expr='icontains'); agent teams expecting substring match from filterset_fields shorthand get zero results",
+      "Invalid filter values silently return empty queryset — ChoiceFilter with invalid choice and NumberFilter with non-numeric value return empty queryset without error in non-strict mode; agent API consumers sending typo filter values get empty list response thinking no agents exist; enable strict mode or add FilterSet validation for agent API correctness",
+      "RelatedFilter requires queryset parameter — RelatedFilter(AgentTaskFilter, queryset=AgentTask.objects.all()) needs explicit queryset; missing queryset causes TypeError; for authenticated-user-scoped querysets, use queryset=AgentTask.objects.none() and override get_queryset() in FilterSet __init__ for agent per-user filter scoping",
+      "OrderingFilter field names exposed publicly — OrderingFilter(fields=['name', 'created_at', 'secret_score']) exposes internal field names in API; consumers can sort by any listed field including sensitive internal fields; only expose agent fields intended for public sorting; use fields with tuple form: (('internal_name', 'public_name'),) for aliasing",
+      "django-filter version compatibility with Django — django-filter 24.x requires Django 4.2+; older agent Django projects need pinned django-filter version; check compatibility matrix; django-filter and DRF versions should both be pinned in agent requirements.txt to prevent unexpected behavior on upgrade"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 78,
+    "auth_complexity_score": 92,
+    "rate_limit_clarity_score": 92
+  },
+  "security_score_components": {
+    "tls_enforcement": 88,
+    "auth_strength": 85,
+    "scope_granularity": 80,
+    "dependency_hygiene": 88,
+    "secret_handling": 82,
+    "security_notes": "FilterSet fields are user-controlled query parameters — only expose fields safe for public filtering. Never expose internal fields (agent API keys, password hashes) in filterset_fields. Filter values are parameterized in ORM queries (SQL injection safe). RelatedFilter traversal can expose cross-user data if queryset not properly scoped to authenticated agent user."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 88,
+    "breaking_changes_history": 85,
+    "error_recovery": 85
+  }
+}

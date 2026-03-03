@@ -1,0 +1,106 @@
+{
+  "id": "django-allauth-api",
+  "name": "django-allauth",
+  "version_evaluated": "0.62.x",
+  "homepage": "https://django-allauth.readthedocs.io/",
+  "repo_url": "https://github.com/pennersr/django-allauth",
+  "category": "developer-tools",
+  "subcategories": ["authentication", "python", "django", "oauth", "social-auth"],
+  "tags": ["python", "django", "authentication", "oauth", "social-login", "allauth", "google", "github", "email-auth"],
+  "what_it_does": "Comprehensive Django authentication — handles local accounts (email/password), social OAuth (Google, GitHub, Facebook, 70+ providers), email verification, and headless API mode. django-allauth features: ACCOUNT_EMAIL_VERIFICATION ('mandatory'/'optional'/'none'), local registration with email confirmation, social auth via SocialApp model (stores OAuth app credentials), custom signup form, password change/reset flows, username/email login flexibility, headless mode for SPA/mobile (API JSON responses), email template customization, and multi-social account linking. Allauth headless provides /api/v1/auth/login, /signup, /social/login endpoints for agent SPA frontends. Replaces writing auth views from scratch.",
+  "use_cases": [
+    "Agent app Google OAuth — SOCIALACCOUNT_PROVIDERS = {'google': {'SCOPE': ['profile', 'email']}} with SocialApp record; users click 'Sign in with Google' for agent app; allauth handles OAuth callback, creates/connects account, and signs in agent user",
+    "Agent API headless auth — HEADLESS_ONLY=True with headless=True adapter; /api/v1/auth/signup, /api/v1/auth/login return JSON tokens; agent SPA frontend gets authentication API without Django session cookies; works with DRF token or JWT",
+    "Agent email verification flow — ACCOUNT_EMAIL_VERIFICATION='mandatory' sends confirmation email on signup; agent can't access app until email confirmed; allauth manages confirmation token, expiry, and resend flow without custom implementation",
+    "Agent social account linking — users can link Google and GitHub to same agent account; SOCIALACCOUNT_AUTO_SIGNUP=True creates account from social profile; email_address reconciliation prevents duplicate accounts when social email matches local registration",
+    "Custom agent signup fields — class AgentSignupForm(SignupForm) { def save(self, request, user) { user.agent_role = self.cleaned_data['role']; user.save() } } adds agent-specific fields to registration form via ACCOUNT_SIGNUP_FORM_CLASS"
+  ],
+  "not_for": [
+    "Simple username/password only — Django's built-in auth handles basic auth; allauth overhead not worth it for agent apps without social login or email verification",
+    "Fine-grained API permission scopes — allauth handles authentication; for agent API authorization use djangorestframework-simplejwt + custom permissions or django-guardian",
+    "Enterprise SSO (SAML, LDAP) — allauth supports OAuth2/OIDC social providers; for enterprise SAML SSO use python-saml or django-saml2-auth for agent enterprise deployments"
+  ],
+  "best_when": "Your Django agent app needs social OAuth (Google, GitHub) login or email verification — allauth handles the complete auth flow with 70+ providers and email management without custom code.",
+  "avoid_when": "You only need simple username/password auth (use Django built-in), enterprise SAML SSO, or very lightweight auth with just JWT tokens.",
+  "alternatives": ["social-auth-app-django-api", "django-oauth-toolkit-api", "dj-rest-auth-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["oauth", "bearer_token"],
+    "oauth": true,
+    "scopes": true,
+    "notes": "Provides authentication via OAuth social providers (Google, GitHub, etc.) and local email/password. Headless mode returns session tokens. Integrates with DRF token auth or SimpleJWT for agent API token issuance post-login."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "django-allauth is MIT licensed. Free for all use. OAuth providers (Google Cloud, GitHub) have their own free quotas."
+  },
+  "performance": {
+    "latency_p50_ms": 200,
+    "latency_p99_ms": 1000,
+    "uptime_sla_percent": null,
+    "rate_limits": "No allauth rate limits. OAuth provider API calls add 200-500ms latency for social login. Email sending adds async latency (configure Celery for agent background email). Login/registration views are standard Django views with DB queries.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 78,
+    "error_message_quality": 78,
+    "error_message_notes": "allauth form validation errors returned as Django form errors (HTML) or JSON in headless mode. SocialApp not found raises SocialApp.DoesNotExist with provider name. OAuth callback errors (state mismatch, code expired) surface as allauth exception with error code. Email already in use raises IntegrityError or validation error depending on ACCOUNT_UNIQUE_EMAIL setting.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Social login is idempotent — same OAuth callback connects to same account. Email confirmation link is single-use (not idempotent). Password reset link is single-use. Registration is idempotent if email already exists (returns error).",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "SocialApp must be created in Django admin — Google/GitHub OAuth requires SocialApp record in database with client_id and secret; missing SocialApp causes 'Requested provider does not exist' error; agent deployments must seed SocialApp records via fixture or management command alongside OAuth credentials",
+      "ACCOUNT_EMAIL_REQUIRED vs ACCOUNT_USERNAME_REQUIRED tension — allauth defaults differ from expected; ACCOUNT_AUTHENTICATION_METHOD='email' removes username requirement; ACCOUNT_EMAIL_REQUIRED=True with ACCOUNT_UNIQUE_EMAIL=True enforces email uniqueness; agent apps using email-based login must configure all three settings consistently",
+      "Headless mode requires separate URL configuration — allauth headless (0.56+) needs urlpatterns += [path('api/v1/auth/', include('allauth.headless.urls'))] separately from traditional urlpatterns; mixing headless and traditional allauth URLs causes duplicate URL names and routing conflicts in agent SPA backends",
+      "Social login requires callback URL registration — OAuth provider (Google Console, GitHub Settings) must whitelist agent callback URL https://agent.example.com/accounts/google/login/callback/; missing registration causes 'redirect_uri_mismatch' OAuth error; each environment (dev/staging/prod) needs separate OAuth app or registered callback",
+      "SOCIALACCOUNT_AUTO_SIGNUP=False breaks new social user flow — with False, new social login users are redirected to signup form to confirm details; agent apps expecting transparent social login get unexpected signup redirect; set True for frictionless agent social onboarding but ensure email collision handling",
+      "allauth email templates must be customized — allauth default email templates use generic placeholder text; agent apps shipping with default allauth email confirmation/password reset templates confuse users; customize templates in templates/account/email/ directory before launch; missing customization causes unprofessional agent onboarding emails"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 78,
+    "error_handling_score": 78,
+    "auth_complexity_score": 72,
+    "rate_limit_clarity_score": 82
+  },
+  "security_score_components": {
+    "tls_enforcement": 88,
+    "auth_strength": 85,
+    "scope_granularity": 80,
+    "dependency_hygiene": 85,
+    "secret_handling": 82,
+    "security_notes": "OAuth client secrets stored in SocialApp DB records — use Django SECRET_KEY encryption or store in environment variables with custom SocialApp adapter. ACCOUNT_EMAIL_VERIFICATION='mandatory' prevents unverified agent accounts. allauth includes CSRF protection for OAuth flow; use HTTPS for all auth endpoints. SocialToken (OAuth access tokens) stored in DB — implement cleanup job for expired tokens."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 78,
+    "version_stability": 78,
+    "breaking_changes_history": 70,
+    "error_recovery": 78
+  }
+}
