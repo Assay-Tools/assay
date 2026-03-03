@@ -1,0 +1,106 @@
+{
+  "id": "voluptuous-python-api",
+  "name": "voluptuous",
+  "version_evaluated": "0.14.x",
+  "homepage": "https://github.com/alecthomas/voluptuous",
+  "repo_url": "https://github.com/alecthomas/voluptuous",
+  "category": "developer-tools",
+  "subcategories": ["validation", "python", "schema", "data-quality"],
+  "tags": ["python", "voluptuous", "validation", "schema", "data-validation", "homeassistant"],
+  "what_it_does": "Data validation library for Python using a schema-as-code approach — validates and coerces data with callable schemas. voluptuous features: Schema() class wrapping Python structures (dicts, lists, callables), Required/Optional/Exclusive markers for dict keys, validators as callables (str, int, All, Any, Range, Length, Match, Url, Email), coerce=True for type conversion, extra=PREVENT_EXTRA/ALLOW_EXTRA/REMOVE_EXTRA for unknown keys, humanize_errors() for readable messages, and nested schema composition. Widely used in Home Assistant configuration. Schema-as-Python-code (no YAML/JSON schema format).",
+  "use_cases": [
+    "Agent dict validation — from voluptuous import Schema, Required, Optional, All, Range; schema = Schema({Required('host'): str, Required('port'): All(int, Range(min=1, max=65535)), Optional('timeout', default=30): int}); schema({'host': 'localhost', 'port': 8080}) — valid; schema({}) — raises MultipleInvalid — inline Python schema definition; agent validates config dicts at startup",
+    "Agent coercion with validation — from voluptuous import Schema, Coerce; schema = Schema({'count': Coerce(int), 'ratio': Coerce(float)}); result = schema({'count': '42', 'ratio': '0.5'}) — {'count': 42, 'ratio': 0.5} — Coerce converts strings to types; agent handles JSON where numbers arrive as strings; coercion before type validation",
+    "Agent union types — from voluptuous import Schema, Any; schema = Schema({'value': Any(str, int, None)}); schema({'value': 'hello'}) — valid; schema({'value': 42}) — valid; schema({'value': None}) — valid; Any() accepts multiple types; agent flexible config fields that accept string or number",
+    "Agent nested validation — from voluptuous import Schema, Required; schema = Schema({Required('user'): {Required('name'): str, Required('email'): str}, 'settings': {'debug': bool}}); nested dict validation; schema validates structure recursively; agent validates complex nested API payloads",
+    "Agent extra keys handling — from voluptuous import Schema, REMOVE_EXTRA; schema = Schema({'name': str}, extra=REMOVE_EXTRA); result = schema({'name': 'Alice', 'unknown': 'ignored'}) — {'name': 'Alice'} — extra keys silently removed; agent sanitizes input by stripping unknown fields; PREVENT_EXTRA raises on unknown keys"
+  ],
+  "not_for": [
+    "Class-based models — voluptuous validates dicts only; for dataclass/model validation use pydantic",
+    "JSON Schema standard — voluptuous has its own schema DSL; for JSON Schema compatibility use jsonschema",
+    "Complex interdependencies — voluptuous has limited cross-field validation; for complex conditional rules use cerberus"
+  ],
+  "best_when": "Validating Python configuration dicts with type coercion — voluptuous's schema-as-code approach integrates naturally with Python without YAML/JSON schema files, widely used in Home Assistant ecosystem.",
+  "avoid_when": "You need class-based models (use pydantic), JSON Schema (use jsonschema), or rich error reporting (use cerberus).",
+  "alternatives": ["cerberus-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — pure Python validation library."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, BSD licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "voluptuous is BSD licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Performance: pure Python validation. Schema compilation happens once at Schema() instantiation. Validation call is fast for simple schemas. Suitable for config validation at startup — not recommended for hot-path per-request validation at high throughput.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 82,
+    "error_message_quality": 80,
+    "error_message_notes": "MultipleInvalid raised on validation failure with path and message. humanize_errors() converts to readable string. error.path shows which field failed. error.msg describes the failure. Multiple errors aggregated in MultipleInvalid.errors list.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Schema validation is pure — same input always produces same output or exception. Schema instances are stateless and reusable. Coerce produces consistent type conversions for same inputs.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Schema raises MultipleInvalid not ValidationError — except voluptuous.MultipleInvalid as e: is required; agent code using except Exception will catch it but str(e) may be cryptic; use voluptuous.humanize.humanize_errors(document, e, schema) for user-friendly messages",
+      "Required vs Optional default behavior — Schema({Required('k'): str})({}) raises MultipleInvalid for missing 'k'; Schema({'k': str})({}) — 'k' is optional by default (without Required); agent code: voluptuous default for dict keys is OPTIONAL not Required; must explicitly wrap with Required() for mandatory fields",
+      "extra=PREVENT_EXTRA is not the default — Schema({'name': str})({'name': 'a', 'extra': 'b'}) does NOT raise by default; unknown keys pass through; agent code expecting strict input must set: Schema({...}, extra=PREVENT_EXTRA); or use REMOVE_EXTRA to silently strip unknown fields",
+      "Coerce vs Python type in schema — Schema({'n': int}) validates that n IS already an int; Schema({'n': Coerce(int)}) converts n to int if possible; agent code receiving JSON strings needs Coerce; using raw int type fails for string '42' with 'expected int' error",
+      "List validation syntax — Schema([str]) validates all items are strings; Schema([int, str]) validates items are int OR str (Any); Schema([{'name': str}]) validates list of matching dicts; agent code for list of exact type: use Schema([str]) not Schema(list) which only checks type",
+      "Schema callable accepts single arg — all validators in voluptuous are callables taking a single value; custom validator: def positive(v): if v <= 0: raise Invalid('must be positive'); return v; use in schema as: {'score': positive}; raise voluptuous.Invalid not standard exceptions"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 82,
+    "error_handling_score": 80,
+    "auth_complexity_score": 99,
+    "rate_limit_clarity_score": 99
+  },
+  "security_score_components": {
+    "tls_enforcement": 92,
+    "auth_strength": 92,
+    "scope_granularity": 90,
+    "dependency_hygiene": 90,
+    "secret_handling": 90,
+    "security_notes": "Validation library for enforcing input constraints. No network calls. Avoid using voluptuous.Match() with user-controlled regex patterns — ReDoS risk. Schema instances should be built from trusted code, not user input."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 82,
+    "version_stability": 85,
+    "breaking_changes_history": 85,
+    "error_recovery": 85
+  }
+}

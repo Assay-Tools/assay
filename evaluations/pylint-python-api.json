@@ -1,0 +1,106 @@
+{
+  "id": "pylint-python-api",
+  "name": "pylint",
+  "version_evaluated": "3.x",
+  "homepage": "https://pylint.readthedocs.io/",
+  "repo_url": "https://github.com/pylint-dev/pylint",
+  "category": "developer-tools",
+  "subcategories": ["linting", "python", "static-analysis", "code-quality"],
+  "tags": ["python", "pylint", "linter", "static-analysis", "code-quality", "type-checking"],
+  "what_it_does": "Comprehensive Python static code analyzer — checks for errors, enforces coding standards, and detects code smells. pylint features: error detection (undefined names, wrong types, attribute errors), convention violations (PEP 8, naming), refactoring hints (too-many-arguments, too-complex), warning detection, score out of 10, message categorization (C/R/W/E/F), --disable/--enable for selective rules, pylintrc/pyproject.toml configuration, plugin system (pylint-django, pylint-celery), --output-format for CI integration, --fail-under for quality gates, and --jobs for parallel linting. More thorough than flake8 but slower.",
+  "use_cases": [
+    "Agent code quality gate — subprocess.run(['pylint', '--fail-under=8.0', 'src/'], check=True) — fail if score below 8.0; agent CI pipeline enforces minimum code quality; --fail-under sets threshold; exit code 0 for pass, 4 for score too low; integrate in pre-commit or CI",
+    "Agent targeted linting — subprocess.run(['pylint', '--disable=all', '--enable=E', 'src/agent.py'], capture_output=True) — errors only; agent runs pylint only for error-class messages (E prefix); disables convention/refactoring/warning noise; focused on actual bugs",
+    "Agent pylint output parsing — result = subprocess.run(['pylint', '--output-format=json', 'src/'], capture_output=True, text=True); issues = json.loads(result.stdout); errors = [i for i in issues if i['type'] == 'error'] — JSON output for programmatic processing; agent analyzes lint results to identify files needing attention",
+    "Agent pre-commit lint — in .pre-commit-config.yaml: repos: - repo: local, hooks: - id: pylint, entry: pylint, language: system, types: [python] — pre-commit integration; agent-developed code linted before commit; pylint as quality gate in development workflow",
+    "Agent module scoring — result = subprocess.run(['pylint', 'src/'], capture_output=True, text=True); score_line = [l for l in result.stdout.split('\\n') if 'rated at' in l][0]; score = float(re.search(r'([0-9.]+)/10', score_line).group(1)) — extract score; agent tracks code quality score over time; regression detection when score drops"
+  ],
+  "not_for": [
+    "Fast lightweight linting — pylint is slower than flake8/ruff; for fast linting use ruff (100x faster)",
+    "Style-only linting — pylint does much more than style; for PEP 8 style only use pycodestyle or ruff",
+    "Runtime type checking — pylint does static analysis without executing code; for runtime validation use beartype or typeguard"
+  ],
+  "best_when": "Comprehensive Python code quality analysis — pylint's thorough checks catch real bugs (undefined variables, wrong method signatures) that faster linters miss, worth the slower runtime for CI pipelines.",
+  "avoid_when": "You need fast linting (use ruff), style-only checks (use pycodestyle), or runtime type checking (use beartype).",
+  "alternatives": ["ruff-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — local CLI tool and Python library."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, GPL-2.0 licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "pylint is GPL-2.0 licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Performance: pylint is significantly slower than ruff or flake8 — 10-100x slower for same codebase. Large codebases: --jobs=4 for parallel processing. Typical small project: 5-30 seconds. Large monorepo: minutes. Use --from-stdin for editor integration to avoid re-reading files.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 90,
+    "error_message_notes": "Messages include message code (C0001, W0001, E0001, R0001, F0001), symbolic name (undefined-variable), file:line:column, and human-readable description. --output-format=json provides machine-parseable output. Score displayed as X.XX/10 in summary.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Same code always produces same pylint output. pylint has no side effects. Idempotent for CI use — same commit always gets same score.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Exit codes are bitmask not simple pass/fail — pylint exit code 0: no errors; exit code 1: fatal message; exit code 2: error message; exit code 4: warning; exit code 8: refactor; exit code 16: convention; codes are bitwise ORed; exit code 28 means error+refactor+convention; agent CI using check=True fails on any non-zero exit; use subprocess.run(['pylint', ...]) and check returncode manually",
+      "False positives on dynamic attributes — pylint E1101 'has no member' for dynamically-added attributes (SQLAlchemy columns, Django fields, dataclasses); agent code using ORM models gets many false positives; disable with # pylint: disable=no-member or use pylint-django/pylint-sqlalchemy plugins",
+      "pylintrc must be in project root or home — pylint searches for pylintrc from current directory upward; agent invoking pylint from different directory may not find config; use --rcfile=/path/to/.pylintrc explicitly; or pyproject.toml [tool.pylint] section in project root",
+      "Inline disable comments are verbose — # pylint: disable=too-many-arguments for one line; # pylint: disable=too-many-arguments at top of function disables for whole function; # pylint: disable=too-many-arguments ... # pylint: enable=too-many-arguments for block; agent code review tools must understand these comments",
+      "--jobs parallel mode may miss some checks — pylint --jobs=4 runs worker processes but some cross-module checks require single process; agent CI using --jobs for speed should verify all checks run; --jobs=0 uses CPU count automatically; certain import-graph checks work only in single-process mode",
+      "pylint score can be gamed by disabling messages — disabling many checks artificially raises score; agent using pylint score as quality metric must audit which messages are disabled in pylintrc; a project with score 10.0 but disable-all in config has no quality signal; check enabled messages not just score"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 90,
+    "auth_complexity_score": 99,
+    "rate_limit_clarity_score": 99
+  },
+  "security_score_components": {
+    "tls_enforcement": 92,
+    "auth_strength": 92,
+    "scope_granularity": 90,
+    "dependency_hygiene": 88,
+    "secret_handling": 92,
+    "security_notes": "Static analysis tool that can catch security-relevant code issues (e.g., undefined variable used as SQL query). No network calls during analysis. GPL-2.0 license — check compatibility if distributing pylint as part of commercial tooling. Use pylint-security plugin for additional security checks."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 85,
+    "breaking_changes_history": 82,
+    "error_recovery": 88
+  }
+}

@@ -1,0 +1,106 @@
+{
+  "id": "aioredis-python-api",
+  "name": "aioredis",
+  "version_evaluated": "2.x",
+  "homepage": "https://aioredis.readthedocs.io/",
+  "repo_url": "https://github.com/aio-libs/aioredis-py",
+  "category": "developer-tools",
+  "subcategories": ["redis", "python", "async", "caching", "asyncio"],
+  "tags": ["python", "aioredis", "redis", "async", "asyncio", "cache", "pub-sub"],
+  "what_it_does": "Async Redis client for Python asyncio — provides non-blocking Redis operations in coroutines. aioredis 2.x was merged into redis-py 4.x as the async interface: from redis.asyncio import Redis. aioredis features: async/await Redis commands, connection pools, pub/sub with subscribe()/listen(), pipeline support, Lua scripting, streams, sorted sets, hashes, full Redis command coverage, SSL/TLS support, RESP3 protocol, and sentinel support. Note: standalone aioredis package is deprecated — redis-py 4.x+ is the recommended replacement with from redis.asyncio import Redis.",
+  "use_cases": [
+    "Agent async Redis — from redis.asyncio import Redis; r = Redis(host='localhost', decode_responses=True); await r.set('key', 'value'); value = await r.get('key') — modern aioredis usage via redis-py 4.x; agent async operations don't block event loop; same API as sync redis-py but awaitable",
+    "Agent async connection pool — from redis.asyncio import ConnectionPool, Redis; pool = ConnectionPool(host='localhost', max_connections=20, decode_responses=True); r = Redis(connection_pool=pool); await r.set('session:123', json.dumps(data), ex=3600) — shared connection pool; agent FastAPI app with multiple concurrent requests shares pool; max_connections limits Redis connections",
+    "Agent async pub/sub — from redis.asyncio import Redis; r = Redis(); async with r.pubsub() as ps: await ps.subscribe('agent_events'); async for message in ps.listen(): if message['type'] == 'message': process(message['data']) — async pub/sub listener; agent subscribes to event channel; listen() yields message dicts with type, channel, data keys",
+    "Agent async pipeline — from redis.asyncio import Redis; r = Redis(); async with r.pipeline(transaction=True) as pipe: await pipe.get('key1'); await pipe.get('key2'); results = await pipe.execute() — async pipeline batches commands; agent bulk reads execute atomically with MULTI/EXEC; transaction=False for non-atomic batching",
+    "Agent async cache with TTL — from redis.asyncio import Redis; r = Redis(decode_responses=True); async def get_cached(key, ttl=300): if (cached := await r.get(key)): return json.loads(cached); data = await fetch_from_db(key); await r.setex(key, ttl, json.dumps(data)); return data — async cache-aside pattern; agent checks Redis before database query; setex sets TTL atomically"
+  ],
+  "not_for": [
+    "Sync Python code — use redis-py (redis.Redis) for synchronous code; aioredis requires asyncio",
+    "Standalone package (aioredis<2) — aioredis was merged into redis-py 4.x; use from redis.asyncio import Redis instead of standalone aioredis",
+    "Non-Redis data stores — aioredis is Redis-specific; for async PostgreSQL use asyncpg, for async MySQL use aiomysql"
+  ],
+  "best_when": "Async Python applications (FastAPI, aiohttp) needing Redis — redis-py 4.x asyncio interface is the modern replacement for standalone aioredis with full async support and active maintenance.",
+  "avoid_when": "Synchronous code (use redis-py), non-Redis databases, or if still using aioredis < 2.x (upgrade to redis-py 4.x).",
+  "alternatives": ["hiredis-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["password", "tls"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Redis AUTH via password= parameter. TLS via ssl=True or ssl_context. ACL users via username= + password= for Redis 6+. No OAuth — Redis-native auth only."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "aioredis/redis-py is MIT licensed. Free for all use. Redis server itself has various licensing (SSPL for 7.4+)."
+  },
+  "performance": {
+    "latency_p50_ms": 1,
+    "latency_p99_ms": 5,
+    "uptime_sla_percent": null,
+    "rate_limits": "No client rate limits. Redis server limits: maxmemory and maxmemory-policy config. Async pipeline: 1000 commands in single pipeline vs individual: 10-50x faster (network round-trip reduction). Connection pool: reuse connections to avoid handshake overhead per request.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted", "cloud"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 85,
+    "error_message_notes": "redis.exceptions.ConnectionError for connection failures. redis.exceptions.AuthenticationError for auth failures. redis.exceptions.ResponseError for Redis command errors. redis.exceptions.TimeoutError for slow responses. All are redis.RedisError subclasses.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "SET is idempotent. INCR/DECR are not idempotent. SETNX (SET NX option) is idempotent — only sets if not exists. DEL is idempotent. Commands are as idempotent as Redis commands themselves.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "aioredis is deprecated — standalone aioredis package (versions < 2.0) is deprecated; modern usage is: from redis.asyncio import Redis (redis-py 4.x+); agent code with 'import aioredis' should migrate to redis.asyncio; pip install redis replaces pip install aioredis",
+      "decode_responses=True required for string values — Redis stores bytes by default; without decode_responses=True: await r.get('key') returns b'value' not 'value'; agent code comparing bytes to strings silently fails; set decode_responses=True at connection time for consistent string handling",
+      "Connection pool not automatically closed — async with Redis(...) as r: closes the connection but not the pool; agent code in FastAPI lifespan must: await pool.disconnect() on shutdown; leaked pools exhaust Redis connections over time especially in testing",
+      "pubsub listen() yields keepalive messages — async for msg in ps.listen() yields {'type': 'subscribe', ...} on subscribe and {'type': 'pong', ...} for keepalives; agent code must filter: if msg['type'] == 'message': process(); otherwise processes internal messages as data",
+      "pipeline in transaction mode requires WATCH — async with r.pipeline(transaction=True) as pipe: executes MULTI/EXEC; for optimistic locking: await pipe.watch('key'); value = await r.get('key'); pipe.multi(); pipe.set('key', new_value); await pipe.execute() — pipeline.watch() then get outside pipeline then multi(); common misuse causes transaction without watch",
+      "Async context manager required for pubsub — async with r.pubsub() as ps: ensures cleanup; ps = r.pubsub() without async with leaks subscription connections; agent code must use async with for pubsub, or explicitly call await ps.unsubscribe() and await ps.aclose() in finally block"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 85,
+    "auth_complexity_score": 90,
+    "rate_limit_clarity_score": 95
+  },
+  "security_score_components": {
+    "tls_enforcement": 88,
+    "auth_strength": 85,
+    "scope_granularity": 82,
+    "dependency_hygiene": 88,
+    "secret_handling": 85,
+    "security_notes": "Always use TLS (ssl=True) in production for Redis connections. Use Redis ACL users (redis 6+) for fine-grained permissions. Never store sensitive data in Redis without encryption at application level — Redis is in-memory and not encrypted at rest by default. Protect connection strings — password in URL is plaintext."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 85,
+    "version_stability": 85,
+    "breaking_changes_history": 80,
+    "error_recovery": 85
+  }
+}

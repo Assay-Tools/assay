@@ -1,0 +1,106 @@
+{
+  "id": "pymysql-python-api",
+  "name": "PyMySQL",
+  "version_evaluated": "1.x",
+  "homepage": "https://pymysql.readthedocs.io/",
+  "repo_url": "https://github.com/PyMySQL/PyMySQL",
+  "category": "developer-tools",
+  "subcategories": ["mysql", "python", "database", "sql"],
+  "tags": ["python", "pymysql", "mysql", "mariadb", "database", "sql", "db-api"],
+  "what_it_does": "Pure Python MySQL/MariaDB client implementing DB-API 2.0 — provides synchronous MySQL database connections without C extensions. PyMySQL features: connect() for connections, cursor() for queries, execute()/executemany() with parameterized queries, fetchone()/fetchall()/fetchmany(), DictCursor for dict row results, SSCursor for server-side streaming cursors, autocommit control, transaction management (commit/rollback), connection pooling via DBUtils, charset/collation configuration, SSL/TLS support, and compatibility mode for MySQLdb. Drop-in replacement for MySQLdb where C extension is unavailable.",
+  "use_cases": [
+    "Agent MySQL query — import pymysql; conn = pymysql.connect(host='localhost', user='agent', password='pass', database='db', charset='utf8mb4', cursorclass=pymysql.cursors.DictCursor); with conn.cursor() as cursor: cursor.execute('SELECT * FROM tasks WHERE status=%s', ('pending',)); rows = cursor.fetchall(); conn.close() — parameterized query; agent reads tasks from MySQL; DictCursor returns dicts not tuples",
+    "Agent write with transaction — with conn.cursor() as cursor: cursor.execute('INSERT INTO events (type, data) VALUES (%s, %s)', (event_type, json.dumps(data))); conn.commit() — explicit commit required; agent writes event with transaction; autocommit=False by default; rollback() on exception",
+    "Agent bulk insert — with conn.cursor() as cursor: cursor.executemany('INSERT INTO records (key, value) VALUES (%s, %s)', [(k, v) for k, v in items.items()]); conn.commit() — batch insert; agent bulk-loads data via executemany; single round-trip for many rows",
+    "Agent streaming large results — with conn.cursor(pymysql.cursors.SSCursor) as cursor: cursor.execute('SELECT * FROM large_table'); while (row := cursor.fetchone()): process(row) — server-side cursor; agent processes large result sets without loading all into memory; SSCursor fetches row-by-row from server",
+    "Agent connection pool — from dbutils.pooled_db import PooledDB; pool = PooledDB(creator=pymysql, maxconnections=10, host='localhost', user='agent', database='db'); conn = pool.connection(); cursor = conn.cursor() — DBUtils connection pool; agent reuses connections in multi-threaded server; PooledDB manages connect/reconnect"
+  ],
+  "not_for": [
+    "Async code — PyMySQL is synchronous only; for async MySQL use aiomysql (which wraps PyMySQL)",
+    "High-performance production — mysqlclient (C extension) is 3-5x faster than PyMySQL; for performance-critical apps use mysqlclient",
+    "PostgreSQL/SQLite — PyMySQL is MySQL/MariaDB only; for PostgreSQL use psycopg2, for SQLite use built-in sqlite3"
+  ],
+  "best_when": "Pure Python MySQL access without C extension compilation — Docker environments, minimal containers, or when mysqlclient compilation fails; also used as the sync backend for aiomysql.",
+  "avoid_when": "Async code (use aiomysql), performance-critical apps (use mysqlclient), PostgreSQL (use psycopg2).",
+  "alternatives": ["aiomysql-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["password", "tls"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "MySQL user/password authentication. SSL/TLS via ssl parameter. No OAuth — MySQL native auth (mysql_native_password, caching_sha2_password). IAM auth for cloud MySQL via token in password field."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "PyMySQL is MIT licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 2,
+    "latency_p99_ms": 20,
+    "uptime_sla_percent": null,
+    "rate_limits": "No client rate limits. MySQL server limits: max_connections, query_cache. PyMySQL is 3-5x slower than mysqlclient (C extension) for same queries. SSCursor for large results avoids memory exhaustion. Use connection pooling (DBUtils) to avoid connection overhead per request.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted", "cloud"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 85,
+    "error_message_notes": "pymysql.err.OperationalError for connection failures and lock issues. pymysql.err.ProgrammingError for SQL syntax errors. pymysql.err.IntegrityError for constraint violations. pymysql.err.DatabaseError for general DB errors. All expose MySQL error code in err.args[0].",
+    "idempotency_support": "partial",
+    "idempotency_notes": "SELECT queries are idempotent. INSERT is not idempotent (use INSERT IGNORE or INSERT ... ON DUPLICATE KEY UPDATE for idempotency). DELETE is idempotent. UPDATE is idempotent if setting absolute values.",
+    "pagination_style": "offset",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "autocommit=False by default — PyMySQL does NOT auto-commit; agent code inserting/updating data must call conn.commit(); without commit(), changes are rolled back on connection close; set autocommit=True at connect() for auto-commit per statement (not recommended for multi-statement transactions)",
+      "Use %s placeholder not ? or format strings — cursor.execute('SELECT * FROM t WHERE id=%s', (id,)) is correct; cursor.execute(f'SELECT * FROM t WHERE id={id}') is SQL injection; PyMySQL uses %s for all types including integers; the second arg must be a tuple: (value,) not just value",
+      "DictCursor must be specified per cursor — pymysql.connect(cursorclass=DictCursor) sets default; individual cursors: conn.cursor(DictCursor) overrides; without DictCursor: fetchall() returns list of tuples not dicts; agent code expecting dict access fails silently with tuple index errors",
+      "Connection not thread-safe — single PyMySQL connection must not be shared across threads; agent multi-threaded server must use connection pool (DBUtils.PooledDB) or create connection per thread; sharing connection causes 'Commands out of sync' MySQL errors or data corruption",
+      "SSCursor requires complete iteration — server-side cursor (SSCursor) holds server result set; calling cursor.close() before fetching all rows cancels query but next query may fail; agent code using SSCursor must fully iterate or explicitly close cursor; use regular cursor for queries where you want fetchall() or early exit",
+      "Reconnect not automatic — if MySQL connection drops (timeout, restart), pymysql.err.OperationalError 2006 'MySQL server has gone away'; agent code must handle reconnect: close old connection and create new one; or use ping(reconnect=True) before queries in long-running agents; connection pools handle this automatically"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 85,
+    "auth_complexity_score": 90,
+    "rate_limit_clarity_score": 92
+  },
+  "security_score_components": {
+    "tls_enforcement": 88,
+    "auth_strength": 85,
+    "scope_granularity": 85,
+    "dependency_hygiene": 90,
+    "secret_handling": 85,
+    "security_notes": "ALWAYS use parameterized queries (%s placeholders) — never string format SQL. Use TLS (ssl parameter) for network MySQL connections. Store credentials in environment variables not code. Principle of least privilege: create MySQL user with only needed permissions. PyMySQL pure Python is auditable for security review."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 85,
+    "version_stability": 88,
+    "breaking_changes_history": 88,
+    "error_recovery": 85
+  }
+}
