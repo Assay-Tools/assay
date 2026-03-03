@@ -1,0 +1,106 @@
+{
+  "id": "dacite-python-api",
+  "name": "dacite",
+  "version_evaluated": "1.x",
+  "homepage": "https://github.com/konradhalas/dacite",
+  "repo_url": "https://github.com/konradhalas/dacite",
+  "category": "developer-tools",
+  "subcategories": ["data-validation", "python", "dataclasses", "deserialization", "type-safety"],
+  "tags": ["python", "dacite", "dataclasses", "deserialization", "type-safety", "json", "validation"],
+  "what_it_does": "Python dataclass deserialization library — converts dicts/JSON into typed Python dataclasses with validation. dacite features: from_dict(DataClass, data_dict) converts nested dicts to dataclasses, strict=True rejects unknown keys, type_hooks for custom type conversion ({str: str.strip}), forward references support, Union type handling, Optional detection, nested dataclass support, and config object for transformation rules. Fills the gap between Python dataclasses (no built-in deserialization) and heavier ORMs/validators like Pydantic — useful for agent code parsing structured LLM responses or API payloads into typed dataclasses.",
+  "use_cases": [
+    "Agent structured LLM output parsing — @dataclass class AgentPlan: steps: List[str]; tool: str; confidence: float; plan = from_dict(AgentPlan, llm_json_response) — converts LLM JSON output into typed dataclass; agent code works with typed object not raw dict",
+    "Agent API response typing — @dataclass class SearchResult: url: str; title: str; snippet: str; results = [from_dict(SearchResult, r) for r in api_response['items']] — type-safe search results without Pydantic overhead; agent tool responses deserialized to dataclasses",
+    "Agent config loading — @dataclass class AgentConfig: model: str; temperature: float; max_tokens: int = 2048; config = from_dict(AgentConfig, yaml.safe_load(config_file)) — YAML/JSON config files loaded as typed dataclasses; IDE autocomplete and type checking on agent config",
+    "Nested agent data structures — @dataclass class Task: agent: Agent; tools: List[Tool]; task = from_dict(Task, raw_data, Config(strict=True)) — recursive dataclass deserialization; strict=True catches unexpected API response fields for agent data validation",
+    "Type coercion for agent data — from_dict(Agent, data, Config(type_hooks={datetime: datetime.fromisoformat})) converts ISO string timestamps to datetime objects; agent data from APIs with string dates converted without manual parsing"
+  ],
+  "not_for": [
+    "Full validation with error messages — dacite raises DaciteError but doesn't provide Pydantic-style field-level validation errors; for agent data with complex validation rules use Pydantic",
+    "Schema serialization/deserialization — dacite only deserializes (dict→dataclass); for dict output from dataclass use dataclasses.asdict(); for full schema use Pydantic or marshmallow",
+    "Performance-critical deserialization — dacite uses Python reflection; for high-throughput agent deserialization use msgspec or cattrs which are C-optimized"
+  ],
+  "best_when": "Your Python agent code uses dataclasses (not Pydantic) and needs clean dict-to-dataclass conversion for LLM response parsing, API payloads, or config loading without pulling in Pydantic.",
+  "avoid_when": "You need validation rules, serialization, high performance, or are already using Pydantic — dacite is specifically for dataclass deserialization only.",
+  "alternatives": ["pydantic-v2-api", "cattrs-python-api", "marshmallow-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — local Python library."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "dacite is MIT licensed, maintained by Konrad Halas. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 0,
+    "latency_p99_ms": 0,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — in-process deserialization. dacite uses Python reflection (slower than C-extension libs). For agent high-throughput deserialization (>10K objects/sec), prefer cattrs or msgspec.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 80,
+    "error_message_quality": 75,
+    "error_message_notes": "dacite.exceptions.WrongTypeError shows field name and expected vs actual type. dacite.exceptions.MissingValueError shows required field name. dacite.exceptions.UnionMatchError for Union type mismatch. Nested errors show path (e.g., 'task.agent.name'). Errors not as detailed as Pydantic ValidationError.",
+    "idempotency_support": "full",
+    "idempotency_notes": "from_dict() is fully idempotent — same dict + same dataclass = same object. Pure function with no side effects.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Optional fields require default value — @dataclass class Agent: name: str; status: Optional[str] = None; dacite doesn't auto-provide None for Optional without default; agent dataclasses with Optional fields must have default=None or from_dict raises MissingValueError if key absent in dict",
+      "List of dataclasses requires explicit type annotation — tools: List[Tool] works; tools: list works but gives List[Any] without type checking; agent dataclasses must use fully typed annotations for dacite to recursively deserialize nested dataclasses; bare list type skips nested deserialization",
+      "strict=True required to catch LLM response drift — without strict mode, extra keys in dict (from LLM response adding new fields) are silently ignored; agent code using dacite without strict=True misses LLM response schema changes; use strict=True in agent parsing and catch DaciteError to detect schema drift",
+      "Union types require explicit ordering — Union[str, int] tries str first, then int; Union[int, str] tries int first; agent data with ambiguous Union types (API returning either string or number) must order Union by most specific type first; wrong order causes wrong type coercion",
+      "No forward reference support in older Python — @dataclass class Task: agent: 'Agent' (string annotation for forward ref) requires from __future__ import annotations or from_dict with types.get_type_hints(); agent code with circular dataclass references needs explicit type resolution in from_dict call",
+      "from_dict doesn't validate constraint logic — dacite checks types not values; from_dict(Agent, {'confidence': 1.5}) succeeds even if confidence should be 0.0-1.0; agent data validation beyond types requires explicit post-init __post_init__ in dataclass or pre-validation before from_dict"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 78,
+    "error_handling_score": 72,
+    "auth_complexity_score": 98,
+    "rate_limit_clarity_score": 98
+  },
+  "security_score_components": {
+    "tls_enforcement": 95,
+    "auth_strength": 95,
+    "scope_granularity": 92,
+    "dependency_hygiene": 90,
+    "secret_handling": 95,
+    "security_notes": "Local deserialization library — no network access. dacite doesn't sanitize input data — validate agent API responses before from_dict if data comes from untrusted sources. strict=True prevents unexpected data injection via unknown keys."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 80,
+    "version_stability": 82,
+    "breaking_changes_history": 82,
+    "error_recovery": 80
+  }
+}

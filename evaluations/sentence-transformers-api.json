@@ -1,0 +1,106 @@
+{
+  "id": "sentence-transformers-api",
+  "name": "Sentence Transformers",
+  "version_evaluated": "3.x",
+  "homepage": "https://www.sbert.net/",
+  "repo_url": "https://github.com/UKPLab/sentence-transformers",
+  "category": "ai-ml",
+  "subcategories": ["embeddings", "nlp", "vector-search", "python", "rag"],
+  "tags": ["python", "embeddings", "sentence-transformers", "nlp", "vector-search", "rag", "semantic-search", "sbert"],
+  "what_it_does": "Python library for sentence/text embeddings — generates dense vector representations of text using pretrained transformer models. Sentence Transformers features: SentenceTransformer model loading (from HuggingFace Hub), model.encode(texts) for batch embedding, semantic similarity (util.cos_sim), paraphrase mining, semantic search (util.semantic_search), cross-encoder reranking, fine-tuning support, 100+ pretrained models (all-MiniLM-L6-v2, all-mpnet-base-v2, BGE models), GPU acceleration, and multi-GPU support. Core library for building RAG pipelines and semantic search without OpenAI embedding API calls.",
+  "use_cases": [
+    "Agent RAG embedding — model = SentenceTransformer('all-MiniLM-L6-v2'); doc_embeddings = model.encode(documents, batch_size=32, show_progress_bar=True); agent knowledge base embedded locally without API costs; 100M tokens/day free with local model",
+    "Agent semantic search — query_emb = model.encode(user_query); results = util.semantic_search(query_emb, doc_embeddings, top_k=5) — agent retrieves top-5 most semantically similar documents; no vector database needed for small agent knowledge bases",
+    "Agent query-document reranking — cross_encoder = CrossEncoder('cross-encoder/ms-marco-MiniLM-L-6-v2'); scores = cross_encoder.predict([(query, doc) for doc in candidates]) — reranks agent retrieved documents for accuracy; bi-encoder retrieval + cross-encoder reranking improves agent RAG quality",
+    "Agent embedding caching — embeddings = model.encode(texts, batch_size=64, convert_to_tensor=True); torch.save(embeddings, 'cache.pt') — precompute and cache agent knowledge base embeddings; load from cache on restart without re-encoding",
+    "Agent multilingual embeddings — model = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2'); embeds French query and English docs in same vector space; agent supports multilingual semantic search without separate per-language models"
+  ],
+  "not_for": [
+    "Ultra-low latency (<10ms) embeddings — transformer models take 5-50ms per batch; for sub-10ms embedding use smaller models or API caching",
+    "Production scale without GPU — CPU inference for large batches is slow; for high-throughput agent embedding production use GPU instance or OpenAI/Cohere API",
+    "Token-level tasks — Sentence Transformers produces sentence-level embeddings; for token classification, NER, or span extraction use HuggingFace transformers directly"
+  ],
+  "best_when": "Building agent RAG pipelines, semantic search, or semantic similarity features locally without OpenAI API costs — Sentence Transformers provides state-of-the-art embeddings with 100+ pretrained models, free inference, and no API rate limits.",
+  "avoid_when": "You need ultra-low latency, don't have GPU for production scale, or need token-level NLP tasks.",
+  "alternatives": ["openai-api", "cohere-api", "voyageai-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth for local inference. HuggingFace Hub login (huggingface-cli login) required for private/gated models. Public models (all-MiniLM-L6-v2) download without auth."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free for local inference. Model weights downloaded from HuggingFace (free). Compute costs are your own hardware.",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Sentence Transformers is Apache 2.0 licensed. Models on HuggingFace Hub are individually licensed (most MIT/Apache). No API costs — runs locally."
+  },
+  "performance": {
+    "latency_p50_ms": 20,
+    "latency_p99_ms": 200,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — local inference. CPU: ~50-200ms per batch of 32 sentences. GPU (T4): ~5-20ms per batch of 32. Model size: all-MiniLM-L6-v2 is 80MB (fast), all-mpnet-base-v2 is 420MB (better quality). First call downloads model weights (one-time).",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 80,
+    "error_message_notes": "Model download failures show HuggingFace Hub errors. CUDA out of memory shows with batch size too large. OSError if model name doesn't exist on HuggingFace Hub. Shape mismatch errors if mixing embeddings from different models. RuntimeError if CUDA not available but device='cuda' specified.",
+    "idempotency_support": "full",
+    "idempotency_notes": "model.encode() is deterministic — same text + same model = same embedding. Fully idempotent. Model weights cached locally after first download. GPU/CPU device doesn't affect output values (minor floating point differences).",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Model downloaded on first encode() call — SentenceTransformer('all-MiniLM-L6-v2') loads model on init; model.encode() triggers download if not cached; agent production containers must pre-download models during Docker build or first startup takes 30-120 seconds; use huggingface-cli download in Dockerfile",
+      "Batch size affects memory not quality — model.encode(texts, batch_size=32) processes 32 texts at once; larger batch_size faster but uses more RAM/VRAM; agent batch embedding of 10,000 docs with batch_size=512 may OOM on GPU; tune batch_size to fit in available memory",
+      "Mixing models invalidates similarity comparisons — cosine similarity between embeddings from different models is meaningless; agent RAG pipeline must use same model for indexing and querying; storing model name with index in metadata prevents accidental cross-model similarity computation",
+      "show_progress_bar=True requires tqdm — model.encode(docs, show_progress_bar=True) needs tqdm installed; if not installed silently falls back to no progress; agent batch embedding jobs without progress indication appear hung; install sentence-transformers[tqdm] or tqdm separately",
+      "convert_to_tensor=True required for util functions — util.semantic_search() requires torch tensors; embeddings = model.encode(texts) returns numpy arrays by default; agent code calling util.semantic_search(np_array, np_array) raises TypeError; use convert_to_tensor=True or util.pytorch_cos_sim for numpy inputs",
+      "Sentence length limit varies by model — all-MiniLM-L6-v2 truncates at 256 tokens; agent documents longer than 256 tokens get truncated embeddings losing later content; for long-document agent indexing use chunking (split into 256-token chunks) before encoding; check model.max_seq_length for the specific model's limit"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 78,
+    "auth_complexity_score": 92,
+    "rate_limit_clarity_score": 95
+  },
+  "security_score_components": {
+    "tls_enforcement": 90,
+    "auth_strength": 85,
+    "scope_granularity": 80,
+    "dependency_hygiene": 82,
+    "secret_handling": 88,
+    "security_notes": "Local inference — no data sent to external APIs, strong data privacy for agent documents. Model weights downloaded from HuggingFace Hub — verify model integrity with hash checks for security-sensitive agent deployments. Gated models require HF token — store as secret not in code."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 85,
+    "version_stability": 82,
+    "breaking_changes_history": 78,
+    "error_recovery": 82
+  }
+}
