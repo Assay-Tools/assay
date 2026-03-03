@@ -1,0 +1,106 @@
+{
+  "id": "dapper-dotnet-api",
+  "name": "Dapper",
+  "version_evaluated": "2.x",
+  "homepage": "https://github.com/DapperLib/Dapper",
+  "repo_url": "https://github.com/DapperLib/Dapper",
+  "category": "developer-tools",
+  "subcategories": ["database", "dotnet", "csharp", "sql", "micro-orm"],
+  "tags": ["dotnet", "csharp", "sql", "micro-orm", "performance", "stored-procedures", "ado-net", "queries"],
+  "what_it_does": "Lightweight .NET micro-ORM that extends IDbConnection with convenience methods for SQL query execution and result mapping. Dapper adds: connection.QueryAsync<Agent>(sql, params) for typed query results, connection.ExecuteAsync(sql, params) for inserts/updates, connection.QueryFirstOrDefaultAsync<Agent>(sql, params), multi-mapping (JOIN results to multiple objects), QueryMultiple for multiple result sets, and stored procedure execution. Dapper maps SQL column names to C# property names automatically (case-insensitive). No migrations, no change tracking, no LINQ — just SQL + fast object mapping. StackOverflow was built with Dapper. Excellent for performance-critical agent data access paths and complex reporting queries.",
+  "use_cases": [
+    "High-performance agent reporting query — await connection.QueryAsync<AgentMetrics>(\"SELECT a.id, COUNT(t.id) as tool_calls FROM agents a LEFT JOIN tool_calls t ON a.id = t.agent_id GROUP BY a.id WHERE a.created_at > @since\", new { since = DateTime.UtcNow.AddDays(-7) }) executes complex agent analytics without ORM overhead",
+    "Agent stored procedure execution — await connection.QueryAsync<Agent>(\"sp_GetActiveAgents\", new { UserId = userId }, commandType: CommandType.StoredProcedure) calls stored procedure and maps results to Agent objects",
+    "Multi-table agent query with Dapper multi-mapping — connection.QueryAsync<Agent, Tool, Agent>(sql, (agent, tool) => { agent.Tools.Add(tool); return agent; }, splitOn: \"ToolId\") maps JOIN results to nested Agent objects",
+    "Bulk agent insert performance — await connection.ExecuteAsync(\"INSERT INTO agents (name, user_id) VALUES (@Name, @UserId)\", agentList) batches multiple agent inserts efficiently via Dapper's enumerable parameter support",
+    "Mixed Dapper + EF Core agent repository — use EF Core for standard CRUD and Dapper for complex agent reporting queries where LINQ-generated SQL is suboptimal; both share same SqlConnection for agent transaction consistency"
+  ],
+  "not_for": [
+    "Schema migrations — Dapper has no migration system; use EF Core migrations, Flyway, or DbUp for agent database schema management alongside Dapper",
+    "Complex object graphs — Dapper requires explicit JOIN + multi-mapping for nested objects; EF Core's Include() is simpler for agent models with multiple levels of related entities",
+    "Teams who prefer no-SQL approach — Dapper requires writing SQL; for agent services where team doesn't want SQL, EF Core LINQ queries provide abstraction"
+  ],
+  "best_when": "Your .NET agent service has performance-critical data access paths, complex reporting queries, or stored procedure integration where EF Core's generated SQL is insufficient — Dapper gives you full SQL control with minimal mapping boilerplate.",
+  "avoid_when": "You need database migrations, you want LINQ queries, or your agent data access is simple CRUD where EF Core's convenience outweighs Dapper's performance.",
+  "alternatives": ["efcore-dotnet-api", "nhibernate-api", "linq2db-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["csharp", "fsharp"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Dapper extends IDbConnection — auth via connection string. Use SQL Server integrated auth or connection string credentials. Azure Managed Identity supported via SqlConnection token configuration."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, Apache 2.0 licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Dapper is Apache 2.0 licensed, maintained by StackOverflow/DapperLib. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 3,
+    "latency_p99_ms": 30,
+    "uptime_sla_percent": null,
+    "rate_limits": "No library rate limits. Dapper adds ~0.1ms overhead over raw ADO.NET. Significantly faster than EF Core for read-heavy agent queries due to no change tracking overhead.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 88,
+    "error_message_quality": 85,
+    "error_message_notes": "Dapper surfaces SqlException (SQL Server), NpgsqlException (PostgreSQL), or other ADO.NET exceptions from the underlying driver. InvalidOperationException for mapping mismatches. DapperException for result count mismatches (QuerySingle with multiple results). Error messages include SQL and database error code.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "SELECT queries are idempotent. INSERT/UPDATE idempotency is developer responsibility via SQL (INSERT ... ON CONFLICT or MERGE). Dapper makes no guarantees — design agent SQL for idempotency explicitly.",
+    "pagination_style": "offset",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "SQL injection via string interpolation — var agents = conn.Query<Agent>($\"SELECT * FROM agents WHERE name = '{name}'\") is SQL injection vulnerability; ALWAYS use parameterized queries: conn.QueryAsync<Agent>(\"SELECT * FROM agents WHERE name = @Name\", new { Name = name }); Dapper parameterizes when using anonymous objects, never string interpolation",
+      "Column name mapping is case-insensitive but exact name match — Dapper maps SQL column 'agent_name' to C# property 'AgentName' only if using Dapper.DefaultTypeMap.MatchNamesWithUnderscores = true; without this setting, snake_case DB columns don't map to PascalCase C# agent properties; configure once at startup",
+      "Connection must be open or Dapper auto-opens — Dapper can open closed connections automatically but won't close them; for agent services managing connection lifetime manually, open connection before query and ensure disposal; connection leaks in agent services exhaust SQL Server connection pool",
+      "QueryMultiple disposable must be disposed — var multi = await conn.QueryMultipleAsync(sql, params); var agents = multi.Read<Agent>(); forgetting await multi.DisposeAsync() leaves server-side result set cursor open; wrap in using statement for agent multi-result queries to prevent cursor resource leaks",
+      "Dynamic parameters required for dynamic column agent queries — conn.QueryAsync<Agent>(sql, new DynamicParameters(dict)) for agent queries with runtime-determined parameters; anonymous objects compile-time only; DynamicParameters.Add(name, value, dbType) for typed parameter binding in agent dynamic query builders",
+      "Multi-mapping splitOn must match exact column name — QueryAsync with multi-mapping splitOn: 'ToolId' requires SQL to return column named exactly 'ToolId' (case-sensitive on some DBs) as boundary between mapped types; wrong split column causes entire second object to be null in agent JOIN mapping without error"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 88,
+    "error_handling_score": 85,
+    "auth_complexity_score": 90,
+    "rate_limit_clarity_score": 95
+  },
+  "security_score_components": {
+    "tls_enforcement": 90,
+    "auth_strength": 85,
+    "scope_granularity": 82,
+    "dependency_hygiene": 90,
+    "secret_handling": 88,
+    "security_notes": "Dapper does NOT protect against SQL injection if you use string interpolation — always use parameterized queries with anonymous objects or DynamicParameters. Store connection strings in Azure Key Vault or .NET User Secrets. Enable TLS for all agent database connections (Encrypt=True in SQL Server connection string)."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 92,
+    "version_stability": 92,
+    "breaking_changes_history": 90,
+    "error_recovery": 85
+  }
+}

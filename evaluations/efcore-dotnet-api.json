@@ -1,0 +1,106 @@
+{
+  "id": "efcore-dotnet-api",
+  "name": "Entity Framework Core",
+  "version_evaluated": "8.x",
+  "homepage": "https://learn.microsoft.com/en-us/ef/core/",
+  "repo_url": "https://github.com/dotnet/efcore",
+  "category": "developer-tools",
+  "subcategories": ["orm", "dotnet", "csharp", "database", "sql"],
+  "tags": ["dotnet", "csharp", "orm", "entity-framework", "sql-server", "postgresql", "sqlite", "migrations"],
+  "what_it_does": "Official .NET ORM from Microsoft — maps C# classes to database tables with LINQ query support, automatic migrations, and change tracking. EF Core features: DbContext with DbSet<T> properties for each entity, LINQ queries (dbContext.Agents.Where(a => a.Active).OrderBy(a => a.Name).ToListAsync()), Code First migrations (dotnet ef migrations add), relationships (HasMany/HasOne/HasForeignKey), value objects, owned entities, raw SQL (FromSqlRaw), and global query filters. Supports SQL Server, PostgreSQL (Npgsql), SQLite, MySQL, Oracle, and Cosmos DB. DbContext pooling for high-throughput scenarios. Interceptors for query logging and modification. The standard ORM for .NET agent services.",
+  "use_cases": [
+    "Agent data persistence with EF Core — class AgentDbContext : DbContext { public DbSet<Agent> Agents { get; set; } }; var agents = await context.Agents.Where(a => a.UserId == userId).ToListAsync() in agent service repository",
+    "EF Core migrations for agent schema — dotnet ef migrations add AddAgentCapabilities; dotnet ef database update deploys agent schema changes; migration history tracked in __EFMigrationsHistory table for rollback tracking",
+    "Agent relationship modeling — Agent.HasMany(a => a.Tools).WithOne(t => t.Agent).HasForeignKey(t => t.AgentId) defines agent-tool relationship; Include(a => a.Tools) eager loads agent tools in single query",
+    "EF Core global query filters for multi-tenant agents — modelBuilder.Entity<Agent>().HasQueryFilter(a => a.TenantId == currentTenantId) automatically scopes all agent queries to current tenant; prevents cross-tenant data access",
+    "Agent audit trail with EF Core interceptors — SaveChangesInterceptor logs all entity state changes (Added/Modified/Deleted) to audit table; automatic agent change tracking without manual audit code in every repository"
+  ],
+  "not_for": [
+    "High-performance bulk operations — EF Core loads entities into memory for change tracking; bulk inserts/updates of thousands of agent records are slow; use EF Core BulkExtensions or raw SQL for agent bulk operations",
+    "NoSQL databases — EF Core's Cosmos DB provider is limited; for agent services on MongoDB, use MongoDB .NET driver or EF Core MongoDB provider (preview); relational EF Core patterns don't translate well to document stores",
+    "Stored procedure-heavy databases — EF Core can call stored procedures but isn't designed around them; for agent services with complex SP-based data access, Dapper provides cleaner stored procedure integration"
+  ],
+  "best_when": "You're building a .NET agent service that needs ORM, migrations, and LINQ queries against a relational database — EF Core is the standard .NET data access layer with the richest ecosystem.",
+  "avoid_when": "You need maximum performance for bulk operations (use Dapper), your team prefers stored procedures, or you're using NoSQL databases.",
+  "alternatives": ["dapper-dotnet-api", "nhibernate-api", "linq2db-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["csharp", "fsharp"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "EF Core connects via connection string with database credentials. Use Azure Managed Identity or AWS IAM auth for production agent databases via Microsoft.EntityFrameworkCore.SqlServer connection string options."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "EF Core is MIT licensed, maintained by Microsoft. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 5,
+    "latency_p99_ms": 50,
+    "uptime_sla_percent": null,
+    "rate_limits": "No library rate limits. EF Core adds ~1-2ms overhead over raw SQL for change tracking. Use AsNoTracking() for read-only agent queries to eliminate tracking overhead.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 92,
+    "error_message_quality": 88,
+    "error_message_notes": "EF Core exceptions: DbUpdateConcurrencyException (optimistic concurrency), DbUpdateException (constraint violations), InvalidOperationException (context lifecycle errors). EnableSensitiveDataLogging() adds entity values to error messages for agent debugging. Migration failures include specific SQL statement that failed.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Reads are idempotent. SaveChangesAsync() with optimistic concurrency (RowVersion) is safe for concurrent agent updates. Use FindAsync() + AddIfNotExists pattern for idempotent agent entity creation. EF Core migrations are idempotent — already-applied migrations are skipped.",
+    "pagination_style": "offset",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "DbContext is not thread-safe — injecting DbContext as singleton causes concurrent request data corruption; always register DbContext with AddDbContext (scoped lifetime); each agent HTTP request gets own DbContext instance; sharing across threads causes InvalidOperationException in concurrent agent services",
+      "N+1 queries without Include — loading agents then accessing agent.Tools in loop triggers per-agent SQL query; use .Include(a => a.Tools) or .ThenInclude() for eager loading; EF Core does not warn about N+1 by default; enable sensitive logging and query logging to detect agent N+1 patterns",
+      "AsNoTracking() is critical for read-heavy agent queries — tracked entities consume memory proportional to result set; agent list endpoints loading thousands of records without AsNoTracking() cause memory pressure; all read-only agent queries should use .AsNoTracking() or .AsNoTrackingWithIdentityResolution()",
+      "Migrations must be applied before deployment completes — EF Core migrations don't auto-apply on startup by default; agent deployments without Database.MigrateAsync() call or separate migration step leave database behind code; run migrations as part of deployment pipeline, not on every app start (causes startup race condition in multi-instance agent services)",
+      "Lazy loading requires virtual navigation properties AND proxy package — lazy loading (accessing agent.Tools without Include) requires Microsoft.EntityFrameworkCore.Proxies + UseLazyLoadingProxies() + virtual keyword on navigation properties; missing any element causes silent eager-not-loaded behavior (null collection) not exception; use explicit loading or eager loading for predictable agent data access",
+      "String queries bypass LINQ type safety — FromSqlRaw('SELECT * FROM Agents WHERE Id = ' + id) is SQL injection vulnerability; always use FromSqlRaw with parameters: FromSqlRaw('SELECT * FROM Agents WHERE Id = {0}', agentId) or FromSqlInterpolated for agent raw SQL queries; never concatenate user input into EF Core raw SQL"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 92,
+    "error_handling_score": 88,
+    "auth_complexity_score": 88,
+    "rate_limit_clarity_score": 95
+  },
+  "security_score_components": {
+    "tls_enforcement": 90,
+    "auth_strength": 85,
+    "scope_granularity": 85,
+    "dependency_hygiene": 90,
+    "secret_handling": 88,
+    "security_notes": "EF Core LINQ queries are parameterized by default preventing SQL injection. NEVER use FromSqlRaw with string concatenation — use parameters or FromSqlInterpolated. Store connection strings in Azure Key Vault or AWS Secrets Manager for production agent services. Enable global query filters for multi-tenant agent data isolation."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 92,
+    "version_stability": 90,
+    "breaking_changes_history": 85,
+    "error_recovery": 88
+  }
+}

@@ -1,0 +1,106 @@
+{
+  "id": "hangfire-dotnet-api",
+  "name": "Hangfire",
+  "version_evaluated": "1.8.x",
+  "homepage": "https://www.hangfire.io/",
+  "repo_url": "https://github.com/HangfireIO/Hangfire",
+  "category": "developer-tools",
+  "subcategories": ["background-jobs", "dotnet", "csharp", "queue", "scheduler"],
+  "tags": ["dotnet", "csharp", "background-jobs", "queue", "scheduler", "recurring", "delayed", "asp-net"],
+  "what_it_does": "Background job processing library for .NET — runs background jobs, delayed tasks, and recurring schedules within ASP.NET applications with persistent storage. Hangfire features: BackgroundJob.Enqueue(() => ProcessAgent(agentId)) for fire-and-forget, BackgroundJob.Schedule(() => SendReport(agentId), TimeSpan.FromHours(1)) for delayed jobs, RecurringJob.AddOrUpdate(\"daily-sync\", () => SyncAgents(), Cron.Daily) for recurring, and job continuations (BackgroundJob.ContinueJobWith). Built-in web dashboard at /hangfire showing job queues, history, and retry. Persistent storage: SQL Server, PostgreSQL (Hangfire.PostgreSql), Redis, MongoDB. Automatic retry with exponential backoff. No separate worker process needed — runs in-process with ASP.NET.",
+  "use_cases": [
+    "Agent background task processing — BackgroundJob.Enqueue<AgentProcessor>(x => x.ProcessTask(taskId)) fires off agent task processing without blocking HTTP response; Hangfire processes in background thread pool",
+    "Scheduled agent report generation — RecurringJob.AddOrUpdate(\"agent-weekly-report\", () => GenerateWeeklyReport(), \"0 8 * * MON\") runs agent analytics every Monday at 08:00 using Cron expression",
+    "Delayed agent notification — BackgroundJob.Schedule(() => SendAgentAlert(agentId, alertType), TimeSpan.FromMinutes(30)) sends delayed notification 30 minutes after agent event without timer infrastructure",
+    "Agent job workflow with continuations — var jobId = BackgroundJob.Enqueue(() => AnalyzeAgent(id)); BackgroundJob.ContinueJobWith(jobId, () => NotifyCompletion(id)) chains agent analysis with notification on completion",
+    "Hangfire dashboard for agent job monitoring — app.UseHangfireDashboard('/hangfire', opts) provides real-time dashboard showing queued, processing, succeeded, and failed agent jobs with manual retry capability"
+  ],
+  "not_for": [
+    "Microservices with dedicated workers — Hangfire in-process model couples job processing to web process; for agent microservices requiring independent scaling of job workers, use dedicated worker services with Azure Service Bus or RabbitMQ",
+    "Sub-second job scheduling — Hangfire polls storage (default 15 seconds); for agent tasks requiring second-level precision, use in-memory schedulers or timer-based triggers",
+    "Stateful multi-step agent workflows — Hangfire handles fire-and-forget and simple continuations; for complex agent workflows with compensation and sagas, use Temporal or MassTransit Sagas"
+  ],
+  "best_when": "You're building an ASP.NET agent application that needs background processing, recurring jobs, and delayed tasks without running separate worker processes — Hangfire handles the complete job lifecycle with built-in monitoring.",
+  "avoid_when": "You need sub-second scheduling precision, you require independent scaling of job workers from web servers, or you're building complex stateful agent workflow orchestration.",
+  "alternatives": ["quartz-dotnet-api", "masstransit-dotnet-api", "azure-functions-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["csharp"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No external auth. Hangfire dashboard should be protected: UseHangfireDashboard('/hangfire', new DashboardOptions { Authorization = new[] { new HangfireAuthFilter() } }). Storage connection uses application's DB credentials."
+  },
+  "pricing": {
+    "model": "freemium",
+    "free_tier_exists": true,
+    "free_tier_limits": "Hangfire free (LGPL) covers most use cases. Hangfire Pro ($1,080/server/year) adds enhanced queues, batches, throttling, ACL for dashboard.",
+    "paid_tiers": "Hangfire Pro: $1,080/server/year for advanced features",
+    "requires_credit_card": false,
+    "notes": "Open source Hangfire is LGPL and free. Hangfire Pro commercial license adds batch jobs, continuations, and ACL features useful for enterprise agent platforms."
+  },
+  "performance": {
+    "latency_p50_ms": 15000,
+    "latency_p99_ms": 30000,
+    "uptime_sla_percent": null,
+    "rate_limits": "No library rate limits. Default polling interval is 15 seconds — jobs execute within 15 seconds of enqueue. Configure UseRecommendedSerializerSettings() and BackgroundJobServerOptions for agent job server tuning.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 88,
+    "error_message_quality": 85,
+    "error_message_notes": "Hangfire captures job exceptions with full stack trace in job history. Failed jobs visible in dashboard with error details. AutomaticRetry attribute configures retry attempts. FailedJobCount metric for monitoring. DisableConcurrentExecution attribute prevents parallel execution of same agent job.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "BackgroundJob.Enqueue returns job ID — enqueue is idempotent per call but multiple calls create multiple jobs. Jobs are retried on failure — implement idempotent job methods for agent processing. Use unique job IDs from domain (not Hangfire's auto IDs) for deduplication.",
+    "pagination_style": "none",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Job method must be public and non-generic — Hangfire serializes job method reference by type/method name; private methods, generic methods, and lambda capture variables (closures) are not serializable; use public static or instance methods with simple parameters for agent background jobs; closures cause Hangfire deserialization errors on job execution",
+      "Job arguments must be JSON-serializable — Hangfire serializes arguments to JSON in storage; IEnumerable, complex objects, and EF Core entities with circular references cause JSON serialization failures; always pass IDs (agentId) not entities to Hangfire agent job methods",
+      "Scope lifetime: DI injection requires services registered with correct lifetime — Hangfire creates new scope per job; IScoped services work correctly; ISingleton services shared across jobs (watch for thread safety in agent services); injecting IHttpContextAccessor in Hangfire job is null (no HTTP context in background jobs)",
+      "Dashboard must be secured in production — Hangfire dashboard has no auth by default; exposes all job history, arguments (potentially sensitive agent data), and allows manual job triggering; implement IDashboardAuthorizationFilter requiring admin role for agent platform production deployments",
+      "RecurringJob.AddOrUpdate is idempotent but timezone matters — AddOrUpdate called on startup updates existing recurring job; Cron expressions evaluated in UTC by default; RecurringJobOptions { TimeZone = TimeZoneInfo.FindSystemTimeZoneById('Eastern Standard Time') } for timezone-aware agent scheduled jobs; wrong timezone causes jobs to run at unexpected times",
+      "UseHangfireServer in web process affects app shutdown — app.UseHangfireServer() starts background job server in web process; IIS recycling or app restart waits for in-progress agent jobs to complete (graceful shutdown); set BackgroundJobServerOptions.ShutdownTimeout to limit max wait during agent service deployments"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 88,
+    "error_handling_score": 85,
+    "auth_complexity_score": 85,
+    "rate_limit_clarity_score": 90
+  },
+  "security_score_components": {
+    "tls_enforcement": 88,
+    "auth_strength": 80,
+    "scope_granularity": 78,
+    "dependency_hygiene": 85,
+    "secret_handling": 82,
+    "security_notes": "Protect Hangfire dashboard with authentication — unprotected dashboard exposes agent job arguments (potentially containing sensitive data) and allows unauthorized job manipulation. Job arguments stored in DB may contain agent data — use IDs not full objects. Enable TLS for storage connection."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 90,
+    "version_stability": 88,
+    "breaking_changes_history": 85,
+    "error_recovery": 90
+  }
+}

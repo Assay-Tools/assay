@@ -1,0 +1,106 @@
+{
+  "id": "mediatr-dotnet-api",
+  "name": "MediatR",
+  "version_evaluated": "12.x",
+  "homepage": "https://github.com/jbogard/MediatR",
+  "repo_url": "https://github.com/jbogard/MediatR",
+  "category": "developer-tools",
+  "subcategories": ["patterns", "dotnet", "csharp", "cqrs", "messaging"],
+  "tags": ["dotnet", "csharp", "cqrs", "mediator", "commands", "queries", "events", "clean-architecture"],
+  "what_it_does": "In-process mediator pattern implementation for .NET — decouples request senders from handlers via a central mediator, enabling CQRS and clean architecture. MediatR features: IRequest<T> for commands/queries, IRequestHandler<TRequest, TResponse> for handlers, INotification for domain events, INotificationHandler for event subscribers, IPipelineBehavior<TRequest, TResponse> for cross-cutting concerns (validation, logging, caching). Controller sends command: await _mediator.Send(new CreateAgentCommand(request)); handler processes in isolation. Notifications: await _mediator.Publish(new AgentCreatedEvent(agentId)) notifies all subscribers. Makes agent service handlers independently testable without controller infrastructure.",
+  "use_cases": [
+    "CQRS agent command handling — CreateAgentCommand { Name, Config } handled by CreateAgentCommandHandler implementing IRequestHandler<CreateAgentCommand, AgentDto>; controller sends command and returns result; decoupled from HTTP concerns",
+    "Agent query separation — GetAgentByIdQuery { AgentId } with GetAgentByIdQueryHandler using Dapper for optimized read path; separate from write-side EF Core commands; clean CQRS for agent service",
+    "Cross-cutting validation pipeline — ValidationBehavior<TRequest, TResponse> implements IPipelineBehavior running FluentValidation before agent command handlers; validation, logging, and caching added without modifying handlers",
+    "Domain event publishing for agent workflows — await mediator.Publish(new AgentActivatedEvent { AgentId = id }) notifies EmailNotificationHandler and AuditLogHandler independently; loose coupling of agent event consumers",
+    "Agent request logging pipeline — LoggingBehavior<TRequest, TResponse> IPipelineBehavior logs all agent commands/queries with timing; registered once applies to all agent handlers without handler modifications"
+  ],
+  "not_for": [
+    "Cross-service messaging — MediatR is in-process only; for agent events between microservices, use MassTransit or Azure Service Bus; MediatR INotification doesn't leave the process boundary",
+    "Simple CRUD APIs — MediatR adds abstraction layer; for a 5-endpoint agent CRUD API, direct service calls are simpler than commands/queries/handlers; adopt when complexity justifies the pattern",
+    "Workflow orchestration — MediatR handles request/response and publish/subscribe; for long-running agent workflows with compensation, use Temporal, MassTransit Sagas, or Dapr Workflow"
+  ],
+  "best_when": "You're building a .NET agent service with CQRS, clean architecture, and multiple cross-cutting concerns (validation, logging, caching) — MediatR's pipeline behaviors apply concerns uniformly across all agent handlers.",
+  "avoid_when": "Your agent service is simple CRUD without complex domain logic, you need cross-service messaging, or you want direct service injection without mediator indirection.",
+  "alternatives": ["masstransit-dotnet-api", "wolverine-dotnet-api", "brighter-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["csharp"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — in-process messaging library. Authentication context passed via request objects or IHttpContextAccessor in pipeline behaviors for agent user context."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, Apache 2.0 licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "MediatR is Apache 2.0 licensed, maintained by Jimmy Bogard. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 0,
+    "latency_p99_ms": 1,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — in-process dispatch. MediatR adds ~0.1-0.5ms overhead per request for handler resolution. Multiple pipeline behaviors compound; benchmark agent request pipeline if latency is critical.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 88,
+    "error_message_quality": 85,
+    "error_message_notes": "MediatR raises InvalidOperationException when no handler registered for request type. ValidationException from pipeline validation behaviors propagates with validation errors. Handler exceptions bubble up through pipeline behaviors allowing catch in controllers. Notification handler failures are independent — one handler failure doesn't affect others by default.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "MediatR dispatch is in-process — idempotency is handler responsibility. Use idempotency key in command and check in handler. Pipeline behaviors can implement idempotency checking for all agent commands via cached response pattern.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Handler must be registered in DI container — services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(CreateAgentCommand).Assembly)); missing assembly registration causes InvalidOperationException 'No handler for type' at runtime; register all assemblies containing agent command handlers",
+      "IPipelineBehavior registration order is LIFO — behaviors execute in reverse registration order; services.AddTransient<IPipelineBehavior<,>, LoggingBehavior>(); services.AddTransient<IPipelineBehavior<,>, ValidationBehavior>() runs Validation first then Logging (LIFO); register agent pipeline behaviors in reverse intended execution order",
+      "INotification handlers run sequentially by default — Publish() calls handlers one by one; exception in first AgentCreatedEvent handler prevents subsequent handlers from running; use INotificationPublisher override for parallel or fire-and-forget agent notification handling",
+      "CancellationToken not propagated automatically — MediatR.Send(request, cancellationToken) passes token to handler; pipeline behaviors must explicitly pass cancellationToken to next(request, cancellationToken); forgetting token in agent behavior causes request cancellation to not propagate through pipeline",
+      "Generic constraints for typed pipeline behaviors — IPipelineBehavior<TRequest, TResponse> where TRequest : IAgentCommand applies behavior only to agent command types; without generic constraint, validation behavior runs on queries too; use marker interfaces (ICommand, IQuery) for targeted agent pipeline behavior application",
+      "MediatR 12.x changed registration API — MediatR 12 replaced AddMediatR(assemblies) with AddMediatR(cfg => cfg.RegisterServicesFromAssemblies(...)); upgrading from 11.x breaks registration; also removed ServiceFactory; agent projects upgrading must update all DI registration calls and remove ServiceFactory dependencies"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 88,
+    "error_handling_score": 85,
+    "auth_complexity_score": 92,
+    "rate_limit_clarity_score": 98
+  },
+  "security_score_components": {
+    "tls_enforcement": 95,
+    "auth_strength": 88,
+    "scope_granularity": 85,
+    "dependency_hygiene": 90,
+    "secret_handling": 90,
+    "security_notes": "MediatR pipeline behaviors are ideal for security cross-cutting concerns — implement AuthorizationBehavior<TRequest, TResponse> to check user permissions before every agent command handler executes. Pipeline ensures authorization runs consistently without relying on individual handler implementations. Authorization behavior should run before validation behavior."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 92,
+    "version_stability": 88,
+    "breaking_changes_history": 82,
+    "error_recovery": 88
+  }
+}

@@ -1,0 +1,106 @@
+{
+  "id": "fluentvalidation-dotnet-api",
+  "name": "FluentValidation",
+  "version_evaluated": "11.x",
+  "homepage": "https://docs.fluentvalidation.net/",
+  "repo_url": "https://github.com/FluentValidation/FluentValidation",
+  "category": "developer-tools",
+  "subcategories": ["validation", "dotnet", "csharp", "api", "rules"],
+  "tags": ["dotnet", "csharp", "validation", "rules", "fluent", "asp-net", "model-validation", "clean-architecture"],
+  "what_it_does": "Fluent validation rules library for .NET — defines validation logic in separate validator classes using chainable rule syntax. FluentValidation: class AgentCreateValidator : AbstractValidator<AgentCreateRequest> { RuleFor(x => x.Name).NotEmpty().MaximumLength(100).WithMessage(\"Agent name required\"); RuleFor(x => x.Config).SetValidator(new AgentConfigValidator()); }. Features: built-in validators (NotNull, EmailAddress, Must, Matches, InclusiveBetween), async validation, conditional rules (When, Unless), rule sets for partial validation, localization, and collection validation (RuleForEach). Integrates with ASP.NET Core model validation pipeline for automatic validation before controller action execution. Replaces DataAnnotations for complex agent validation rules.",
+  "use_cases": [
+    "Agent API request validation — class CreateAgentCommandValidator : AbstractValidator<CreateAgentCommand> { RuleFor(x => x.Name).NotEmpty().MaximumLength(100); RuleFor(x => x.Type).IsInEnum(); } registered in DI validates all agent commands before handler executes",
+    "Async agent name uniqueness validation — RuleFor(x => x.Name).MustAsync(async (name, ct) => !await agentRepo.ExistsAsync(name)) validates agent name uniqueness against database in FluentValidation async rule",
+    "Conditional agent config validation — RuleFor(x => x.ApiKey).NotEmpty().When(x => x.Type == AgentType.External) validates API key only when agent type requires external integration",
+    "Nested agent configuration validation — RuleFor(x => x.ToolConfig).SetValidator(new ToolConfigValidator()) reuses tool-specific validator for nested agent tool configuration object validation",
+    "Agent validation in MediatR pipeline — ValidationBehavior<TRequest, TResponse> IPipelineBehavior runs IValidator<TRequest> before every agent command handler; single registration applies validation to all commands"
+  ],
+  "not_for": [
+    "Simple single-field validation — for checking if a string is non-empty, DataAnnotations [Required] is less code than a separate validator class; FluentValidation overhead justified for multi-rule, cross-field, or async validation",
+    "Database constraint replacement — FluentValidation runs before DB; don't replace unique constraints with MustAsync unique checks — use both layers; FluentValidation for user-friendly messages, DB constraints for data integrity",
+    "Client-side validation — FluentValidation is server-side .NET only; for shared client+server agent validation rules, consider a different approach or generate client rules from server validators"
+  ],
+  "best_when": "Your .NET agent API has complex validation rules with cross-field dependencies, async checks, or reusable validation logic that DataAnnotations can't express cleanly — FluentValidation makes validation rules readable and testable.",
+  "avoid_when": "Your validation is simple required/length checks (DataAnnotations is sufficient), you need client-side shared validation, or you're adding validation to an existing attributes-heavy codebase.",
+  "alternatives": ["dataannotations-api", "guardrails-api", "ardalis-guardclauses-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["csharp"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Validation library — no auth concepts."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, Apache 2.0 licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "FluentValidation is Apache 2.0 licensed, maintained by Jeremy Skinner. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 0,
+    "latency_p99_ms": 2,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — in-process validation. Sync validation adds <1ms overhead. Async rules (MustAsync with DB calls) add database roundtrip latency for agent validation.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 90,
+    "error_message_quality": 90,
+    "error_message_notes": "FluentValidation returns ValidationResult with IList<ValidationFailure>; each failure has PropertyName, ErrorMessage, and ErrorCode. ValidationException (from Validate().ThrowIfHasErrors()) carries all failures. ASP.NET integration returns 400 Bad Request with structured error body. Custom error codes enable client-side error handling for agent validation.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Validation is deterministic and idempotent — same input always produces same ValidationResult. Async validators hitting DB are idempotent for read-only existence checks.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "AddFluentValidation deprecated in favor of AddValidatorsFromAssembly — FluentValidation 11 replaced services.AddFluentValidation() with services.AddValidatorsFromAssemblyContaining<CreateAgentValidator>(); agent projects upgrading from 10.x to 11.x must update DI registration; old method removed entirely",
+      "Auto-validation requires FluentValidation.AspNetCore package — built-in FluentValidation doesn't hook into ASP.NET model validation; requires separate FluentValidation.AspNetCore NuGet package and AddFluentValidationAutoValidation(); without this, validators must be called manually in agent controllers",
+      "RuleFor lambda must be simple property access — RuleFor(x => x.Name.Trim()) fails because lambda isn't pure property access; Trim() in lambda causes 'Unable to determine property name' exception; transform with Transform(x => x.Name, name => name?.Trim()) for agent input normalization before validation",
+      "Async validators require ValidateAsync — if any rule uses MustAsync or ValidateAsync, calling Validate() (sync) throws InvalidOperationException 'Async validator called synchronously'; always use await validator.ValidateAsync(command) for agent validators with async rules in ASP.NET Core",
+      "CascadeMode.Stop stops only within same RuleFor chain — CascadeMode.Stop on a rule stops subsequent validators for that property; it doesn't stop other RuleFor chains from running; to stop ALL validation on first failure, use ClassLevelCascadeMode = CascadeMode.Stop on AbstractValidator constructor; critical for expensive async agent database validators",
+      "Child validator errors use parent property path — SetValidator(new AgentConfigValidator()) prefixes config validator errors with 'Config.' property path; accessing errors by property name must use full path 'Config.ApiKey' not just 'ApiKey'; agent API error response mapping must account for nested property paths in ValidationFailure.PropertyName"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 90,
+    "error_handling_score": 90,
+    "auth_complexity_score": 98,
+    "rate_limit_clarity_score": 98
+  },
+  "security_score_components": {
+    "tls_enforcement": 95,
+    "auth_strength": 92,
+    "scope_granularity": 88,
+    "dependency_hygiene": 90,
+    "secret_handling": 92,
+    "security_notes": "FluentValidation prevents malformed agent input from reaching business logic — essential defense layer against injection attacks and malformed data. Use alongside database constraints, not as replacement. Custom validators can enforce business rules (agent quota limits, allowed values) providing security-relevant input constraints."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 92,
+    "version_stability": 88,
+    "breaking_changes_history": 82,
+    "error_recovery": 92
+  }
+}
