@@ -5,24 +5,24 @@
   "homepage": "https://docs.pydantic.dev/latest/",
   "repo_url": "https://github.com/pydantic/pydantic",
   "category": "developer-tools",
-  "subcategories": ["validation", "serialization", "python", "type-safety"],
-  "tags": ["python", "validation", "serialization", "type-hints", "fastapi", "data-models", "json-schema", "rust-core"],
-  "what_it_does": "Data validation and settings management library for Python using type annotations. Pydantic v2 rewrote the core in Rust for 5-50x performance improvement. Validates incoming data (API requests, config files, environment variables) against typed Python models. The standard data modeling library for FastAPI — every FastAPI request/response model uses Pydantic.",
+  "subcategories": ["validation", "serialization", "python"],
+  "tags": ["python", "validation", "serialization", "type-hints", "json", "fastapi", "open-source", "rust"],
+  "what_it_does": "Data validation and serialization library for Python using type annotations. Pydantic v2 rewrote the validation core in Rust (pydantic-core), making it 5-50x faster than v1. Define Python classes with type annotations, get automatic validation, serialization (model_dump, model_dump_json), JSON schema generation, and detailed error messages. The standard data modeling library for Python — used by FastAPI, LangChain, and thousands of other libraries.",
   "use_cases": [
-    "Define typed data models for LLM API request/response parsing with automatic validation and JSON schema generation",
-    "Validate and parse agent tool call arguments against typed schemas with descriptive error messages",
-    "Load and validate agent configuration from environment variables and config files with BaseSettings",
-    "Generate JSON schemas from Python type annotations for OpenAI function calling tool definitions",
-    "Serialize agent data models to/from JSON for API responses with field aliasing and custom serializers"
+    "Validate agent tool inputs and outputs with type-safe models — catch malformed agent data at boundaries with detailed field-level error messages",
+    "Serialize and deserialize agent data to/from JSON with model_dump_json() / model_validate_json() — fast Rust-powered JSON handling",
+    "Define agent message schemas for LLM structured output — use model_json_schema() to generate JSON Schema for API request/response contracts",
+    "Build typed configuration models for agent settings with validators, computed fields, and custom serializers",
+    "Use Pydantic discriminated unions for polymorphic agent event types — type-safe handling of multiple event schemas in a single field"
   ],
   "not_for": [
-    "Runtime type enforcement beyond data boundaries — Pydantic validates at object creation; Python remains dynamically typed internally",
-    "Complex business rule validation — Pydantic handles structural/type validation; use separate domain logic for business rules",
-    "Non-Python codebases — Pydantic is Python-specific; JSON Schema validators exist for other languages"
+    "Simple dict validation without type annotations — use cerberus or jsonschema for schema validation without Python class definitions",
+    "Runtime type checking of arbitrary Python code — Pydantic validates at model construction, not at arbitrary function call boundaries (use beartype for that)",
+    "Non-Python environments — Pydantic generates JSON Schema compatible with other validators, but the library itself is Python-only"
   ],
-  "best_when": "You're building a Python API or agent with FastAPI and need typed, validated data models with automatic JSON schema generation and error messaging.",
-  "avoid_when": "You just need simple dataclasses without validation — Python's built-in dataclasses are lighter; Pydantic adds value when validation and serialization are needed.",
-  "alternatives": ["attrs-api", "marshmallow-api", "cattrs-api"],
+  "best_when": "You're building Python agent systems and need type-safe, validated data models with automatic JSON serialization — Pydantic v2 is the modern standard for Python data modeling.",
+  "avoid_when": "You need very complex custom validation rules that fight Pydantic's model — attrs with validators may be more flexible for highly custom domain models.",
+  "alternatives": [],
   "interface": {
     "has_rest_api": false,
     "has_graphql": false,
@@ -38,69 +38,69 @@
     "methods": ["none"],
     "oauth": false,
     "scopes": false,
-    "notes": "Local validation library — no authentication required."
+    "notes": "Local library — no external auth or network calls."
   },
   "pricing": {
     "model": "open_source",
     "free_tier_exists": true,
-    "free_tier_limits": "MIT licensed, completely free",
-    "paid_tiers": "None (Pydantic Logfire is a separate observability product)",
+    "free_tier_limits": "Fully open source — MIT licensed",
+    "paid_tiers": "None",
     "requires_credit_card": false,
-    "notes": "MIT license. Core library free. Pydantic Logfire (observability platform) is a separate commercial product."
+    "notes": "MIT-licensed open source by Samuel Colvin and contributors."
   },
   "performance": {
     "latency_p50_ms": null,
     "latency_p99_ms": null,
     "uptime_sla_percent": null,
-    "rate_limits": "No rate limits. v2 Rust core is 5-50x faster than v1 Python implementation.",
+    "rate_limits": "No rate limits — local Rust-core library. 5-50x faster than v1 for validation and serialization.",
     "data_source": "llm_estimated"
   },
   "requirements": {
     "requires_signup": false,
     "requires_credit_card": false,
     "domain_verification": false,
-    "data_residency": ["local"],
+    "data_residency": ["client-side"],
     "compliance": [],
     "min_contract": "none"
   },
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
-    "documentation_accuracy": 92,
-    "error_message_quality": 92,
-    "error_message_notes": "ValidationError includes all validation failures in a structured list with field paths, input values, and error types. Human-readable str(error) and machine-readable error.errors() are both available.",
+    "documentation_accuracy": 95,
+    "error_message_quality": 95,
+    "error_message_notes": "Pydantic ValidationError provides field-level detail with error type, location, input value, and human-readable message. JSON-serializable via e.errors(). Best-in-class validation error messages.",
     "idempotency_support": "full",
-    "idempotency_notes": "Validation is pure — same input always produces same validation result or same error.",
+    "idempotency_notes": "Model construction is a pure function — same input always produces same output. Fully idempotent.",
     "pagination_style": "none",
     "retry_guidance_documented": false,
     "known_agent_gotchas": [
-      "Pydantic v2 has breaking changes from v1 — __validators__ replaced by @field_validator, orm_mode renamed to from_attributes, .dict() renamed to .model_dump(); v1 migration requires code changes",
-      "Field aliases (alias='camelCase') affect both serialization and deserialization — use model_config = ConfigDict(populate_by_name=True) to accept both the alias and field name",
-      "Computed fields (@computed_field) are included in serialization but can't be set on model creation — they're derived from other fields; attempting to set them raises ValueError",
-      "model.model_dump(mode='json') serializes types like datetime, UUID, and Decimal to JSON-compatible primitives — plain model_dump() returns Python objects which aren't JSON-serializable",
-      "Optional[T] is not the same as T | None in Pydantic v2 — both work but their validation behavior differs for required vs. optional fields; prefer T | None with explicit default=None",
-      "Recursive/self-referential models require model_rebuild() call after class definition — Pydantic can't resolve forward references automatically for circular schemas"
+      "Pydantic v2 is NOT backward compatible with v1 — many APIs changed (class Config → model_config, .dict() → .model_dump(), @validator → @field_validator); check migration guide before upgrading",
+      "model_validate() requires strict=True to prevent coercion — by default Pydantic coerces types ('42' → 42) which can mask agent data quality issues; use strict mode for exact type matching",
+      "Recursive models require model_rebuild() after all forward references resolve — models with self-referential types that use string annotations ('Node') must call model_rebuild() after class definition",
+      "model_dump(exclude_unset=True) vs model_dump(exclude_none=True) have different semantics — exclude_unset omits fields not provided at construction, not just None fields; agent code should verify which is needed",
+      "Field default factories (default_factory=list) create fresh instances per model — forgetting default_factory for mutable defaults causes all instances to share the same list, causing data corruption",
+      "Discriminated unions require the discriminator field to be present and correct — missing discriminator fields cause 'unable to extract tag' errors that require examining the input data structure carefully"
     ]
   },
   "af_score_components": {
     "mcp_score": 0,
-    "api_doc_score": 92,
-    "error_handling_score": 92,
+    "api_doc_score": 95,
+    "error_handling_score": 95,
     "auth_complexity_score": 100,
-    "rate_limit_clarity_score": 100
+    "rate_limit_clarity_score": 98
   },
   "security_score_components": {
-    "tls_enforcement": 100,
-    "auth_strength": 100,
-    "scope_granularity": 100,
-    "dependency_hygiene": 95,
+    "tls_enforcement": 90,
+    "auth_strength": 90,
+    "scope_granularity": 88,
+    "dependency_hygiene": 92,
     "secret_handling": 88,
-    "security_notes": "Validation prevents malformed data from entering agent logic. Use SecretStr type for sensitive fields — prevents accidental secret exposure in logs and repr(). Rust core reduces risk of Python memory safety issues."
+    "security_notes": "Local library — no network calls. Pydantic validation is a defense-in-depth layer — validate all external agent inputs. SecretStr type available for sensitive fields."
   },
   "reliability_score_components": {
-    "uptime_documented": 100,
-    "version_stability": 88,
-    "breaking_changes_history": 75,
+    "uptime_documented": 95,
+    "version_stability": 90,
+    "breaking_changes_history": 78,
     "error_recovery": 95
   }
 }
