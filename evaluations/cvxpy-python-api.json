@@ -1,0 +1,106 @@
+{
+  "id": "cvxpy-python-api",
+  "name": "CVXPY",
+  "version_evaluated": "1.4.x",
+  "homepage": "https://www.cvxpy.org/",
+  "repo_url": "https://github.com/cvxpy/cvxpy",
+  "category": "developer-tools",
+  "subcategories": ["optimization", "python", "mathematical-programming", "convex-optimization"],
+  "tags": ["python", "cvxpy", "convex", "optimization", "linear-programming", "quadratic", "svm", "portfolio"],
+  "what_it_does": "Convex optimization modeling language for Python — formulate and solve convex optimization problems with a natural mathematical syntax. CVXPY features: cp.Variable() decision variables, cp.Minimize()/cp.Maximize() objectives, cp.Problem() with constraints list, solve() with multiple solver backends (OSQP, SCS, ECOS, GLPK, GUROBI, MOSEK), DCP (Disciplined Convex Programming) validation, cp.atoms for convex functions (cp.norm, cp.sum_squares, cp.log_sum_exp), Parameter for efficient re-solving, warm starting, and mixed-integer support (via GLPK_MI, CPLEX). Used for portfolio optimization, resource allocation, machine learning regularization, and agent decision making under constraints.",
+  "use_cases": [
+    "Agent portfolio optimization — w = cp.Variable(n); ret = mu.T @ w; risk = cp.quad_form(w, Sigma); prob = cp.Problem(cp.Maximize(ret - gamma*risk), [cp.sum(w)==1, w>=0]); prob.solve(); allocation = w.value — Markowitz portfolio optimization; agent allocates budget across assets maximizing return for given risk tolerance",
+    "Agent resource allocation — x = cp.Variable(n, nonneg=True); prob = cp.Problem(cp.Minimize(cp.sum_squares(A@x - b)), [C@x <= d]); prob.solve() — least-squares resource allocation with constraints; agent assigns compute/bandwidth/inventory across tasks minimizing waste subject to capacity limits",
+    "Agent regularized ML — theta = cp.Variable(d); loss = cp.sum_squares(X@theta - y)/n; reg = cp.norm(theta, 1); prob = cp.Problem(cp.Minimize(loss + lam*reg)); prob.solve() — LASSO regression via convex optimization; agent trains sparse model for interpretable feature selection",
+    "Agent parametric re-solving — lam = cp.Parameter(nonneg=True); lam.value = 0.1; prob.solve(); lam.value = 1.0; prob.solve() — Parameter allows changing values without re-compilation; agent sweeps regularization hyperparameter efficiently without rebuilding problem each time",
+    "Agent SVM training — xi = cp.Variable(n, nonneg=True); w = cp.Variable(d); b = cp.Variable(); prob = cp.Problem(cp.Minimize(cp.norm(w,2) + C*cp.sum(xi)), [cp.multiply(y, X@w+b) >= 1-xi]); prob.solve() — SVM with slack variables; agent trains classifier via convex optimization for interpretable margin maximization"
+  ],
+  "not_for": [
+    "Non-convex optimization — CVXPY enforces Disciplined Convex Programming (DCP); non-convex objectives raise DCPError; use scipy.optimize or GEKKO for non-convex problems",
+    "Large-scale deep learning — CVXPY is for small-to-medium convex problems; for neural network training use PyTorch/JAX with gradient descent",
+    "Integer programming at scale — mixed-integer convex via GLPK_MI is slow for large problems; use OR-Tools or Gurobi for large MIP"
+  ],
+  "best_when": "Portfolio optimization, resource allocation, regularized ML, or any optimization problem that can be expressed as convex — CVXPY's DCP checker guarantees the problem is solvable and selects the best available solver automatically.",
+  "avoid_when": "Your optimization problem is non-convex, involves large neural networks, or requires large-scale integer programming.",
+  "alternatives": ["ortools-api", "scipy-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — local optimization library. Commercial solvers (Gurobi, MOSEK) require separate license keys."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free with open-source solvers (OSQP, SCS, ECOS, GLPK)",
+    "paid_tiers": "Commercial solvers Gurobi and MOSEK have separate commercial licenses (free for academics)",
+    "requires_credit_card": false,
+    "notes": "CVXPY is Apache 2.0 licensed. Default solvers are open-source. Gurobi/MOSEK integration is optional and requires their licenses."
+  },
+  "performance": {
+    "latency_p50_ms": 10,
+    "latency_p99_ms": 5000,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Problem compilation adds overhead on first solve. OSQP is fastest for QP; SCS for conic; ECOS for small LP/QP. Problem size (variables × constraints) determines solve time. 1000-variable problems typically solve in <1 second.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 82,
+    "error_message_notes": "cp.error.DCPError when expression violates DCP rules (non-convex). SolverError when problem infeasible or solver fails. prob.status returns 'infeasible', 'unbounded', or 'infeasible_inaccurate'. variable.value is None when problem not solved.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Same problem with same data solves to same solution (solvers are deterministic for most problems). Parameter values allow efficient re-solving with different data. Numerical solvers may have tiny floating-point differences.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "DCP violation raises at solve time not formulation — cp.Problem(cp.Minimize(x**3)) compiles without error but prob.solve() raises DCPError; agent code must catch DCPError and inform user that objective is non-convex; use cp.atoms_functions for convex combinations",
+      "Check prob.status before accessing .value — variable.value is None when prob.status is 'infeasible' or 'unbounded'; agent code doing allocation = w.value without status check gets None and fails downstream; always check: if prob.status not in ['optimal', 'optimal_inaccurate']: handle_failure()",
+      "Parameter vs Constant for efficient re-solving — using Python floats directly in problem (lam=0.1 as constant) requires full problem recompilation when value changes; cp.Parameter() allows changing .value and re-solving without recompilation; agent hyperparameter search must use Parameter for 10-100x speedup",
+      "Solver selection matters for problem type — OSQP default works for QP; SCS needed for semidefinite programs; GLPK_MI for integer programs; wrong solver raises SolverError; agent code for integer/semidefinite problems must specify: prob.solve(solver=cp.SCS)",
+      "Numerical precision with 'optimal_inaccurate' — prob.status='optimal_inaccurate' means solution may not satisfy constraints exactly; agent allocation that sums to 1 may get 0.9999 or 1.0001; add tolerance check or tighten solver: prob.solve(eps_abs=1e-8, eps_rel=1e-8)",
+      "Variable bounds via nonneg/nonpos not constraints — cp.Variable(n, nonneg=True) is more numerically stable than w = cp.Variable(n) with constraint w >= 0; agent optimization with non-negativity constraints should use nonneg parameter for better solver performance"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 82,
+    "auth_complexity_score": 98,
+    "rate_limit_clarity_score": 98
+  },
+  "security_score_components": {
+    "tls_enforcement": 90,
+    "auth_strength": 90,
+    "scope_granularity": 88,
+    "dependency_hygiene": 85,
+    "secret_handling": 90,
+    "security_notes": "Local computation — no network calls during optimization. Commercial solver license keys should be stored in environment variables not code. No data exfiltration risk."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 85,
+    "version_stability": 82,
+    "breaking_changes_history": 80,
+    "error_recovery": 82
+  }
+}

