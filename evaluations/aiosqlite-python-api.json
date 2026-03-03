@@ -1,0 +1,106 @@
+{
+  "id": "aiosqlite-python-api",
+  "name": "aiosqlite",
+  "version_evaluated": "0.20.x",
+  "homepage": "https://aiosqlite.omnilib.dev/",
+  "repo_url": "https://github.com/omnilib/aiosqlite",
+  "category": "developer-tools",
+  "subcategories": ["database", "python", "sqlite", "async", "asyncio"],
+  "tags": ["python", "aiosqlite", "sqlite", "async", "asyncio", "database", "embedded"],
+  "what_it_does": "Async SQLite wrapper for Python — wraps Python's sqlite3 module for use in asyncio applications without blocking the event loop. aiosqlite features: async with aiosqlite.connect() context manager, await conn.execute() for statements, await cursor.fetchall()/fetchone()/fetchmany(), await conn.commit()/rollback(), row_factory for result mapping (sqlite3.Row), multiple concurrent connections, aiosqlite.connect(check_same_thread=False) for thread safety, and connection pooling via aiofiles. Enables SQLite in FastAPI, aiohttp, and other async frameworks without thread blocking.",
+  "use_cases": [
+    "Agent async SQLite — import aiosqlite; async with aiosqlite.connect('agent.db') as db: await db.execute('CREATE TABLE IF NOT EXISTS sessions (id TEXT, data TEXT)'); await db.execute('INSERT INTO sessions VALUES (?, ?)', (session_id, json.dumps(data))); await db.commit() — async SQLite for agent state storage; FastAPI agent uses SQLite without blocking event loop; no PostgreSQL needed for single-node deployment",
+    "Agent query results — async with aiosqlite.connect('data.db') as db: db.row_factory = aiosqlite.Row; async with db.execute('SELECT * FROM tools WHERE category=?', (category,)) as cursor: rows = await cursor.fetchall(); tools = [dict(row) for row in rows] — row_factory=aiosqlite.Row for column-name access; agent tool registry queries return dicts not tuples",
+    "Agent streaming large results — async with aiosqlite.connect('logs.db') as db: async with db.execute('SELECT * FROM agent_logs ORDER BY ts') as cursor: async for row in cursor: process(row) — async iteration over cursor; agent log processing streams large result sets; avoids loading all rows into memory; memory efficient for 1M+ row tables",
+    "Agent transaction management — async with aiosqlite.connect('store.db') as db: async with db: await db.execute('UPDATE balance SET amount = amount - ? WHERE user=?', (amount, sender)); await db.execute('UPDATE balance SET amount = amount + ? WHERE user=?', (amount, receiver)) — async context manager auto-commits/rolls back; agent financial operations use SQLite transaction atomically",
+    "Agent in-memory database — async with aiosqlite.connect(':memory:') as db: await db.execute('CREATE TABLE cache (key TEXT PRIMARY KEY, val TEXT, ttl INTEGER)'); await db.execute('INSERT INTO cache VALUES (?,?,?)', (key, val, expires)) — in-memory SQLite for process-local cache with SQL query capability; agent uses SQL for cache queries (WHERE ttl > ?); no Redis needed for single-process agents"
+  ],
+  "not_for": [
+    "High-concurrency writes — SQLite has file-level locking; for concurrent write workloads use PostgreSQL with asyncpg",
+    "Distributed systems — SQLite is file-based single-node; for distributed databases use PostgreSQL, MySQL, or DynamoDB",
+    "Production web services with >10 concurrent writers — SQLite WAL mode helps but write contention is a bottleneck; use PostgreSQL for production multi-writer services"
+  ],
+  "best_when": "Single-node async Python applications needing SQLite persistence — aiosqlite enables SQLite in FastAPI/aiohttp without blocking the event loop, ideal for agent state storage, caching, and single-user tools.",
+  "avoid_when": "You need concurrent writes from multiple workers (use PostgreSQL/asyncpg), distributed data, or production scale web services.",
+  "alternatives": ["asyncpg-python-api", "psycopg3-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — SQLite is file-based. File permissions control access. Use sqlcipher for encrypted SQLite databases."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "aiosqlite is MIT licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 1,
+    "latency_p99_ms": 10,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. SQLite WAL mode: ~1K writes/sec, ~10K reads/sec. aiosqlite adds ~0.1ms overhead per operation for thread delegation. Single writer at a time — concurrent reads with WAL. In-memory SQLite: 10-100x faster than file-based.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 82,
+    "error_message_notes": "sqlite3.OperationalError for SQL errors (table not found, syntax error). sqlite3.IntegrityError for constraint violations (UNIQUE, FK). aiosqlite wraps sqlite3 exceptions — same error types as synchronous sqlite3. OperationalError: database is locked on write contention. Error messages from sqlite3 are clear.",
+    "idempotency_support": "full",
+    "idempotency_notes": "SQL operations are idempotent when designed correctly (INSERT OR REPLACE, CREATE TABLE IF NOT EXISTS). Transaction rollback on exception is automatic with async context manager. Same SQL with same data produces same result.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Connection not thread-safe by default — aiosqlite.connect() creates single connection; await db.execute() is await-safe but not thread-safe; agent code using multiple async tasks on same connection must use aiosqlite's built-in serialization (it uses single background thread); do not share connection across OS threads (use check_same_thread=False with care)",
+      "commit() required for write operations — await db.execute('INSERT ...') without await db.commit() does not persist data; connection auto-rollbacks on close without commit; agent code must always commit after write operations; use async with db: block for automatic commit/rollback (commit on normal exit, rollback on exception)",
+      "Row factory must be set before queries — db.row_factory = aiosqlite.Row must be set after connect() and before execute(); rows already fetched don't retroactively get Row format; agent code enabling row_factory mid-session must reconnect; set row_factory immediately after connect in all code paths",
+      "OperationalError: database is locked on concurrent writes — SQLite allows only one writer at a time; multiple async tasks writing simultaneously raises OperationalError; agent concurrent processing must queue writes: use asyncio.Lock() before each write operation; or use WAL mode: await db.execute('PRAGMA journal_mode=WAL') for better concurrency",
+      "executemany() vs execute() for bulk inserts — await db.execute('INSERT ...', (val,)) for single row; await db.executemany('INSERT ...', [(v1,), (v2,)]) for bulk; agent bulk data loading should use executemany with single commit for 100x better performance; individual execute+commit per row is very slow for large inserts",
+      "Parameterized queries required to prevent SQL injection — await db.execute(f'SELECT * FROM users WHERE name={name}') is SQL injection vulnerability; always use: await db.execute('SELECT * FROM users WHERE name=?', (name,)); sqlite3 uses ? placeholder not %s; agent code with dynamic queries MUST use parameterized form — no exceptions"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 82,
+    "auth_complexity_score": 92,
+    "rate_limit_clarity_score": 95
+  },
+  "security_score_components": {
+    "tls_enforcement": 80,
+    "auth_strength": 78,
+    "scope_granularity": 75,
+    "dependency_hygiene": 88,
+    "secret_handling": 80,
+    "security_notes": "CRITICAL: Always use parameterized queries — string interpolation into SQL causes SQL injection. SQLite database file has no built-in encryption — use sqlcipher or application-level encryption for sensitive data. File permissions control database access — set 600 on database file. aiosqlite has no network exposure. Do not store plaintext secrets in SQLite."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 85,
+    "version_stability": 85,
+    "breaking_changes_history": 85,
+    "error_recovery": 85
+  }
+}

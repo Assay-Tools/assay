@@ -1,0 +1,106 @@
+{
+  "id": "toolz-python-api",
+  "name": "toolz",
+  "version_evaluated": "0.12.x",
+  "homepage": "https://toolz.readthedocs.io/",
+  "repo_url": "https://github.com/pytoolz/toolz",
+  "category": "developer-tools",
+  "subcategories": ["functional-programming", "python", "utilities", "iterators", "data-processing"],
+  "tags": ["python", "toolz", "functional", "currying", "compose", "pipe", "memoize", "iterator", "cytoolz"],
+  "what_it_does": "Functional programming utilities for Python — provides currying, function composition, itertools extensions, and dictionary utilities. toolz features: curry for partial application, compose/compose_left for function pipelines, pipe(data, f1, f2, f3) for data transformation, memoize for function caching, juxt for applying multiple functions, complement for boolean negation, thread_last/thread_first for Clojure-style threading, itertoolz (partition, sliding_window, frequencies, groupby, accumulate, topk), dicttoolz (assoc, dissoc, merge, valmap, keymap, keyfilter), and cytoolz C extension for 2-5x speedup.",
+  "use_cases": [
+    "Agent data pipeline — from toolz import pipe, curry; process = pipe(raw_data, parse_json, validate_schema, extract_fields, normalize_values) — pipe(data, *functions) threads data through transformation chain; agent data processing pipeline composes pure functions; each step receives previous output; readable left-to-right data flow",
+    "Agent function composition — from toolz import compose, curry; @curry; def filter_by(key, value, items): return [i for i in items if i[key] == value; active_users = filter_by('status', 'active') — curry creates partial application; compose(get_emails, active_users) creates pipeline function; agent builds reusable transformation components from simple functions",
+    "Agent dictionary operations — from toolz import dicttoolz as dt; config = dt.merge(defaults, user_config); updated = dt.assoc(config, 'retries', 5); cleaned = dt.dissoc(config, 'debug_key'); mapped = dt.valmap(str.upper, tags) — immutable dict operations; agent config management without mutation; assoc/dissoc return new dicts",
+    "Agent memoization — from toolz import memoize; @memoize; def expensive_embedding(text): return model.encode(text) — memoize caches by argument; agent repeated embedding calls use cache; memoize uses dict by default (unlimited); add cache parameter: @memoize(cache=LRU(1000)) for bounded cache",
+    "Agent frequency analysis — from toolz.itertoolz import frequencies, topk; word_counts = frequencies(tokens); top_words = topk(10, word_counts, key=word_counts.get) — frequencies() counts occurrences; topk() gets top N; agent text analysis counts token frequencies efficiently; no pandas required for simple counting"
+  ],
+  "not_for": [
+    "Async/concurrent code — toolz functions are synchronous; for async function composition use anyio or custom async pipeline",
+    "Large dataset processing — toolz is Python-level iteration; for DataFrames and arrays use pandas/numpy which have vectorized C operations",
+    "Production caching — toolz memoize is unbounded by default; for production caching use aiocache or cachetools with proper TTL and bounds"
+  ],
+  "best_when": "Writing functional Python code with data transformation pipelines — toolz provides the functional primitives (pipe, compose, curry, memoize) that make pipeline code readable without external dependencies.",
+  "avoid_when": "You need async composition, vectorized array operations (use numpy/pandas), or bounded production caching (use cachetools).",
+  "alternatives": ["more-itertools-python-api", "returns-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — pure Python utility library."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, BSD licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "toolz is BSD licensed. cytoolz is BSD licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Pure Python: itertoolz functions are lazy generators — memory efficient. cytoolz C extension: 2-5x speedup for CPU-bound iteration. memoize is unbounded by default — memory grows without limit for variable inputs.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 80,
+    "error_message_notes": "TypeError when pipe() receives wrong argument types. curry returns partial function not error when called with insufficient args — silent partial application may confuse. memoize TypeError for unhashable arguments. compose() fails at call time not composition time. Error messages are standard Python exceptions without toolz context.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Purely functional — compose/pipe return new functions. dicttoolz functions return new dicts without mutation. memoize caches deterministically for same inputs. All toolz operations are side-effect free for pure functions.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "curry returns partial not error on insufficient args — @curry; def f(a, b): return a + b; f(1) returns curried function not error; agent code calling curried function with wrong arity gets a function back not an error; f(1)(2) returns 3; f(1, 2) returns 3; accidentally passing curried function where value expected causes downstream TypeError",
+      "memoize is unbounded by default — @memoize without cache parameter stores all unique inputs forever; agent function memoizing API responses with unique URLs fills memory over time; use: @memoize(cache={}) to start with empty dict or import LRU from functools and: @memoize(cache=dict()) with manual eviction; or use cachetools.LRUCache(maxsize=1000)",
+      "pipe() vs compose() argument order — pipe(data, f1, f2, f3) applies f1 first; compose(f3, f2, f1)(data) applies f1 first (rightmost first); compose_left(f1, f2, f3)(data) is equivalent to pipe; agent code mixing pipe and compose must remember compose applies right-to-left like mathematical composition",
+      "itertoolz functions return generators not lists — toolz.itertoolz.partition(3, range(10)) returns generator; agent code expecting list must convert: list(partition(3, range(10))); generators are lazy — calling len() raises TypeError; calling functions that consume iterables twice on generator gives empty second iteration",
+      "dicttoolz.merge uses last-wins for conflicts — dt.merge({'a': 1}, {'a': 2}) returns {'a': 2}; last dict wins for duplicate keys; agent config merge: dt.merge(defaults, overrides) — overrides win; dt.merge(overrides, defaults) — defaults win; order matters and is easy to get backwards",
+      "cytoolz is optional C extension — from cytoolz import pipe is 2-5x faster but requires compilation; from toolz import pipe is pure Python fallback; agent requirements should list toolz not cytoolz for portability; add cytoolz as optional: pip install toolz cytoolz; code can try: from cytoolz import pipe except ImportError: from toolz import pipe"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 78,
+    "auth_complexity_score": 99,
+    "rate_limit_clarity_score": 99
+  },
+  "security_score_components": {
+    "tls_enforcement": 92,
+    "auth_strength": 92,
+    "scope_granularity": 90,
+    "dependency_hygiene": 90,
+    "secret_handling": 90,
+    "security_notes": "Pure functional library with no network calls. memoize stores function arguments as cache keys — avoid memoizing functions that receive secrets as arguments; cache keys may be logged or inspected. No other security concerns."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 82,
+    "version_stability": 85,
+    "breaking_changes_history": 85,
+    "error_recovery": 85
+  }
+}

@@ -1,0 +1,106 @@
+{
+  "id": "shortuuid-python-api",
+  "name": "shortuuid",
+  "version_evaluated": "1.x",
+  "homepage": "https://github.com/skorokithakis/shortuuid",
+  "repo_url": "https://github.com/skorokithakis/shortuuid",
+  "category": "developer-tools",
+  "subcategories": ["utilities", "python", "uuid", "id-generation"],
+  "tags": ["python", "shortuuid", "uuid", "short-id", "identifier", "base57", "url-safe"],
+  "what_it_does": "Short UUID generator for Python — generates concise, URL-safe UUIDs by encoding standard UUIDs in base57 (letters + digits without confusable characters). shortuuid features: shortuuid.uuid() for 22-char IDs, shortuuid.uuid(name=url) for deterministic URL-based UUIDs, shortuuid.encode(uuid_obj) for custom UUIDs, shortuuid.decode(short) to get original UUID, alphabet customization, ShortUUID class for custom alphabets, and guaranteed uniqueness (encodes standard UUID4 namespace). Generates IDs like 'mhvXdrZT4jP5T8vBxuvm75' instead of 'f3ee-8d75-48d4-a7e7'.",
+  "use_cases": [
+    "Agent session ID generation — import shortuuid; session_id = shortuuid.uuid() — generates 22-char URL-safe ID; agent creates human-readable session IDs for logs and APIs; shorter than UUID4 (36 chars) for display in URLs and UI; collision probability same as UUID4",
+    "Agent deterministic ID from URL — conversation_id = shortuuid.uuid(name='https://example.com/thread/123') — same URL always produces same ID; agent deduplication uses deterministic ID for same source; reproducible IDs without storing mapping",
+    "Agent custom alphabet ID — import shortuuid; su = shortuuid.ShortUUID(alphabet='0123456789ABCDEF'); hex_id = su.uuid() — uppercase hex-only IDs; agent system requiring specific character set for compatibility; alphabet customization changes output length based on entropy",
+    "Agent UUID round-trip — import uuid; import shortuuid; uid = uuid.uuid4(); short = shortuuid.encode(uid); decoded = shortuuid.decode(short); assert decoded == uid — lossless encoding/decoding; agent stores short ID in URL but reconstructs full UUID for database lookup; database uses UUID column, API uses short ID",
+    "Agent URL-safe identifiers — trace_id = shortuuid.uuid(); url = f'https://api.example.com/traces/{trace_id}' — 22 chars vs 36 for UUID; shorter URLs for agent trace links in Slack/email; no special characters needing URL encoding; base57 excludes confusable characters (0, O, I, l)"
+  ],
+  "not_for": [
+    "Cryptographically secure tokens — shortuuid encodes UUID4 which is not suitable for security tokens; for secrets use secrets.token_urlsafe()",
+    "Human-memorable IDs — shortuuid IDs are still 22 chars; for memorable IDs use word-based approaches like haikunator",
+    "Sortable time-ordered IDs — shortuuid has no time component; for sortable IDs use ULID or UUID7"
+  ],
+  "best_when": "Generating compact URL-safe identifiers that maintain UUID4 collision resistance — shortuuid's 22-char base57 IDs are ideal for agent session IDs, trace IDs, and API resource identifiers.",
+  "avoid_when": "You need security tokens (use secrets), sortable IDs (use ULID), or human-memorable IDs.",
+  "alternatives": ["ulid-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — local ID generation library."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, BSD licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "shortuuid is BSD licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Generation speed: ~500K IDs/sec (UUID4 generation + base57 encoding). Deterministic UUID from name: uses UUID5 SHA-1 hash — ~200K/sec. Both are fast enough for any practical use case.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 88,
+    "error_message_quality": 85,
+    "error_message_notes": "ValueError for invalid base57 characters in decode(). ValueError for empty string or wrong length input. Error messages are simple and clear. shortuuid is a simple library with minimal error surface.",
+    "idempotency_support": "full",
+    "idempotency_notes": "shortuuid.uuid(name=url) is fully deterministic — same URL always produces same ID. shortuuid.uuid() (no name) generates random UUID4 — not idempotent. encode()/decode() are bijective and idempotent.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "shortuuid.uuid() vs uuid.uuid4() length differs — shortuuid.uuid() returns 22-char string; str(uuid.uuid4()) returns 36-char with hyphens; database schema mixing both formats causes inconsistency; agent code must standardize on one format; use shortuuid.encode(uuid4_obj) to encode existing UUID4 objects",
+      "shortuuid.uuid(name=x) uses UUID5 not UUID4 — deterministic shortuuid.uuid(name='example') is based on UUID5 (SHA-1 hash in UUID namespace); it is deterministic but NOT random; predictable IDs from known names are not suitable for security tokens; agent deduplication using name-based IDs must ensure name input is not user-controlled for security-sensitive contexts",
+      "Custom alphabet changes output length — ShortUUID(alphabet='abc') with 3-char alphabet produces longer IDs (more chars needed to encode same UUID entropy); ShortUUID(alphabet='0123456789abcdef') produces ~32-char IDs; agent code with fixed-length ID field in database must account for alphabet-dependent length",
+      "decode() fails on non-shortuuid strings — shortuuid.decode(regular_uuid_string) fails because UUID string contains '-' not in base57 alphabet; agent code receiving IDs from external sources must validate format before decode; or wrap in try/except ValueError; use shortuuid.encode(uuid.UUID(str_id)) to convert UUID string to shortuuid",
+      "No time-ordering — shortuuid IDs are random (based on UUID4) with no time component; database queries ordered by ID have no temporal meaning; agent systems that need insertion-order sorting must add separate timestamp column; IDs cannot be sorted to infer creation order unlike ULID or UUID7",
+      "Thread and multiprocess safe — shortuuid uses Python's uuid module which is thread-safe; multiple threads/processes can call shortuuid.uuid() concurrently without coordination; no global state or shared mutable data; safe for use in FastAPI concurrent request handlers without locks"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 88,
+    "error_handling_score": 85,
+    "auth_complexity_score": 99,
+    "rate_limit_clarity_score": 99
+  },
+  "security_score_components": {
+    "tls_enforcement": 92,
+    "auth_strength": 90,
+    "scope_granularity": 88,
+    "dependency_hygiene": 92,
+    "secret_handling": 85,
+    "security_notes": "ID generation library with no network calls. UUID4-based IDs have sufficient collision resistance for non-security identifiers. DO NOT use for security tokens — use secrets.token_urlsafe() instead. Name-based IDs (shortuuid.uuid(name=x)) are deterministic and predictable — not suitable as tokens. Base57 alphabet excludes visually confusable characters (0, O, I, l) reducing human-transcription errors."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 92,
+    "breaking_changes_history": 92,
+    "error_recovery": 90
+  }
+}

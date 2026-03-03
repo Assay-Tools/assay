@@ -1,0 +1,106 @@
+{
+  "id": "pyinstrument-python-api",
+  "name": "pyinstrument",
+  "version_evaluated": "4.x",
+  "homepage": "https://pyinstrument.readthedocs.io/",
+  "repo_url": "https://github.com/joerick/pyinstrument",
+  "category": "developer-tools",
+  "subcategories": ["profiling", "python", "performance", "debugging"],
+  "tags": ["python", "pyinstrument", "profiler", "performance", "sampling", "flamegraph", "html"],
+  "what_it_does": "Statistical sampling CPU profiler for Python — measures where time is spent with low overhead and human-readable output. pyinstrument features: pyinstrument script.py for CLI, Profiler() context manager, profiler.start()/stop(), profiler.output_text() for terminal output, profiler.output_html() for interactive HTML flamegraph, profiler.open_in_browser() for immediate visualization, interval parameter for sampling rate (default 0.001s), async_mode for asyncio profiling, @profile decorator, pyinstrument.render_as_html(), and pytest plugin (pytest-pyinstrument). Output shows call tree with time percentages — immediately identifies bottlenecks.",
+  "use_cases": [
+    "Agent quick profiling — from pyinstrument import Profiler; profiler = Profiler(); profiler.start(); agent_function(); profiler.stop(); profiler.print() — profile specific code section; agent developer sees call tree with time percentages in terminal; slower than py-spy for production but more accessible from Python code",
+    "Agent HTML flamegraph — profiler = Profiler(); with profiler: run_agent_pipeline(); profiler.open_in_browser() — opens interactive flamegraph in browser; agent developer clicks through call tree; wider bars = more time; shows percentage of parent time at each level; cleaner output than cProfile for complex call trees",
+    "Agent async profiling — profiler = Profiler(async_mode='enabled'); async def main(): with profiler: await run_async_agent(); print(profiler.output_text()) — async_mode traces asyncio coroutines correctly; agent async code profiling shows both CPU time and async wait time; distinguishes 'running' from 'waiting for I/O'",
+    "Agent pytest integration — # pyproject.toml: [tool.pytest.ini_options]; addopts = '--pyinstrument'; # any slow test shows profiling output — pytest-pyinstrument shows profiler output for each test; agent slow tests identified automatically; --profile-svg generates flamegraph SVG for CI artifact",
+    "Agent context manager profiling — with Profiler() as profiler: expensive_preprocessing(); intermediate_result = transform(data); final = postprocess(intermediate_result); print(profiler.output_text(show_all=True)) — profile entire pipeline block; show_all=True shows all frames including library code; agent developer sees full call stack including library overhead"
+  ],
+  "not_for": [
+    "Production always-on profiling — pyinstrument overhead (1-10%) too high for always-on; use py-spy --pid for zero-overhead production profiling of running processes",
+    "Memory profiling — pyinstrument is CPU time only; use memray for memory allocation profiling",
+    "Line-level profiling — pyinstrument shows function-level time; for line-by-line profiling use line_profiler"
+  ],
+  "best_when": "Quick, readable CPU profiling of Python agent code during development — pyinstrument's HTML output is the most developer-friendly way to identify bottlenecks in complex call trees.",
+  "avoid_when": "You need zero-overhead production profiling (use py-spy), memory profiling (use memray), or line-level attribution (use line_profiler).",
+  "alternatives": ["py-spy-python-api", "scalene-python-api", "viztracer-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — local profiling library."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, BSD licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "pyinstrument is BSD licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Sampling overhead: ~1-5% CPU at default interval=0.001s. Higher interval = less overhead, less resolution. Minimum profiling duration: ~0.1s for useful results. Short functions (<1ms) may not be sampled. Statistical profiling misses functions shorter than sampling interval.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 88,
+    "error_message_quality": 85,
+    "error_message_notes": "RuntimeError when profiler not stopped before output. NotMainThreadError when used outside main thread without configuration. Async mode requires explicit async_mode='enabled' parameter. Error messages are clear. open_in_browser() fails silently in headless CI — use output_html() and save to file instead.",
+    "idempotency_support": "full",
+    "idempotency_notes": "profiler.reset() clears data for reuse. Each start()/stop() cycle accumulates data. Statistical profiling results vary slightly between runs. output_text() and output_html() from same profiler instance are deterministic.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Statistical profiling misses short functions — pyinstrument samples every 1ms by default; functions completing in <1ms may not appear in profile; agent code with many fast utility functions shows them as 0% even if called 1M times; use interval=0.0001 for finer resolution at cost of higher overhead; or use cProfile/viztracer for deterministic profiling",
+      "open_in_browser() fails in headless CI — profiler.open_in_browser() tries to open browser via webbrowser module; CI/CD systems without display raise OSError or silently fail; agent CI profiling must use: with open('profile.html', 'w') as f: f.write(profiler.output_html()); or output_text() for CI-friendly terminal output",
+      "async_mode must be set at Profiler() creation — Profiler(async_mode='enabled') must be set at creation; cannot enable async mode after creation; agent async profiling must use context manager with async_mode set: async with Profiler(async_mode='enabled') as profiler: await agent_code(); without async_mode, async gaps show as idle time not as 'awaiting coroutine'",
+      "profiler.print() vs profiler.output_text() — profiler.print() is shorthand for print(profiler.output_text()); profiler.output_text() returns string; agent code saving profile to log must use output_text() not print(); profiler.output_html() returns full HTML string for file saving",
+      "interval=0.001 means functions < 1ms not profiled — agent code with hot utility functions (string formatting, dict lookups) not visible at default interval; these microsecond functions may be called millions of times; pyinstrument shows what consumes the most wallclock time, not call count; use line_profiler for per-call counting",
+      "Profiler() resets on __enter__ in context manager — using same Profiler instance twice as context manager: with profiler: fn1(); with profiler: fn2() — second with resets profiler data; agent code profiling multiple sections accumulates data only in last section; use separate Profiler() instances or profiler.start()/stop() to accumulate across sections"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 88,
+    "error_handling_score": 85,
+    "auth_complexity_score": 99,
+    "rate_limit_clarity_score": 99
+  },
+  "security_score_components": {
+    "tls_enforcement": 92,
+    "auth_strength": 92,
+    "scope_granularity": 90,
+    "dependency_hygiene": 90,
+    "secret_handling": 85,
+    "security_notes": "Local profiling library with no network calls. Profile output (HTML/text) contains function names and file paths — may expose code structure. Treat profile output files as sensitive internal documentation. open_in_browser() creates temporary HTML file in OS temp directory — clean up after profiling sessions in shared environments."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 85,
+    "breaking_changes_history": 85,
+    "error_recovery": 88
+  }
+}
