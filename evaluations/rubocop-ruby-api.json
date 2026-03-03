@@ -1,0 +1,106 @@
+{
+  "id": "rubocop-ruby-api",
+  "name": "RuboCop",
+  "version_evaluated": "1.x",
+  "homepage": "https://rubocop.org/",
+  "repo_url": "https://github.com/rubocop/rubocop",
+  "category": "developer-tools",
+  "subcategories": ["linting", "ruby", "code-style", "static-analysis", "formatting"],
+  "tags": ["ruby", "rubocop", "linting", "code-style", "static-analysis", "cops", "formatter"],
+  "what_it_does": "Ruby static analysis and linting tool — enforces Ruby community style guide via configurable 'cops' that check style, layout, lint, metrics, naming, performance, and security. RuboCop features: rubocop CLI with auto-fix (--autocorrect), .rubocop.yml configuration, department-based cop organization (Style, Layout, Lint, Metrics, Naming, Security), extension gems (rubocop-rails, rubocop-rspec, rubocop-performance), AllCops settings for include/exclude, inheritance from shared config (rubocop-rails, rubocop-ast), and integration with editors and CI. Example cops: Style/StringLiterals (single vs double quotes), Metrics/MethodLength (max 10 lines), Lint/UnusedVariable, Security/Eval. The de facto Ruby style enforcer used by Rails, Homebrew, and most major Ruby projects.",
+  "use_cases": [
+    "Agent codebase style enforcement — rubocop --autocorrect app/services/agent_service.rb fixes auto-correctable style issues; CI runs rubocop --no-color --format progress to fail on violations; enforces consistent Ruby style across agent developer team",
+    "Rails agent app with rubocop-rails — add gem 'rubocop-rails' and require: rubocop-rails in .rubocop.yml; Rails-specific cops like Rails/FindEach (use find_each for large agent datasets) and Rails/TimeZone enforce Rails best practices",
+    "RSpec agent test linting — rubocop-rspec extension adds RSpec-specific cops: RSpec/DescribeClass, RSpec/ExpectChange, RSpec/MessageExpectation; ensures agent spec files follow RSpec style conventions alongside general Ruby style",
+    "Agent metrics control — Metrics/MethodLength: Max: 20 and Metrics/ClassLength: Max: 200 in .rubocop.yml sets project-specific thresholds; agent service classes exceeding limits get rubocop violation flagging need to refactor",
+    "Security cop for agent code — Security/Eval and Security/MarshalLoad cops flag dangerous Ruby in agent code; rubocop --only Security runs security-specific cops as lightweight SAST in agent CI pipeline"
+  ],
+  "not_for": [
+    "Deep security scanning — RuboCop security cops catch obvious patterns; for comprehensive agent code security use Brakeman (Rails-specific SAST) or Semgrep",
+    "Runtime type checking — RuboCop does static analysis only; for Ruby type checking use Sorbet or Steep with RBS type signatures",
+    "Non-Ruby files — RuboCop analyzes .rb files only; for ERB templates use erb-lint; for Haml use haml-lint"
+  ],
+  "best_when": "Every Ruby and Rails agent project — RuboCop is the universal Ruby linting standard with community-agreed default rules and Rails-specific extensions.",
+  "avoid_when": "There is no scenario to avoid RuboCop — include it in every Ruby agent project. Customize .rubocop.yml to match team preferences rather than disabling entirely.",
+  "alternatives": ["standard-ruby-api", "prettier-ruby-api", "reek-ruby-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": false,
+    "sdk_languages": [],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — local CLI static analysis tool."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "RuboCop is MIT licensed. All official extension gems (rubocop-rails, rubocop-rspec, rubocop-performance, rubocop-ast) are open source."
+  },
+  "performance": {
+    "latency_p50_ms": 0,
+    "latency_p99_ms": 0,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — local CLI. Full scan of large agent Rails apps takes 30-120 seconds. Use --parallel flag for faster execution on multi-core machines. rubocop --cache true caches results between runs for changed-file-only analysis.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 92,
+    "error_message_quality": 90,
+    "error_message_notes": "RuboCop outputs file:line:col: severity: [CopName] message format for each violation. --format json provides machine-parseable output for CI integration. --display-cop-names shows full cop identifier. Auto-correct output shows [Corrected] suffix for fixed violations in agent files.",
+    "idempotency_support": "full",
+    "idempotency_notes": "RuboCop --autocorrect is idempotent — running twice produces no additional changes on corrected code. Analysis results are deterministic given same .rubocop.yml configuration.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "AllCops NewCops: enable required for new cops — RuboCop adds new cops in minor versions as 'pending' (disabled by default); without NewCops: enable in .rubocop.yml, new cops never run; agent CI passing with outdated cop set misses new violations; add NewCops: enable and periodically review new cop violations",
+      "rubocop-rails requires separate gem and require — add gem 'rubocop-rails', require: false to Gemfile; add require: rubocop-rails in .rubocop.yml; missing require means Rails cops like Rails/TimeZone silently don't run; agent Rails projects think they're getting Rails cop coverage when they're not",
+      "--autocorrect-all vs --autocorrect — --autocorrect only fixes 'safe' auto-corrections; --autocorrect-all (formerly --auto-correct-all) fixes unsafe corrections too; some unsafe fixes change agent code behavior (Style/HashTransformValues); review unsafe corrections before committing to agent codebase",
+      "Metrics cops use method/class size not complexity — Metrics/MethodLength counts lines including blank lines and comments; 10-line default is aggressive for agent service methods; set Metrics/MethodLength: Max: 20 and Metrics/AbcSize: Max: 30 for realistic thresholds before disabling; many teams disable Metrics cops entirely",
+      "Inheriting from external shared config — inherit_from: https://raw.githubusercontent.com/org/rubocop-config/main/.rubocop.yml allows shared team .rubocop.yml; remote configs are cached locally; agent CI must cache rubocop config or face network dependency; use inherit_gem: rubocop-my-gem for bundled shared config instead",
+      "rubocop-rspec version must match rubocop version — rubocop-rspec 3.x requires rubocop 1.65+; mismatched versions cause LoadError or missing cop departments; agent projects updating rubocop must simultaneously update rubocop-rspec and rubocop-rails to compatible versions in Gemfile"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 92,
+    "error_handling_score": 90,
+    "auth_complexity_score": 98,
+    "rate_limit_clarity_score": 98
+  },
+  "security_score_components": {
+    "tls_enforcement": 95,
+    "auth_strength": 95,
+    "scope_granularity": 92,
+    "dependency_hygiene": 90,
+    "secret_handling": 95,
+    "security_notes": "Local static analysis — no network access during analysis. Remote config (inherit_from URL) fetches configuration over HTTPS; pin config version to avoid malicious config injection in agent CI. RuboCop Security department catches Security/Eval, Security/MarshalLoad, Security/YAMLLoad in agent Ruby code."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 92,
+    "version_stability": 88,
+    "breaking_changes_history": 82,
+    "error_recovery": 92
+  }
+}

@@ -1,0 +1,106 @@
+{
+  "id": "dry-rb-api",
+  "name": "dry-rb",
+  "version_evaluated": "various",
+  "homepage": "https://dry-rb.org/",
+  "repo_url": "https://github.com/dry-rb",
+  "category": "developer-tools",
+  "subcategories": ["ruby", "validation", "dependencies", "architecture", "functional"],
+  "tags": ["ruby", "dry-rb", "validation", "di", "monads", "transactions", "types", "functional"],
+  "what_it_does": "Collection of Ruby libraries for functional, maintainable application design — brings type safety, validation, dependency injection, and monadic patterns to Ruby. Key dry-rb gems: dry-validation (contract-based validation with predicates), dry-types (typed struct definitions with coercion), dry-container + dry-auto_inject (dependency injection container), dry-monads (Result/Maybe monads for railway-oriented programming), dry-transaction (multi-step business operation pipelines), and dry-struct (immutable value objects). Used in Hanami 2 and as complement to Rails for service layer architecture. Enables agent services with explicit contracts, typed inputs, and clear error handling without exception-driven flow control.",
+  "use_cases": [
+    "Agent input validation contracts — class CreateAgentContract < Dry::Validation::Contract { params { required(:name).filled(:string); required(:type).filled(:string, included_in?: %w[chat search]) } } returns Result with errors hash; clean validation separate from ActiveRecord for agent API endpoints",
+    "Typed agent value objects — class AgentConfig < Dry::Struct { attribute :max_tokens, Types::Integer.constrained(gteq: 1, lteq: 32000); attribute :temperature, Types::Float.constrained(gteq: 0.0, lteq: 2.0) } immutable agent configuration with automatic type coercion and constraints",
+    "Agent service dependency injection — container = Dry::Container.new; container.register(:llm_client) { OpenAI::Client.new }; class AgentService { include Dry::AutoInject(container)['llm_client'] } — testable agent services without global state or hard-coded dependencies",
+    "Monadic agent workflow — dry-monads Result monad: fetch_agent(id).bind { |agent| validate_agent(agent) }.bind { |valid| run_agent(valid) }.fmap { |result| format_response(result) }; Success/Failure propagation without rescue blocks in agent pipelines",
+    "Multi-step agent transaction — class RunAgentTransaction < Dry::Transaction { step :fetch_agent; step :validate_permissions; step :execute_task; step :save_result } — each step returns Success/Failure; failed step short-circuits remaining steps; agent workflow with clear step boundaries"
+  ],
+  "not_for": [
+    "Simple Rails CRUD — dry-rb architecture overhead is excessive for basic Rails agent resource endpoints; use ActiveRecord validations and standard Rails patterns for simple CRUD",
+    "Teams unfamiliar with functional patterns — dry-rb monads and type systems have steep learning curve; agent teams without functional programming exposure face significant onboarding time",
+    "Rapid prototyping — dry-rb explicit contracts and DI setup adds upfront ceremony; for quick agent proof-of-concepts, standard Ruby/Rails is faster to scaffold"
+  ],
+  "best_when": "You're building complex agent service layer logic with explicit contracts, testable dependencies, and multi-step workflows — dry-rb provides the architecture for maintainable agent business logic beyond Rails conventions.",
+  "avoid_when": "Your team is Rails-focused with CRUD-dominant requirements, functional programming patterns are unfamiliar, or you're prototyping quickly without architecture concerns.",
+  "alternatives": ["trailblazer-ruby-api", "interactor-ruby-api", "hanami-ruby-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["ruby"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — library collection. Authentication logic can be implemented as dry-validation contract or dry-transaction step in agent application."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "All dry-rb gems are MIT licensed. Maintained by the dry-rb organization and Hanami contributors."
+  },
+  "performance": {
+    "latency_p50_ms": 1,
+    "latency_p99_ms": 10,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — local library. dry-validation contract validation adds <1ms overhead. dry-container dependency resolution is cached after first lookup. Performance appropriate for agent API request handling.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 80,
+    "error_message_quality": 82,
+    "error_message_notes": "dry-validation returns errors as Dry::Validation::MessageSet with field and message keys. dry-monads Failure wraps error value accessible via .failure method. dry-types ConstraintError shows type name and failed constraint. dry-container ItemNotFoundError shows key name for missing registrations.",
+    "idempotency_support": "full",
+    "idempotency_notes": "dry-validation contracts are pure functions — same input produces same validation result. dry-monads transformations are functional and side-effect-free. dry-struct instances are immutable (frozen). All dry-rb core patterns are idempotent.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "dry-validation 1.x vs 0.x API is completely different — Schema-based dry-validation 0.x has different DSL from Contract-based 1.x; agent code examples from pre-2020 tutorials use incompatible API; Dry::Validation::Contract replaced Dry::Validation::Schema entirely in 1.0; check gem version before following tutorials",
+      "dry-container registration must happen before injection — Dry::AutoInject resolves dependencies at class definition time in some configurations; registering agent dependencies after including AutoInject causes key not found; register all container dependencies before any class uses auto_inject",
+      "dry-monads Do notation requires explicit include — Do.call method and yield-based monad chaining requires include Dry::Monads::Do in agent service class; without Do included, yield inside bind blocks causes LocalJumpError; each class using Do notation needs explicit include",
+      "dry-struct attributes are coerced on construction — Dry::Struct coerces types at initialization: AgentConfig.new(max_tokens: '100') coerces string to integer if Types::Coercible::Integer used; dry-struct raises Dry::Struct::Error on type mismatch with descriptive message; agent code passing wrong types to struct initialization fails loudly",
+      "dry-transaction steps must return Success or Failure — step methods returning plain values cause NoMethodError ('Success expected'); every dry-transaction step must wrap return value in Success() or Failure(); agent developers familiar with plain Ruby services commonly forget monad wrapping requirement",
+      "dry-rb gem versioning is coordinated — dry-validation, dry-types, dry-core must be compatible versions; mixing dry-validation 1.8 with dry-types 1.5 may cause incompatibilities; use Bundler gemspec constraints or check dry-rb compatibility matrix when updating agent project dependencies"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 80,
+    "error_handling_score": 82,
+    "auth_complexity_score": 95,
+    "rate_limit_clarity_score": 98
+  },
+  "security_score_components": {
+    "tls_enforcement": 92,
+    "auth_strength": 90,
+    "scope_granularity": 88,
+    "dependency_hygiene": 85,
+    "secret_handling": 90,
+    "security_notes": "dry-validation contracts provide explicit input validation reducing agent injection risk from unvalidated user input. dry-types type coercion prevents type confusion attacks. Local library — no network security concerns beyond gem dependency supply chain."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 85,
+    "version_stability": 82,
+    "breaking_changes_history": 75,
+    "error_recovery": 88
+  }
+}
