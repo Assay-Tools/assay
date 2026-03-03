@@ -1,0 +1,106 @@
+{
+  "id": "spring-amqp-api",
+  "name": "Spring AMQP (RabbitMQ)",
+  "version_evaluated": "3.x",
+  "homepage": "https://spring.io/projects/spring-amqp",
+  "repo_url": "https://github.com/spring-projects/spring-amqp",
+  "category": "developer-tools",
+  "subcategories": ["messaging", "java", "spring", "rabbitmq", "amqp", "queues"],
+  "tags": ["java", "kotlin", "spring", "rabbitmq", "amqp", "messaging", "queues", "async", "spring-boot"],
+  "what_it_does": "Spring integration for RabbitMQ — provides RabbitTemplate for sending messages, @RabbitListener for consuming, and declarative exchange/queue/binding configuration via Beans. Spring AMQP features: RabbitTemplate.convertAndSend() for publishing, @RabbitListener(queues='agent.tasks') for consuming, automatic message conversion (JSON via Jackson2JsonMessageConverter), dead letter queues via x-dead-letter-exchange config, retry with fixed/exponential backoff (RetryInterceptorBuilder), SimpleRabbitListenerContainerFactory for concurrency control, RabbitAdmin for declarative queue/exchange declaration, and @RabbitListenerContainerFactory for per-listener configuration. Spring Boot auto-configuration via spring-boot-starter-amqp.",
+  "use_cases": [
+    "Agent task queue — @RabbitListener(queues = 'agent.tasks') public void processTask(AgentTask task) {} consumes agent tasks from RabbitMQ; RabbitTemplate.convertAndSend('agent.tasks', task) publishes from agent API; automatic JSON serialization via Jackson2JsonMessageConverter",
+    "Agent event fanout — TopicExchange + bindings route agent.event.* messages to multiple queues; agent notifications, audit logging, and analytics services each receive copies via exchange routing without direct coupling",
+    "Dead letter queue for failed agent tasks — queue declared with x-dead-letter-exchange=agent.dlx retries failed agent processing; RabbitMQ moves messages to DLQ after maxAttempts; agent ops team inspects/requeues failed tasks from DLQ",
+    "Priority agent tasks — @RabbitListener with concurrency = '3-10' scales agent task consumers from 3 to 10 threads based on queue depth; high-priority agent tasks in separate queue with dedicated consumer group get SLA guarantee",
+    "Agent saga orchestration — RabbitTemplate.convertAndSend() publishes compensation events when agent step fails; downstream services consume compensation topic and roll back; AMQP topics enable agent workflow coordination without tight coupling"
+  ],
+  "not_for": [
+    "High-throughput streaming — RabbitMQ/AMQP per-message acknowledgment overhead limits throughput vs Kafka; for agent event streaming at millions/sec use Spring Kafka",
+    "Event sourcing and replay — RabbitMQ queues are transient; consumed messages are gone; for agent event replay and audit log use Kafka with log retention",
+    "Request-reply RPC — Spring AMQP supports RPC pattern but HTTP is more natural for synchronous agent calls; use Spring AMQP for fire-and-forget async agent messaging"
+  ],
+  "best_when": "Your agent service needs reliable async task distribution, event fanout to multiple consumers, and complex routing logic — RabbitMQ's exchange/binding model excels at message routing patterns.",
+  "avoid_when": "You need event replay, high-throughput streaming, or log-based message retention — use Kafka. If workload is simple task queue, consider Redis with Spring Data Redis instead.",
+  "alternatives": ["spring-kafka-api", "spring-jms-api", "aws-sqs-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["java", "kotlin"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["basic_auth"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "RabbitMQ authenticates via username/password configured in spring.rabbitmq.username/password. TLS client certificates supported. Virtual hosts provide tenant isolation for agent queues."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, Apache 2.0 licensed. RabbitMQ server is open source; hosting costs are infrastructure.",
+    "paid_tiers": "CloudAMQP, AWS MQ, Azure Service Bus (AMQP-compatible) for managed hosting",
+    "requires_credit_card": false,
+    "notes": "Spring AMQP is Apache 2.0. RabbitMQ is MPL licensed open source. Managed hosting services have their own pricing."
+  },
+  "performance": {
+    "latency_p50_ms": 5,
+    "latency_p99_ms": 50,
+    "uptime_sla_percent": null,
+    "rate_limits": "No SDK rate limits. RabbitMQ throughput depends on message size, persistence, and hardware. Typical throughput: 20K-100K messages/sec per node. Agent task queues handle thousands of concurrent tasks with prefetch count tuning.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 82,
+    "error_message_notes": "AmqpConnectException indicates RabbitMQ connection failure with host/port info. AmqpRejectAndDontRequeueException in @RabbitListener sends to DLQ. MessageConversionException shows payload type mismatch. RabbitMQ management UI shows queue depths, consumer counts, and rejected message rates for agent queue monitoring.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "AMQP message delivery is at-least-once; agent consumers may receive duplicates on broker restart. Implement idempotent agent task processing using message ID deduplication. Publisher confirms ensure messages reach broker but not consumer idempotency.",
+    "pagination_style": "none",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Default message converter sends Java-serialized bytes — without Jackson2JsonMessageConverter, RabbitTemplate sends Java serialization; polyglot agent consumers (Python, Node.js) can't deserialize; always configure Jackson2JsonMessageConverter as default message converter bean for JSON interoperability",
+      "prefetchCount defaults to 250 — high prefetch causes one slow agent consumer to hoard messages from queue; other agent consumer instances starve; set spring.rabbitmq.listener.simple.prefetch=1 for fair dispatch of expensive agent tasks; tune up only for lightweight agent messages",
+      "@RabbitListener method exceptions requeueing loop — uncaught exceptions in @RabbitListener requeue message by default causing infinite retry loop; configure error handler or throw AmqpRejectAndDontRequeueException to send to DLQ; agent task processing failures must explicitly reject-without-requeue or configure retry interceptor with max attempts",
+      "Queue declaration requires matching arguments — if agent queue was declared with x-dead-letter-exchange and RabbitAdmin redeclares with different arguments, PRECONDITION_FAILED error causes connection failures; changing queue arguments requires deleting and recreating queue in RabbitMQ; agent deployments changing DLQ config must handle queue recreation",
+      "Jackson type information required for polymorphic messages — Jackson2JsonMessageConverter without TypeMapper sends raw JSON; deserializing to AgentTask interface fails with 'No type information' exception; use DefaultJackson2JavaTypeMapper with idClassMapping or include @class header in messages for agent polymorphic event hierarchies",
+      "Concurrency and maxConcurrency require queue consumer scaling — spring.rabbitmq.listener.simple.concurrency=3 starts 3 consumer threads; maxConcurrency=10 allows scaling to 10; RabbitMQ must have consumers present for messages to flow; agent services starting with concurrency=1 may be bottleneck until auto-scaling adds consumers"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 82,
+    "auth_complexity_score": 85,
+    "rate_limit_clarity_score": 88
+  },
+  "security_score_components": {
+    "tls_enforcement": 85,
+    "auth_strength": 82,
+    "scope_granularity": 80,
+    "dependency_hygiene": 88,
+    "secret_handling": 82,
+    "security_notes": "RABBITMQ_PASSWORD must be externalized via environment variables or Vault — never hardcode in application.yml for agent services. Enable TLS (spring.rabbitmq.ssl.enabled=true) for production agent message encryption in transit. Virtual hosts provide agent tenant isolation but require per-vhost permission configuration."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 88,
+    "breaking_changes_history": 85,
+    "error_recovery": 85
+  }
+}

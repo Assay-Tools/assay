@@ -1,0 +1,106 @@
+{
+  "id": "spring-kafka-api",
+  "name": "Spring Kafka",
+  "version_evaluated": "3.x",
+  "homepage": "https://spring.io/projects/spring-kafka",
+  "repo_url": "https://github.com/spring-projects/spring-kafka",
+  "category": "developer-tools",
+  "subcategories": ["messaging", "java", "spring", "kafka", "streaming", "event-sourcing"],
+  "tags": ["java", "kotlin", "spring", "kafka", "streaming", "events", "event-sourcing", "spring-boot"],
+  "what_it_does": "Spring integration for Apache Kafka — provides KafkaTemplate for producing, @KafkaListener for consuming, and Kafka Streams support. Spring Kafka features: KafkaTemplate.send() for producing records, @KafkaListener(topics='agent-events') for consuming, automatic offset management, consumer group coordination, batch consumption mode, dead-letter topics (DeadLetterPublishingRecoverer), retry with exponential backoff (DefaultErrorHandler), Kafka Streams binding via StreamsBuilderFactoryBean, transaction support (KafkaTransactionManager), embedded Kafka for testing (EmbeddedKafkaBroker), and Spring Boot auto-configuration via spring-boot-starter. Key difference from AMQP: Kafka retains all messages (configurable retention), enables replay and multiple independent consumer groups reading same topic.",
+  "use_cases": [
+    "Agent event streaming — KafkaTemplate<String, AgentEvent> kafkaTemplate.send('agent-events', event.agentId(), event) publishes agent events; @KafkaListener(topics = 'agent-events', groupId = 'agent-analytics') AgentAnalyticsService reads independently from audit log service using same topic",
+    "Agent event replay for new services — Kafka topic retention means new AgentSearchIndexService can replay all historical agent events from offset 0 to build search index; impossible with RabbitMQ which deletes consumed messages",
+    "Agent audit log — every agent state change event written to Kafka topic with perpetual retention; compliance requires full agent action history; Kafka log serves as immutable audit ledger consumed by multiple downstream systems",
+    "Embedded Kafka for agent integration tests — @EmbeddedKafka(partitions=1, topics='agent-events') starts in-process Kafka for agent service integration tests; no Docker required in CI; spring.kafka.bootstrap-servers=#{embeddedKafka.brokersAsString} auto-configured",
+    "Agent Kafka Streams aggregation — StreamsBuilder builds topology that joins agent-requests topic with agent-configs topic, aggregates per agent, and outputs to agent-metrics topic; stateful stream processing for real-time agent KPI computation"
+  ],
+  "not_for": [
+    "Complex message routing — Kafka is a log; no exchange/binding routing logic; for agent message fanout with routing rules use RabbitMQ with topic exchanges",
+    "Request-reply messaging — Kafka is async fire-and-forget; for synchronous agent RPC use REST or gRPC; Spring Kafka ReplyingKafkaTemplate exists but is complex",
+    "Low-latency task queues — Kafka's batching and partitioning model adds latency vs RabbitMQ for single-message agent task dispatch; use RabbitMQ for sub-100ms agent task delivery"
+  ],
+  "best_when": "Your agent service produces events that multiple independent consumers need to process, or you need event replay, audit log, or stream processing — Kafka's log-based model enables all consumer groups to read independently.",
+  "avoid_when": "You need complex routing logic, immediate message deletion after consumption, or sub-10ms task delivery latency.",
+  "alternatives": ["spring-amqp-api", "aws-kinesis-api", "azure-eventhubs-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["java", "kotlin"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["api_key", "bearer_token"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Kafka auth via SASL (PLAIN, SCRAM, OAUTHBEARER) or mTLS. Configure via spring.kafka.properties.security.protocol=SASL_SSL and sasl.mechanism/jaas.config. Confluent Cloud uses API keys as SASL_SSL credentials."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Apache Kafka is open source. Spring Kafka is Apache 2.0. Self-hosted Kafka has no licensing cost.",
+    "paid_tiers": "Confluent Platform (commercial), Confluent Cloud, AWS MSK, Azure Event Hubs (Kafka-compatible) for managed hosting",
+    "requires_credit_card": false,
+    "notes": "Spring Kafka and Apache Kafka are open source. Managed Kafka services vary in pricing."
+  },
+  "performance": {
+    "latency_p50_ms": 10,
+    "latency_p99_ms": 100,
+    "uptime_sla_percent": null,
+    "rate_limits": "No SDK rate limits. Kafka throughput: millions of messages/sec. Latency depends on batch configuration — spring.kafka.producer.batch-size and linger.ms trade latency for throughput. Agent streaming workloads tune linger.ms=0 for low latency.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 80,
+    "error_message_notes": "KafkaException wraps broker errors with topic/partition context. ListenerExecutionFailedException shows @KafkaListener exception with record metadata. DefaultErrorHandler logs retry attempts and final dead-letter publishing. EmbeddedKafka setup errors surface as BrokerNotAvailableException with port conflict details.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Kafka at-least-once delivery by default; enable exactly-once with KafkaTransactionManager and isolation.level=read_committed. Agent consumers must handle duplicate delivery — use event ID deduplication or idempotent operations. Producer idempotence: spring.kafka.producer.properties.enable.idempotence=true prevents duplicate records on retry.",
+    "pagination_style": "none",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Consumer group offset management — @KafkaListener with same groupId across agent service instances share partition assignment; new consumer group sees all messages from earliest offset by default (spring.kafka.consumer.auto-offset-reset=earliest); redeploying with different groupId causes agent event replay from beginning — coordinate group ID changes",
+      "Partition count determines max parallelism — 3 partitions means max 3 active consumers in same group; adding more agent consumer instances beyond partition count is wasted resources; partition count is set at topic creation and changing requires Kafka admin tools; plan agent topic partitions for expected consumer concurrency",
+      "DefaultErrorHandler replaces old SeekToCurrentErrorHandler — Spring Kafka 2.8+ deprecated SeekToCurrentErrorHandler; DefaultErrorHandler with BackOff configures retry; agent code migrating from older Spring Kafka must update error handler configuration; old handler bean definitions cause ClassNotFoundException",
+      "EmbeddedKafka port conflicts in parallel tests — @EmbeddedKafka default port 9092 conflicts with multiple test classes running in parallel; use spring.embedded.kafka.brokers-property annotation attribute or spring.kafka.bootstrap-servers=${spring.embedded.kafka.brokers} with dynamic port; agent test suites with multiple @EmbeddedKafka tests fail in parallel CI",
+      "Message deserialization failures bypass error handler — JsonDeserializer failures in consumer record deserialization occur before listener method; DefaultErrorHandler doesn't intercept; configure spring.kafka.consumer.properties.spring.deserializer.key.type and ErrorHandlingDeserializer wrapping actual deserializer to route agent poison pill messages to DLT",
+      "Kafka Streams and @KafkaListener in same app require separate factories — Kafka Streams (StreamsBuilderFactoryBean) and standard @KafkaListener consumers need separate consumer/producer configs; sharing spring.kafka.* properties between Streams and listener can cause serialization incompatibility; agent apps using both patterns must configure separate Spring beans"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 80,
+    "auth_complexity_score": 80,
+    "rate_limit_clarity_score": 88
+  },
+  "security_score_components": {
+    "tls_enforcement": 85,
+    "auth_strength": 82,
+    "scope_granularity": 80,
+    "dependency_hygiene": 88,
+    "secret_handling": 82,
+    "security_notes": "Kafka SASL credentials in application.yml must be externalized — use Spring Cloud Config, Vault, or environment variables for agent production deployments. Kafka ACLs control topic read/write per service account — follow least-privilege for agent service topic access. TLS required for agent event data in transit."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 88,
+    "breaking_changes_history": 82,
+    "error_recovery": 85
+  }
+}
