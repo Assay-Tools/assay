@@ -1,0 +1,106 @@
+{
+  "id": "act-local-api",
+  "name": "act",
+  "version_evaluated": "0.2.x",
+  "homepage": "https://nektosact.com/",
+  "repo_url": "https://github.com/nektos/act",
+  "category": "developer-tools",
+  "subcategories": ["ci-cd", "github-actions", "local-dev", "testing", "devops"],
+  "tags": ["github-actions", "act", "local-ci", "ci-cd", "nektos", "workflow-testing", "docker"],
+  "what_it_does": "Run GitHub Actions locally using Docker — executes .github/workflows/*.yml workflows on your machine without pushing to GitHub. act features: act (runs default event), act push (simulates push event), act pull_request, act workflow_dispatch, act -j job-name (specific job), event payload injection via JSON files, secret passing (-s SECRET=value or --secret-file .secrets), custom runner images (act -P ubuntu-latest=nektos/act-environments-ubuntu:18.04), artifact support, act-container-architecture for Apple Silicon, and -n dry-run mode. Eliminates the GitHub Actions push-wait-fail cycle for agent CI debugging.",
+  "use_cases": [
+    "Agent CI debugging locally — act push runs .github/workflows/ci.yml on local Docker; agent developers debug failing CI steps without 5-minute GitHub push-wait cycle; act -j test runs only the failing test job; fix and re-run in seconds",
+    "Agent workflow dry-run — act -n prints workflow execution plan without running; agent workflow validation before pushing; catch missing secrets, wrong job names, or event type mismatches before CI runs",
+    "Agent secret testing — act --secret-file .secrets push tests agent CI workflow with real secrets locally; .secrets file format: SECRET_KEY=value; validate agent deployment steps that require API keys without pushing to GitHub",
+    "Workflow_dispatch testing — act workflow_dispatch -e event.json where event.json has {inputs: {environment: 'staging'}} tests agent manual trigger workflows with custom inputs locally; validates parameterized agent deployments",
+    "act with custom runner — act -P ubuntu-latest=ghcr.io/catthehacker/ubuntu:act-22.04 uses full Ubuntu runner image with all tools pre-installed; agent workflows using apt-get or specific tool versions get realistic CI environment locally"
+  ],
+  "not_for": [
+    "Replacing GitHub Actions for production CI — act is for local testing; production CI should run on GitHub Actions for security, secrets management, and audit trails",
+    "GitHub-specific actions — some GitHub Actions (github.com/actions/checkout with GITHUB_TOKEN, deploy to GitHub Pages) don't work locally; act simulates the environment but can't replicate all GitHub platform features",
+    "Complex matrix builds — act supports matrix strategy but running 20+ matrix jobs locally overwhelms local resources; use act -j specific-job for targeted debugging"
+  ],
+  "best_when": "Your agent CI workflows are failing and you want to debug GitHub Actions locally without repeated push-wait-fail cycles — act shortens the feedback loop from 5 minutes to 30 seconds.",
+  "avoid_when": "You need full GitHub platform features (GITHUB_TOKEN with real permissions, GitHub Pages deployment, GitHub Packages), or running large matrix builds.",
+  "alternatives": ["github-actions-api", "circleci-api", "jenkins-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": false,
+    "sdk_languages": [],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth on act itself. GitHub token (GITHUB_TOKEN) simulated with synthetic token lacking real permissions. Real secrets passed via --secret-file. Docker must be running."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "act is MIT licensed, maintained by Casey Lee (nektos). Free for all use. Requires Docker."
+  },
+  "performance": {
+    "latency_p50_ms": 0,
+    "latency_p99_ms": 0,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. First run downloads runner Docker image (1-5 GB). Subsequent runs reuse cached images. Local machine resources (CPU, memory, disk) constrain parallel job execution. act reuses Docker layers for faster subsequent runs.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 78,
+    "error_message_quality": 75,
+    "error_message_notes": "act shows step-by-step output matching GitHub Actions format. Missing secrets cause step failure with 'secret not found' message. Docker image pull failures show registry error. Step failures show exit code and stdout/stderr. act -v verbose mode shows container commands and environment.",
+    "idempotency_support": "full",
+    "idempotency_notes": "act workflow runs are idempotent given same inputs and secrets. Artifacts and caches reset between runs unless --reuse flag used. Docker containers cleaned up after each act run. --reuse flag reuses containers for faster re-runs during debugging.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Default runner image is minimal not full Ubuntu — act uses catthehacker/ubuntu:act-* images by default which lack many tools (git-lfs, browsers, many language runtimes); agent workflows using tools not in minimal image fail with 'command not found'; use -P ubuntu-latest=ghcr.io/catthehacker/ubuntu:full-22.04 for full runner; first pull is 20+ GB",
+      "GITHUB_TOKEN is synthetic with no real permissions — act generates a fake GITHUB_TOKEN; actions using it to call GitHub API (create releases, comment on PRs, push to branches) fail with 403; agent workflows deploying to GitHub Packages or Pages need real token via act -s GITHUB_TOKEN=$(gh auth token)",
+      "Docker-in-Docker required for docker build in workflows — agent CI workflows running docker build inside GitHub Actions steps need Docker-in-Docker setup in act; act --container-options '--privileged' or use an act runner with DinD; forgetting this causes 'Cannot connect to Docker daemon' inside workflow steps",
+      "Apple Silicon architecture mismatch — act on M1/M2/M3 Macs runs Linux/amd64 containers via Rosetta; some Docker images don't have arm64 variants; agent CI steps using amd64-only tools run slowly or fail; use --container-architecture linux/amd64 flag to explicitly set; native arm64 act support via --container-architecture linux/arm64",
+      "Secrets not in workflow context by default — act secrets (-s KEY=value) are available as environment variables but ${{ secrets.KEY }} interpolation in workflow YAML requires act 0.2.53+; older act versions don't pass secrets to steps; agent CI with secret interpolation needs updated act version",
+      "act cache not shared with GitHub Actions cache — actions/cache@v3 steps don't share cache between local act runs and GitHub Actions; agent workflow cache priming done locally doesn't populate GitHub cache; each GitHub Actions run starts cold even after local act caching; treat act and GitHub Actions as separate cache environments"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 75,
+    "error_handling_score": 72,
+    "auth_complexity_score": 85,
+    "rate_limit_clarity_score": 90
+  },
+  "security_score_components": {
+    "tls_enforcement": 82,
+    "auth_strength": 75,
+    "scope_granularity": 70,
+    "dependency_hygiene": 82,
+    "secret_handling": 72,
+    "security_notes": "NEVER commit .secrets file to git — add to .gitignore immediately. act exposes real secrets to local Docker containers; secrets visible in container environment. act runs arbitrary Docker images from .github/workflows — verify action sources before running untrusted workflows locally. Docker socket access via act equivalent to root on host."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 72,
+    "version_stability": 70,
+    "breaking_changes_history": 68,
+    "error_recovery": 72
+  }
+}
