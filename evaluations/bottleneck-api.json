@@ -1,0 +1,106 @@
+{
+  "id": "bottleneck-api",
+  "name": "Bottleneck",
+  "version_evaluated": "2.19+",
+  "homepage": "https://github.com/SGrondin/bottleneck",
+  "repo_url": "https://github.com/SGrondin/bottleneck",
+  "category": "developer-tools",
+  "subcategories": ["rate-limiting", "concurrency", "javascript", "utilities"],
+  "tags": ["javascript", "typescript", "rate-limiting", "concurrency", "throttling", "queue", "redis"],
+  "what_it_does": "Lightweight Node.js task scheduler and rate limiter. Bottleneck controls both concurrency AND request rate (RPS/RPM) with configurable reservoir and reservoir refresh intervals. Unlike p-limit (concurrency only), Bottleneck can enforce 'max 10 RPS with max 5 concurrent' — crucial for agent systems consuming rate-limited APIs. Supports Redis-backed distributed limiting.",
+  "use_cases": [
+    "Enforce API rate limits in agent systems that must respect RPS and RPM constraints from LLM providers",
+    "Control both concurrency and throughput in agent batch processors calling rate-limited external APIs",
+    "Implement distributed rate limiting for agent API calls across multiple worker processes using Redis",
+    "Queue agent tasks with priority levels and rate constraints — high-priority agent requests execute first",
+    "Throttle agent webhook dispatchers to respect downstream system rate limits"
+  ],
+  "not_for": [
+    "Simple concurrency-only limiting — p-limit is simpler for just controlling parallelism",
+    "Persistent job queues with retry — use BullMQ for durable queuing with retries",
+    "Applications where eventual consistency of distributed limits is not acceptable"
+  ],
+  "best_when": "Your agent needs to respect both concurrency AND RPS/RPM limits from external APIs — Bottleneck handles both dimensions in one library.",
+  "avoid_when": "You only need concurrency control (use p-limit) or durable job queuing (use BullMQ).",
+  "alternatives": ["p-limit-api", "p-queue-api", "bullmq-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["node"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Local utility library — no authentication. Redis connection for distributed mode uses Redis auth."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "none",
+    "requires_credit_card": false,
+    "notes": "Completely free and open source."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "Configures rate limits — doesn't have its own",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 82,
+    "error_message_notes": "Bottleneck.BottleneckError for queue overflow. Job timeout errors include job ID. Dropped jobs (when maxWaitingJobs reached) rejected with descriptive error.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Scheduling is deterministic for given configuration. Job priority affects execution order but not idempotency of wrapped functions.",
+    "pagination_style": "none",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "reservoir vs maxConcurrent: reservoir is a token bucket (refills over time), maxConcurrent is concurrent slots — both can be set simultaneously for combined control",
+      "Jobs submitted to a full queue (maxWaitingJobs exceeded) are immediately rejected — agents must handle rejection by implementing backpressure or retrying submission",
+      "Redis distributed mode uses Lua scripts for atomic operations — Redis version 5.0+ required for Lua WAIT command support",
+      "Priority ordering requires integer priority values — lower numbers = higher priority; missing priority defaults to 5",
+      "limiter.schedule() wraps a function (not a promise) — pass a function that returns a promise, not the promise itself",
+      "stopAll() cancels all queued jobs — use disconnect() to cleanly shut down Redis connection; stopping without disconnect leaks Redis connections"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 82,
+    "auth_complexity_score": 95,
+    "rate_limit_clarity_score": 100
+  },
+  "security_score_components": {
+    "tls_enforcement": 95,
+    "auth_strength": 88,
+    "scope_granularity": 85,
+    "dependency_hygiene": 88,
+    "secret_handling": 90,
+    "security_notes": "Local library — no external calls. Redis connection credentials must use environment variables. Bottleneck prevents agent systems from overwhelming rate-limited APIs."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 92,
+    "version_stability": 88,
+    "breaking_changes_history": 85,
+    "error_recovery": 85
+  }
+}
