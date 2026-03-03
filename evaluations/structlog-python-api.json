@@ -2,26 +2,26 @@
   "id": "structlog-python-api",
   "name": "structlog",
   "version_evaluated": "24.x",
-  "homepage": "https://www.structlog.org",
+  "homepage": "https://www.structlog.org/",
   "repo_url": "https://github.com/hynek/structlog",
   "category": "developer-tools",
-  "subcategories": ["logging", "observability", "python"],
-  "tags": ["python", "logging", "structured", "json", "processors", "production", "open-source"],
-  "what_it_does": "Structured logging library for Python with a processor pipeline architecture. Structlog wraps any logging backend (stdlib, Twisted, etc.) and adds immutable context binding, processor chains for transforming log events, and flexible output formats (JSON, key=value, colored dev output). Designed for production use where logs are machine-parseable and shipped to log aggregators.",
+  "subcategories": ["logging", "python", "structured", "developer-tools"],
+  "tags": ["python", "structlog", "structured-logging", "json", "processors", "bound-logger"],
+  "what_it_does": "Structured logging library for Python — processes log events as dictionaries through a configurable processor pipeline before outputting. structlog features: bound loggers (log = structlog.get_logger(); log = log.bind(key=val)), processor pipeline (filter_by_level, add_log_level, add_logger_name, TimeStamper, JSONRenderer, ConsoleRenderer), stdlib integration (structlog.stdlib), async support, thread-local context, lazy evaluation, type-checked API, BoundLogger.new() for new instance, context variables, custom processors, and drop-in logging.getLogger() compatibility via structlog.stdlib.BoundLogger.",
   "use_cases": [
-    "Emit structured JSON logs from Python services consumable by ELK, Datadog, Loki, or Splunk without post-parsing",
-    "Bind request-scoped context (request_id, user_id, trace_id) to all logs within a request handler",
-    "Build custom log processor pipelines to add timestamps, filter sensitive fields, or transform log records",
-    "Integrate with standard library logging to add structlog's structured output to existing applications",
-    "Use async-compatible logging in FastAPI/asyncio applications with contextvars-based context binding"
+    "Agent JSON logging — import structlog; structlog.configure(processors=[structlog.processors.JSONRenderer()]); log = structlog.get_logger(); log.info('processed', count=items, duration_ms=elapsed) — structured JSON; agent emits machine-parseable JSON logs with key=value pairs; every log call produces valid JSON with consistent fields",
+    "Agent context binding — log = structlog.get_logger(); log = log.bind(request_id=req_id, agent_id=agent_id); log.info('started'); log.debug('step', step=1); log.info('finished') — accumulated context; agent builds up log context progressively; all subsequent calls include bound fields automatically",
+    "Agent stdlib integration — structlog.configure(wrapper_class=structlog.stdlib.BoundLogger, logger_factory=structlog.stdlib.LoggerFactory()); log = structlog.get_logger('mymodule') — stdlib compat; agent integrates with existing logging.getLogger() infrastructure; routes through stdlib handlers for existing log aggregators",
+    "Agent async logging — log = structlog.get_logger(); async def process(): await log.ainfo('async event', key=val) — async native; agent uses awaitable logging in async contexts; structlog 21.5+ has native async support with ainfo/adebug/aerror methods; no event loop blocking",
+    "Agent custom processors — def add_hostname(logger, method, event_dict): event_dict['host'] = socket.gethostname(); return event_dict; structlog.configure(processors=[add_hostname, structlog.processors.JSONRenderer()]) — processor pipeline; agent adds custom fields to every log message via processor functions"
   ],
   "not_for": [
-    "Quick scripts or development logging — Loguru's zero-config colored output is better for simple use cases",
-    "Teams unfamiliar with processor pipeline concepts — structlog has a steeper learning curve than Loguru",
-    "Projects with no need for structured output — stdlib logging with a formatter is simpler for unstructured text logs"
+    "Simple text logging — structlog's power is in structured data; if plain text logging suffices, stdlib logging or loguru is simpler",
+    "Zero-config quick start — structlog requires configure() setup; loguru is simpler for quick scripts",
+    "Non-Python environments — structlog is Python-only; for polyglot structured logging, use a log aggregator like ELK"
   ],
-  "best_when": "You're building production Python services where logs are machine-parsed, you need request-scoped context binding, and you want a configurable processor pipeline.",
-  "avoid_when": "You want zero-config colorized logging for development scripts — use Loguru.",
+  "best_when": "Production Python services needing structured JSON logs with processor pipelines — structlog is the standard for observability-focused Python services where every log field matters.",
+  "avoid_when": "Quick scripts (use loguru), zero-config needs (use loguru), or when stdlib logging is sufficient.",
   "alternatives": ["loguru-python-api"],
   "interface": {
     "has_rest_api": false,
@@ -38,21 +38,21 @@
     "methods": ["none"],
     "oauth": false,
     "scopes": false,
-    "notes": "Library with no auth requirement."
+    "notes": "No auth — logging library."
   },
   "pricing": {
     "model": "open_source",
     "free_tier_exists": true,
-    "free_tier_limits": "MIT licensed, completely free",
+    "free_tier_limits": "Completely free, MIT licensed",
     "paid_tiers": "None",
     "requires_credit_card": false,
-    "notes": "Free and open source, maintained by Hynek Schlawack."
+    "notes": "structlog is MIT licensed. Free for all use."
   },
   "performance": {
     "latency_p50_ms": null,
     "latency_p99_ms": null,
     "uptime_sla_percent": null,
-    "rate_limits": "No rate limits — local library",
+    "rate_limits": "No rate limits. Performance: processor pipeline adds ~2-5 microseconds per log call. JSONRenderer: ~10-20 microseconds per call. Lazy evaluation via structlog.lazy: defers processing until level check. Bound logger binding: O(1) dict copy. Thread-local context: O(1) access.",
     "data_source": "llm_estimated"
   },
   "requirements": {
@@ -66,41 +66,41 @@
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
-    "documentation_accuracy": 88,
-    "error_message_quality": 82,
-    "error_message_notes": "structlog errors are Python exceptions from processor misconfiguration. Well-documented exception types. Development mode provides colored output with detailed context for debugging.",
+    "documentation_accuracy": 90,
+    "error_message_quality": 85,
+    "error_message_notes": "TypeError for misconfigured processors. DropEvent exception silently drops log event. Processor errors propagate as exceptions. Clear exception messages for wrong processor signatures.",
     "idempotency_support": "full",
-    "idempotency_notes": "Logging is idempotent by design. Bound context is immutable — bind() returns new logger instance.",
+    "idempotency_notes": "structlog.configure() is global — configures once at module level. bind() returns new immutable BoundLogger. Log events are stateless dicts passed through pipeline. Thread-safe with proper processor chain.",
     "pagination_style": "none",
     "retry_guidance_documented": false,
     "known_agent_gotchas": [
-      "structlog requires explicit configuration via structlog.configure() — without it, output uses development defaults which may not be JSON for production",
-      "Context binding with structlog.contextvars.bind_contextvars() uses Python contextvars — this is async-safe but must be cleared per-request with clear_contextvars() to prevent context leakage",
-      "The processor chain is ordered — timestamp processor must come before JSON renderer or timestamps won't appear in output",
-      "structlog.stdlib.BoundLogger wraps stdlib logging — log levels must match stdlib level names (WARNING not WARN) when using stdlib backend",
-      "structlog is immutable — logger.bind(key=val) returns a new logger; the original logger is unchanged; forgetting to use the return value loses context",
-      "Stdlib integration requires both structlog.configure() AND logging.basicConfig() or dictConfig — structlog alone doesn't capture stdlib logging without explicit bridging setup"
+      "structlog.configure() must be called before first log — calling get_logger() before configure() uses default configuration (dev-friendly console output, not JSON); agent code: call structlog.configure() at application startup before any imports that might log; reconfiguring after first use may not affect cached loggers",
+      "bind() returns new logger, does not mutate — log = structlog.get_logger(); log.bind(key=val) — this is WRONG; must reassign: log = log.bind(key=val); agent code always reassign: log = log.bind(request_id=id); unbind() returns new logger without specified keys; new() clears all bound context",
+      "Processors receive (logger, method_name, event_dict) — custom processor signature must match exactly; event_dict is mutable dict; return event_dict to pass along; raise structlog.DropEvent() to suppress; agent code: def my_processor(logger, method, event_dict): event_dict['extra'] = compute(); return event_dict — must return event_dict",
+      "stdlib integration requires both configure() sides — structlog.stdlib integration needs configure(wrapper_class=structlog.stdlib.BoundLogger) AND stdlib logging.basicConfig(); both must be set up; agent code mixing structlog and stdlib: use structlog.stdlib.ProcessorFormatter as stdlib handler formatter for unified output",
+      "Thread-local context requires explicit reset — structlog.contextvars.bind_contextvars(key=val) binds to current async/thread context; must call clear_contextvars() between requests/tasks or context leaks between calls; agent code in web frameworks: clear_contextvars() in middleware before each request; asyncio tasks inherit parent context",
+      "ConsoleRenderer vs JSONRenderer — ConsoleRenderer produces human-readable colorized output; JSONRenderer produces JSON strings; use ConsoleRenderer in dev, JSONRenderer in production; cannot use both on same logger; agent code: configure based on environment: processors=[JSONRenderer()] if os.getenv('ENV')=='prod' else [ConsoleRenderer()]"
     ]
   },
   "af_score_components": {
     "mcp_score": 0,
-    "api_doc_score": 88,
-    "error_handling_score": 82,
-    "auth_complexity_score": 100,
-    "rate_limit_clarity_score": 100
+    "api_doc_score": 90,
+    "error_handling_score": 85,
+    "auth_complexity_score": 99,
+    "rate_limit_clarity_score": 99
   },
   "security_score_components": {
-    "tls_enforcement": 85,
-    "auth_strength": 85,
-    "scope_granularity": 85,
-    "dependency_hygiene": 90,
-    "secret_handling": 82,
-    "security_notes": "Add a filter processor to redact sensitive fields before JSON output. Processor pipeline allows custom security filtering before log emission. No built-in PII redaction — must be implemented as custom processor."
+    "tls_enforcement": 92,
+    "auth_strength": 92,
+    "scope_granularity": 90,
+    "dependency_hygiene": 92,
+    "secret_handling": 88,
+    "security_notes": "Structured logging library. All log values are serialized — do not log secrets, tokens, or PII. Add a redaction processor to filter sensitive keys. contextvars context may persist across async tasks — clear between requests."
   },
   "reliability_score_components": {
     "uptime_documented": 90,
     "version_stability": 90,
     "breaking_changes_history": 88,
-    "error_recovery": 85
+    "error_recovery": 88
   }
 }

@@ -1,0 +1,106 @@
+{
+  "id": "aiohttp-python-api",
+  "name": "aiohttp",
+  "version_evaluated": "3.x",
+  "homepage": "https://docs.aiohttp.org/",
+  "repo_url": "https://github.com/aio-libs/aiohttp",
+  "category": "developer-tools",
+  "subcategories": ["http", "async", "networking", "web-server", "python"],
+  "tags": ["python", "aiohttp", "async", "http", "client", "server", "websockets", "asyncio"],
+  "what_it_does": "Async HTTP client/server framework for Python — provides both aiohttp.ClientSession for HTTP client and aiohttp.web for HTTP server with WebSocket support. aiohttp features: ClientSession with connection pooling/reuse, concurrent requests, streaming uploads/downloads, WebSocket client and server, TCPConnector for DNS caching and SSL, multipart, cookie jars, middleware, signal handlers, route-based request handling, aiohttp.web Application for building REST APIs, and comprehensive error handling. Battle-tested for high-throughput async scenarios.",
+  "use_cases": [
+    "Agent async HTTP client — async with aiohttp.ClientSession() as session: async with session.get(url, timeout=aiohttp.ClientTimeout(total=30)) as resp: resp.raise_for_status(); data = await resp.json() — async client; agent makes non-blocking HTTP requests; ClientSession reuses connections; raise_for_status() for error checking",
+    "Agent concurrent requests — async with aiohttp.ClientSession() as session: tasks = [session.get(url) for url in urls]; responses = await asyncio.gather(*tasks); results = [await r.json() for r in responses] — concurrent; agent fetches multiple URLs simultaneously; gather() runs all tasks concurrently; connection pooling handles backend limits",
+    "Agent WebSocket client — async with aiohttp.ClientSession() as session: async with session.ws_connect(ws_url) as ws: await ws.send_str(json.dumps(msg)); async for msg in ws: if msg.type == aiohttp.WSMsgType.TEXT: handle(msg.data) — WebSocket; agent maintains persistent WebSocket connection; handles reconnection; msg.type checks TEXT/BINARY/CLOSE",
+    "Agent streaming download — async with aiohttp.ClientSession() as session: async with session.get(url) as resp: async for chunk in resp.content.iter_chunked(8192): await write_chunk(chunk) — streaming; agent downloads large files without memory accumulation; iter_chunked for binary; iter_any for available data; readline for text streams",
+    "Agent lightweight REST server — app = aiohttp.web.Application(); async def handler(request): data = await request.json(); return aiohttp.web.json_response({'result': process(data)}); app.router.add_post('/process', handler); aiohttp.web.run_app(app, host='0.0.0.0', port=8080) — server; agent exposes webhook endpoint"
+  ],
+  "not_for": [
+    "Production web frameworks — aiohttp.web is capable but FastAPI/Starlette have better ecosystem, OpenAPI, and type support for production APIs",
+    "Synchronous code — aiohttp requires async/await throughout; for sync HTTP use requests or httpx sync client",
+    "Simple scripts — aiohttp's async context managers add boilerplate; httpx has simpler API for both sync and async"
+  ],
+  "best_when": "High-throughput async HTTP clients and WebSocket connections — aiohttp excels at concurrent scraping, WebSocket servers, and high-volume async HTTP workloads.",
+  "avoid_when": "Synchronous code (use requests/httpx sync), production REST APIs (use FastAPI), or when httpx's simpler API suffices.",
+  "alternatives": ["httpx-python-api", "requests-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — HTTP library. Supports BasicAuth via aiohttp.BasicAuth, bearer token via headers, custom auth."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, Apache 2.0 licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "aiohttp is Apache 2.0 licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits (client library). Performance: high throughput via connection pooling. TCPConnector(limit=100) caps total connections. Per-host limits via limit_per_host. DNS caching reduces lookup overhead. Competitive with httpx for async workloads.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 88,
+    "error_message_quality": 85,
+    "error_message_notes": "aiohttp.ClientResponseError from raise_for_status() with status, message, headers. aiohttp.ClientConnectionError for connection failures. aiohttp.ServerTimeoutError for timeouts. asyncio.TimeoutError if using asyncio.wait_for() wrapper. Exception hierarchy is clear.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "GET requests are idempotent. ClientSession maintains cookies across requests — stateful. WebSocket connections are inherently stateful. Connection pooling is transparent. TCPConnector is reusable.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "ClientSession must be created inside async context — creating ClientSession() outside async function causes DeprecationWarning in 3.x and may fail; agent code: always create inside async function or async with block; do not create at module level; one session per application lifetime (reuse), not per request",
+      "Timeout uses ClientTimeout not seconds — aiohttp.ClientTimeout(total=30) not just 30; session.get(url, timeout=30) is deprecated; agent code: timeout = aiohttp.ClientTimeout(total=30, connect=10); session.get(url, timeout=timeout); total= is end-to-end; connect= is connection establishment only",
+      "resp.json() must be awaited — async with session.get(url) as resp: data = resp.json() is WRONG — missing await; must be: data = await resp.json(); same for resp.text(), resp.read(); forgetting await returns coroutine object not data; agent code: always await response content methods",
+      "Response consumed only once — once resp.text() or resp.json() awaited, content is consumed; calling again raises aiohttp.ClientPayloadError; agent code needing to read body twice: content = await resp.read(); then json.loads(content.decode()); or text = await resp.text(); then json.loads(text)",
+      "TCPConnector must be shared across sessions — creating new TCPConnector per session defeats connection pooling; agent code: connector = aiohttp.TCPConnector(limit=100); session = aiohttp.ClientSession(connector=connector); share one connector; set connector_owner=False if session should not close connector on session close",
+      "raise_for_status() must be called explicitly — aiohttp does NOT raise on 4xx/5xx by default; resp.status is the status code; agent code: always call resp.raise_for_status() inside response context manager; or check: if not resp.ok: handle_error(); raise_for_status() only available inside 'async with session.get() as resp:' block"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 88,
+    "error_handling_score": 85,
+    "auth_complexity_score": 98,
+    "rate_limit_clarity_score": 98
+  },
+  "security_score_components": {
+    "tls_enforcement": 90,
+    "auth_strength": 88,
+    "scope_granularity": 88,
+    "dependency_hygiene": 88,
+    "secret_handling": 88,
+    "security_notes": "HTTP library. SSL verification on by default. Do not set ssl=False in production. aiohttp.web server: validate all input, use proper CORS headers, rate limit endpoints. WebSocket server: validate origin header. Cookie handling is automatic — protect session cookies."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 85,
+    "breaking_changes_history": 82,
+    "error_recovery": 88
+  }
+}

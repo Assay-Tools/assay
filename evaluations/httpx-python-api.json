@@ -1,0 +1,106 @@
+{
+  "id": "httpx-python-api",
+  "name": "httpx",
+  "version_evaluated": "0.27.x",
+  "homepage": "https://www.python-httpx.org/",
+  "repo_url": "https://github.com/encode/httpx",
+  "category": "developer-tools",
+  "subcategories": ["http", "networking", "async", "python"],
+  "tags": ["python", "httpx", "http", "async", "http2", "requests", "client"],
+  "what_it_does": "Full-featured HTTP client for Python — supports both sync and async APIs, HTTP/1.1 and HTTP/2, connection pooling, timeouts, redirects, authentication, and streaming. httpx features: httpx.Client() for sync, httpx.AsyncClient() for async, identical API for both, HTTP/2 support (http2=True), connection limits, timeout control (connect/read/write/pool), cookie jars, proxy support, SSL verification, streaming responses, multipart upload, custom transports, event hooks, and drop-in requests compatibility for sync usage. Designed for modern async Python including FastAPI test clients.",
+  "use_cases": [
+    "Agent async HTTP — async with httpx.AsyncClient() as client: resp = await client.get(url, params=params, timeout=30.0); data = resp.raise_for_status().json() — async requests; agent makes non-blocking HTTP calls in async context; raise_for_status() raises httpx.HTTPStatusError for 4xx/5xx; timeout= applies to full request",
+    "Agent connection pool — with httpx.Client(limits=httpx.Limits(max_connections=100, max_keepalive_connections=20), timeout=10.0) as client: for url in urls: resp = client.get(url) — pooled sync client; agent reuses connections for multiple requests to same host; context manager ensures pool cleanup; Limits controls concurrency",
+    "Agent HTTP/2 — async with httpx.AsyncClient(http2=True) as client: resp = await client.get(url) — HTTP/2; agent uses HTTP/2 multiplexing for APIs that support it; requires httpx[http2] extra (pip install httpx[http2]); reduces connection overhead for multiple concurrent requests to same host",
+    "Agent streaming download — async with httpx.AsyncClient() as client: async with client.stream('GET', url) as resp: async for chunk in resp.aiter_bytes(chunk_size=8192): process(chunk) — streaming; agent downloads large files without loading into memory; aiter_bytes/aiter_text/aiter_lines for different streaming modes",
+    "Agent auth and headers — client = httpx.Client(base_url='https://api.example.com', headers={'Authorization': f'Bearer {token}'}, auth=httpx.BasicAuth(user, pass)); resp = client.get('/endpoint') — persistent config; agent creates client with base_url and auth applied to all requests; headers merged per-request"
+  ],
+  "not_for": [
+    "Simple scripts without async — for synchronous-only scripts, requests is simpler with more community resources and plugins",
+    "High-performance websockets — httpx supports websockets but specialized libs (websockets, aiohttp) have better WS support",
+    "Browser automation — httpx is a raw HTTP client; for JS rendering use playwright or selenium"
+  ],
+  "best_when": "Async Python applications needing HTTP client — httpx is the standard async HTTP client with sync compatibility, ideal for FastAPI services, async agents, and any code needing HTTP/2.",
+  "avoid_when": "Simple synchronous scripts (use requests), websocket-heavy applications (use websockets), or browser automation (use playwright).",
+  "alternatives": ["aiohttp-python-api", "requests-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — HTTP client library. Supports BasicAuth, DigestAuth, Bearer token via headers, and custom auth flows."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, BSD licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "httpx is BSD 3-Clause licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits (client library). Performance: connection reuse via keep-alive reduces latency. HTTP/2 multiplexing allows concurrent requests on single connection. AsyncClient with limits: controls connection pool size. Streaming avoids memory accumulation for large responses.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 92,
+    "error_message_quality": 90,
+    "error_message_notes": "httpx.TimeoutException for timeouts (ConnectTimeout, ReadTimeout, WriteTimeout, PoolTimeout). httpx.HTTPStatusError from raise_for_status() with response.status_code and response.text. httpx.ConnectError for connection failures. Very descriptive exception hierarchy.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "GET/HEAD/OPTIONS are idempotent. POST/PUT/PATCH/DELETE: depends on server. httpx itself is stateless (no retry logic built in). Client maintains connection pool state. Cookie jar persists across requests in same client.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Always use context manager for client — httpx.Client() / httpx.AsyncClient() must be closed to release connections; use 'with httpx.Client() as client:' or 'async with httpx.AsyncClient() as client:'; NOT closing causes connection leaks and ResourceWarning; do not use httpx.get() for repeated requests — it creates new client each time",
+      "raise_for_status() raises on 4xx/5xx — response.raise_for_status() raises httpx.HTTPStatusError; response itself does not raise; agent code: always call raise_for_status() after request unless checking status manually; HTTPStatusError has .response attribute with full response; .response.text for error body",
+      "Timeout applies to each phase separately — httpx.Timeout(5.0) applies 5s to connect, 5s to read, 5s to write; total request can take 3x timeout; httpx.Timeout(connect=5, read=30, write=10) for fine-grained control; None disables timeout (dangerous for agent code); httpx.Timeout(5.0, pool=1.0) for pool wait",
+      "HTTP/2 requires extra install — pip install httpx[http2] installs h2 package; just httpx does NOT include HTTP/2; AsyncClient(http2=True) without h2 installed: ImportError; agent code: if HTTP/2 needed, add httpx[http2] to requirements.txt not just httpx",
+      "Redirects followed by default — follow_redirects=False disables; default follows up to 20 redirects; history accessible via response.history list; agent code that should not follow redirects (webhook validation): set follow_redirects=False explicitly; each redirect is a separate request in history",
+      "Streaming response must be used as context manager — async with client.stream('GET', url) as response: — MUST be context manager; after context exit, response body closed; agent code: consume entire stream inside context; if stream not consumed fully: aclose() to avoid connection leak; response.read() materializes full body (defeats streaming purpose)"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 92,
+    "error_handling_score": 90,
+    "auth_complexity_score": 98,
+    "rate_limit_clarity_score": 98
+  },
+  "security_score_components": {
+    "tls_enforcement": 92,
+    "auth_strength": 90,
+    "scope_granularity": 88,
+    "dependency_hygiene": 92,
+    "secret_handling": 88,
+    "security_notes": "HTTP client. TLS verification enabled by default (verify=True). Do not disable verify=False in production. Authorization headers logged in debug mode — disable in production. Proxy support may expose auth credentials. Timeout configuration critical — no timeout can hang agent indefinitely."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 90,
+    "version_stability": 88,
+    "breaking_changes_history": 85,
+    "error_recovery": 88
+  }
+}

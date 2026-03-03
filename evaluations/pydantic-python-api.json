@@ -1,0 +1,106 @@
+{
+  "id": "pydantic-python-api",
+  "name": "pydantic",
+  "version_evaluated": "2.x",
+  "homepage": "https://docs.pydantic.dev/",
+  "repo_url": "https://github.com/pydantic/pydantic",
+  "category": "developer-tools",
+  "subcategories": ["validation", "serialization", "python", "typing"],
+  "tags": ["python", "pydantic", "validation", "dataclass", "serialization", "FastAPI", "typing"],
+  "what_it_does": "Fast data validation and settings management library using Python type annotations — defines data models as classes, validates on instantiation, serializes to/from JSON. pydantic v2 features: BaseModel with field type hints, Field() for constraints/defaults/aliases, model.model_validate() for dict input, model.model_dump() for serialization, model_json_schema() for JSON Schema, @field_validator and @model_validator decorators, discriminated unions, generics, computed_field, ConfigDict for model config, BaseSettings for env var loading, Annotated types, strict mode, and Rust-backed core for 5-50x v1 speedup.",
+  "use_cases": [
+    "Agent data model validation — from pydantic import BaseModel, Field; class Config(BaseModel): api_key: str; timeout: int = Field(default=30, ge=1, le=300); urls: list[str]; config = Config.model_validate(raw_dict) — instantiation validates; agent validates configuration or API response data; ValidationError raised with field-level errors if invalid; type coercion applied automatically",
+    "Agent API response parsing — class Response(BaseModel): items: list[Item]; total: int; next_page: str | None = None; resp = Response.model_validate_json(response_body) — JSON parsing; agent parses API JSON responses directly to typed Python objects; model_validate_json() is faster than json.loads + model_validate",
+    "Agent settings from env — from pydantic_settings import BaseSettings; class Settings(BaseSettings): api_key: str; debug: bool = False; class Config: env_prefix = 'APP_'; settings = Settings() — env vars; agent loads configuration from environment variables with type coercion and validation; API_KEY env var → api_key field",
+    "Agent schema generation — class RequestModel(BaseModel): query: str; limit: int = 10; schema = RequestModel.model_json_schema() — JSON Schema; agent generates JSON Schema for API documentation or function calling schemas for LLM tool use; fully compatible with OpenAI function calling format",
+    "Agent nested validation — class Order(BaseModel): id: int; customer: Customer; items: list[OrderItem]; total: Decimal; order = Order.model_validate(order_dict) — nested models; agent validates complex nested data structures; nested model validation is recursive; ValidationError shows exact path to invalid field"
+  ],
+  "not_for": [
+    "Dynamic schemas — pydantic models are class-based; for runtime schema construction use marshmallow or jsonschema",
+    "Non-Python environments — pydantic is Python only; for polyglot validation use JSON Schema directly",
+    "Extremely high-frequency validation — even pydantic v2 has overhead; for microsecond-level validation of hot paths use manual TypedDict or dataclass"
+  ],
+  "best_when": "FastAPI applications, data pipeline validation, and any Python code needing type-safe data models — pydantic v2 is the standard for Python data validation with the best performance and ecosystem integration.",
+  "avoid_when": "Dynamic schema construction at runtime (use marshmallow), non-Python environments, or when stdlib dataclasses with manual validation suffice.",
+  "alternatives": ["marshmallow-python-api", "attrs-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — validation library."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "pydantic is MIT licensed. Free for all use. pydantic v2 core is Rust (pydantic-core)."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Performance: v2 validation ~5-50x faster than v1. Simple model validate: ~5-20 microseconds. model_validate_json(): faster than json.loads + validate. Rust core handles hot paths. Model construction (class definition): ~1ms one-time cost.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 92,
+    "error_message_quality": 90,
+    "error_message_notes": "ValidationError with .errors() method returning list of dicts with loc (field path tuple), msg (error message), type (error code). model_validate() raises pydantic.ValidationError. Highly structured errors suitable for API error responses. pydantic v2 error types differ from v1.",
+    "idempotency_support": "full",
+    "idempotency_notes": "BaseModel instances are immutable by default (frozen=True for full immutability). model_validate() is deterministic. model_dump() is pure. Validator functions must be pure — avoid side effects.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "pydantic v2 breaking changes from v1 — v2 renamed .dict() to .model_dump(), .json() to .model_dump_json(), .parse_obj() to .model_validate(), .schema() to .model_json_schema(); agent code migrating from v1: replace all deprecated methods; pydantic v1 compatibility shim exists but deprecated; mixing v1 and v2 models causes subtle bugs",
+      "Type coercion is on by default (lax mode) — pydantic v2 coerces '42' to int 42, 1 to True; strict mode disables coercion: model_validate(data, strict=True) or ConfigDict(strict=True); agent code expecting strict types: enable strict mode to prevent silent coercions; field-level strict: Field(strict=True)",
+      "ValidationError.errors() not .messages — unlike marshmallow, pydantic raises ValidationError; access errors via e.errors() which returns list of dicts; e.errors()[0]['loc'] is tuple path (('field', 'nested_field')); e.errors()[0]['msg'] is human message; agent code: serialize for API response: json.dumps(e.errors())",
+      "model_dump() excludes None by default — model.model_dump(exclude_none=True) drops None fields; model.model_dump() includes None as null; agent code building API payloads: use exclude_none=True to omit optional unset fields; exclude_unset=True excludes fields not explicitly set (different from None)",
+      "@field_validator runs after type coercion — validator receives already-coerced value (int not str); @field_validator('field', mode='before') runs before coercion; agent code: use mode='before' for validators that need raw input; use mode='after' (default) for validators on already-typed values; @model_validator runs after all fields validated",
+      "Nested models require explicit type annotation — class Parent(BaseModel): child: Child — Child must be defined before Parent or use string annotation 'Child'; forward references need model_rebuild(): Parent.model_rebuild() after all models defined; agent code with circular references: use Optional['ModelName'] string annotations and call model_rebuild()"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 92,
+    "error_handling_score": 90,
+    "auth_complexity_score": 99,
+    "rate_limit_clarity_score": 99
+  },
+  "security_score_components": {
+    "tls_enforcement": 92,
+    "auth_strength": 92,
+    "scope_granularity": 90,
+    "dependency_hygiene": 92,
+    "secret_handling": 88,
+    "security_notes": "Validation library. model_validate() validates all input — use for all external data. Coercion may mask type errors in lax mode — use strict=True for security-sensitive validation. SecretStr type hides secrets from repr() and model_dump(). Annotated constraints (ge/le/max_length) enforce data bounds."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 92,
+    "version_stability": 88,
+    "breaking_changes_history": 80,
+    "error_recovery": 92
+  }
+}

@@ -5,24 +5,24 @@
   "homepage": "https://marshmallow.readthedocs.io/",
   "repo_url": "https://github.com/marshmallow-code/marshmallow",
   "category": "developer-tools",
-  "subcategories": ["validation", "serialization", "python", "rest", "schema"],
-  "tags": ["python", "marshmallow", "schema", "validation", "serialization", "deserialization", "orm"],
-  "what_it_does": "Object serialization/deserialization and validation library for Python — defines schemas to validate input, serialize objects to dicts/JSON, and deserialize dicts to objects. marshmallow features: Schema class with fields (String, Integer, Float, Boolean, List, Nested, DateTime, URL, Email), load() for deserialization+validation, dump() for serialization, ValidationError with field-specific errors, @validates and @post_load decorators, Meta class for unknown field handling, many=True for lists, field options (required, allow_none, load_default, dump_default), and integration with SQLAlchemy/Flask. Alternative to pydantic with explicit schema class.",
+  "subcategories": ["serialization", "validation", "python", "utilities"],
+  "tags": ["python", "marshmallow", "serialization", "deserialization", "validation", "schema", "REST"],
+  "what_it_does": "Python serialization/deserialization and validation library — defines schemas using declarative field classes, validates input data, and transforms between Python objects and primitive types (dicts/JSON). marshmallow 3.x features: Schema class with fields (String, Integer, DateTime, Nested, List, Dict), schema.load() for deserialization+validation, schema.dump() for serialization, ValidationError with per-field error messages, @validates/@validates_schema decorators, Meta.unknown=EXCLUDE/RAISE/INCLUDE, @post_load for object construction, nested schemas, many=True for list handling, partial loading, field-level and schema-level validation, and marshmallow-dataclass integration.",
   "use_cases": [
-    "Agent request validation — from marshmallow import Schema, fields, validate; class AgentRequestSchema(Schema): task = fields.Str(required=True, validate=validate.Length(min=1, max=500)); model = fields.Str(load_default='gpt-4'); temperature = fields.Float(validate=validate.Range(0.0, 2.0)); schema = AgentRequestSchema(); result = schema.load(request_data) — validates and deserializes agent API request; ValidationError raised with field-specific messages on invalid input",
-    "Agent response serialization — class AgentResponseSchema(Schema): action = fields.Str(); confidence = fields.Float(); sources = fields.List(fields.Url()); timestamp = fields.DateTime(); schema = AgentResponseSchema(); json_data = schema.dump(agent_result) — serializes agent response object to dict; nested fields handle complex objects; dump() does not validate (use dump + load for round-trip validation)",
-    "Agent nested schema — class ToolCallSchema(Schema): name = fields.Str(required=True); args = fields.Dict(); class AgentStepSchema(Schema): thought = fields.Str(); tool_calls = fields.List(fields.Nested(ToolCallSchema())) — nested schemas for complex agent structures; Nested() handles recursive serialization; agent action schemas model LLM output structure",
-    "Agent @post_load for object creation — class UserSchema(Schema): name = fields.Str(); email = fields.Email(); @post_load; def make_user(self, data, **kwargs): return User(**data); schema = UserSchema(); user = schema.load({'name': 'Alice', 'email': 'a@b.com'}) — @post_load converts dict to domain object; agent data pipeline creates typed objects after validation",
-    "Agent unknown field handling — class StrictSchema(Schema): class Meta: unknown = RAISE; class FlexibleSchema(Schema): class Meta: unknown = EXCLUDE — RAISE rejects extra fields (strict API); EXCLUDE ignores extra fields (LLM output with extra keys); INCLUDE passes extra fields through; agent LLM response parsing uses EXCLUDE to ignore unknown tool output fields"
+    "Agent API request validation — from marshmallow import Schema, fields, ValidationError; class RequestSchema(Schema): url = fields.Url(required=True); count = fields.Integer(load_default=10, validate=lambda n: 0 < n <= 100); schema = RequestSchema(); try: data = schema.load(request_data); except ValidationError as e: return e.messages — validation; agent validates API request parameters with structured error messages",
+    "Agent JSON deserialization — class UserSchema(Schema): id = fields.Int(); name = fields.Str(); created = fields.DateTime(); @post_load; def make_user(self, data, **kwargs): return User(**data); schema = UserSchema(); user = schema.load(json_data) — object construction; agent deserializes JSON API responses into typed Python objects via @post_load",
+    "Agent serialization to JSON — class ResultSchema(Schema): id = fields.Int(); items = fields.List(fields.Str()); metadata = fields.Dict(); schema = ResultSchema(); json_data = schema.dump(result_obj) — serialization; agent converts Python objects to JSON-serializable dicts for API responses or storage",
+    "Agent nested data — class OrderSchema(Schema): id = fields.Int(); items = fields.List(fields.Nested(ItemSchema())); customer = fields.Nested(CustomerSchema()); schema = OrderSchema(); order = schema.load(order_data) — nested schemas; agent handles complex nested API payloads with full validation at all levels",
+    "Agent list processing — schema = UserSchema(many=True); users = schema.load(users_list) — bulk deserialization; agent processes API responses that return lists of objects; many=True handles list input/output; errors keyed by index for per-item validation errors"
   ],
   "not_for": [
-    "High-performance validation — marshmallow is slower than pydantic; for performance-critical validation use pydantic v2 with Rust core",
-    "Type hint-based schemas — marshmallow requires explicit field declarations; for type hint-derived schemas use pydantic or attrs with validators",
-    "Complex nested default handling — marshmallow default handling can be complex; pydantic has cleaner default_factory support"
+    "Runtime type checking — marshmallow validates on explicit schema.load/dump calls only; for pervasive runtime type enforcement use pydantic",
+    "Pydantic v2 ecosystem — pydantic v2 has significantly better performance and FastAPI integration; new projects should use pydantic unless marshmallow ecosystem needed",
+    "Simple dict validation — for one-off dict validation, cerberus or voluptuous may be lighter"
   ],
-  "best_when": "ORM serialization layers, REST API input/output where schemas need to differ from model classes, or Flask/Django projects with explicit schema-over-model design patterns.",
-  "avoid_when": "You need maximum performance (use pydantic v2), type hint-based schemas (use pydantic), or simple FastAPI request validation (use pydantic directly).",
-  "alternatives": ["pydantic-python-api", "cattrs-python-api"],
+  "best_when": "Flask-based APIs and existing marshmallow ecosystems — marshmallow integrates tightly with Flask via flask-marshmallow and is the standard for many REST API frameworks older than FastAPI.",
+  "avoid_when": "FastAPI projects (use pydantic), new high-performance services (pydantic v2 is 5-50x faster), or projects needing dataclass integration without extra setup.",
+  "alternatives": ["pydantic-python-api", "cerberus-python-api"],
   "interface": {
     "has_rest_api": false,
     "has_graphql": false,
@@ -38,7 +38,7 @@
     "methods": ["none"],
     "oauth": false,
     "scopes": false,
-    "notes": "No auth — local serialization/validation library."
+    "notes": "No auth — validation library."
   },
   "pricing": {
     "model": "open_source",
@@ -52,7 +52,7 @@
     "latency_p50_ms": null,
     "latency_p99_ms": null,
     "uptime_sla_percent": null,
-    "rate_limits": "No rate limits. Validation speed: ~50K objects/sec for simple schemas. pydantic v2 is 5-10x faster for same schemas. marshmallow-dataclass and marshmallow_jsonschema add overhead. Schema instantiation cached — reuse schema instances.",
+    "rate_limits": "No rate limits. Performance: simple schema.load(): ~50-200 microseconds. Nested schemas: proportional to nesting depth. many=True: O(n) for n items. marshmallow-dataclass adds minimal overhead. Significantly slower than pydantic v2 for high-throughput validation.",
     "data_source": "llm_estimated"
   },
   "requirements": {
@@ -66,41 +66,41 @@
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
-    "documentation_accuracy": 85,
-    "error_message_quality": 88,
-    "error_message_notes": "ValidationError with .messages dict mapping field names to error lists. ValidationError.messages['temperature'] = ['Must be between 0.0 and 2.0.']. Nested schema errors: messages['tool_calls'][0]['name'] = ['Missing data']. Field-specific error messages are human-readable. Multiple errors per field collected in list. Clear, actionable error messages.",
+    "documentation_accuracy": 88,
+    "error_message_quality": 85,
+    "error_message_notes": "ValidationError.messages is dict with field names as keys and list of error strings as values. Schema-level errors under '_schema' key. Nested errors are nested dicts. many=True errors keyed by index. Very structured error output suitable for API responses.",
     "idempotency_support": "full",
-    "idempotency_notes": "Schema.load() and Schema.dump() are deterministic for same input. @post_load transformations may not be idempotent if they have side effects. Schema validation is purely functional.",
+    "idempotency_notes": "Schema instances are reusable and thread-safe. schema.load() and schema.dump() are pure functions (no schema mutation). ValidationError is raised on invalid data — no partial state.",
     "pagination_style": "none",
     "retry_guidance_documented": false,
     "known_agent_gotchas": [
-      "load() and dump() are not symmetric — schema.load(data) validates AND deserializes (validates required fields, runs validators, calls @post_load); schema.dump(obj) serializes only without validation; agent code expecting dump() to validate before serializing is wrong; use schema.load(schema.dump(obj)) for round-trip validation",
-      "Unknown fields behavior defaults to RAISE in 3.x — marshmallow 3.x default is Meta.unknown = RAISE; agent code receiving extra fields from LLM output raises ValidationError unless Meta: unknown = EXCLUDE added to schema; marshmallow 2.x ignored unknown fields by default — migration from 2.x requires adding EXCLUDE explicitly",
-      "required=True vs missing/load_default differ — fields.Str(required=True) raises if field absent; fields.Str(load_default='default') allows absent field with default; agent code mixing required and optional fields must understand: required=True takes priority; required=False with load_default='x' provides default when key missing from input",
-      "Nested schema must be instantiated not just class — fields.Nested(ToolCallSchema) passes class; fields.Nested(ToolCallSchema()) passes instance; marshmallow 3.x accepts both but instance is recommended; agent code with many=True nested: fields.List(fields.Nested(ToolCallSchema())) is correct; fields.Nested(ToolCallSchema, many=True) also works",
-      "ValidationError.messages structure differs for many=True — schema.load([item1, item2], many=True) raises ValidationError; error.messages is list where error.messages[i] has errors for item i; error.messages[0] might be {} (no errors), error.messages[1] = {'field': ['error']}; agent code handling bulk validation must iterate messages list not treat as flat dict",
-      "Schema instantiation is not free — creating Schema() inside request handler creates new schema per request; schema class introspection happens at instantiation; agent FastAPI with 1000 req/sec creates 1000 schemas/sec; declare schema at module level or as class attribute: SCHEMA = AgentRequestSchema(); reuse across requests for 10x performance improvement"
+      "schema.load() is for input (deserialize+validate), schema.dump() is for output (serialize) — common confusion: agent should use load() to process incoming data (validates and transforms), dump() to convert Python objects to JSON-able dicts; dump() does NOT validate by default; load() enforces required fields and validators",
+      "ValidationError.messages structure — errors are dict not list: {'field_name': ['error1'], 'nested': {'subfield': ['error']}}; schema-level errors in '_schema' key; many=True errors keyed by index: {0: {'field': ['error']}}; agent code: catch ValidationError and return e.messages directly as API error response",
+      "unknown fields policy via Meta.unknown — by default marshmallow 3.x raises ValidationError for unknown fields (RAISE); set class Meta: unknown = EXCLUDE to silently drop unknown fields; INCLUDE to pass through; agent code receiving API responses with extra fields: always set Meta: unknown = EXCLUDE or use schema.load(data, unknown=EXCLUDE)",
+      "@post_load receives validated data dict — def make_obj(self, data, **kwargs): return MyClass(**data) — must accept **kwargs; called after all field validation; agent code using @post_load for object construction: ensure all required fields present or use load_default; post_load runs after partial=True fills defaults",
+      "Reuse schema instances — Schema() instantiation is expensive (introspects class); agent code: create schema once at module level (user_schema = UserSchema()); reuse for all loads; creating new schema per request is an anti-pattern; Schema instances are thread-safe and reusable",
+      "fields.DateTime() uses ISO 8601 by default — datetime strings must be ISO format: '2024-01-01T12:00:00Z'; custom format: fields.DateTime(format='%Y-%m-%d'); dump() outputs datetime objects as ISO strings; agent code receiving non-standard date formats: specify format= parameter or use @validates to preprocess"
     ]
   },
   "af_score_components": {
     "mcp_score": 0,
-    "api_doc_score": 85,
-    "error_handling_score": 88,
-    "auth_complexity_score": 98,
-    "rate_limit_clarity_score": 98
+    "api_doc_score": 88,
+    "error_handling_score": 85,
+    "auth_complexity_score": 99,
+    "rate_limit_clarity_score": 99
   },
   "security_score_components": {
     "tls_enforcement": 90,
     "auth_strength": 90,
     "scope_granularity": 88,
-    "dependency_hygiene": 88,
-    "secret_handling": 85,
-    "security_notes": "Validation library prevents injection and malformed input at schema boundaries. ValidationError prevents invalid data from reaching business logic. Use RAISE for unknown fields to reject unexpected input. Avoid logging ValidationError.messages if fields may contain sensitive data (passwords, tokens). marshmallow does not sanitize output — XSS prevention is caller's responsibility."
+    "dependency_hygiene": 90,
+    "secret_handling": 88,
+    "security_notes": "Validation library. schema.load() validates and transforms input — use for all user/external input. dump() does not validate — do not pass untrusted data directly to dump(). Nested schemas validate at all levels. fields.URL() validates URL format but not safety."
   },
   "reliability_score_components": {
     "uptime_documented": 88,
     "version_stability": 85,
-    "breaking_changes_history": 78,
+    "breaking_changes_history": 82,
     "error_recovery": 88
   }
 }
