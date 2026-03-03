@@ -1,0 +1,106 @@
+{
+  "id": "agenda-api",
+  "name": "Agenda",
+  "version_evaluated": "5.x",
+  "homepage": "https://github.com/agenda/agenda",
+  "repo_url": "https://github.com/agenda/agenda",
+  "category": "developer-tools",
+  "subcategories": ["job-scheduling", "node", "mongodb"],
+  "tags": ["job-scheduler", "cron", "node", "mongodb", "queue", "recurring", "delayed", "background-jobs"],
+  "what_it_does": "Lightweight job scheduling library for Node.js backed by MongoDB. Agenda stores scheduled jobs in MongoDB, supports cron expressions and interval-based scheduling, and handles job priorities, concurrency limits, and failure retries. Used when you need persistent job scheduling in Node.js without the complexity of a full distributed queue like BullMQ (which requires Redis).",
+  "use_cases": [
+    "Schedule recurring agent maintenance tasks (data sync, report generation, cleanup) using cron expressions backed by MongoDB persistence",
+    "Queue delayed agent jobs that execute at a specific future time — send email, trigger workflow, process after embargo period",
+    "Run scheduled agent data collection pipelines with Agenda's interval-based scheduling and automatic missed job catchup",
+    "Build agent notification systems with human-readable schedule syntax ('every 2 hours', 'in 20 minutes') for approachable scheduling",
+    "Manage concurrent job execution with Agenda's concurrency limits to prevent agent jobs from overwhelming downstream APIs"
+  ],
+  "not_for": [
+    "Redis-based environments — BullMQ with Redis is significantly more performant and feature-rich; use Agenda only when MongoDB is already your database",
+    "High-volume job processing (>1000 jobs/minute) — Agenda's MongoDB polling approach is not designed for high-frequency job execution",
+    "Microservices without MongoDB — the MongoDB requirement makes Agenda a poor fit for services that don't already use MongoDB"
+  ],
+  "best_when": "You already use MongoDB in your stack and need simple, persistent job scheduling without adding Redis as another infrastructure dependency.",
+  "avoid_when": "You need high-throughput job processing or already have Redis available — BullMQ is more performant and feature-rich.",
+  "alternatives": ["bullmq-api", "rq-api", "apscheduler-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["node"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No built-in auth for job management. MongoDB connection string handles database auth. No web UI — job management via API or MongoDB queries."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT license",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Agenda is open source and free. Requires MongoDB."
+  },
+  "performance": {
+    "latency_p50_ms": 500,
+    "latency_p99_ms": 2000,
+    "uptime_sla_percent": null,
+    "rate_limits": "Limited by MongoDB polling interval — jobs may fire up to pollingInterval seconds late. Default polling is 5 seconds.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 78,
+    "error_message_quality": 72,
+    "error_message_notes": "Job failure reasons stored in MongoDB for inspection. Failed jobs have error property in job document. Agenda emits 'fail' events with job and error for monitoring integration.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Agenda uses MongoDB locking to prevent duplicate job execution across multiple workers. Jobs should be idempotent as retry on failure may re-execute them.",
+    "pagination_style": "none",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Agenda processes jobs based on polling MongoDB — job execution has up to pollingInterval latency (default 5s); set smaller interval for time-sensitive jobs",
+      "Multiple Agenda instances processing the same job collection will distribute jobs using MongoDB locking — ensure all instances define the same job handlers",
+      "job.fail(error) must be called to mark a job as failed — throwing inside a job handler without calling fail() will leave the job in 'running' state indefinitely",
+      "Missed recurring jobs are NOT automatically caught up — if the server was down during a scheduled execution, the job is skipped; implement idempotent logic to handle gaps",
+      "Agenda does not have a built-in UI — use Agendash (separate npm package) for a web dashboard to monitor scheduled and completed jobs",
+      "Job definitions must be registered before Agenda starts processing — defining jobs after agenda.start() may cause 'undefined' job failures for in-flight jobs"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 78,
+    "error_handling_score": 72,
+    "auth_complexity_score": 85,
+    "rate_limit_clarity_score": 75
+  },
+  "security_score_components": {
+    "tls_enforcement": 85,
+    "auth_strength": 78,
+    "scope_granularity": 70,
+    "dependency_hygiene": 75,
+    "secret_handling": 78,
+    "security_notes": "Job data persisted in MongoDB — ensure MongoDB connection uses auth and TLS. Job data may contain sensitive payload — apply MongoDB access controls appropriately."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 80,
+    "version_stability": 75,
+    "breaking_changes_history": 72,
+    "error_recovery": 75
+  }
+}
