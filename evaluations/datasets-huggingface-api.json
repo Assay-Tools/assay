@@ -1,0 +1,106 @@
+{
+  "id": "datasets-huggingface-api",
+  "name": "HuggingFace Datasets",
+  "version_evaluated": "3.x",
+  "homepage": "https://huggingface.co/docs/datasets/",
+  "repo_url": "https://github.com/huggingface/datasets",
+  "category": "ai-ml",
+  "subcategories": ["datasets", "nlp", "python", "machine-learning", "data-loading"],
+  "tags": ["python", "huggingface", "datasets", "nlp", "machine-learning", "data-loading", "arrow", "streaming"],
+  "what_it_does": "HuggingFace Datasets library — fast, efficient loading and processing of ML datasets. Datasets features: load_dataset() for 100,000+ public datasets from Hub, local file loading (CSV, JSON, Parquet, text), Dataset.map() for preprocessing, Dataset.filter(), streaming mode (streaming=True for infinite datasets), Arrow-backed memory mapping (no RAM limits), multi-GPU/CPU parallelism, push_to_hub() for sharing, DatasetDict for train/validation/test splits, dataset caching, and Sequence/ClassLabel/Value feature types. Core library for agent LLM training data, evaluation benchmarks, and RAG document ingestion.",
+  "use_cases": [
+    "Agent benchmark evaluation — dataset = load_dataset('openai/gsm8k', 'main'); for row in dataset['test']: correct = agent.solve(row['question']) == row['answer'] — evaluate agent reasoning on standard benchmarks; GSM8k, MMLU, HumanEval all on Hub",
+    "Agent fine-tuning data loading — dataset = load_dataset('json', data_files='agent_conversations.jsonl'); tokenized = dataset.map(tokenize_fn, batched=True, num_proc=4) — load and preprocess agent training data with parallel processing and caching",
+    "Large corpus streaming for RAG — dataset = load_dataset('wikipedia', '20220301.en', streaming=True); for doc in dataset['train'].take(10000): process_and_embed(doc) — stream 20GB Wikipedia without loading into RAM; agent knowledge base construction",
+    "Agent evaluation dataset creation — from datasets import Dataset; ds = Dataset.from_list([{'input': q, 'expected': a} for q, a in qa_pairs]); ds.push_to_hub('myorg/agent-eval') — create and share agent evaluation datasets on HuggingFace Hub",
+    "Multi-format agent data loading — dataset = load_dataset('csv', data_files={'train': 'train.csv', 'test': 'test.csv'}); load_dataset('parquet', data_files='data/*.parquet') — unified interface for agent data in any format"
+  ],
+  "not_for": [
+    "Production database storage — Datasets is for loading ML training/eval data; for agent production data storage use PostgreSQL, MongoDB, or vector databases",
+    "Real-time data ingestion — Datasets is for batch dataset loading; for real-time agent data pipelines use Kafka or Flink",
+    "Non-ML data processing — Datasets' Arrow backend is optimized for ML; for general Python data manipulation use pandas or polars"
+  ],
+  "best_when": "Loading, preprocessing, and managing datasets for agent LLM evaluation, fine-tuning, or RAG knowledge base construction — HuggingFace Datasets provides the standard interface for ML data with efficient caching and Hub integration.",
+  "avoid_when": "You need production data storage, real-time ingestion, or non-ML data processing.",
+  "alternatives": ["pandas-api", "polars-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["api_key"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Public datasets: no auth. Private/gated datasets: HF_TOKEN environment variable or huggingface-cli login. push_to_hub() requires HF token with write scope."
+  },
+  "pricing": {
+    "model": "freemium",
+    "free_tier_exists": true,
+    "free_tier_limits": "Free for public datasets and public Hub repos. Private datasets require HuggingFace Pro ($9/month) or organization plan.",
+    "paid_tiers": "HuggingFace Pro, Teams, Enterprise plans for private model/dataset hosting",
+    "requires_credit_card": false,
+    "notes": "Datasets library (pip package) is Apache 2.0, free. Hub storage for private datasets requires paid plan."
+  },
+  "performance": {
+    "latency_p50_ms": 100,
+    "latency_p99_ms": 10000,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "HuggingFace Hub: 1,000 requests/hour for downloads (unauthenticated). Authenticated: higher limits. Streaming mode: depends on bandwidth. Local cached datasets: no limits.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["cloud", "self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 80,
+    "error_message_notes": "DatasetNotFoundError when dataset name doesn't exist on Hub. FileNotFoundError for local file paths. ConnectionError for network issues during download. ValueError for unsupported format. Cache-related errors show cache directory path. Streaming errors include row number and reason.",
+    "idempotency_support": "full",
+    "idempotency_notes": "load_dataset() is idempotent — uses local cache if dataset was previously downloaded. Dataset.map() results are cached by function hash — same map function applied twice uses cache. Cache stored in ~/.cache/huggingface/datasets/ by default.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Cache can consume massive disk space — datasets caches downloaded and processed data in ~/.cache/huggingface/datasets/; Wikipedia dataset cache is 40GB+; agent CI machines or containers may fill disk; set HF_DATASETS_CACHE=/fast-disk/cache to move cache; dataset.cleanup_cache_files() clears old cached map operations",
+      "streaming=True disables Dataset features — load_dataset(..., streaming=True) returns IterableDataset not Dataset; IterableDataset doesn't support .shuffle() with seed, .select(), or len(); agent code using dataset[0] fails on IterableDataset; use .take(n) instead; streaming is for sequential processing only",
+      "map() cache invalidation is fingerprint-based — Dataset.map(fn) caches based on function bytecode hash; adding a comment to fn function invalidates cache and re-runs; agent preprocessing pipelines with map() re-process entire dataset after any code change; use load_from_disk() + save_to_disk() for stable preprocessed cache",
+      "Gated model datasets require explicit accept — some Hub datasets (e.g., LLaMA training data) require accepting license on Hub website; load_dataset raises GatedRepoError even with valid HF_TOKEN if license not accepted; agent code accessing gated datasets must first accept agreement in Hub browser UI",
+      "num_proc > 1 may cause OOM — Dataset.map(fn, num_proc=8) creates N worker processes each loading dataset shard; agent machines with 16GB RAM + 8 proc can OOM during parallel map; reduce num_proc or use batched=True with smaller batch_size for memory-intensive agent preprocessing",
+      "Dataset.from_generator() not resumable — streaming from generator function starts from beginning on each iteration; agent code treating from_generator as resumable gets duplicates or misses data; for resumable processing use Dataset.from_dict() with explicit checkpoint tracking of processed rows"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 78,
+    "auth_complexity_score": 82,
+    "rate_limit_clarity_score": 78
+  },
+  "security_score_components": {
+    "tls_enforcement": 88,
+    "auth_strength": 82,
+    "scope_granularity": 78,
+    "dependency_hygiene": 85,
+    "secret_handling": 82,
+    "security_notes": "HF_TOKEN stored in environment variable — never hardcode in agent training scripts. Public datasets are community-maintained — verify dataset license and content before using in agent training. Private agent datasets on Hub should use organization repos with access controls. Cached datasets on disk may contain PII from training data — secure cache directory."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 82,
+    "version_stability": 80,
+    "breaking_changes_history": 75,
+    "error_recovery": 78
+  }
+}

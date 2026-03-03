@@ -1,0 +1,106 @@
+{
+  "id": "nltk-python-api",
+  "name": "NLTK",
+  "version_evaluated": "3.x",
+  "homepage": "https://www.nltk.org/",
+  "repo_url": "https://github.com/nltk/nltk",
+  "category": "ai-ml",
+  "subcategories": ["nlp", "python", "text-processing", "tokenization", "linguistics"],
+  "tags": ["python", "nltk", "nlp", "text-processing", "tokenization", "sentiment", "pos-tagging", "linguistics"],
+  "what_it_does": "Classic Python NLP toolkit — comprehensive library for text processing, linguistic analysis, and NLP tasks. NLTK features: tokenization (word_tokenize, sent_tokenize), POS tagging (pos_tag), named entity recognition (ne_chunk), stemming (PorterStemmer, WordNetLemmatizer), sentiment analysis (VADER SentimentIntensityAnalyzer), stopwords corpus, WordNet integration, frequency distributions (FreqDist), chunking, parsing, and 100+ corpora and language resources. nltk.download() for corpus installation. Pre-transformer NLP for agent text preprocessing and feature extraction pipelines.",
+  "use_cases": [
+    "Agent text preprocessing — tokens = word_tokenize(agent_output); filtered = [w for w in tokens if w not in stopwords.words('english')]; clean text for agent downstream processing; sentence tokenization for agent response chunking",
+    "Agent sentiment analysis — from nltk.sentiment.vader import SentimentIntensityAnalyzer; sia = SentimentIntensityAnalyzer(); scores = sia.polarity_scores(user_message) — fast, rule-based sentiment without LLM call; agent user feedback classification",
+    "Agent keyword extraction — fdist = FreqDist(word_tokenize(text.lower())); fdist.most_common(20) extracts top keywords from agent output; topic identification without vector embeddings",
+    "Agent POS tagging — tagged = pos_tag(word_tokenize(agent_response)); nouns = [w for w, pos in tagged if pos.startswith('NN')] — extract noun phrases from agent responses; entity extraction pipeline",
+    "Agent text normalization — lemmatizer = WordNetLemmatizer(); lemmas = [lemmatizer.lemmatize(w) for w in tokens] — normalize agent input/output tokens for consistent matching; running/runs/ran → run"
+  ],
+  "not_for": [
+    "State-of-the-art NLP — NLTK uses rule-based and statistical methods; for modern NLP tasks use spaCy, HuggingFace transformers, or LLM APIs",
+    "Production semantic understanding — NLTK sentiment, NER, and parsing are less accurate than transformer models; for agent NLU use LLMs or spaCy with transformers",
+    "Large-scale text processing — NLTK is pure Python, slow for millions of documents; for production NLP pipelines use spaCy (C extensions) or HuggingFace"
+  ],
+  "best_when": "Quick text preprocessing, VADER sentiment analysis (fast, no model loading), or linguistics education/research — NLTK is the Swiss army knife of classical NLP for agent text pipelines that don't need transformer accuracy.",
+  "avoid_when": "You need accurate NLP (use spaCy or transformers), fast production processing (use spaCy), or modern embeddings (use Sentence Transformers).",
+  "alternatives": ["spacy-api", "sentence-transformers-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — local NLP library. nltk.download() fetches corpora from NLTK data server (public HTTP)."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, Apache 2.0 licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "NLTK is Apache 2.0 licensed. Corpora downloaded from NLTK data server (free). Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 1,
+    "latency_p99_ms": 20,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — local processing. VADER sentiment: ~1ms per text. word_tokenize: ~1ms per sentence. Full NER (ne_chunk + pos_tag): ~10-50ms per sentence. Pure Python — slower than spaCy (Cython) for large volumes.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 80,
+    "error_message_quality": 75,
+    "error_message_notes": "LookupError when corpus not downloaded (nltk.download('punkt') required). ResourceWarning if corpus directory not found. word_tokenize raises LookupError for missing punkt_tab tokenizer in NLTK 3.8+. Clear message: 'Resource punkt_tab not found. Please use the NLTK Downloader to obtain the resource'.",
+    "idempotency_support": "full",
+    "idempotency_notes": "All NLTK processing functions are pure — same input = same output. Fully idempotent. nltk.download() is idempotent — skips already-downloaded corpora.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "nltk.download() must run before first use — word_tokenize, pos_tag, and ne_chunk raise LookupError without required corpora; agent Docker containers must run nltk.download(['punkt_tab', 'averaged_perceptron_tagger', 'maxent_ne_chunker', 'words', 'stopwords', 'vader_lexicon']) during build; production agents crashing on first NLP call due to missing corpus",
+      "NLTK 3.8+ renamed punkt to punkt_tab — older agent code using nltk.download('punkt') gets LookupError in NLTK 3.8+; must download 'punkt_tab' not 'punkt'; breaking change in 2024; agent code must be updated; both punkt and punkt_tab may be needed for compatibility",
+      "word_tokenize splits contractions — word_tokenize(\"don't stop\") returns ['do', \"n't\", 'stop']; agent text matching expecting \"don't\" as single token gets split tokens; affects agent keyword matching and stopword filtering; use TreebankWordDetokenizer to rejoin if needed",
+      "VADER trained on social media — SentimentIntensityAnalyzer was trained on tweets and product reviews; agent formal text (legal docs, technical reports) gets less accurate sentiment scores; VADER reliable for informal agent user feedback, less so for formal agent content",
+      "ne_chunk NER accuracy is poor — NLTK's MaxEnt NER (ne_chunk) has ~70% F1 vs spaCy's ~85-90%; agent entity extraction with NLTK NER misses many entities; use spaCy en_core_web_sm+ for production agent NER; NLTK NER only for prototyping",
+      "Corpora path must be set in production — NLTK looks for corpora in nltk.data.path (default: ~/nltk_data); Docker containers running as non-root may not have ~/nltk_data; set NLTK_DATA=/app/nltk_data environment variable; download corpora to that path during Docker build to ensure agent container finds them"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 78,
+    "error_handling_score": 72,
+    "auth_complexity_score": 95,
+    "rate_limit_clarity_score": 95
+  },
+  "security_score_components": {
+    "tls_enforcement": 90,
+    "auth_strength": 92,
+    "scope_granularity": 88,
+    "dependency_hygiene": 82,
+    "secret_handling": 95,
+    "security_notes": "Local NLP library — no data sent externally during inference. nltk.download() fetches from NLTK HTTP server (not HTTPS for some older corpora) — corpus data is public NLP datasets. No PII risk in library itself."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 80,
+    "version_stability": 80,
+    "breaking_changes_history": 72,
+    "error_recovery": 78
+  }
+}
