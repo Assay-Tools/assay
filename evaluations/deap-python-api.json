@@ -1,0 +1,106 @@
+{
+  "id": "deap-python-api",
+  "name": "DEAP",
+  "version_evaluated": "1.4.x",
+  "homepage": "https://deap.readthedocs.io/",
+  "repo_url": "https://github.com/DEAP/deap",
+  "category": "ai-ml",
+  "subcategories": ["evolutionary-computation", "python", "genetic-algorithm", "optimization"],
+  "tags": ["python", "deap", "genetic-algorithm", "evolutionary", "optimization", "GP", "ES", "neuroevolution"],
+  "what_it_does": "Distributed Evolutionary Algorithms in Python — toolkit for implementing genetic algorithms, genetic programming, evolution strategies, and swarm intelligence. DEAP features: creator for custom individual/fitness classes, toolbox for operator registration, algorithms.eaSimple/eaMuPlusLambda for full EA loops, genetic operators (crossover, mutation, selection), Pareto front multi-objective optimization (NSGA-II), genetic programming tree evaluation, Hall of Fame for best individuals, Statistics tracking, pickle-based parallelism with scoop, and flexible fitness design. Used for feature selection, hyperparameter optimization, NAS, game playing, and prompt evolution.",
+  "use_cases": [
+    "Agent hyperparameter evolution — creator.create('FitnessMax', base.Fitness, weights=(1.0,)); creator.create('Individual', list, fitness=creator.FitnessMax); toolbox = base.Toolbox(); toolbox.register('individual', tools.initRepeat, creator.Individual, toolbox.attr_float, 5); pop, log = algorithms.eaSimple(toolbox.population(n=50), toolbox, cxpb=0.5, mutpb=0.2, ngen=20) — evolve real-valued hyperparameters; agent genetic hyperparameter search finds configurations without gradients",
+    "Agent feature selection GA — individual represents feature mask (binary list); evaluate(individual) trains model on selected features, returns accuracy; tournament selection + one-point crossover + bit-flip mutation; agent automatically selects informative feature subset from 1000 candidate features",
+    "Agent multi-objective NSGA-II — creator.create('FitnessMulti', base.Fitness, weights=(-1.0, -1.0)); toolbox.register('select', tools.selNSGA2); algorithms.eaMuPlusLambda(pop, toolbox, mu=50, lambda_=100, cxpb=0.7, mutpb=0.2, ngen=100) — Pareto-optimal multi-objective optimization; agent finds trade-off frontier between model accuracy and inference speed",
+    "Agent genetic programming — pset = gp.PrimitiveSet('main', 2); pset.addPrimitive(operator.add, 2); pset.addPrimitive(operator.mul, 2); toolbox.register('expr', gp.genHalfAndHalf, pset=pset, min_=1, max_=3) — symbolic regression via genetic programming; agent discovers mathematical formula fitting observed data by evolving expression trees",
+    "Agent neuroevolution — individual encodes neural network weights as float list; evaluate trains individual on task for N episodes; CMA-ES mutation operator; agent evolves neural network weights for RL environment without backpropagation; DEAP provides evolutionary search over weight space"
+  ],
+  "not_for": [
+    "Gradient-based optimization — DEAP is gradient-free evolutionary computation; for gradient-available problems use Adam/SGD via PyTorch",
+    "Convex optimization — use CVXPY for guaranteed-optimal convex solutions; evolutionary search is approximate",
+    "Simple hyperparameter tuning — use Optuna or Nevergrad for simpler API; DEAP requires more setup but is more customizable"
+  ],
+  "best_when": "Highly customized evolutionary algorithms, multi-objective optimization with NSGA-II, genetic programming for symbolic regression, or neuroevolution — DEAP provides full control over evolutionary operators that Optuna and Nevergrad don't expose.",
+  "avoid_when": "You want simple hyperparameter tuning (use Optuna), gradient-available optimization (use autograd), or convex problems (use CVXPY).",
+  "alternatives": ["nevergrad-python-api", "optuna-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — local evolutionary computation library."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, LGPL-3.0 licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "DEAP is LGPL-3.0 licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 100,
+    "latency_p99_ms": 60000,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Evolution speed dominated by evaluate() function call. Population size × generations = total evaluations. Parallelism via toolbox.register('map', multiprocessing.Pool().map) for concurrent evaluation.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 75,
+    "error_message_quality": 68,
+    "error_message_notes": "TypeError for mismatched individual/operator dimensions. AttributeError for missing fitness values on unevaluated individuals. creator class conflicts when reusing same creator names across experiments. Error messages are Python standard exceptions without DEAP-specific context.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Evolutionary algorithms are stochastic — set random.seed() and numpy.random.seed() for reproducibility. Same seed produces same evolution. Hall of Fame tracks best individuals across generations.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "creator classes persist across module imports — creator.create('Individual', list, ...) registers globally; reimporting module or rerunning Jupyter cell raises RuntimeError: 'Individual' already in creator; agent notebooks must check: if 'Individual' not in creator.__dict__: creator.create('Individual', ...) before creating",
+      "Individual fitness must be tuple not scalar — FitnessMax weights=(1.0,) is single objective; evaluate() must return (score,) not score; toolbox.register('evaluate', lambda ind: (score,)); agent code returning plain float causes TypeError in fitness assignment; always return tuple even for single objective",
+      "eaSimple mutates individuals in place — algorithms.eaSimple modifies population; agent code that needs original population must copy before: original = [toolbox.clone(ind) for ind in pop]; DEAP operators work in-place for efficiency; clone() deep-copies individual including fitness",
+      "Parallelism requires picklable evaluate function — toolbox.register('map', pool.map) enables parallel evaluation; evaluate() must be picklable (top-level function, no lambda, no closure over non-picklable objects); agent code with class methods or closures as evaluate fails with pickle error",
+      "Invalid fitness must be cleared before re-evaluation — after crossover/mutation, offspring fitness is invalid; algorithms handle this, but custom loops must: del offspring.fitness.values before evaluating mutated individuals; stale fitness from parent causes offspring to skip re-evaluation",
+      "GP tree depth control prevents bloat — genetic programming trees grow unboundedly without depth limit; toolbox.decorate('mate', gp.staticLimit(key=operator.attrgetter('height'), max_value=17)) adds depth constraint; agent GP without bloat control generates unreadable thousand-node expression trees after many generations"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 72,
+    "error_handling_score": 65,
+    "auth_complexity_score": 98,
+    "rate_limit_clarity_score": 98
+  },
+  "security_score_components": {
+    "tls_enforcement": 90,
+    "auth_strength": 90,
+    "scope_granularity": 88,
+    "dependency_hygiene": 82,
+    "secret_handling": 90,
+    "security_notes": "Local computation — no network calls. Multiprocessing parallelism uses pickle serialization — ensure evaluate() doesn't serialize sensitive data in individual representation. No security concerns for standard optimization use."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 75,
+    "version_stability": 78,
+    "breaking_changes_history": 78,
+    "error_recovery": 72
+  }
+}
