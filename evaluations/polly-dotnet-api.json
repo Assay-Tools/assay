@@ -1,0 +1,106 @@
+{
+  "id": "polly-dotnet-api",
+  "name": "Polly",
+  "version_evaluated": "8.x",
+  "homepage": "https://www.thepollyproject.org/",
+  "repo_url": "https://github.com/App-vNext/Polly",
+  "category": "developer-tools",
+  "subcategories": ["resilience", "dotnet", "csharp", "fault-tolerance", "retry"],
+  "tags": ["dotnet", "csharp", "resilience", "retry", "circuit-breaker", "timeout", "rate-limiting", "fallback"],
+  "what_it_does": "Resilience and transient fault handling library for .NET — implements retry, circuit breaker, timeout, rate limiting, fallback, and hedging patterns. Polly v8 (via Microsoft.Extensions.Resilience): ResiliencePipelineBuilder<HttpResponseMessage>().AddRetry(new RetryStrategyOptions { MaxRetryAttempts = 3, BackoffType = DelayBackoffType.Exponential }).AddCircuitBreaker().AddTimeout(TimeSpan.FromSeconds(30)).Build(). AddResilienceHandler in IHttpClientBuilder for HttpClient integration. Handles transient failures in agent service-to-service calls, LLM API calls (rate limits, timeouts), and database operations. Policies chain into pipeline executing from outer to inner.",
+  "use_cases": [
+    "Retry agent LLM API calls on transient failures — ResiliencePipeline with AddRetry retries OpenAI/Anthropic calls on 429 (rate limit) and 503 (service unavailable) with exponential backoff; prevents agent failures from temporary LLM service blips",
+    "Circuit breaker for agent external tool calls — AddCircuitBreaker opens after 5 failures in 30 seconds, preventing cascading failures when agent tool API is down; half-open probing resumes calls after recovery window",
+    "Timeout protection for agent API calls — AddTimeout(TimeSpan.FromSeconds(10)) limits agent tool call execution time; prevents agent from hanging indefinitely on slow external services",
+    "HttpClient resilience pipeline for agent services — builder.AddHttpClient<IAgentApiClient, AgentApiClient>().AddResilienceHandler('agent-api', builder => { builder.AddRetry(...).AddCircuitBreaker(...) }) applies resilience to all agent HTTP calls",
+    "Rate limiting outbound agent LLM requests — AddRateLimiter(new SlidingWindowRateLimiter(options)) controls agent request rate to LLM API to stay within provider rate limits and prevent 429 errors"
+  ],
+  "not_for": [
+    "Inbound rate limiting for agent APIs — Polly limits outbound calls; for limiting incoming agent API requests from clients, use ASP.NET Core rate limiting middleware or API gateway",
+    "Saga compensation — Polly handles transient failures with retry/fallback; for complex agent workflow compensation (undo completed steps on failure), use Temporal or MassTransit Sagas",
+    "Infinite retry loops — Polly retry must have MaxRetryAttempts; unbounded retry on non-transient errors causes infinite loops; always configure max attempts and handle non-retryable exceptions"
+  ],
+  "best_when": "Your .NET agent service makes external calls (LLM APIs, tool APIs, databases) that experience transient failures — Polly makes your agent resilient to temporary failures with minimal code changes.",
+  "avoid_when": "Your calls are to local in-process dependencies, you need saga compensation, or your 'failures' are business logic errors that shouldn't be retried.",
+  "alternatives": ["microsoft-extensions-http-api", "steeltoe-circuitbreaker-api", "resilience4j-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["csharp"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Resilience library — no auth concepts. Handles retry/circuit breaker for HTTP calls that already have auth configured."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, BSD-3 licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Polly is BSD-3 licensed, maintained by App-vNext. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 0,
+    "latency_p99_ms": 1,
+    "uptime_sla_percent": null,
+    "rate_limits": "No library overhead. Retry strategies add latency equal to retry delay * retry count. Circuit breaker adds microsecond overhead per call. Configure backoff delays for agent retry strategies.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 88,
+    "error_message_quality": 85,
+    "error_message_notes": "Polly raises BrokenCircuitException when circuit is open (includes last exception). ExecutionRejectedException when rate limiter full. OperationCanceledException on timeout. All Polly exceptions include pipeline context with attempt count and elapsed time for agent resilience debugging.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Polly retry requires idempotent operations — retried agent calls execute multiple times. Non-idempotent agent operations (create, charge) should not be retried without idempotency keys. Polly does not enforce idempotency — design agent operations for retry-safety.",
+    "pagination_style": "none",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Polly v8 is a breaking change from v7 — Polly 8 renamed to Microsoft.Extensions.Resilience and changed API entirely (PolicyWrap → ResiliencePipeline, Execute → ExecuteAsync); agent projects upgrading must rewrite all Policy.Handle<>().Retry() calls; v7 and v8 are not compatible in same registration approach",
+      "Retry non-idempotent agent operations causes data duplication — retrying POST /agents without idempotency key creates duplicate agents on each retry; Polly retries are transparent to business logic; add idempotency key header and handle 409 Conflict as retry-safe for agent creation endpoints",
+      "Circuit breaker is per-ResiliencePipeline instance — each agent client using separate ResiliencePipeline has isolated circuit breaker; all agent API calls should share same ResiliencePipeline instance via DI; separate instances don't share circuit state and each opens independently causing partial protection",
+      "jitter required for thundering herd on retry — ExponentialBackoff without jitter causes all failed agent instances to retry simultaneously after identical delay; AddRetry with UseJitter = true spreads retry attempts; critical for agent services with multiple instances hitting shared LLM API under load",
+      "ShouldHandle must explicitly include exception types — by default Polly v8 handles no exceptions; must configure ShouldHandle: new PredicateBuilder().Handle<HttpRequestException>().HandleResult(r => r.StatusCode == HttpStatusCode.TooManyRequests) for agent LLM retry; unspecified exception types are not retried even with retry policy",
+      "Timeout cancels via CancellationToken not exception — Polly timeout cancels operation via CancellationToken passed to agent handler; handler must observe CancellationToken for timeout to work; synchronous agent code ignoring cancellation token continues past timeout and TimeoutRejectedException is thrown after handler returns"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 88,
+    "error_handling_score": 88,
+    "auth_complexity_score": 95,
+    "rate_limit_clarity_score": 90
+  },
+  "security_score_components": {
+    "tls_enforcement": 92,
+    "auth_strength": 88,
+    "scope_granularity": 85,
+    "dependency_hygiene": 90,
+    "secret_handling": 90,
+    "security_notes": "Polly retry can amplify security issues — retrying agent auth failures wastes LLM API rate limit; configure ShouldHandle to exclude 401/403 responses from retry. Circuit breaker prevents agent service from hammering failing endpoints (DoS protection). Ensure retry budget accounts for LLM API rate limits to avoid auto-banning agent API keys."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 92,
+    "version_stability": 85,
+    "breaking_changes_history": 78,
+    "error_recovery": 95
+  }
+}

@@ -1,0 +1,106 @@
+{
+  "id": "automapper-dotnet-api",
+  "name": "AutoMapper",
+  "version_evaluated": "13.x",
+  "homepage": "https://automapper.org/",
+  "repo_url": "https://github.com/AutoMapper/AutoMapper",
+  "category": "developer-tools",
+  "subcategories": ["mapping", "dotnet", "csharp", "dto", "transformation"],
+  "tags": ["dotnet", "csharp", "mapping", "dto", "object-mapping", "transformation", "projection", "profiles"],
+  "what_it_does": "Object-to-object mapping library for .NET — eliminates manual mapping between entity models and DTOs/view models. AutoMapper features: Profile classes defining mappings (CreateMap<Agent, AgentDto>()), auto-mapping same-named properties, custom value resolvers for computed properties, conditional mapping, flattening (Agent.User.Name → AgentDto.UserName), collection mapping (IMapper.Map<List<AgentDto>>(agents)), EF Core projection (agents.ProjectTo<AgentDto>(mapper.ConfigurationProvider) generates SELECT only mapped columns). Configuration validated at startup detecting unmapped properties. Eliminates hundreds of lines of manual property assignment in .NET agent services.",
+  "use_cases": [
+    "Agent entity to DTO mapping — mapper.Map<AgentDto>(agent) converts Agent domain entity to AgentDto for API response without manual property assignment; Profile defines mapping once, reused everywhere",
+    "EF Core query projection with AutoMapper — context.Agents.ProjectTo<AgentSummaryDto>(mapper.ConfigurationProvider).ToListAsync() generates SELECT only AgentSummaryDto properties from DB; avoids loading full Agent entity for agent list endpoints",
+    "Flattening nested agent objects — CreateMap<Agent, AgentDto>() with ForMember(dest => dest.OwnerEmail, opt => opt.MapFrom(src => src.Owner.Email)) flattens nested agent.Owner.Email to flat AgentDto.OwnerEmail",
+    "Custom agent status resolution — CreateMap<Agent, AgentDto>().ForMember(dest => dest.DisplayStatus, opt => opt.MapFrom<AgentStatusResolver>()) computes display-friendly agent status from business rules in resolver class",
+    "Reverse mapping for update commands — CreateMap<UpdateAgentRequest, Agent>().ReverseMap() enables both Request → Agent and Agent → Request mapping for agent update and display flows"
+  ],
+  "not_for": [
+    "Simple 1-2 property mappings — AutoMapper setup (Profile, DI registration) adds overhead; for mapping 3 properties, manual assignment is clearer; justify AutoMapper for 5+ property mappings or reuse across multiple handlers",
+    "Complex business logic transformations — AutoMapper resolvers can contain logic but become hard to test; for multi-step agent transformations with business rules, use explicit mapping service classes",
+    "Performance-critical hot paths — AutoMapper reflection-based mapping is slower than manual mapping or source generators; for agent API endpoints handling 10k+ RPS, benchmark AutoMapper vs Mapster or manual mapping"
+  ],
+  "best_when": "Your .NET agent service maps between domain entities and multiple DTOs with many properties — AutoMapper eliminates repetitive mapping code and ProjectTo() optimizes EF Core queries.",
+  "avoid_when": "You have simple few-property mappings, you need maximum mapping performance, or your team finds implicit AutoMapper conventions error-prone.",
+  "alternatives": ["mapster-api", "mapperly-api", "manual-mapping-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["csharp"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Object mapping library — no auth concepts."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "AutoMapper is MIT licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 0,
+    "latency_p99_ms": 1,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — in-process mapping. AutoMapper caches compiled mapping delegates; first call slower, subsequent calls near zero overhead. ProjectTo() is efficient — generates SQL projection.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 82,
+    "error_message_notes": "AutoMapper validates configuration at startup: AssertConfigurationIsValid() throws AutoMapperConfigurationException listing unmapped properties. Runtime mapping errors raise AutoMapperMappingException with source/destination types. Missing map raises AutoMapperMappingException 'Missing type map configuration'.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Mapping is deterministic and idempotent — same source always produces same destination. Configuration validation runs once at startup.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "AssertConfigurationIsValid() required in tests — without validation in test suite, AutoMapper silently ignores unmapped agent properties; agent DTO missing 5 fields compiles and runs with null values; add mapper.ConfigurationIsValid() in startup or test fixture to catch mapping gaps before production",
+      "ProjectTo() cannot map computed properties requiring loaded navigation — ProjectTo<AgentDto>(config) translates to SQL; properties requiring C# business logic (agent.IsActive computed from multiple fields) cannot be projected; use ForMember with MapFrom(src => ...) only for SQL-translatable expressions in agent ProjectTo mappings",
+      "Circular reference causes infinite loop without MaxDepth — Agent.CreatedBy.CreatedAgents includes Agent causing AutoMapper infinite recursion; set MaxDepth(2) or use PreserveReferences() in CreateMap; circular agent object graphs crash mapper with StackOverflowException",
+      "Static IMapper is anti-pattern — early AutoMapper tutorials used static Mapper.Map(); current AutoMapper requires IMapper injected via DI; mixing static and instance mapping in agent service causes initialization order issues and breaks testability",
+      "Profile scanning must include all assemblies — services.AddAutoMapper(typeof(AgentProfile).Assembly) only scans that assembly; Profile classes in other agent assemblies (separate modules) are invisible; use AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies()) or list all assemblies with Profiles",
+      "ForMember ignore doesn't prevent exception on missing source — CreateMap<UpdateAgentRequest, Agent>().ForMember(dest => dest.Id, opt => opt.Ignore()) ignores destination Id but if source also has Id with different type, AutoMapper may still error; use ForSourceMember for source-side ignores in agent update mapping scenarios"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 82,
+    "auth_complexity_score": 98,
+    "rate_limit_clarity_score": 98
+  },
+  "security_score_components": {
+    "tls_enforcement": 95,
+    "auth_strength": 92,
+    "scope_granularity": 85,
+    "dependency_hygiene": 88,
+    "secret_handling": 85,
+    "security_notes": "AutoMapper can inadvertently expose sensitive agent properties — CreateMap<Agent, AgentPublicDto>() maps ALL matching properties by default including ApiKey if DTO has matching property; explicitly ForMember(dest => dest.ApiKey, opt => opt.Ignore()) sensitive agent fields or use AssertConfigurationIsValid with explicit mapping per property for security-sensitive DTOs."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 85,
+    "breaking_changes_history": 78,
+    "error_recovery": 88
+  }
+}

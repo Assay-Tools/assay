@@ -1,0 +1,106 @@
+{
+  "id": "serilog-dotnet-api",
+  "name": "Serilog",
+  "version_evaluated": "3.x",
+  "homepage": "https://serilog.net/",
+  "repo_url": "https://github.com/serilog/serilog",
+  "category": "developer-tools",
+  "subcategories": ["logging", "dotnet", "csharp", "observability", "structured-logging"],
+  "tags": ["dotnet", "csharp", "logging", "structured-logging", "sinks", "seq", "elasticsearch", "asp-net"],
+  "what_it_does": "Structured logging library for .NET — captures rich log events with properties instead of plain text strings, enabling powerful log querying in downstream sinks. Serilog features: property capture (Log.Information(\"Agent {AgentId} completed task {TaskId} in {Duration}ms\", id, taskId, ms)), enrichers (add machine name, thread ID, user to all logs), sinks (write to Console, File, Seq, Elasticsearch, Application Insights, Datadog, Splunk), minimum level configuration, and filter expressions. Log.ForContext<AgentService>() creates contextual loggers. ASP.NET Core integration via UseSerilog() replaces default logging. Serilog.Settings.Configuration reads from appsettings.json. The standard structured logging library for .NET agent services.",
+  "use_cases": [
+    "Structured agent service logging — Log.Information(\"Agent {AgentId} started task {TaskType} with {ToolCount} tools\", agent.Id, task.Type, tools.Count) captures searchable properties vs Log.Information(\"Agent started task\") plain text",
+    "Multi-sink agent observability — WriteTo.Console().WriteTo.Seq(\"http://seq:5341\").WriteTo.File(\"logs/agent.log\") sends structured agent logs to console, Seq dashboard, and file simultaneously",
+    "Request correlation for agent API — Log.ForContext(\"CorrelationId\", correlationId).Information(\"Agent API request {Method} {Path}\") adds correlation ID to all agent request logs for distributed trace correlation",
+    "Agent error tracking with enrichment — LogContext.PushProperty(\"AgentId\", agent.Id) enriches all subsequent logs in agent request scope; catches unhandled exceptions with full agent context for incident investigation",
+    "Minimum level override by namespace — MinimumLevel.Override(\"Microsoft.AspNetCore\", LogEventLevel.Warning) suppresses noisy ASP.NET logs while keeping agent service logs at Debug level in development"
+  ],
+  "not_for": [
+    "High-frequency metrics — Serilog is for log events, not counters/gauges; logging 100k agent events/second exhausts I/O; use Prometheus/Micrometer for agent performance metrics",
+    "Distributed tracing — Serilog logs events but doesn't track distributed agent request flows across services; use OpenTelemetry with Serilog as one telemetry output for agent distributed tracing",
+    "Audit logs requiring tamper-proof storage — Serilog writes to configurable sinks; for agent compliance audit trails requiring immutability, route audit events to dedicated immutable storage alongside Serilog"
+  ],
+  "best_when": "You're building a .NET agent service that needs structured, queryable logs across multiple outputs (console, file, Seq, Datadog) — Serilog's property capture and sink ecosystem is the gold standard for .NET observability.",
+  "avoid_when": "You need performance counters/metrics (use Prometheus), distributed tracing (use OpenTelemetry), or your .NET app already has Microsoft.Extensions.Logging wired everywhere (can still use Serilog as provider).",
+  "alternatives": ["nlog-api", "log4net-api", "microsoft-extensions-logging-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["csharp"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["api_key"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Serilog itself has no auth. Individual sinks may require auth: Seq API key, Datadog API key, Elasticsearch credentials configured in sink options."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, Apache 2.0 licensed",
+    "paid_tiers": "None for the library",
+    "requires_credit_card": false,
+    "notes": "Serilog is Apache 2.0 licensed. Log sinks (Seq, Datadog) have separate pricing for their hosted services."
+  },
+  "performance": {
+    "latency_p50_ms": 0,
+    "latency_p99_ms": 1,
+    "uptime_sla_percent": null,
+    "rate_limits": "No library rate limits. Async sinks (WriteTo.Async) prevent logging from blocking agent request thread. File sink can become I/O bottleneck at high log volume; use async sink wrapper for agent high-throughput services.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 90,
+    "error_message_quality": 88,
+    "error_message_notes": "Serilog self-log (Serilog.Debugging.SelfLog.Enable(Console.Error)) writes its own errors to console when sinks fail. Sink exceptions are swallowed by default to prevent logging from crashing agent service; enable SelfLog to diagnose sink configuration errors.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Logging is append-only and idempotent. Log enrichers and filters are deterministic for same input. WriteTo.Async queues events — events may be duplicated if process crashes during queue flush.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Log.CloseAndFlush() must be called on app shutdown — Serilog buffers log events; without Log.CloseAndFlush() or await Log.CloseAndFlushAsync() in Main() finally block, last agent log events before process exit are lost; critical for capturing agent shutdown/crash logs",
+      "Property destructuring requires @ prefix — Log.Information(\"Agent: {Agent}\", agent) logs agent.ToString(); Log.Information(\"Agent: {@Agent}\", agent) destructures object to JSON properties; without @ prefix, agent object properties are not searchable in Seq/Elasticsearch; use @ for agent model logging",
+      "Serilog replaces but doesn't automatically integrate ILogger — calling UseSerilog() in Program.cs replaces ILoggerFactory; existing services using ILogger<T> work via Microsoft.Extensions.Logging bridge; but Log.ForContext() static API is separate from injected ILogger; pick one API style for agent service consistency",
+      "Minimum level filtering happens before sinks — MinimumLevel.Information() globally filters before any sink receives events; Debug/Verbose agent logs set globally can overwhelm low-cost sinks; use per-sink minimum level: WriteTo.Seq(minimumLevel: LogEventLevel.Warning) for expensive cloud sinks",
+      "Async sink requires buffer size tuning — WriteTo.Async(a => a.File('logs/agent.log'), bufferSize: 10000) buffers events in memory; default buffer is 10k events; high-burst agent logging exceeds buffer causing BlockWhenFull behavior or silent drop depending on blockWhenFull setting; size buffer for expected agent log burst volume",
+      "Destructured sensitive data ends up in logs — {@Agent} logs ALL properties including agent.ApiKey, agent.Password; use Serilog.Destructurators or custom IDestructuringPolicy to redact sensitive agent properties before logging; never log raw agent credentials or PII"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 90,
+    "error_handling_score": 88,
+    "auth_complexity_score": 92,
+    "rate_limit_clarity_score": 95
+  },
+  "security_score_components": {
+    "tls_enforcement": 88,
+    "auth_strength": 85,
+    "scope_granularity": 82,
+    "dependency_hygiene": 88,
+    "secret_handling": 78,
+    "security_notes": "CRITICAL: Serilog structured logging can expose sensitive agent data — use IDestructuringPolicy to redact API keys, tokens, and PII from agent log properties. Never log agent credentials. Sink TLS configuration: Seq requires HTTPS in production; cloud sinks (Datadog, Splunk) default to TLS. Apply minimum retention policies on log storage for GDPR compliance."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 92,
+    "version_stability": 90,
+    "breaking_changes_history": 88,
+    "error_recovery": 85
+  }
+}

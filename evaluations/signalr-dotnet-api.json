@@ -1,0 +1,106 @@
+{
+  "id": "signalr-dotnet-api",
+  "name": "ASP.NET Core SignalR",
+  "version_evaluated": "8.x",
+  "homepage": "https://learn.microsoft.com/en-us/aspnet/core/signalr/",
+  "repo_url": "https://github.com/dotnet/aspnetcore",
+  "category": "developer-tools",
+  "subcategories": ["realtime", "dotnet", "csharp", "websockets", "messaging"],
+  "tags": ["dotnet", "csharp", "websockets", "realtime", "signalr", "hub", "push", "asp-net"],
+  "what_it_does": "Real-time web communication library for ASP.NET Core — abstracts WebSockets, Server-Sent Events, and Long Polling for push notifications and bidirectional streaming. SignalR features: Hub classes for server-side logic (class AgentHub : Hub { public async Task SendUpdate(string message) { await Clients.All.SendAsync(\"ReceiveUpdate\", message); } }), typed hubs (IAgentHubClient interface), group management (Groups.AddToGroupAsync), connection management, and automatic reconnection. Scales to multiple servers via Azure SignalR Service or Redis backplane. Client libraries for JavaScript (@microsoft/signalr), .NET, Java, and Swift. Used for real-time agent task progress, streaming LLM responses, and collaborative agent interfaces.",
+  "use_cases": [
+    "Real-time agent task progress streaming — AgentHub.SendProgress(connectionId, progressPercent) pushes agent task completion percentage to specific browser connection; JavaScript client receives via connection.on('Progress', (pct) => updateUI(pct))",
+    "LLM response streaming to browser — await Clients.Client(connectionId).SendAsync('AgentToken', token) streams each LLM token to agent chat UI as generated; progressive display without polling",
+    "Agent collaboration presence — Groups.AddToGroupAsync(connectionId, agentId.ToString()) tracks who is viewing each agent; Clients.Group(agentId).SendAsync('UserJoined', username) broadcasts presence to agent collaborators",
+    "Multi-server agent notifications via Azure SignalR Service — UseAzureSignalR(connectionString) replaces in-process hub with Azure-managed SignalR; agent notifications reach clients connected to any server instance",
+    "Typed hub for agent event contracts — interface IAgentClient { Task ReceiveStatus(AgentStatus status); }; class AgentHub : Hub<IAgentClient> { await Clients.All.ReceiveStatus(status); } compile-time safe agent event contract"
+  ],
+  "not_for": [
+    "High-throughput event streaming — SignalR is designed for interactive real-time UIs; for streaming millions of agent events/second, use Kafka, Azure Event Hubs, or server-sent events with dedicated streaming infrastructure",
+    "Mobile push notifications — SignalR WebSocket connections don't work reliably in mobile background; use Apple APNs or Firebase FCM for agent mobile push notifications",
+    "Service-to-service messaging — SignalR is optimized for browser-to-server communication; for agent microservice messaging, use RabbitMQ, Azure Service Bus, or MassTransit"
+  ],
+  "best_when": "Your .NET agent application needs real-time push from server to browser — agent task progress, streaming LLM responses, or collaborative features — SignalR handles connection management and scaling automatically.",
+  "avoid_when": "You need mobile push, high-throughput event streaming, microservice messaging, or your UI can use polling without UX degradation.",
+  "alternatives": ["websockets-raw-api", "server-sent-events-api", "azure-signalr-service-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["csharp", "javascript", "typescript", "java"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["bearer_token", "cookie"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "SignalR hub connections authenticated via JWT bearer or cookie sent during WebSocket handshake. Configure options.Events.OnMessageReceived to extract token from query string for WebSocket (WebSocket headers not supported for auth token)."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Free for self-hosted. Azure SignalR Service has free tier (20 concurrent connections, 20k messages/day).",
+    "paid_tiers": "Azure SignalR Service: Standard from ~$50/month for 1000 concurrent connections",
+    "requires_credit_card": false,
+    "notes": "ASP.NET Core SignalR is MIT licensed and free for self-hosted use. Azure SignalR Service has managed hosting costs for production scale."
+  },
+  "performance": {
+    "latency_p50_ms": 10,
+    "latency_p99_ms": 100,
+    "uptime_sla_percent": null,
+    "rate_limits": "No built-in rate limits per connection. Hub method invocations are serialized per connection by default. Configure concurrent hub invocations with MaxParallelInvocationsPerClient (default 1 in ASP.NET Core 8).",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted", "cloud"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 88,
+    "error_message_quality": 82,
+    "error_message_notes": "SignalR hub method exceptions are caught and return error to caller (not crash); HubException is client-visible exception type; other exceptions are logged server-side and generic error returned to client. Connection errors: HubConnectionState.Disconnected triggers client reconnect logic.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Hub method invocations are not idempotent by default — network retry can trigger duplicate agent notifications. Use message deduplication IDs in SignalR messages for exactly-once agent event delivery semantics.",
+    "pagination_style": "none",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "WebSocket auth token must be in query string — browsers cannot set Authorization header on WebSocket connections; SignalR JavaScript client sends JWT via access_token query parameter; server reads from context.Request.Query['access_token'] in OnMessageReceived event; standard Authorization header auth fails for agent SignalR WebSocket connections",
+      "Multiple server SignalR requires backplane — SignalR connections are server-affinity; agent users connected to Server A don't receive messages sent from Server B; configure Redis backplane (AddStackExchangeRedis) or Azure SignalR Service for multi-instance agent deployments; single-server works without backplane",
+      "Hub lifetime is per-request not per-connection — Hub instances are created fresh for each hub method invocation; don't store state in Hub instance properties; use IHubContext<AgentHub> for sending from outside Hub (background services); Hub.Context persists across method calls but Hub instance does not",
+      "Clients.Others vs Clients.All for echo prevention — Clients.All.SendAsync includes the calling connection; Clients.Others.SendAsync excludes caller; Clients.Caller.SendAsync sends only to caller; for agent collaborative editing, use Clients.OthersInGroup(agentId) to broadcast without echo to sender",
+      "Groups not persistent across reconnects — AddToGroupAsync adds connection to group; on disconnect and reconnect, new connection ID is assigned and group membership is lost; agent clients must re-join groups on reconnection; use OnConnectedAsync to restore group membership from user's agent context",
+      "MaxParallelInvocationsPerClient default is 1 — by default SignalR processes one hub method per client at a time; agent clients sending rapid messages queue behind in-progress calls; configure options.MaxParallelInvocationsPerClient > 1 if agent hub methods have async wait time; too high can overload server with concurrent agent processing"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 88,
+    "error_handling_score": 82,
+    "auth_complexity_score": 82,
+    "rate_limit_clarity_score": 85
+  },
+  "security_score_components": {
+    "tls_enforcement": 90,
+    "auth_strength": 85,
+    "scope_granularity": 82,
+    "dependency_hygiene": 90,
+    "secret_handling": 85,
+    "security_notes": "SignalR requires HTTPS in production — configure HSTS; WebSocket connections over HTTP are unencrypted. Validate hub callers are authorized for each agent-specific group/connection they join. Use typed hubs to enforce message contracts. Token-in-query-string is logged in server access logs — ensure production logs don't retain agent auth tokens."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 90,
+    "version_stability": 90,
+    "breaking_changes_history": 88,
+    "error_recovery": 85
+  }
+}
