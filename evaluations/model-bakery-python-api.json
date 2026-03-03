@@ -1,0 +1,106 @@
+{
+  "id": "model-bakery-python-api",
+  "name": "Model Bakery",
+  "version_evaluated": "1.x",
+  "homepage": "https://model-bakery.readthedocs.io/",
+  "repo_url": "https://github.com/model-bakers/model_bakery",
+  "category": "developer-tools",
+  "subcategories": ["testing", "python", "django", "test-data", "fixtures"],
+  "tags": ["python", "django", "testing", "model-bakery", "baker", "fixtures", "test-data", "factory"],
+  "what_it_does": "Django model test data generator — creates Django model instances with automatically populated fields for testing. Model Bakery (successor to Model Mommy) features: baker.make('myapp.Agent') creates Agent instance with random valid data for all fields, baker.make('Agent', name='My Agent') overrides specific fields, baker.prepare() creates unsaved instances, baker.make_recipe() for named recipes in baker_recipes.py, M2M and FK relationships auto-created, custom value generators, and bulk creation via _quantity parameter. Eliminates boilerplate Agent.objects.create(name='test', status='active', ...) in Django agent tests by auto-filling required fields.",
+  "use_cases": [
+    "Agent model test data — baker.make('agents.Agent', name='Test Agent') creates agent with auto-populated required fields (id, created_at, status, etc.); no need to specify all required fields in every agent test",
+    "Related agent objects — baker.make('agents.AgentTask', agent=baker.make('agents.Agent')) auto-creates related agent when not specified; baker.make('AgentTask', _quantity=5) creates 5 related agent tasks",
+    "Agent test recipes — baker_recipes.py with Recipe('agent', status='active', model='gpt-4') defines named agent fixtures; baker.make_recipe('agents.active_agent') in tests creates pre-configured agent; shareable test data patterns across agent test suite",
+    "Unsaved agent preparation — baker.prepare('Agent', name='Draft') creates Agent instance without DB write; useful for testing agent serializers, validators, and form handling without touching database",
+    "Bulk agent test data — baker.make('Agent', _quantity=100, status=cycle(['active', 'pending', 'inactive'])) creates 100 agents cycling through statuses; agent list view and pagination tests with realistic mixed-status datasets"
+  ],
+  "not_for": [
+    "Non-Django ORMs — Model Bakery is Django ORM-specific; for SQLAlchemy agent test data use factory_boy with SQLAlchemy support",
+    "Complex dependent data scenarios — for agent test data with complex business rules and dependent states, factory_boy's SubFactory and LazyAttribute provide more control",
+    "Production data seeding — Model Bakery generates random test data; for production seed data with specific values use Django fixtures or custom management commands"
+  ],
+  "best_when": "You're writing Django agent tests and don't want to manually specify all required model fields in every test — Model Bakery auto-fills fields so you only specify what matters for each agent test case.",
+  "avoid_when": "You need complex factory hierarchies with dependent computed values, non-Django ORM, or production data seeding.",
+  "alternatives": ["factory-boy-api", "django-dynamic-fixtures-api", "pytest-factoryboy-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — Django test data library."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, Apache 2.0 licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Model Bakery is Apache 2.0 licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 5,
+    "latency_p99_ms": 50,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — Django ORM calls. baker.make() creates database rows; speed depends on Django DB backend and model complexity. baker.prepare() has no DB overhead. _quantity=1000 creates 1000 rows which may be slow without bulk_create.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 80,
+    "error_message_notes": "baker.make() raises InvalidQuantityException for invalid _quantity. RecipeNotFound for missing recipe name. Django IntegrityError propagates for constraint violations (unique, not-null). FK resolution errors show related model name. Django validation errors raise ValidationError with field-specific messages.",
+    "idempotency_support": "full",
+    "idempotency_notes": "baker.make() creates new instances each call (non-idempotent by design). baker.make() with _get_or_create option is idempotent for existing objects. Test isolation requires Django TestCase or @pytest.mark.django_db with transaction rollback to clean up agent test data.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "baker vs baker.make import confusion — from model_bakery import baker then baker.make() is correct; some tutorials show from model_bakery.baker import make then make() directly; both work but mixing styles in agent test files causes NameError; standardize import pattern across agent test suite",
+      "Auto-generated values may violate unique constraints — baker.make('Agent', _quantity=5) with unique=True field generates 5 random values; occasionally generates duplicate causing IntegrityError; use baker.make('Agent', name=seq('Agent-')) or explicit unique values for agent fields with unique constraint",
+      "M2M fields require post-create assignment — baker.make('AgentTag', agents=[agent1, agent2]) won't work for M2M directly on make(); use baker.make('AgentTag') then result.agents.set([agent1, agent2]) for agent M2M relationships; Model Bakery auto-creates M2M objects but doesn't add them to existing instances without explicit set()",
+      "baker.prepare() doesn't save FK objects — baker.prepare('AgentTask') creates unsaved AgentTask with unsaved FK Agent; saving AgentTask.save() fails because Agent has no pk; use baker.make() for FK dependencies even when baker.prepare() for the target model; or pass explicit saved FK instances to baker.prepare()",
+      "Recipe _create_many field requires list not queryset — baker.make_recipe('agents.task_recipe', agents=Agent.objects.filter(active=True)) fails; convert to list: agents=list(Agent.objects.filter(active=True)); agent test recipes using queryset for M2M relations cause unexpected TypeError",
+      "Custom field generators override all instances of type — baker.generators.add(CustomField, lambda: 'default') applies to ALL CustomField instances in test session; registering generator in setUp() without cleanup affects other agent tests in same session; register generators in conftest.py or use autouse fixture with teardown"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 80,
+    "auth_complexity_score": 98,
+    "rate_limit_clarity_score": 98
+  },
+  "security_score_components": {
+    "tls_enforcement": 95,
+    "auth_strength": 95,
+    "scope_granularity": 92,
+    "dependency_hygiene": 88,
+    "secret_handling": 90,
+    "security_notes": "Testing library — no production security concerns. Generated agent test data uses random values; ensure tests don't accidentally use predictable test data for security testing. Never use baker.make() in production management commands — test data generation library only."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 85,
+    "breaking_changes_history": 82,
+    "error_recovery": 88
+  }
+}

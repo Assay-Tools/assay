@@ -1,0 +1,106 @@
+{
+  "id": "djangorestframework-simplejwt-api",
+  "name": "Simple JWT (DRF)",
+  "version_evaluated": "5.x",
+  "homepage": "https://django-rest-framework-simplejwt.readthedocs.io/",
+  "repo_url": "https://github.com/jazzband/djangorestframework-simplejwt",
+  "category": "developer-tools",
+  "subcategories": ["authentication", "python", "django", "jwt", "api-auth"],
+  "tags": ["python", "django", "drf", "jwt", "authentication", "simplejwt", "access-token", "refresh-token"],
+  "what_it_does": "JWT authentication for Django REST Framework — provides access/refresh token pair authentication with configurable expiry, rotation, and blacklisting. Simple JWT features: TokenObtainPairView (POST /api/token/ with username/password returns access+refresh), TokenRefreshView (POST /api/token/refresh/), TokenVerifyView, token blacklisting via OutstandingToken/BlacklistedToken DB tables, custom token claims (add user data to payload), token rotation on refresh, sliding tokens, JWTAuthentication backend for DRF, and SIMPLE_JWT settings configuration. Standard JWT implementation with refresh token rotation for agent API authentication.",
+  "use_cases": [
+    "Agent API authentication — SIMPLE_JWT = {'ACCESS_TOKEN_LIFETIME': timedelta(minutes=15), 'REFRESH_TOKEN_LIFETIME': timedelta(days=7)} in settings; POST /api/token/ with agent credentials returns short-lived access token and long-lived refresh token",
+    "Custom agent claims in JWT — class AgentTokenObtainPairSerializer(TokenObtainPairSerializer) { @classmethod def get_token(cls, user) { token = super().get_token(user); token['agent_role'] = user.agent_role; return token } } embeds agent role in JWT for client-side authorization",
+    "Token refresh rotation — SIMPLE_JWT['ROTATE_REFRESH_TOKENS'] = True generates new refresh token on each refresh call; BLACKLIST_AFTER_ROTATION=True invalidates old refresh token; agent mobile apps get rolling refresh without user re-login",
+    "Agent token blacklisting on logout — from rest_framework_simplejwt.tokens import RefreshToken; token = RefreshToken(request.data['refresh']); token.blacklist() invalidates agent refresh token on logout; requires rest_framework_simplejwt.token_blacklist in INSTALLED_APPS",
+    "Protected agent views — REST_FRAMEWORK = {'DEFAULT_AUTHENTICATION_CLASSES': ['rest_framework_simplejwt.authentication.JWTAuthentication']} protects all DRF agent views; Authorization: Bearer <access_token> header required for agent API calls"
+  ],
+  "not_for": [
+    "Session-based auth — Simple JWT is stateless JWT; for session cookie auth use Django's session framework or dj-rest-auth",
+    "OAuth2 / social login — Simple JWT handles username/password JWT; for agent OAuth (Google, GitHub login) use django-allauth or python-social-auth",
+    "Sophisticated permission scopes — Simple JWT adds claims but not OAuth2-style scopes; for fine-grained agent API scope control use djangorestframework-api-key or authlib"
+  ],
+  "best_when": "Your Django DRF agent API needs stateless JWT authentication with access/refresh token pair — Simple JWT is the standard DRF JWT library with active maintenance and full refresh rotation support.",
+  "avoid_when": "You need OAuth2 social login, session-based auth, or complex scope-based authorization.",
+  "alternatives": ["django-allauth-api", "dj-rest-auth-api", "authlib-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["bearer_token"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Provides JWT authentication for DRF. Access token in Authorization: Bearer header. Refresh token rotates on each use. Token blacklist (DB table) tracks invalidated tokens for logout functionality."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "djangorestframework-simplejwt is MIT licensed, maintained by Jazzband. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 5,
+    "latency_p99_ms": 50,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. JWT verification is in-memory (no DB lookup for valid tokens). Token blacklist check queries DB for each request if blacklisting enabled — adds one DB query per request for agent token validation.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 82,
+    "error_message_notes": "Invalid token returns 401 with {'detail': 'Given token not valid for any token type', 'code': 'token_not_valid', 'messages': [...]} JSON. Expired token returns 401 with 'token_not_valid'. Missing header returns 401 with 'Authentication credentials were not provided'. Blacklisted token returns 401.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "TokenObtainPairView (login) creates new tokens each call — not idempotent. TokenRefreshView with rotation generates new tokens — not idempotent. TokenVerifyView is idempotent read. Blacklisting is idempotent — blacklisting already-blacklisted token is safe.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Token blacklist requires migration and INSTALLED_APPS — rest_framework_simplejwt.token_blacklist must be in INSTALLED_APPS and python manage.py migrate run; without migration, token.blacklist() raises OperationalError; agent logout endpoints silently fail without blacklist app installed and migrated",
+      "Access token stateless — revoked user's access tokens remain valid until expiry (15 min default); agent user deactivation doesn't immediately invalidate access tokens; use short ACCESS_TOKEN_LIFETIME and long-lived refresh token with blacklisting; or add user_is_active check in custom authentication backend for agent security requirements",
+      "ROTATE_REFRESH_TOKENS without BLACKLIST_AFTER_ROTATION allows reuse — enabling rotation without blacklisting means old refresh tokens remain valid; agent refresh token theft allows parallel sessions; always enable both ROTATE_REFRESH_TOKENS=True and BLACKLIST_AFTER_ROTATION=True for agent production security",
+      "Custom claims added to token not auto-verified on decode — adding agent_role to JWT payload doesn't enforce role on endpoints; custom claim is informational in JWT; agent authorization based on token claims must be implemented in custom permission classes or DRF's has_permission() method; claims are unsigned from server but not enforced by SimpleJWT",
+      "TokenObtainPairView uses username field — default view expects 'username' field; agent apps using email login need custom serializer overriding username_field or setting AUTH_USER_MODEL with email as USERNAME_FIELD; passing email to default endpoint returns 'No active account found' without clear field error",
+      "Sliding tokens differ from refresh tokens — SIMPLE_JWT['AUTH_TOKEN_CLASSES'] can be set to sliding tokens which extend lifetime on each use (no refresh endpoint needed); sliding tokens don't support blacklisting by design; agent apps using sliding tokens can't implement logout via token invalidation"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 82,
+    "auth_complexity_score": 82,
+    "rate_limit_clarity_score": 88
+  },
+  "security_score_components": {
+    "tls_enforcement": 88,
+    "auth_strength": 85,
+    "scope_granularity": 78,
+    "dependency_hygiene": 88,
+    "secret_handling": 82,
+    "security_notes": "SECRET_KEY used for JWT signing — rotate Django SECRET_KEY to invalidate all tokens if compromised. Use HTTPS exclusively for agent token transmission. Short ACCESS_TOKEN_LIFETIME (15 minutes) limits exposure from token theft. Token blacklist table grows over time; implement periodic cleanup of expired OutstandingToken records for agent production databases."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 85,
+    "version_stability": 85,
+    "breaking_changes_history": 82,
+    "error_recovery": 85
+  }
+}

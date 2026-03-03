@@ -1,0 +1,106 @@
+{
+  "id": "drf-spectacular-api",
+  "name": "drf-spectacular",
+  "version_evaluated": "0.27.x",
+  "homepage": "https://drf-spectacular.readthedocs.io/",
+  "repo_url": "https://github.com/tfranzel/drf-spectacular",
+  "category": "developer-tools",
+  "subcategories": ["api-docs", "python", "django", "drf", "openapi"],
+  "tags": ["python", "django", "drf", "openapi", "swagger", "api-docs", "schema", "rest-framework"],
+  "what_it_does": "OpenAPI 3.0 schema generation for Django REST Framework — automatically generates OpenAPI 3.0 spec from DRF ViewSets, serializers, and views. drf-spectacular features: SpectacularAPIView for schema endpoint, SpectacularSwaggerView for interactive docs, SpectacularRedocView for ReDoc UI, @extend_schema() decorator for customizing individual endpoint docs, inline serializer definition for request/response override, @extend_schema_view() for ViewSet per-action docs, custom serializer extensions, postprocessing hooks, and management command ./manage.py spectacular --file schema.json for CI schema export. Replaces drf-yasg (OpenAPI 2.0) with modern OpenAPI 3.0 support.",
+  "use_cases": [
+    "Agent API auto-documentation — SpectacularSwaggerView.as_view(url_name='schema') mounts Swagger UI at /api/docs/; DRF ViewSets auto-documented from serializer fields; agent developers get interactive API explorer without writing docs",
+    "Agent endpoint custom docs — @extend_schema(summary='Create agent', description='Creates a new agent task', request=AgentCreateSerializer, responses={201: AgentSerializer, 400: ErrorSerializer}) annotates non-standard endpoint with explicit request/response types",
+    "Agent schema CI export — ./manage.py spectacular --file schema.json generates OpenAPI spec in CI; schema committed to version control; contract testing validates agent API changes against published spec",
+    "Agent SDK generation — OpenAPI spec from drf-spectacular fed to openapi-generator creates Python/TypeScript/Java SDKs for agent API consumers; client code generated from authoritative agent API spec",
+    "Agent ViewSet per-action docs — @extend_schema_view(list=extend_schema(summary='List agents'), retrieve=extend_schema(summary='Get agent by ID')) adds per-action descriptions to AgentViewSet without decorator per method"
+  ],
+  "not_for": [
+    "Non-DRF Django views — drf-spectacular only auto-documents DRF views; plain Django views, class-based views without DRF, or FastAPI endpoints need separate schema tools",
+    "OpenAPI 2.0 / Swagger 2.0 — drf-spectacular generates OpenAPI 3.0; for Swagger 2.0 compatibility use drf-yasg (though deprecated)",
+    "GraphQL schema documentation — drf-spectacular documents REST APIs; for Django GraphQL use graphene-django built-in schema introspection"
+  ],
+  "best_when": "Your Django DRF agent API needs OpenAPI 3.0 documentation with minimal effort — drf-spectacular auto-generates accurate schema from DRF serializers and ViewSets.",
+  "avoid_when": "Your Django app uses non-DRF views, you need OpenAPI 2.0 Swagger compatibility, or you're documenting GraphQL APIs.",
+  "alternatives": ["drf-yasg-api", "fastapi-api", "django-ninja-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth required for drf-spectacular itself. Schema endpoints should be protected in production (add authentication_classes or restrict by IP). SPECTACULAR_SETTINGS['SERVE_PERMISSIONS'] controls who can access /api/schema/ endpoint."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, BSD-3-Clause licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "drf-spectacular is BSD-3-Clause licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 100,
+    "latency_p99_ms": 500,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Schema generation traverses all DRF views and serializers; large agent APIs with many ViewSets may take 500ms-2s to generate schema. Cache schema endpoint in production for agent API documentation performance.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 82,
+    "error_message_notes": "drf-spectacular warns about schema generation issues in Django logs (polite warnings not exceptions). Missing serializer type info generates 'unknown' type with warning. @extend_schema validation errors at startup catch decorator misuse. ./manage.py spectacular --validate checks spec for errors.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Schema generation is deterministic — same DRF views produce same OpenAPI schema. ./manage.py spectacular output is idempotent for same codebase. Schema endpoint is read-only and stateless.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "SPECTACULAR_SETTINGS required in Django settings — drf-spectacular requires SPECTACULAR_SETTINGS dict in settings.py with TITLE, DESCRIPTION, VERSION at minimum; missing settings causes ImproperlyConfigured or blank schema title; agent APIs should include CONTACT and LICENSE for complete agent API documentation",
+      "@extend_schema must be imported from drf_spectacular.utils — using wrong import causes silent no-op or AttributeError; from drf_spectacular.utils import extend_schema, OpenApiParameter; tutorials using old drf-yasg imports fail silently for agent endpoint customization",
+      "Nested serializer types require explicit component naming — anonymous inline serializers generate generic component names (PatchedAgentRequest vs AgentUpdateRequest); use inline_serializer() with name parameter or create named serializer class for agent API schema clarity; auto-generated names confuse SDK generator output",
+      "ViewSet action methods need @action for schema detection — @action(detail=True, methods=['post']) custom ViewSet actions are auto-documented; methods added to ViewSet without @action decorator (overriding create() with non-standard behavior) may generate incorrect schema; use @extend_schema on custom actions for accurate agent API schema",
+      "Polymorphic serializers need PolymorphicProxySerializer — DRF serializers with SerializerMethodField returning different types confuse schema generation; agent APIs with union response types need @extend_schema(responses=PolymorphicProxySerializer('AgentResult', serializers=[SuccessSerializer, ErrorSerializer], resource_type_field_name='type')) for accurate OpenAPI oneOf schema",
+      "Schema endpoint accessible without auth by default — SpectacularAPIView and Swagger UI expose full agent API schema; in production, set SPECTACULAR_SETTINGS['SERVE_PERMISSIONS'] = ['rest_framework.permissions.IsAuthenticated'] to require auth for schema access; public schema exposes agent API structure to potential attackers"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 88,
+    "error_handling_score": 82,
+    "auth_complexity_score": 85,
+    "rate_limit_clarity_score": 90
+  },
+  "security_score_components": {
+    "tls_enforcement": 88,
+    "auth_strength": 80,
+    "scope_granularity": 78,
+    "dependency_hygiene": 88,
+    "secret_handling": 82,
+    "security_notes": "Schema endpoint exposes full agent API structure — restrict access in production. Auto-generated schema may include sensitive endpoint names and parameter patterns; review generated schema before making it public. Swagger UI CSRF: POST requests from Swagger UI bypass DRF CSRF for non-session auth; ensure agent API uses token auth not session for schema-tested endpoints."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 85,
+    "version_stability": 85,
+    "breaking_changes_history": 82,
+    "error_recovery": 85
+  }
+}
