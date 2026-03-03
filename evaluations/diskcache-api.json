@@ -1,0 +1,106 @@
+{
+  "id": "diskcache-api",
+  "name": "diskcache",
+  "version_evaluated": "5.6+",
+  "homepage": "https://grantjenks.com/docs/diskcache/",
+  "repo_url": "https://github.com/grantjenks/python-diskcache",
+  "category": "developer-tools",
+  "subcategories": ["caching", "python", "storage", "performance"],
+  "tags": ["cache", "python", "disk", "sqlite", "persistence", "key-value", "fast", "ttl"],
+  "what_it_does": "Disk and file backed cache library for Python. diskcache stores cache values in SQLite with optional file storage for large values, providing persistent caching that survives process restarts. Faster than Redis for local access patterns, thread-safe and multiprocess-safe. Supports TTL expiry, cache size limits, eviction policies, and memoization decorators. Zero dependencies, pure Python.",
+  "use_cases": [
+    "Cache agent API responses persistently across restarts without a Redis server — diskcache survives process restarts unlike in-memory caches",
+    "Use diskcache's FanoutCache for high-throughput agent caching with multiple underlying cache shards for concurrent agent worker processes",
+    "Memoize expensive agent computations with @cache.memoize() decorator for persistent result caching across agent invocations",
+    "Cache large agent artifacts (embeddings, processed documents) to disk as a cost-effective alternative to in-memory Redis for GB-scale data",
+    "Use diskcache in Docker containers for persistent caching between container restarts when Redis is not available in the deployment"
+  ],
+  "not_for": [
+    "Distributed caching across multiple hosts — diskcache is single-machine only; use Redis or Memcached for distributed cache",
+    "Sub-millisecond latency requirements — diskcache has disk I/O overhead; in-memory caches are faster for hot-path caching",
+    "Shared cache across multiple machines in agent clusters — diskcache is local process cache; Redis is required for cross-node sharing"
+  ],
+  "best_when": "You need persistent local caching for agent results that survives restarts, with no external dependencies and multiprocess safety on a single machine.",
+  "avoid_when": "You need distributed caching across agent nodes or sub-millisecond latency — use Redis. Also avoid for production at high throughput where Redis performance matters.",
+  "alternatives": ["redis-api", "cachetools-api", "aiocache-api", "joblib-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Local disk cache — no authentication. File system permissions control access."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Fully free, Apache 2.0 licensed.",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Community-maintained open source. Apache 2.0 license."
+  },
+  "performance": {
+    "latency_p50_ms": 0.5,
+    "latency_p99_ms": 5,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — local library. Read: ~100K ops/sec. Write: ~50K ops/sec on SSD.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["device-local"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 84,
+    "error_message_quality": 80,
+    "error_message_notes": "Cache miss returns None or default value (no exception). Timeout errors raise TimeoutError. SQLite errors surface as sqlite3.OperationalError. Clear error semantics for cache operations.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Cache writes are idempotent for the same key — setting the same key twice overwrites. TTL expiry is automatic. Transactional writes available via Cache.transact().",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "diskcache's default directory is platform-specific — always specify an explicit directory path to avoid cache data in unexpected locations across environments",
+      "Cache objects must be closed with cache.close() or used as a context manager — not closing leaves SQLite connections open and file handles unclosed",
+      "Multiprocess caching works correctly but concurrent writes to the same key create lock contention — FanoutCache shards the keyspace to reduce contention for high-concurrency agent workloads",
+      "Large values (>1KB by default) are stored as files, not in SQLite — the threshold is configurable; file storage requires disk space management and cleanup via cache.cull()",
+      "diskcache's eviction happens lazily on access — the cache may temporarily exceed size_limit before culling; don't rely on precise size enforcement for critical storage limits",
+      "Pickle is the default serialization — caching non-picklable objects (lambdas, sockets, file handles) raises PicklingError silently consuming the cache miss path"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 84,
+    "error_handling_score": 80,
+    "auth_complexity_score": 95,
+    "rate_limit_clarity_score": 95
+  },
+  "security_score_components": {
+    "tls_enforcement": 85,
+    "auth_strength": 80,
+    "scope_granularity": 75,
+    "dependency_hygiene": 85,
+    "secret_handling": 78,
+    "security_notes": "Local disk storage — no network exposure. Cached data is unencrypted on disk; sensitive agent data should be encrypted before caching. File system permissions control access."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 86,
+    "version_stability": 85,
+    "breaking_changes_history": 82,
+    "error_recovery": 84
+  }
+}
