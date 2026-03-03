@@ -1,0 +1,106 @@
+{
+  "id": "kafka-python-api",
+  "name": "kafka-python",
+  "version_evaluated": "2.0.x",
+  "homepage": "https://kafka-python.readthedocs.io/",
+  "repo_url": "https://github.com/dpkp/kafka-python",
+  "category": "developer-tools",
+  "subcategories": ["messaging", "kafka", "python", "streaming", "event-driven"],
+  "tags": ["python", "kafka", "kafka-python", "producer", "consumer", "messaging", "streaming", "event-driven"],
+  "what_it_does": "Python client for Apache Kafka — produce and consume Kafka messages with pure Python implementation. kafka-python features: KafkaProducer for publishing (send(), flush(), batch_size, linger_ms, compression_type), KafkaConsumer for subscribing (subscribe(), assign(), commit(), auto_offset_reset, group_id), AdminClient for topic management (create_topics, list_topics), message serialization (key_serializer/value_serializer), SSL/SASL authentication, consumer group rebalancing, offset management (seek, committed), and partition assignment. Pure Python Kafka client without librdkafka dependency. Alternative: confluent-kafka-python (uses librdkafka, faster but C dependency).",
+  "use_cases": [
+    "Agent event publishing — from kafka import KafkaProducer; producer = KafkaProducer(bootstrap_servers='kafka:9092', value_serializer=lambda v: json.dumps(v).encode()); producer.send('agent-events', {'action': 'completed', 'task_id': '123'}); producer.flush() — agent publishes events to Kafka topic; event-driven orchestration triggers downstream agent pipelines on task completion",
+    "Agent event consumption — consumer = KafkaConsumer('tasks', bootstrap_servers='kafka:9092', group_id='agent-workers', auto_offset_reset='earliest', value_deserializer=lambda m: json.loads(m.decode())); for msg in consumer: process(msg.value); consumer.commit() — agent worker pool consumes tasks from Kafka; horizontal scaling via consumer groups; each partition processed by one agent",
+    "Agent exactly-once processing — producer = KafkaProducer(acks='all', retries=5, max_in_flight_requests_per_connection=1); consumer = KafkaConsumer(enable_auto_commit=False); msg = next(consumer); process(msg); consumer.commit() — manual commit after processing; agent implements at-least-once processing with idempotent operations for reliable pipeline",
+    "Agent topic management — from kafka.admin import KafkaAdminClient, NewTopic; admin = KafkaAdminClient(bootstrap_servers='kafka:9092'); admin.create_topics([NewTopic('agent-results', num_partitions=8, replication_factor=2)]) — agent provisioning creates Kafka topics; 8 partitions enables 8 parallel agent consumers",
+    "Agent batch processing — producer = KafkaProducer(batch_size=65536, linger_ms=100); futures = [producer.send('topic', v) for v in batch]; producer.flush(); [f.get(timeout=10) for f in futures] — batch produce with linger for throughput; agent data pipeline publishes 10K events/sec by batching with 100ms linger"
+  ],
+  "not_for": [
+    "High-throughput production — confluent-kafka-python (librdkafka) is 3-10x faster; use confluent-kafka for >100K msg/sec production workloads",
+    "Kafka Streams / KSQL — kafka-python is a client library; for stream processing use Faust or Bytewax for Python",
+    "Real-time analytics — Kafka is messaging; for stream processing with aggregations use Apache Flink or Spark Streaming"
+  ],
+  "best_when": "Python Kafka producer/consumer without C library dependency — kafka-python's pure Python implementation is simpler to install and debug than confluent-kafka for agent systems with moderate throughput requirements (<10K msg/sec).",
+  "avoid_when": "You need high throughput (>10K msg/sec, use confluent-kafka), stream processing (use Faust/Bytewax), or real-time analytics.",
+  "alternatives": ["confluent-kafka-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["ssl", "sasl"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "SSL/TLS for transport encryption. SASL/PLAIN, SASL/SCRAM, SASL/GSSAPI (Kerberos) for authentication. AWS MSK uses IAM via SASL/OAUTHBEARER."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, Apache 2.0 licensed",
+    "paid_tiers": "Kafka broker hosting costs (Confluent Cloud, AWS MSK, Aiven) are separate",
+    "requires_credit_card": false,
+    "notes": "kafka-python client is Apache 2.0. Kafka broker hosting has separate costs."
+  },
+  "performance": {
+    "latency_p50_ms": 10,
+    "latency_p99_ms": 100,
+    "uptime_sla_percent": null,
+    "rate_limits": "No client-side rate limits. Throughput limited by network and Kafka broker. Pure Python: ~10K-50K msg/sec producer, ~20K msg/sec consumer. Use batch_size and linger_ms for higher throughput. confluent-kafka (librdkafka) is 3-10x faster.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted", "cloud"],
+    "compliance": ["SOC2", "GDPR"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 78,
+    "error_message_quality": 72,
+    "error_message_notes": "NoBrokersAvailable when bootstrap_servers unreachable. KafkaTimeoutError for producer timeout. CommitFailedError when consumer group rebalances during commit. TopicAuthorizationFailedError for ACL violations. Error messages include broker error codes for debugging.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Producer acks='all' + retries ensures at-least-once delivery. enable.idempotence (not available in kafka-python, only confluent) for exactly-once. Consumer manual commit + idempotent processing required for exactly-once semantics. auto_commit=False with manual commit after processing.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "flush() required before shutdown — KafkaProducer.send() is async; without producer.flush() or producer.close() pending messages are lost on process exit; agent code in containers or Lambda must call producer.flush() before exit; add try/finally to ensure flush even on exceptions",
+      "Consumer group rebalancing pauses consumption — consumer.subscribe(['topic']) triggers rebalance when new consumers join or leave; during rebalance (seconds to minutes), consumer receives no messages; agent consumer must handle rebalance gracefully via ConsumerRebalanceListener; set session_timeout_ms high enough for agent processing time",
+      "auto_offset_reset='latest' misses backlog — new consumer group with auto_offset_reset='latest' starts from current end, missing existing messages; agent code processing existing events must use auto_offset_reset='earliest'; 'latest' only for real-time-only agents that don't need historical events",
+      "Manual commit after processing not before — consumer.commit() before msg = next(consumer) can lose messages if process crashes; agent exactly-once pattern: msg = consume(); process(msg); consumer.commit(); crash before commit means message reprocessed (at-least-once); design agent handlers to be idempotent",
+      "enable_auto_commit=True loses messages on failure — default auto_commit commits last offset periodically; if agent crashes between commits, messages are re-delivered but previous auto-commit may mark them as consumed; agent reliable processing must use enable_auto_commit=False with explicit commit after processing",
+      "KafkaConsumer is not thread-safe — single consumer per thread; agent multi-threaded consumers need one KafkaConsumer per thread or use confluent-kafka's thread-safe API; sharing consumer across threads causes protocol errors and CommitFailedError"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 75,
+    "error_handling_score": 70,
+    "auth_complexity_score": 82,
+    "rate_limit_clarity_score": 88
+  },
+  "security_score_components": {
+    "tls_enforcement": 85,
+    "auth_strength": 82,
+    "scope_granularity": 80,
+    "dependency_hygiene": 80,
+    "secret_handling": 85,
+    "security_notes": "Use SSL for all production Kafka connections. Store SASL credentials in environment variables or secrets manager. Kafka ACLs control topic-level access — restrict agent consumers to only required topics. TLS certificate validation is on by default (ssl_check_hostname=True)."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 75,
+    "version_stability": 72,
+    "breaking_changes_history": 75,
+    "error_recovery": 72
+  }
+}

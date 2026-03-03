@@ -1,0 +1,106 @@
+{
+  "id": "cryptography-python-api",
+  "name": "cryptography",
+  "version_evaluated": "42.x",
+  "homepage": "https://cryptography.io/en/latest/",
+  "repo_url": "https://github.com/pyca/cryptography",
+  "category": "developer-tools",
+  "subcategories": ["security", "cryptography", "python", "encryption", "tls"],
+  "tags": ["python", "cryptography", "encryption", "rsa", "aes", "fernet", "x509", "tls", "hashing", "pyca"],
+  "what_it_does": "Cryptographic primitives and recipes library for Python — provides symmetric encryption, asymmetric cryptography, hashing, X.509 certificates, and TLS. cryptography features: Fernet symmetric authenticated encryption (high-level), AES-GCM/CBC via hazmat.primitives.ciphers, RSA/ECDSA key generation and signing, X.509 certificate parsing and creation (x509.load_pem_x509_certificate), HMAC, SHA-256/SHA-512 hashing, PBKDF2/scrypt/Argon2 key derivation, serialization (PEM/DER), and OpenSSL backend. The 'batteries included' cryptography library — high-level Fernet recipes for most use cases, hazmat layer for low-level control. Standard for agent systems handling secrets, JWT signatures, TLS certificate management, and secure data storage.",
+  "use_cases": [
+    "Agent secret encryption — from cryptography.fernet import Fernet; key = Fernet.generate_key(); f = Fernet(key); token = f.encrypt(b'sensitive_data'); plaintext = f.decrypt(token) — symmetric authenticated encryption; agent secrets manager encrypts API keys before storage; Fernet includes authentication and timestamp — no padding oracle or authentication issues possible",
+    "Agent data signing — from cryptography.hazmat.primitives.asymmetric import rsa, padding; private_key = rsa.generate_private_key(65537, 2048); signature = private_key.sign(message, padding.PSS(...), hashes.SHA256()); public_key.verify(signature, message, ...) — RSA signature for agent message authenticity; agent workflow verifies signed task payloads from trusted orchestrators",
+    "Agent X.509 cert inspection — from cryptography import x509; cert = x509.load_pem_x509_certificate(pem_bytes); expiry = cert.not_valid_after_utc; san = cert.extensions.get_extension_for_class(x509.SubjectAlternativeName) — parse TLS certificate metadata; agent certificate monitor checks expiration dates and SANs across fleet",
+    "Agent password hashing — from cryptography.hazmat.primitives.kdf.scrypt import Scrypt; kdf = Scrypt(salt=os.urandom(16), length=32, n=2**14, r=8, p=1); key = kdf.derive(password.encode()) — scrypt key derivation for password storage; agent user authentication derives keys for password verification without storing plaintext",
+    "Agent JWT-like token — from cryptography.hazmat.primitives.hmac import HMAC; h = HMAC(secret_key, hashes.SHA256()); h.update(payload); mac = h.finalize() — HMAC-SHA256 for agent API token authentication; verifies payload integrity without asymmetric key management; standard pattern for internal agent service tokens"
+  ],
+  "not_for": [
+    "High-level JWT handling — cryptography provides low-level primitives; use PyJWT or python-jose for JWT encode/decode workflows",
+    "Password hashing for web auth — use passlib or argon2-cffi for password hashing with proper salt management; cryptography hazmat is lower-level",
+    "Blockchain/wallet operations — specialized libraries (eth-account, bitcoinlib) handle blockchain-specific formats built on top of cryptography primitives"
+  ],
+  "best_when": "Encrypting agent secrets, signing messages, parsing X.509 certificates, or implementing custom cryptographic protocols — cryptography is the Python standard for both high-level (Fernet) and low-level (hazmat) cryptographic operations.",
+  "avoid_when": "You need JWT handling (use PyJWT), password hashing UX (use passlib/argon2-cffi), or blockchain operations.",
+  "alternatives": ["passlib-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — local cryptographic library. Keys and secrets are the user's responsibility."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, Apache 2.0 / BSD licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "cryptography library is dual-licensed Apache 2.0 and BSD. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 1,
+    "latency_p99_ms": 100,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — local computation using OpenSSL backend. AES-GCM: ~1GB/sec on modern CPU. RSA-2048 signing: ~1ms. ECDSA signing: <1ms. Fernet: includes 128-bit AES + HMAC overhead. Scrypt is intentionally slow (key derivation).",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 88,
+    "error_message_quality": 85,
+    "error_message_notes": "InvalidToken for Fernet decryption failure (wrong key or tampered). InvalidSignature for RSA/ECDSA verify failure. ValueError for invalid key sizes. UnsupportedAlgorithm for missing backend support. cryptography.exceptions.InvalidKey for KDF verification failure. Clear exception types for all failure modes.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Symmetric decryption is idempotent for same key+token. Hashing is deterministic. RSA encryption is non-deterministic (OAEP padding uses randomness). Fernet tokens include timestamp — same plaintext encrypts to different token each time. Signing is deterministic for ECDSA with deterministic nonce (RFC 6979).",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "hazmat layer requires security expertise — from cryptography.hazmat.primitives import... is labeled 'hazardous materials' for good reason; agent code implementing custom AES-CBC without proper IV handling or authentication creates insecure encryption; use Fernet for symmetric encryption unless you specifically need AES-GCM with custom parameters",
+      "Fernet key must be bytes not string — Fernet(key) where key is str raises TypeError; key from Fernet.generate_key() is bytes; when loading from env: key = os.environ['FERNET_KEY'].encode() if stored as string; agent config loading must encode key before Fernet()",
+      "InvalidToken does not tell you why — Fernet.decrypt(token) raises InvalidToken for wrong key, tampered data, or expired token (if ttl set); agent code cannot distinguish these cases programmatically; log token age and key rotation info separately for debugging; never expose raw InvalidToken to users",
+      "RSA key size 2048 is minimum — rsa.generate_private_key(65537, 1024) raises ValueError: RSA key must be >= 1024 bits; for new agent systems use 2048+ bits; 4096 for long-lived keys; NIST recommends 2048 minimum through 2030",
+      "Fernet token includes timestamp for TTL — f.decrypt(token, max_age=3600) raises InvalidToken if token is older than 1 hour; agent systems storing Fernet tokens long-term must not set max_age on decrypt or renew tokens periodically; max_age is useful for session tokens but breaks long-lived encrypted storage",
+      "Key serialization format matters for interop — private_key.private_bytes(serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8, serialization.NoEncryption()) for standard PKCS#8 PEM; agent code sharing keys between Python and other languages must use standard formats; PKCS1 (older) vs PKCS8 (modern) causes interop failures"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 88,
+    "error_handling_score": 85,
+    "auth_complexity_score": 98,
+    "rate_limit_clarity_score": 98
+  },
+  "security_score_components": {
+    "tls_enforcement": 95,
+    "auth_strength": 95,
+    "scope_granularity": 92,
+    "dependency_hygiene": 90,
+    "secret_handling": 95,
+    "security_notes": "CRITICAL: hazmat layer requires cryptography expertise — incorrect use of low-level primitives creates vulnerabilities. Use Fernet for symmetric encryption. Never implement custom crypto protocols without security review. Key material should be stored in HSM or secrets manager (not env vars) in production. cryptography library itself is high quality and audited by pyca."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 92,
+    "version_stability": 88,
+    "breaking_changes_history": 82,
+    "error_recovery": 90
+  }
+}
