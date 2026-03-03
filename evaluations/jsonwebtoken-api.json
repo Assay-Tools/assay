@@ -1,28 +1,28 @@
 {
   "id": "jsonwebtoken-api",
-  "name": "jsonwebtoken",
+  "name": "jsonwebtoken (Node.js)",
   "version_evaluated": "9.x",
   "homepage": "https://github.com/auth0/node-jsonwebtoken",
   "repo_url": "https://github.com/auth0/node-jsonwebtoken",
   "category": "developer-tools",
-  "subcategories": ["authentication", "jwt", "security", "node"],
-  "tags": ["jwt", "authentication", "token", "node", "jose", "rsa", "hmac", "security", "auth0"],
-  "what_it_does": "Node.js implementation of JSON Web Tokens (JWT) for signing, verifying, and decoding JWTs per RFC 7519. Supports HMAC (HS256/HS384/HS512), RSA (RS256/RS512), RSA-PSS, and ECDSA algorithms. Used for stateless authentication tokens, API access tokens, and service-to-service auth in Node.js. The standard JWT library for Node.js, created and maintained by Auth0.",
+  "subcategories": ["auth", "security", "nodejs"],
+  "tags": ["jwt", "authentication", "authorization", "auth0", "tokens", "node", "open-source"],
+  "what_it_does": "Auth0-maintained Node.js library for signing and verifying JSON Web Tokens (JWT). Supports HS256, RS256, ES256, and other algorithms. Used for creating stateless auth tokens, API authentication, and service-to-service auth in Node.js applications. The de facto standard for JWT operations in the Node.js ecosystem.",
   "use_cases": [
-    "Generate signed JWT access tokens for agent API authentication using HS256 or RS256 with configurable expiration and claims",
-    "Verify and decode incoming JWT tokens in agent API middleware to authenticate requests without database session lookups",
-    "Create service-to-service authentication tokens for agent microservices using asymmetric RS256 with public/private key pairs",
-    "Implement short-lived tokens for agent operations (one-time downloads, timed access) using jwt.sign() with exp claim",
-    "Build stateless agent session management where session data is encoded in verified JWT claims without server-side storage"
+    "Sign JWTs for API authentication tokens with configurable expiry and algorithm selection",
+    "Verify and decode JWTs from HTTP Authorization headers in Express/Fastify middleware",
+    "Create service-to-service auth tokens for microservice communication with RS256 asymmetric signing",
+    "Implement refresh token patterns by signing short-lived access tokens and longer-lived refresh tokens",
+    "Decode JWT payloads without verification for logging or debugging (using decode() without verify())"
   ],
   "not_for": [
-    "Browser environments — use the jose library for isomorphic JWT handling with Web Crypto API support",
-    "OAuth2 full flows — use passport-jwt or oidc-client for complete OAuth2/OIDC authentication flows; jsonwebtoken is a primitive",
-    "Refresh token management — jsonwebtoken handles token signing/verification only; build refresh token rotation logic yourself"
+    "Browser-native JWT handling — use the Web Crypto API or jose library which works in browser/edge runtimes",
+    "Production JWKS (JSON Web Key Sets) rotation — use jose or auth libraries with built-in JWKS support",
+    "Full authentication systems — jsonwebtoken handles JWT operations only; combine with Passport.js or custom middleware for complete auth"
   ],
-  "best_when": "Building Node.js API authentication where JWT signing and verification is needed with configurable algorithms and claim validation.",
-  "avoid_when": "You need browser/isomorphic JWT handling — use jose. For complete OAuth2 flows use Passport.js or auth libraries.",
-  "alternatives": ["jose-api", "passport-api", "auth0-api"],
+  "best_when": "You need simple, reliable JWT sign/verify in a Node.js application and want the battle-tested Auth0-maintained standard.",
+  "avoid_when": "You need browser compatibility, Edge Runtime support, or advanced JWKS rotation — use the jose library instead.",
+  "alternatives": ["jose-api"],
   "interface": {
     "has_rest_api": false,
     "has_graphql": false,
@@ -38,69 +38,69 @@
     "methods": ["none"],
     "oauth": false,
     "scopes": false,
-    "notes": "jsonwebtoken IS the auth primitive — it signs and verifies tokens. Secret keys and RSA keys are the authentication credentials."
+    "notes": "Library used to implement auth, not a service requiring auth."
   },
   "pricing": {
     "model": "open_source",
     "free_tier_exists": true,
-    "free_tier_limits": "Completely free, MIT license",
+    "free_tier_limits": "MIT licensed, completely free",
     "paid_tiers": "None",
     "requires_credit_card": false,
-    "notes": "jsonwebtoken is open source and free, maintained by Auth0."
+    "notes": "Free and open source, maintained by Auth0/Okta."
   },
   "performance": {
-    "latency_p50_ms": 1,
-    "latency_p99_ms": 10,
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
     "uptime_sla_percent": null,
-    "rate_limits": "No rate limits — local cryptographic operations.",
+    "rate_limits": "No rate limits — local library",
     "data_source": "llm_estimated"
   },
   "requirements": {
     "requires_signup": false,
     "requires_credit_card": false,
     "domain_verification": false,
-    "data_residency": ["local"],
+    "data_residency": ["self-hosted"],
     "compliance": [],
     "min_contract": "none"
   },
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
-    "documentation_accuracy": 88,
-    "error_message_quality": 85,
-    "error_message_notes": "JsonWebTokenError subtypes (TokenExpiredError, NotBeforeError, JsonWebTokenError) are specific and well-documented. Error messages include which claim failed validation. Expired token errors include exp and iat values for debugging.",
+    "documentation_accuracy": 85,
+    "error_message_quality": 82,
+    "error_message_notes": "jwt.verify() throws JsonWebTokenError, TokenExpiredError, or NotBeforeError — typed errors enable specific handling. Error messages are descriptive (invalid signature, jwt expired).",
     "idempotency_support": "full",
-    "idempotency_notes": "Verification is deterministic — same token + secret produces same result. Signing with the same claims/secret/algorithm is idempotent for non-time-based claims.",
+    "idempotency_notes": "JWT signing with the same payload and secret is deterministic for HS256 if no iat/exp — add iat for unique tokens. Verification is idempotent.",
     "pagination_style": "none",
     "retry_guidance_documented": false,
     "known_agent_gotchas": [
-      "jwt.verify() is synchronous by default and blocks the event loop for RSA key operations — use the callback form for async verification in high-throughput agents",
-      "TokenExpiredError means the token is expired and should NOT be trusted — never catch TokenExpiredError and proceed; issue a new token via refresh flow",
-      "Algorithm 'none' (unsigned tokens) is a known JWT attack vector — always verify the algorithm in the decoded header before calling verify(); jsonwebtoken rejects 'none' by default",
-      "Symmetric (HS256) and asymmetric (RS256) keys are completely different — passing an RSA public key to HS256 verify() or vice versa throws a cryptic error, not a helpful type mismatch",
-      "jwt.decode() does NOT verify the signature — it only decodes the payload for inspection; always use jwt.verify() for authentication; using decode() for auth is a critical security bug",
-      "Clock skew between services may cause immediately issued tokens to fail verification — use clockTolerance option (e.g., 10 seconds) for cross-service JWT validation"
+      "jwt.verify() throws synchronously (or calls callback) — it does NOT return null for invalid tokens; agents must wrap in try/catch",
+      "The 'none' algorithm (no signature) is dangerous — always specify algorithms option in verify() to prevent algorithm confusion attacks: { algorithms: ['HS256'] }",
+      "jwt.decode() does NOT verify the signature — it's for reading payloads only; using decode() for auth decisions is a critical security vulnerability",
+      "Token expiry (exp claim) is in seconds since epoch, not milliseconds — JavaScript Date.now() returns milliseconds; divide by 1000 when setting exp manually",
+      "RS256 requires the full PEM-formatted key including headers — passing raw base64 key bytes without -----BEGIN PRIVATE KEY----- wrapper causes cryptic errors",
+      "jsonwebtoken does not support Edge Runtime or browser natively — for Cloudflare Workers, Vercel Edge, or browser use, switch to the jose package"
     ]
   },
   "af_score_components": {
     "mcp_score": 0,
-    "api_doc_score": 88,
-    "error_handling_score": 85,
-    "auth_complexity_score": 92,
+    "api_doc_score": 85,
+    "error_handling_score": 82,
+    "auth_complexity_score": 100,
     "rate_limit_clarity_score": 100
   },
   "security_score_components": {
-    "tls_enforcement": 100,
-    "auth_strength": 88,
-    "scope_granularity": 82,
-    "dependency_hygiene": 88,
+    "tls_enforcement": 90,
+    "auth_strength": 90,
+    "scope_granularity": 85,
+    "dependency_hygiene": 85,
     "secret_handling": 85,
-    "security_notes": "Critical: always use jwt.verify(), not jwt.decode(), for authentication. Use RS256 asymmetric keys over HS256 shared secrets for multi-service architectures. Algorithm confusion attacks are prevented by always specifying allowed algorithms in verify()."
+    "security_notes": "Algorithm confusion attacks prevented by specifying algorithms in verify(). RS256 asymmetric signing preferred for multi-service architectures. Never use 'none' algorithm in production. Secret rotation requires token invalidation strategy."
   },
   "reliability_score_components": {
-    "uptime_documented": 100,
+    "uptime_documented": 90,
     "version_stability": 88,
     "breaking_changes_history": 85,
-    "error_recovery": 88
+    "error_recovery": 82
   }
 }

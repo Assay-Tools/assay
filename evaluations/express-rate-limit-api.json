@@ -5,24 +5,24 @@
   "homepage": "https://github.com/express-rate-limit/express-rate-limit",
   "repo_url": "https://github.com/express-rate-limit/express-rate-limit",
   "category": "developer-tools",
-  "subcategories": ["security", "rate-limiting", "express", "middleware"],
-  "tags": ["node.js", "express", "rate-limiting", "middleware", "api-security", "throttling", "brute-force"],
-  "what_it_does": "Rate limiting middleware for Express.js APIs. express-rate-limit counts requests per IP (or custom key) within a time window and returns 429 Too Many Requests when limits are exceeded. Supports in-memory store (single process) and external stores (Redis, Memcached) for distributed rate limiting across multiple agent API instances.",
+  "subcategories": ["api", "security", "middleware", "nodejs"],
+  "tags": ["rate-limiting", "express", "middleware", "security", "dos-protection", "node", "open-source"],
+  "what_it_does": "Rate limiting middleware for Express.js applications. Limits repeated requests from the same IP address or custom key to protect APIs from abuse, brute force attacks, and DoS. Supports multiple stores (memory, Redis, Postgres) for distributed rate limiting. Sends standard RateLimit headers (RFC 6585) to inform clients of limits.",
   "use_cases": [
-    "Protect agent API endpoints from brute-force attacks and abuse with per-IP rate limiting",
-    "Implement tiered rate limits for agent APIs — higher limits for authenticated users, lower for anonymous",
-    "Rate limit expensive LLM-calling endpoints in agent backends to control costs and prevent abuse",
-    "Add rate limiting to agent login/auth endpoints to prevent credential stuffing attacks",
-    "Apply different rate limits to different agent API routes (strict on auth, lenient on static data)"
+    "Protect Express API endpoints from brute force attacks with per-IP request limits (e.g., 100 requests/15min)",
+    "Apply stricter rate limits to auth endpoints (login, password reset) to prevent credential stuffing",
+    "Use Redis store for distributed rate limiting across multiple Node.js instances behind a load balancer",
+    "Return standard RateLimit headers so API clients know their remaining quota and reset time",
+    "Apply different rate limits to different routes (strict for auth, generous for public read endpoints)"
   ],
   "not_for": [
-    "Distributed rate limiting at scale — in-memory store only works for single processes; use Redis store for multiple instances",
-    "Application-level quotas (monthly billing limits) — use dedicated quota management solutions",
-    "Non-Express frameworks — use @fastify/rate-limit for Fastify"
+    "Non-Express frameworks — use Fastify's @fastify/rate-limit or Hono's built-in rate limiting for those frameworks",
+    "Complex rate limiting by user tier or API key quota — use purpose-built API gateways (Kong, Tyk) for sophisticated quota management",
+    "DDoS protection at scale — use CDN-level rate limiting (Cloudflare, AWS Shield) for high-volume attacks"
   ],
-  "best_when": "You need simple, configurable rate limiting middleware for Express.js agent APIs with minimal setup.",
-  "avoid_when": "You need distributed rate limiting across multiple processes without Redis, or you're using Fastify.",
-  "alternatives": ["helmet-js-api", "rate-limiter-flexible-api"],
+  "best_when": "You need quick, straightforward IP-based rate limiting for Express.js APIs without infrastructure overhead.",
+  "avoid_when": "You need user-tier-based quotas, complex rate limit policies, or DDoS protection at CDN scale.",
+  "alternatives": ["helmet-js-api"],
   "interface": {
     "has_rest_api": false,
     "has_graphql": false,
@@ -38,21 +38,21 @@
     "methods": ["none"],
     "oauth": false,
     "scopes": false,
-    "notes": "Rate limiting middleware — no auth. Use with Passport or JWT auth to enable user-specific limits."
+    "notes": "Middleware library with no auth requirement."
   },
   "pricing": {
     "model": "open_source",
     "free_tier_exists": true,
-    "free_tier_limits": "Completely free, MIT licensed",
-    "paid_tiers": "none",
+    "free_tier_limits": "MIT licensed, completely free",
+    "paid_tiers": "None",
     "requires_credit_card": false,
-    "notes": "Completely free and open source."
+    "notes": "Free and open source."
   },
   "performance": {
     "latency_p50_ms": null,
     "latency_p99_ms": null,
     "uptime_sla_percent": null,
-    "rate_limits": "Self-defined — you set the limits",
+    "rate_limits": "No rate limits on the library itself — it enforces rate limits on your API",
     "data_source": "llm_estimated"
   },
   "requirements": {
@@ -66,41 +66,41 @@
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
-    "documentation_accuracy": 90,
-    "error_message_quality": 85,
-    "error_message_notes": "429 Too Many Requests with Retry-After header and configurable error message. RateLimitInfo object available in response for client consumption.",
+    "documentation_accuracy": 85,
+    "error_message_quality": 80,
+    "error_message_notes": "Returns HTTP 429 Too Many Requests with configurable message. RateLimit-* headers indicate limit, remaining, and reset time. Custom handler function allows custom error responses.",
     "idempotency_support": "full",
-    "idempotency_notes": "Rate limit state is in memory or Redis — deterministic counting per window.",
+    "idempotency_notes": "Rate limit counters are deterministic given the same key and window configuration.",
     "pagination_style": "none",
     "retry_guidance_documented": true,
     "known_agent_gotchas": [
-      "Default in-memory store doesn't work across multiple Node.js processes — multi-instance deployments require Redis store (rate-limit-redis package)",
-      "IP detection behind proxies: must set app.set('trust proxy', 1) for correct IP when behind load balancer/nginx — otherwise rate limits apply to proxy IP",
-      "windowMs vs max: rate limiting applies max requests per windowMs — these must be tuned together; low max with long window blocks legitimate usage",
-      "Rate limit headers (X-RateLimit-*, Retry-After) are sent by default — ensure clients use these to implement backoff; agents should respect Retry-After",
-      "skip option can bypass rate limiting for trusted IPs or authenticated users — whitelist internal agent-to-agent calls to avoid rate limiting your own services",
-      "Memory store grows unbounded for unique IPs — in high-traffic scenarios with many unique IPs, set max window to limit memory accumulation"
+      "Default in-memory store is NOT shared across multiple Node.js processes — distributed deployments MUST use a Redis or Postgres store for accurate limits",
+      "IP detection behind proxies requires trust proxy setting in Express — without it, all requests appear to come from the proxy IP, causing single-IP rate limiting for all users",
+      "Default windowMs is 60000ms (1 minute) — agents should set explicit windowMs and max values rather than relying on defaults which may change",
+      "The standardHeaders option controls which RateLimit header format is sent — set to 'draft-7' for the current IETF standard; older clients may expect X-RateLimit-* headers",
+      "keyGenerator function defaults to req.ip — customize for API key-based limiting; req.ip may be undefined if trust proxy is not set correctly",
+      "Rate limiting middleware must be applied BEFORE route handlers — applying after routes means some requests bypass the limit"
     ]
   },
   "af_score_components": {
     "mcp_score": 0,
-    "api_doc_score": 90,
-    "error_handling_score": 85,
+    "api_doc_score": 85,
+    "error_handling_score": 80,
     "auth_complexity_score": 100,
-    "rate_limit_clarity_score": 100
+    "rate_limit_clarity_score": 95
   },
   "security_score_components": {
-    "tls_enforcement": 100,
-    "auth_strength": 90,
-    "scope_granularity": 85,
-    "dependency_hygiene": 92,
-    "secret_handling": 100,
-    "security_notes": "Rate limiting is a security control — configure appropriately tight limits for auth endpoints. Combine with Helmet for comprehensive HTTP security."
+    "tls_enforcement": 90,
+    "auth_strength": 85,
+    "scope_granularity": 82,
+    "dependency_hygiene": 88,
+    "secret_handling": 85,
+    "security_notes": "Requires correct trust proxy configuration to avoid IP spoofing bypass. Memory store not suitable for production clusters. Combine with helmet.js for comprehensive Express security hardening."
   },
   "reliability_score_components": {
-    "uptime_documented": 100,
+    "uptime_documented": 88,
     "version_stability": 88,
-    "breaking_changes_history": 85,
-    "error_recovery": 88
+    "breaking_changes_history": 82,
+    "error_recovery": 82
   }
 }
