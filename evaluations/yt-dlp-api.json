@@ -1,0 +1,106 @@
+{
+  "id": "yt-dlp-api",
+  "name": "yt-dlp",
+  "version_evaluated": "2024.x",
+  "homepage": "https://github.com/yt-dlp/yt-dlp",
+  "repo_url": "https://github.com/yt-dlp/yt-dlp",
+  "category": "developer-tools",
+  "subcategories": ["video", "python", "media-download", "youtube", "web-scraping"],
+  "tags": ["python", "yt-dlp", "youtube", "video-download", "audio-extraction", "media", "ffmpeg"],
+  "what_it_does": "Feature-rich video downloader — downloads video and audio from 1000+ websites including YouTube, Vimeo, Twitter, TikTok. yt-dlp features: Python API (yt_dlp.YoutubeDL context manager), format selection (bestvideo+bestaudio), audio extraction (postprocessors FFmpegExtractAudio), metadata extraction (extract_info()), subtitle download, playlist support, rate limiting (ratelimit), cookies support, proxy, SponsorBlock integration, thumbnail download, chapter markers, and --no-download for metadata-only. Fork of youtube-dl with faster development. CLI tool with Python API for agent media processing pipelines.",
+  "use_cases": [
+    "Agent audio extraction — ydl_opts = {'format': 'bestaudio/best', 'postprocessors': [{'key': 'FFmpegExtractAudio', 'preferredcodec': 'mp3'}], 'outtmpl': '%(title)s.mp3'}; with yt_dlp.YoutubeDL(ydl_opts) as ydl: ydl.download(['https://youtube.com/watch?v=...']) — agent downloads YouTube video as MP3 for transcription or music analysis",
+    "Agent metadata extraction — with yt_dlp.YoutubeDL({'quiet': True}) as ydl: info = ydl.extract_info(url, download=False) — extract title, duration, description, thumbnail URL without downloading; agent builds video database from YouTube channel without storage overhead",
+    "Agent transcript download — ydl_opts = {'writesubtitles': True, 'writeautomaticsub': True, 'subtitleslangs': ['en'], 'skip_download': True}; agent downloads YouTube auto-generated captions for text analysis; subtitle files in .vtt or .srt format",
+    "Agent playlist download — ydl_opts = {'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]', 'outtmpl': '%(playlist_index)s-%(title)s.%(ext)s'}; with yt_dlp.YoutubeDL(ydl_opts) as ydl: ydl.download(['https://youtube.com/playlist?list=...']) — download entire playlist; agent ingests lecture series or tutorial playlists",
+    "Agent format selection — 'format': 'bestvideo[height<=720]+bestaudio/best[height<=720]' — download 720p max; agent saves bandwidth and storage; format selector language allows precise quality/codec control"
+  ],
+  "not_for": [
+    "Downloading copyrighted content without permission — yt-dlp is a tool; usage must comply with platform ToS and copyright law; agent automation must respect content licensing",
+    "Real-time streaming — yt-dlp downloads complete files; for live stream recording use --live-from-start or streaming tools",
+    "High-volume commercial scraping — YouTube ToS prohibits automated bulk downloading; for commercial video data use YouTube Data API"
+  ],
+  "best_when": "Downloading media from 1000+ websites for agent processing pipelines (transcription, analysis, archival) where manual download isn't feasible — yt-dlp handles format selection, metadata, and post-processing in a single Python API call.",
+  "avoid_when": "You need real-time streaming, YouTube Data API access (for metadata, not download), or are downloading without permission.",
+  "alternatives": ["youtube-data-api", "playwright-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none", "cookies"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth for public content. Age-restricted or members-only content requires browser cookies (--cookies-from-browser or --cookies file). Platform authentication via cookies passed to yt-dlp."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, Unlicense licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "yt-dlp is Unlicense licensed (public domain). Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 2000,
+    "latency_p99_ms": 30000,
+    "uptime_sla_percent": null,
+    "rate_limits": "Platform rate limits apply (YouTube throttles download speeds). Use --ratelimit 500K for polite downloading. Concurrent downloads via --concurrent-fragments or multiple processes.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 78,
+    "error_message_quality": 75,
+    "error_message_notes": "DownloadError with platform-specific error messages. ExtractorError when site structure changes. RegexNotFoundError for parsing failures. Network errors show URL and retry suggestion. Geo-restriction errors suggest VPN.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Download with same output template to same directory skips existing files by default. extract_info(download=False) is idempotent. Set nooverwrites=True for idempotent downloads.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "ffmpeg required for format merging and audio extraction — yt-dlp downloads best video and audio separately then merges with ffmpeg; without ffmpeg installed, format 'bestvideo+bestaudio' fails; agent containers must install ffmpeg alongside yt-dlp: apt-get install ffmpeg; verify with ydl.params.get('ffmpeg_location')",
+      "YouTube frequently breaks yt-dlp — YouTube changes internal API; yt-dlp releases updates within hours but agent code must update frequently; pin to latest version not a fixed old version; agent CI should check yt-dlp version weekly; add try/except DownloadError with fallback",
+      "outtmpl template variables must match info_dict — %(title)s, %(id)s, %(ext)s are standard; %(playlist_title)s only available for playlist downloads; agent code using playlist variables on single video raises KeyError; use %(playlist_title|None)s with default for safety",
+      "extract_info() returns flat_playlist by default — ydl.extract_info(playlist_url) returns playlist info with entries list; extract_info with process=False returns unprocessed data; agent processing individual videos must iterate info['entries']; entries may be lazy-loaded generators not lists",
+      "Rate limiting required for polite agent automation — yt-dlp without rate limiting downloads at maximum speed; YouTube may temporarily block IP; agent pipelines must set 'ratelimit': 500000 (500KB/s) and 'sleep_interval': 2 for respectful downloading; aggressive downloading triggers bot detection",
+      "Cookies required for age-restricted content — yt-dlp without auth skips age-restricted videos silently or errors; agent pipelines processing YouTube channels must handle missing cookies gracefully; extract_info(download=False) with 'ignoreerrors': True continues playlist despite access errors"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 72,
+    "error_handling_score": 70,
+    "auth_complexity_score": 82,
+    "rate_limit_clarity_score": 75
+  },
+  "security_score_components": {
+    "tls_enforcement": 85,
+    "auth_strength": 75,
+    "scope_granularity": 72,
+    "dependency_hygiene": 80,
+    "secret_handling": 78,
+    "security_notes": "Browser cookies passed to yt-dlp contain authentication tokens — handle cookie files as sensitive credentials. Downloaded content may contain malware in embedded metadata; validate before processing. Respect copyright law and platform Terms of Service. Agent automation must implement rate limiting to avoid ToS violations."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 68,
+    "version_stability": 60,
+    "breaking_changes_history": 55,
+    "error_recovery": 70
+  }
+}

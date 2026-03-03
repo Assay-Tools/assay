@@ -1,0 +1,106 @@
+{
+  "id": "impacket-api",
+  "name": "Impacket",
+  "version_evaluated": "0.12.x",
+  "homepage": "https://www.secureauth.com/labs/open-source-tools/impacket/",
+  "repo_url": "https://github.com/fortra/impacket",
+  "category": "developer-tools",
+  "subcategories": ["security", "python", "networking", "penetration-testing", "windows"],
+  "tags": ["python", "impacket", "smb", "kerberos", "ldap", "windows", "active-directory", "penetration-testing"],
+  "what_it_does": "Python network protocol library for Windows/Active Directory protocols — implements SMB, Kerberos, LDAP, NTLM, DCE/RPC for security testing. Impacket features: SMBConnection for file shares and lateral movement, Kerberos AS-REP roasting and Kerberoasting, LDAP queries via ldap3, secretsdump for extracting NTLM hashes, GetNPUsers (AS-REP roasting), GetUserSPNs (Kerberoasting), psexec/smbexec/wmiexec for remote code execution, DCE/RPC endpoint scanning, NTLMv1/NTLMv2 relay, DCOM execution, and smbclient. Primary Python toolkit for Active Directory security assessment and Windows network penetration testing.",
+  "use_cases": [
+    "Agent LDAP enumeration — from impacket.ldap import ldap; conn = ldap.LDAPConnection(ldap://dc01.corp.local, baseDN='dc=corp,dc=local'); conn.login(user, password); results = conn.search(searchFilter='(objectClass=user)') — enumerate AD users; agent collects org chart for security assessment",
+    "Agent SMB share enumeration — from impacket.smbconnection import SMBConnection; smb = SMBConnection(target_ip, target_ip); smb.login(user, password, domain); shares = smb.listShares() — discover accessible SMB shares; agent maps accessible network resources during pentesting",
+    "Agent Kerberoasting — GetUserSPNs.py corp.local/user:pass -dc-ip 10.0.0.1 -outputfile hashes.txt — extract Kerberos service ticket hashes for offline cracking; agent security assessment identifies misconfigured service accounts with weak passwords",
+    "Agent secret dumping — secretsdump.py corp/admin:pass@dc01 -just-dc-ntlm — extract NTLM hashes from domain controller; red team agent extracts credential material for analysis; requires Domain Admin privileges",
+    "Agent remote execution — psexec.py corp/admin:pass@target — remote command execution via SMB; agent lateral movement simulation in authorized red team exercise; wmiexec.py for WMI-based execution without service creation"
+  ],
+  "not_for": [
+    "Production application networking — Impacket is for security testing; for legitimate SMB/LDAP access in production use python-ldap or smbprotocol",
+    "Unauthorized systems — Impacket requires explicit authorization; using on systems without permission is illegal",
+    "Defensive monitoring — for detecting these attacks use SIEM/EDR; Impacket is offensive tooling"
+  ],
+  "best_when": "Authorized penetration testing or red team exercises targeting Windows/Active Directory environments — Impacket provides the most comprehensive Python implementation of Windows authentication protocols for agent security assessment automation.",
+  "avoid_when": "You don't have explicit written authorization for the target systems. Impacket is dual-use security tooling requiring clear authorization context.",
+  "alternatives": ["netmiko-api", "scapy-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["password", "hash", "kerberos", "certificate"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Windows authentication: password, NTLM hash (pass-the-hash), Kerberos ticket (pass-the-ticket), or certificate. All auth methods for Windows AD environments. Credentials must be for authorized target systems."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, Apache 2.0 licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Impacket is Apache 2.0 licensed by Fortra (formerly SecureAuth). Free for authorized security testing use."
+  },
+  "performance": {
+    "latency_p50_ms": 500,
+    "latency_p99_ms": 5000,
+    "uptime_sla_percent": null,
+    "rate_limits": "No library rate limits. Network and target system limits apply. Kerberoasting speed depends on service account count. LDAP enumeration rate depends on DC response time.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 65,
+    "error_message_quality": 62,
+    "error_message_notes": "Authentication failures raise SessionError with status codes (STATUS_LOGON_FAILURE). SMB errors include NT STATUS codes. Kerberos errors show KDC error messages. LDAP errors show LDAP result codes. Error messages useful for experienced operators but require Windows protocol knowledge.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Enumeration operations (LDAP search, share listing) are idempotent. Offensive operations (secretsdump, psexec) may have side effects on target systems. Agent red team automation should log all operations for deconfliction.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Impacket requires explicit written authorization — using Impacket on systems without authorization violates Computer Fraud and Abuse Act (US) and equivalent laws globally; agent security automation must validate target scope against authorized IP ranges before any Impacket operation; include authorization scope check as first step in all agent security workflows",
+      "pip install impacket installs outdated version — PyPI impacket may lag GitHub by months; agent security tooling should install from GitHub: pip install git+https://github.com/fortra/impacket.git; some critical vulnerability discoveries require latest commit not PyPI release",
+      "Kerberoasting leaves audit trail — GetUserSPNs.py generates Windows Security Event 4769 (Kerberos service ticket request) for each SPN; defender agent EDR detects unusual ticket requests; red team agent must coordinate with blue team on detection vs stealth requirements",
+      "NTLM hash pass-the-hash requires NTLM auth — many modern environments disable NTLM in favor of Kerberos; impacket psexec with hash fails on Kerberos-only systems; agent must check authentication method supported before attempting pass-the-hash",
+      "secretsdump requires elevated privileges — secretsdump Domain Admin on DC, or local admin + SeDebugPrivilege on workstation; agent running secretsdump with insufficient privileges gets 'Access denied'; always verify privilege level before attempting credential extraction",
+      "SMBConnection target_ip must be IP not hostname for NTLM — SMBConnection('hostname', 'hostname') triggers Kerberos; SMBConnection('10.0.0.1', '10.0.0.1') forces NTLM; agent code requiring NTLM authentication must pass IP not hostname to avoid Kerberos negotiation failures"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 60,
+    "error_handling_score": 58,
+    "auth_complexity_score": 65,
+    "rate_limit_clarity_score": 80
+  },
+  "security_score_components": {
+    "tls_enforcement": 72,
+    "auth_strength": 85,
+    "scope_granularity": 75,
+    "dependency_hygiene": 78,
+    "secret_handling": 65,
+    "security_notes": "CRITICAL: Dual-use offensive security tool requiring explicit written authorization. Handles credential material (NTLM hashes, Kerberos tickets) — store in encrypted secure storage, never log. Agent security automation must validate authorization scope before every operation. Audit trail of all Impacket operations required for responsible disclosure."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 65,
+    "version_stability": 68,
+    "breaking_changes_history": 65,
+    "error_recovery": 65
+  }
+}

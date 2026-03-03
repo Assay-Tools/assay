@@ -1,0 +1,106 @@
+{
+  "id": "yara-python-api",
+  "name": "yara-python",
+  "version_evaluated": "4.x",
+  "homepage": "https://yara.readthedocs.io/",
+  "repo_url": "https://github.com/VirusTotal/yara-python",
+  "category": "developer-tools",
+  "subcategories": ["security", "python", "malware-analysis", "threat-hunting", "detection"],
+  "tags": ["python", "yara", "malware", "threat-hunting", "pattern-matching", "detection", "security", "virusTotal"],
+  "what_it_does": "Python bindings for YARA — pattern matching framework for malware identification and threat hunting. yara-python features: yara.compile() from string or file, rules.match() on files/bytes/processes, YARA rule syntax (strings: patterns, conditions: logic), string pattern types (text, hex, regex, base64), meta for rule metadata, tags for categorization, yara.Rules object, match.strings for matched locations, process scanning (pid=PID), externals for context variables, private rules, and scan timeout control. Standard malware analysis and threat hunting tool — used by EDR vendors, CSIRT teams, and malware researchers for file classification.",
+  "use_cases": [
+    "Agent malware detection — rules = yara.compile('rule detect_mimikatz { strings: $a = \"mimikatz\" nocase $b = {4D 69 6D 69 6B 61 74 7A} condition: any of them }'); matches = rules.match('suspicious.exe') — scan file against YARA rules; agent SOC automation classifies uploaded files; matches include rule name, offset, and matched string",
+    "Agent threat hunting — rules = yara.compile(filepath='hunting_rules.yar'); matches = rules.match(data=memory_dump_bytes) — scan memory dump for threat indicators; agent threat hunting searches process memory for IOCs; YARA rules from open source collections (YARA-Forge, abuse.ch)",
+    "Agent file triage — import yara; rules = yara.compile(filepaths={'malware': 'malware.yar', 'packer': 'packer.yar', 'strings': 'suspicious.yar'}); matches = rules.match('sample.bin') — multiple rule namespaces; agent classifies binary by malware family, packer type, and suspicious strings simultaneously",
+    "Agent process scanning — rules = yara.compile(source=yara_rule); for pid in psutil.pids(): try: matches = rules.match(pid=pid); except yara.Error: pass — scan running processes for IOCs; agent detects injected malware in process memory; requires elevated privileges",
+    "Agent rule validation — try: rules = yara.compile(source=new_rule); rules.match(data=b'test') except yara.SyntaxError as e: log_error(f'Invalid YARA rule: {e}') — validate YARA rule syntax before deployment; agent rule management validates before pushing to production scanners"
+  ],
+  "not_for": [
+    "Network traffic analysis — YARA is for file/memory scanning; for network pattern matching use Suricata or Zeek rules",
+    "Real-time AV replacement — YARA is high-quality detection but slow for real-time scanning; commercial AV has optimized scanning engines",
+    "Non-security pattern matching — YARA overhead not worth it for general text matching; use regex for non-security patterns"
+  ],
+  "best_when": "Malware identification, threat hunting across file samples, or IOC detection in memory — YARA provides the industry standard pattern matching format for agent security analysis that security teams, threat intel, and malware research communities understand.",
+  "avoid_when": "You need network traffic signatures (use Suricata), real-time AV scanning, or general non-security pattern matching.",
+  "alternatives": ["scapy-python-api", "shodan-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — local pattern matching library. Process scanning requires elevated privileges (root/admin)."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, BSD 3-Clause licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "YARA and yara-python are BSD 3-Clause licensed by VirusTotal/Google. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 10,
+    "latency_p99_ms": 500,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Scan speed depends on rule complexity and file size. Simple string rules: 100MB/sec. Complex regex rules: 1-10MB/sec. Compile rules once, match many times for efficiency.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 78,
+    "error_message_quality": 75,
+    "error_message_notes": "yara.SyntaxError with line number for invalid rule syntax. yara.Error for scan failures (permission, timeout). yara.TimeoutError when scan exceeds timeout parameter. FileNotFoundError for missing rule files. Clear error messages for rule compilation failures.",
+    "idempotency_support": "full",
+    "idempotency_notes": "rules.match() on same data always returns same matches. yara.compile() from same source is idempotent. Process scanning may differ between calls if process state changes. Deterministic for static file analysis.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Compile once, match many — yara.compile() is expensive (parses and compiles rules); agent code calling yara.compile() inside scan loop compiles on every file; compile once at startup and reuse rules object; 1000 file scans with compile-per-scan 100x slower than compile-once",
+      "Large rule sets require YARA modules — yara.compile(filepaths={'ns1': 'rules1.yar'}) compiles single file; 1000+ rules in one yar file hits memory limits; agent rule management must split rules across multiple files with filepaths dict namespacing; rules.match() checks all namespaces",
+      "Process scanning requires OS permissions — rules.match(pid=1234) on another process requires root on Linux or SeDebugPrivilege on Windows; agent process scanning must handle yara.Error: could not open process gracefully; run agent with minimal required privileges",
+      "Regex in YARA rules use YARA syntax not Python — YARA /regex/ uses PCRE-like syntax; Python raw strings in yara.compile(source=) need escaped backslashes; agent code generating YARA rules programmatically must use raw strings or double-escape backslashes in regex patterns",
+      "Scan timeout prevents hanging on malformed files — rules.match(filepath, timeout=60) required for agent automated scanning; without timeout, pathological input (deeply nested archives, zip bombs) hangs scan indefinitely; always set timeout in agent file triage pipelines",
+      "YARA modules must be enabled at compile time — yara.compile(source='import \"hash\"') fails if yara-python not compiled with hash module; pip install yara-python from PyPI includes most modules; custom builds may lack modules; agent code using YARA hash/math/pe modules must verify module availability at startup"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 75,
+    "error_handling_score": 72,
+    "auth_complexity_score": 92,
+    "rate_limit_clarity_score": 95
+  },
+  "security_score_components": {
+    "tls_enforcement": 90,
+    "auth_strength": 90,
+    "scope_granularity": 85,
+    "dependency_hygiene": 85,
+    "secret_handling": 90,
+    "security_notes": "Malware analysis tool — handle malware samples in isolated environment. YARA rules themselves are safe to handle. Process scanning requires elevated privileges — limit agent process scanner to minimum required scope. Malware samples scanned by agent must be handled in sandboxed environment with no network access."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 78,
+    "version_stability": 80,
+    "breaking_changes_history": 78,
+    "error_recovery": 78
+  }
+}
