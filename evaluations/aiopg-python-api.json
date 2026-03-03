@@ -1,0 +1,106 @@
+{
+  "id": "aiopg-python-api",
+  "name": "aiopg",
+  "version_evaluated": "1.4.x",
+  "homepage": "https://aiopg.readthedocs.io/",
+  "repo_url": "https://github.com/aio-libs/aiopg",
+  "category": "developer-tools",
+  "subcategories": ["postgresql", "python", "async", "database", "asyncio"],
+  "tags": ["python", "aiopg", "postgresql", "async", "asyncio", "database", "psycopg2"],
+  "what_it_does": "Async PostgreSQL client for Python asyncio built on psycopg2 — provides non-blocking PostgreSQL access via asyncio. aiopg features: aiopg.connect() for connections, aiopg.create_pool() for connection pools, cursor() with DictCursor support, execute()/executemany() for queries, callproc() for stored procedures, LISTEN/NOTIFY support via connection.notifies, SAConnection for SQLAlchemy integration, connection pool with minsize/maxsize/timeout, named cursors for server-side cursors, PostgreSQL-specific types (JSON, UUID, arrays), and full psycopg2 extension support. Note: asyncpg is faster but aiopg uses familiar psycopg2 API.",
+  "use_cases": [
+    "Agent async PostgreSQL — import aiopg; async with aiopg.connect(dsn='postgresql://user:pass@host/db') as conn: async with conn.cursor() as cur: await cur.execute('SELECT * FROM tasks WHERE status=%s', ('pending',)); rows = await cur.fetchall() — non-blocking PostgreSQL; agent async handler queries without blocking event loop",
+    "Agent connection pool — pool = await aiopg.create_pool(dsn='postgresql://...', minsize=5, maxsize=20); async with pool.acquire() as conn: async with conn.cursor() as cur: await cur.execute(query) — shared connection pool; agent FastAPI app reuses connections; pool manages connect/disconnect; acquire() blocks if all connections in use",
+    "Agent PostgreSQL LISTEN/NOTIFY — async with aiopg.connect(dsn) as conn: await conn.execute('LISTEN agent_events'); async for notify in conn.notifies: print(f'Got: {notify.channel}: {notify.payload}') — real-time notifications; agent subscribes to PostgreSQL channel; triggers on NOTIFY from other connections or stored procedures",
+    "Agent dict cursor — async with conn.cursor(aiopg.DictCursor) as cur: await cur.execute('SELECT id, name, status FROM agents'); async for row in cur: print(row['name'], row['status']) — dict-style row access; agent reads PostgreSQL rows as dicts; DictCursor enables row['column'] instead of row[0]",
+    "Agent SQLAlchemy async — from aiopg.sa import create_engine; engine = await create_engine(dsn='postgresql://...'); async with engine.acquire() as conn: result = await conn.execute(select([agents]).where(agents.c.status == 'active')); rows = await result.fetchall() — SQLAlchemy Core with aiopg; agent uses declarative SQL with async execution"
+  ],
+  "not_for": [
+    "High-performance bulk operations — asyncpg is 3-5x faster than aiopg; for performance-critical apps use asyncpg",
+    "Synchronous code — aiopg requires asyncio; for sync PostgreSQL use psycopg2",
+    "MySQL/SQLite — aiopg is PostgreSQL-only; for async MySQL use aiomysql, for async SQLite use aiosqlite"
+  ],
+  "best_when": "Async Python apps needing familiar psycopg2 API with PostgreSQL — aiopg provides asyncio PostgreSQL access with the psycopg2 interface, SQLAlchemy integration, and LISTEN/NOTIFY support.",
+  "avoid_when": "High-performance requirements (use asyncpg), synchronous code (use psycopg2), or non-PostgreSQL databases.",
+  "alternatives": ["asyncpg-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["password", "tls", "certificate"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "PostgreSQL authentication via DSN string (user/password). SSL/TLS via sslmode parameter. Certificate auth via sslcert/sslkey parameters. Supports all psycopg2 authentication methods."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, BSD licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "aiopg is BSD licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 2,
+    "latency_p99_ms": 20,
+    "uptime_sla_percent": null,
+    "rate_limits": "No client rate limits. aiopg is 3-5x slower than asyncpg for simple queries due to psycopg2 C extension threading overhead. Connection pool: keep minsize warm connections to avoid handshake latency. Bulk copy: use COPY for large data loading — faster than executemany.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted", "cloud"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 82,
+    "error_message_quality": 85,
+    "error_message_notes": "psycopg2.OperationalError for connection failures. psycopg2.ProgrammingError for SQL errors. psycopg2.IntegrityError for constraint violations. asyncio.TimeoutError for pool acquire timeout. All psycopg2 exceptions propagated through aiopg.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "SELECT queries are idempotent. INSERT is not (use INSERT ... ON CONFLICT DO NOTHING for idempotency). UPDATE with WHERE is idempotent. LISTEN/NOTIFY registration is idempotent.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "psycopg2 must be installed separately — aiopg wraps psycopg2 but pip install aiopg may not install psycopg2 automatically; agent requirements.txt needs: aiopg and psycopg2-binary; psycopg2-binary is pre-compiled (no pg_config needed); psycopg2 source requires libpq-dev",
+      "Pool.acquire() can timeout — pool = await create_pool(maxsize=5, timeout=5.0); with 5 connections busy, acquire() blocks up to 5 seconds then raises asyncio.TimeoutError; agent FastAPI under load must handle timeout: async with pool.acquire() as conn: try/except asyncio.TimeoutError: raise HTTPException(503)",
+      "Connection not thread-safe — aiopg connections must be used from the asyncio event loop that created them; passing connection between coroutines on different event loops causes errors; agent code with multiple event loops (testing frameworks) must create separate pools per loop",
+      "LISTEN connections block pool — a connection used for LISTEN/NOTIFY is blocked listening; it cannot execute other queries; agent pub/sub must use dedicated connection from pool; acquire() a connection just for LISTEN; the connection is not returned to pool while listening",
+      "Cursor must be used as context manager — async with conn.cursor() as cur: ensures cursor.close() called; cursor without context manager leaks server-side cursor resources; named cursors (for server-side streaming) are especially important to close properly",
+      "autocommit for LISTEN/NOTIFY — LISTEN and NOTIFY require autocommit=True; in transaction, LISTEN is deferred until commit; aiopg connection: await conn.set_isolation_level(0) for autocommit; or LISTEN fails silently in transaction context"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 82,
+    "error_handling_score": 85,
+    "auth_complexity_score": 88,
+    "rate_limit_clarity_score": 92
+  },
+  "security_score_components": {
+    "tls_enforcement": 88,
+    "auth_strength": 88,
+    "scope_granularity": 85,
+    "dependency_hygiene": 88,
+    "secret_handling": 85,
+    "security_notes": "ALWAYS use parameterized queries — never string format SQL with user input. Use sslmode=require for network PostgreSQL connections. Store DSN in environment variables not code. Use dedicated database users with minimal privileges per agent. LISTEN/NOTIFY payloads are plaintext — encrypt sensitive data before NOTIFY."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 82,
+    "version_stability": 82,
+    "breaking_changes_history": 82,
+    "error_recovery": 82
+  }
+}

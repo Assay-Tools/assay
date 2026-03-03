@@ -1,0 +1,106 @@
+{
+  "id": "mako-python-api",
+  "name": "Mako",
+  "version_evaluated": "1.3.x",
+  "homepage": "https://www.makotemplates.org/",
+  "repo_url": "https://github.com/sqlalchemy/mako",
+  "category": "developer-tools",
+  "subcategories": ["templating", "python", "html", "text-generation"],
+  "tags": ["python", "mako", "template", "html", "jinja2-alternative", "text-generation", "wsgi"],
+  "what_it_does": "Fast Python templating engine — compiles templates to Python for high-performance rendering. Mako features: ${expression} syntax for variable output, <%! %> for module-level code, <% %> for Python code blocks, ${func()} for function calls, def/block for reusable components, inheritance via <%inherit file='base.html'/>, <%include file='other.html'/> for includes, caching support, unicode-safe rendering, TemplateLookup for file-based templates, Template() for string templates, strict_undefined for error on missing variables, and default='' for safe missing values. Default template engine for Pyramid web framework.",
+  "use_cases": [
+    "Agent HTML generation — from mako.template import Template; tmpl = Template('''<html><body><h1>${title}</h1>% for item in items:<p>${item.name}: ${item.value}</p>% endfor</body></html>'''); output = tmpl.render(title='Report', items=data) — render HTML with loops; agent generates HTML reports from data",
+    "Agent file template lookup — from mako.lookup import TemplateLookup; lookup = TemplateLookup(directories=['/agent/templates']); tmpl = lookup.get_template('report.html'); output = tmpl.render(**context) — file-based templates; agent loads templates from directory; TemplateLookup caches compiled templates for performance",
+    "Agent code generation — tmpl = Template('''class ${class_name}:\n% for method in methods:\n    def ${method.name}(self${', ' + ', '.join(method.args) if method.args else ''}):\n        ${method.body}\n% endfor'''); code = tmpl.render(class_name='Agent', methods=spec) — Python code generation; agent generates boilerplate code from specs; Mako's Python-in-template makes complex logic natural",
+    "Agent template inheritance — base.html: <html><%block name='content'/></html>; page.html: <%inherit file='base.html'/><%block name='content'>${page_body}</%block> — template inheritance; agent generates consistent HTML with shared layout; child templates override blocks",
+    "Agent string template — from mako.template import Template; msg_tmpl = Template('Agent ${name} completed ${task_count} tasks in ${duration:.1f}s'); msg = msg_tmpl.render(name='alpha', task_count=42, duration=3.14) — simple string rendering; agent notification messages with variable substitution"
+  ],
+  "not_for": [
+    "Security-critical user templates — Mako executes Python in templates; never render user-controlled template strings",
+    "Jinja2 ecosystem — many frameworks expect Jinja2; for Jinja2 use jinja2 library",
+    "Non-HTML templates with strict sandboxing — Mako has no sandbox; for sandboxed templates use Jinja2 with SandboxedEnvironment"
+  ],
+  "best_when": "High-performance Python templating with full Python syntax in templates — Mako's compilation to Python makes it faster than Jinja2 for complex templates, and its Python-in-template syntax is familiar to Python developers.",
+  "avoid_when": "User-controlled templates (security risk — executes Python), Jinja2-based ecosystems, or when sandboxing is required.",
+  "alternatives": ["jinja2-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — local templating library."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Mako is MIT licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Performance: template compilation to Python module on first render (cached after); subsequent renders are fast Python execution. TemplateLookup caches compiled modules. Faster than Jinja2 for complex templates due to Python compilation.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 82,
+    "error_message_quality": 80,
+    "error_message_notes": "NameError for undefined variables in template (helpful — shows template line). SyntaxError for invalid Python in <% %> blocks. mako.exceptions.RichTraceback for template-aware tracebacks. exceptions.text_error_template().render() for pretty error display.",
+    "idempotency_support": "full",
+    "idempotency_notes": "render() is idempotent — same template and same context variables produce same output. TemplateLookup cache is idempotent. Templates compiled once and reused.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Templates execute arbitrary Python — NEVER render user-controlled template strings; Template(user_input).render() executes Python code; agent accepting template from external source must never use Mako directly; use Jinja2 SandboxedEnvironment for user templates; Mako has no sandbox mode",
+      "Output not auto-escaped — ${user_content} does not HTML-escape; agent generating HTML from user data must: ${user_content | h} (Mako built-in h filter) or: from markupsafe import escape; ${escape(content)}; un-escaped user content causes XSS vulnerability",
+      "strict_undefined=True recommended for debugging — by default, undefined variables render as empty string; agent code with typo in variable name silently produces wrong output; TemplateLookup(strict_undefined=True) raises NameError on undefined; add for development, may need exception handling for optional variables in production",
+      "Mako vs Jinja2 syntax difference — Mako: ${var} and % for x in y:; Jinja2: {{ var }} and {% for x in y %}; agent developers switching between frameworks make syntax errors; Mako uses Python for loops (% for x in items:) ending with % endfor; indentation not significant unlike Python",
+      "Template inheritance requires TemplateLookup — <%inherit file='base.html'/> only works with TemplateLookup, not Template(); Template() has no file system access; agent code using inheritance must use TemplateLookup(directories=[...]); direct Template() for string templates without inheritance",
+      "mako.exceptions.RichTraceback for error diagnosis — template errors produce confusing Python tracebacks pointing to compiled code; from mako import exceptions; try: tmpl.render(**ctx); except: print(exceptions.text_error_template().render()) — shows template-aware traceback with Mako source line numbers instead of compiled Python"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 82,
+    "error_handling_score": 80,
+    "auth_complexity_score": 99,
+    "rate_limit_clarity_score": 99
+  },
+  "security_score_components": {
+    "tls_enforcement": 85,
+    "auth_strength": 85,
+    "scope_granularity": 80,
+    "dependency_hygiene": 90,
+    "secret_handling": 82,
+    "security_notes": "CRITICAL: Mako templates execute arbitrary Python — NEVER render user-controlled templates. No auto-escaping by default — XSS vulnerability if rendering user content without | h filter. Use strict_undefined=True to catch missing variable bugs. Mako maintained by SQLAlchemy team — good security track record. For user-facing templates with untrusted content, use Jinja2 SandboxedEnvironment instead."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 85,
+    "version_stability": 88,
+    "breaking_changes_history": 88,
+    "error_recovery": 82
+  }
+}

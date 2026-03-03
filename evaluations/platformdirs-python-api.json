@@ -1,0 +1,106 @@
+{
+  "id": "platformdirs-python-api",
+  "name": "platformdirs",
+  "version_evaluated": "4.x",
+  "homepage": "https://platformdirs.readthedocs.io/",
+  "repo_url": "https://github.com/tox-dev/platformdirs",
+  "category": "developer-tools",
+  "subcategories": ["utilities", "python", "filesystem", "cross-platform"],
+  "tags": ["python", "platformdirs", "platform", "directories", "config", "cache", "xdg", "cross-platform"],
+  "what_it_does": "Cross-platform application directory locations for Python — actively maintained fork of appdirs with XDG Base Directory spec compliance. platformdirs features: PlatformDirs class, user_data_dir/user_config_dir/user_cache_dir/user_log_dir/user_runtime_dir/user_documents_dir/user_pictures_dir, site_data_dir/site_config_dir for system-wide, XDG_DATA_HOME/XDG_CONFIG_HOME/XDG_CACHE_HOME environment variable overrides on Linux, Windows roaming/non-roaming support, macOS ~/Library/* conventions, AppDirs compatibility class for appdirs drop-in replacement, and Android/Unix/Windows/macOS specific implementations.",
+  "use_cases": [
+    "Agent cross-platform config — from platformdirs import user_config_dir; config_dir = user_config_dir('MyAgent', 'MyOrg'); os.makedirs(config_dir, exist_ok=True); config_path = os.path.join(config_dir, 'config.toml') — OS-correct config path; Linux: ~/.config/MyAgent, macOS: ~/Library/Application Support/MyAgent, Windows: %APPDATA%\\MyOrg\\MyAgent; agent config stored correctly on all platforms",
+    "Agent cache management — from platformdirs import user_cache_dir; cache = user_cache_dir('MyAgent'); cache_db = os.path.join(cache, 'requests.db') — cache directory; agent HTTP cache uses OS cache location; Linux: ~/.cache/myagent, macOS: ~/Library/Caches/MyAgent; OS may reclaim cache on low disk",
+    "Agent XDG override support — XDG_CONFIG_HOME=/custom/path python agent.py — platformdirs respects XDG env vars on Linux; agent running in container with custom config location uses env var override; appdirs does not respect XDG_* vars; platformdirs is preferred for containerized deployments",
+    "Agent runtime directory — from platformdirs import user_runtime_dir; runtime_dir = user_runtime_dir('MyAgent'); socket_path = os.path.join(runtime_dir, 'agent.sock') — runtime/temp socket files; Linux: /run/user/1000/MyAgent (tmpfs, auto-cleaned); macOS/Windows: falls back to user data dir; Unix socket for agent IPC",
+    "Agent appdirs migration — from platformdirs import AppDirs; dirs = AppDirs('MyAgent', 'MyOrg'); dirs.user_data_dir; dirs.user_cache_dir — AppDirs compatibility class; agent code migrating from appdirs to platformdirs needs only import change; same API as appdirs.AppDirs with XDG improvements"
+  ],
+  "not_for": [
+    "Temp files — platformdirs doesn't provide temp directories; use Python's tempfile module",
+    "Docker without env var overrides — default paths in containers may be unexpected; set XDG_CONFIG_HOME etc. explicitly",
+    "System-wide directories — site_data_dir/site_config_dir require admin/root; prefer user directories"
+  ],
+  "best_when": "Cross-platform Python applications needing OS-appropriate directory locations — platformdirs is the actively maintained, XDG-compliant replacement for the deprecated appdirs.",
+  "avoid_when": "Temp files (use tempfile), system-wide paths requiring admin rights, or when hardcoded paths are acceptable.",
+  "alternatives": ["appdirs-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — platform directory utility library."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "platformdirs is MIT licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Performance: O(1) path string construction with environment variable reads. No I/O. Suitable for any call frequency.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 88,
+    "error_message_quality": 85,
+    "error_message_notes": "platformdirs raises no errors for path computation. Directory creation is application responsibility — standard OSError/PermissionError from os.makedirs. InvalidXDGVariableError if XDG variable contains absolute path.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Path computation is pure — same environment and inputs produce same paths. No side effects. Idempotent for any number of calls.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "platformdirs does not create directories — user_data_dir() returns path string only; agent must create: os.makedirs(dirs.user_data_dir, exist_ok=True); exists_ok=True prevents error if directory already exists; most common mistake: assuming the directory exists after calling platformdirs",
+      "macOS does not use XDG conventions — macOS returns ~/Library/Application Support not ~/.config; XDG env vars are NOT respected on macOS; agent developers on macOS testing Linux XDG behavior must run in Linux container; test cross-platform behavior explicitly on each target OS",
+      "user_runtime_dir falls back on non-Linux — Linux has /run/user/UID (tmpfs cleaned on logout); macOS/Windows fall back to user_data_dir; agent using runtime_dir for sockets must handle non-tmpfs fallback; check if path is tmpfs before relying on auto-cleanup",
+      "Multiple app versions can conflict — PlatformDirs('MyApp', version='1.0').user_data_dir creates versioned path; PlatformDirs('MyApp', version='2.0') creates separate path; agent upgrade must migrate data between versioned directories; omit version parameter if migration is not handled",
+      "Windows requires appauthor for unique paths — Windows path: %APPDATA%\\AppAuthor\\AppName; without author: %APPDATA%\\AppName\\AppName; two different apps both named 'Agent' from different authors get same path without author; always provide: PlatformDirs('MyAgent', 'MyOrg') for Windows uniqueness",
+      "ensure_exists parameter creates directory automatically — PlatformDirs('App', ensure_exists=True).user_data_dir creates the directory on access; useful for single-call setup; but raises PermissionError immediately if parent dir not writable; agent code using ensure_exists should handle PermissionError"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 88,
+    "error_handling_score": 85,
+    "auth_complexity_score": 99,
+    "rate_limit_clarity_score": 99
+  },
+  "security_score_components": {
+    "tls_enforcement": 92,
+    "auth_strength": 92,
+    "scope_granularity": 90,
+    "dependency_hygiene": 92,
+    "secret_handling": 88,
+    "security_notes": "Path utility with no network calls. User directories are user-specific — appropriate for user config storage. Validate XDG env var values if set from external sources (containers). Do not store secrets in cache_dir. Ensure permissions on created directories restrict access appropriately (chmod 700 for sensitive config dirs)."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 90,
+    "breaking_changes_history": 88,
+    "error_recovery": 88
+  }
+}
