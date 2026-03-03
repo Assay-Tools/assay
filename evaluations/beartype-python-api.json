@@ -1,0 +1,106 @@
+{
+  "id": "beartype-python-api",
+  "name": "beartype",
+  "version_evaluated": "0.18.x",
+  "homepage": "https://beartype.readthedocs.io/",
+  "repo_url": "https://github.com/beartype/beartype",
+  "category": "developer-tools",
+  "subcategories": ["type-checking", "python", "runtime", "validation", "typing"],
+  "tags": ["python", "beartype", "runtime-type-checking", "typing", "validation", "decorator", "zero-cost"],
+  "what_it_does": "Runtime type checker for Python — enforces PEP 484/526/544/593 type hints at function call time with near-zero overhead. beartype features: @beartype decorator for function-level enforcement, beartype.typing module for compatible typing primitives, BeartypeConf for configuration (strategy, is_debug), beartype_this_package() for package-wide enforcement, beartype_package() for third-party enforcement, door.is_bearable() for type checking values, door.die_if_unbearable() for assertion, supports Union, Optional, Literal, TypedDict, Protocol, Generic, Callable, and PEP 604 (X | Y) syntax. 100-1000x faster than typeguard for complex types.",
+  "use_cases": [
+    "Agent function type enforcement — from beartype import beartype; @beartype; def process_agent_result(result: dict[str, list[int]], threshold: float) -> bool: return max(result.values()[0]) > threshold — @beartype validates types at call time; agent receives wrong type from LLM output parser: BeartypeCallHintParamViolation raised with clear message showing actual vs expected type",
+    "Agent package-wide type checking — from beartype.claw import beartype_this_package; beartype_this_package() — add to __init__.py to enforce types throughout package; agent SDK enforces type contracts on all public functions without decorating each function; one-line activation for comprehensive runtime checking",
+    "Agent value type assertion — from beartype.door import is_bearable, die_if_unbearable; api_response = fetch_api(); die_if_unbearable(api_response, dict[str, Any]) — assert API response matches expected schema; agent validates external data before processing; is_bearable() for conditional checking; die_if_unbearable() for assertion",
+    "Agent LLM output validation — from beartype import beartype; from beartype.typing import TypedDict; class AgentOutput(TypedDict): action: str; parameters: dict[str, str]; @beartype; def parse_llm_output(text: str) -> AgentOutput: return json.loads(text) — TypedDict validation catches malformed LLM JSON; agent output parsing fails fast with descriptive error instead of KeyError later",
+    "Agent debug mode for development — from beartype import BeartypeConf; from beartype.claw import beartype_this_package; beartype_this_package(conf=BeartypeConf(is_debug=True)) — debug mode shows generated wrapper code; agent developer inspects what beartype checks for complex types; disable in production: BeartypeConf(strategy=BeartypeStrategy.O0) for zero overhead"
+  ],
+  "not_for": [
+    "Static type checking — beartype is runtime only; for static analysis use mypy or pyright which catch type errors without running code",
+    "Data validation/parsing — beartype validates existing Python objects; for parsing and coercing external data use pydantic which converts and validates",
+    "Zero-overhead production code — beartype adds check overhead per call (though minimal); for hot paths disable with BeartypeConf(strategy=BeartypeStrategy.O0) or remove decorator"
+  ],
+  "best_when": "Adding runtime type safety to agent code that receives data from external sources (LLMs, APIs, user input) — beartype catches type mismatches at the boundary with near-zero overhead compared to typeguard.",
+  "avoid_when": "You need data coercion/parsing (use pydantic), static analysis only (use mypy/pyright), or have extreme performance requirements in hot loops.",
+  "alternatives": ["typeguard-python-api", "pydantic-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — local type checking library."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "beartype is MIT licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Check overhead: O(1) amortized — beartype generates optimized code at decoration time, not per-call. Simple types (str, int): ~100ns. Complex generics (dict[str, list[int]]): ~500ns. 100-1000x faster than typeguard for same types. import beartype adds ~50ms on first import.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 90,
+    "error_message_notes": "BeartypeCallHintParamViolation with detailed message showing parameter name, expected type, actual type, and actual value. BeartypeCallHintReturnViolation for return type violations. Messages include Python type repr for complex types. Possibly the best type error messages of any runtime type checker — shows exactly what failed and why.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Type checking is pure — same inputs always produce same type check result. @beartype decoration is idempotent — decorating twice wraps twice but inner check runs twice. beartype_this_package() is idempotent if called once per package.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "beartype checks at call time not parse time — @beartype on function with invalid type annotation (typo in type name) raises at decoration time; agent startup fails with BeartypeDecorHintForwardRefException for undefined type; all @beartype decorated functions validated at import — startup type errors are earlier than runtime errors",
+      "Parametrized generics require specific syntax — @beartype on function with list parameter (not list[str]) skips inner type check; dict[str, Any] checks key type but allows any value; dict checks only that it's a dict not a list; agent code using bare list/dict/tuple gets less protection than parametrized generics; always use parametrized types for maximum safety",
+      "beartype_this_package() must be called before imports — from beartype.claw import beartype_this_package; beartype_this_package() must be at top of __init__.py before any local imports; calling after imports misses already-imported modules; agent package structure must put beartype_this_package() as first non-import statement in package __init__.py",
+      "Protocol checking is structural — @beartype on Protocol parameter checks structural compatibility not isinstance; object with same methods as Protocol passes check; Protocol checking does not validate method signatures or return types; agent code receiving Protocol-typed parameters gets duck-type checking not strict Protocol validation",
+      "Union types check all possibilities — @beartype on Union[str, int, list] parameter validates against all three options; slow for large Unions with complex types; agent code with Union[ModelA, ModelB, ModelC, ...] should use pydantic discriminated unions instead for performance; beartype Union checking is O(n) not O(1)",
+      "Forward references require string annotations — @beartype on function referencing class defined later in same file requires: from __future__ import annotations at top; or use string: 'ClassName' in annotation; class MyClass: pass; @beartype; def fn(x: MyClass) works only if MyClass defined before fn; circular imports in agent modules cause BeartypeDecorHintForwardRefException"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 90,
+    "auth_complexity_score": 98,
+    "rate_limit_clarity_score": 98
+  },
+  "security_score_components": {
+    "tls_enforcement": 92,
+    "auth_strength": 92,
+    "scope_granularity": 90,
+    "dependency_hygiene": 90,
+    "secret_handling": 92,
+    "security_notes": "Type checking library with no network calls. Enforcing type hints at API boundaries prevents type confusion attacks and injection via unexpected types. beartype error messages include actual values — avoid logging BeartypeCallHintParamViolation exceptions if parameter values may contain secrets."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 85,
+    "version_stability": 82,
+    "breaking_changes_history": 80,
+    "error_recovery": 88
+  }
+}

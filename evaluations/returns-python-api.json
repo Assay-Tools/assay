@@ -1,0 +1,106 @@
+{
+  "id": "returns-python-api",
+  "name": "returns",
+  "version_evaluated": "0.22.x",
+  "homepage": "https://returns.readthedocs.io/",
+  "repo_url": "https://github.com/dry-python/returns",
+  "category": "developer-tools",
+  "subcategories": ["functional-programming", "python", "monads", "error-handling", "type-safety"],
+  "tags": ["python", "returns", "dry-python", "monad", "result", "maybe", "io", "functional", "railway-oriented"],
+  "what_it_does": "Functional programming primitives for Python — provides Result, Maybe, IO, Future, and other monadic containers for explicit error handling and effect management. returns features: Result (Success/Failure), Maybe (Some/Nothing), IO for side effects, RequiresContext for dependency injection, Future/FutureResult for async, pipe() and flow() for function composition, @safe decorator for exception-to-Failure conversion, @maybe decorator for None-to-Nothing conversion, is_successful() predicate, and mypy plugin for type checking. Implements railway-oriented programming — errors flow through the pipeline without exceptions.",
+  "use_cases": [
+    "Agent error handling with Result — from returns.result import Result, Success, Failure; from returns.pipeline import pipe; @safe; def fetch_config(path: str) -> Result[dict, Exception]: return json.loads(open(path).read()) — @safe wraps exceptions into Failure; pipe(fetch_config('/etc/config.json'), lambda r: r.map(process), lambda r: r.value_or({})) — errors flow through pipeline; agent never crashes on config parse error",
+    "Agent None safety with Maybe — from returns.maybe import Maybe, Nothing, Some; @maybe; def find_user(user_id: str) -> Maybe[User]: return db.query(User).filter_by(id=user_id).first() — @maybe wraps None return into Nothing; chained operations short-circuit on Nothing; agent user lookup chain: find_user(id).map(get_email).map(send_notification).value_or(None) — no None checks needed",
+    "Agent function composition — from returns.pipeline import pipe, flow; process_order = flow(validate_order, calculate_total, apply_discount, generate_invoice) — flow() creates reusable pipeline function; agent order processing composes pure functions without intermediate variables; each function receives previous Result; Failure short-circuits entire pipeline",
+    "Agent async result handling — from returns.future import FutureResult; from returns.pipeline import managed; async def call_api(url: str) -> FutureResult[dict, str]: ... — FutureResult composes async operations that may fail; agent async pipeline handles HTTP errors, JSON parse errors, and business errors uniformly without try/except nesting; await result.awaitable() to resolve",
+    "Agent dependency injection — from returns.context import RequiresContext; def get_db_user(user_id: str) -> RequiresContext[Database, User]: return RequiresContext(lambda db: db.query(user_id)) — RequiresContext defers execution until dependencies provided; agent test code: get_db_user('123')(mock_db); production: get_db_user('123')(real_db); no global state"
+  ],
+  "not_for": [
+    "Procedural Python codebases — returns requires functional programming mindset; for traditional error handling use try/except or optional chaining; steep learning curve without FP background",
+    "Performance-critical hot paths — monad containers add object allocation overhead; for tight loops use plain Python with explicit None checks",
+    "Teams unfamiliar with functional programming — returns concepts (monads, functors, railway-oriented) require FP literacy; use only if team has FP background or commits to learning"
+  ],
+  "best_when": "Agent and pipeline code where errors should propagate explicitly without exception spaghetti — returns makes error paths visible in type signatures and composes error handling across async/sync boundaries.",
+  "avoid_when": "Your team is unfamiliar with FP concepts, you need maximum performance in tight loops, or your codebase is primarily procedural.",
+  "alternatives": ["result-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — pure Python library with no network calls."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, BSD licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "returns is BSD licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Container overhead: ~100ns per operation vs plain Python. Negligible for I/O-bound agents. Notable in tight CPU-bound loops with 1M+ iterations. mypy plugin adds ~10% to type check time.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 82,
+    "error_message_quality": 80,
+    "error_message_notes": "UnwrapFailedError raised when calling .unwrap() on Failure — contains the original failure value. is_successful() predicate for safe checking. Pattern matching with match/case in Python 3.10+ works with returns containers. Type errors caught by mypy plugin at static analysis time rather than runtime.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Pure functional containers are immutable — same input always produces same output. map(), bind(), alt() return new containers without mutation. IO container makes side effects explicit and traceable. FutureResult wraps async operations idempotently.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "mypy plugin required for full type checking — returns provides a mypy plugin for correct generic type inference; without plugin in mypy.ini: [mypy]; plugins = returns.contrib.mypy.returns_plugin; type checker reports errors on valid code; agent code with strict mypy checking must configure plugin or many legitimate uses show as type errors",
+      ".unwrap() raises UnwrapFailedError on Failure — Result.Success(42).unwrap() returns 42; Result.Failure('err').unwrap() raises UnwrapFailedError; agent code must use .value_or(default) for safe extraction or check is_successful() first; never call .unwrap() without checking success unless intentionally raising on failure",
+      "bind() expects function returning Result, map() expects plain function — result.map(lambda x: x + 1) for pure transformations; result.bind(lambda x: fetch_more(x)) when chained function also returns Result; mixing them causes type errors: bind() receiving non-Result returns nested containers; map() receiving Result-returning function creates Result[Result[...]]",
+      "@safe decorator captures all exceptions including KeyboardInterrupt — @safe wraps ALL exceptions including SystemExit and KeyboardInterrupt into Failure; agent code using @safe on functions that should allow interruption must catch and re-raise: @safe catches Exception not BaseException in newer versions but check docs for exact behavior",
+      "pipe() vs flow() — pipe(value, f1, f2, f3) applies f1, f2, f3 to value immediately; flow(f1, f2, f3) returns a new function that takes value; agent code building reusable pipelines uses flow(); one-time pipeline application uses pipe(); confusing them causes TypeError: flow() result must be called with a value",
+      "returns has no built-in retry — Failure containers do not automatically retry on failure; agent code needing retry must implement: result = fetch(); if not is_successful(result): result = fetch(); pattern or use tenacity library alongside returns for retry logic; returns philosophy is explicit error handling not automatic recovery"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 80,
+    "error_handling_score": 88,
+    "auth_complexity_score": 98,
+    "rate_limit_clarity_score": 98
+  },
+  "security_score_components": {
+    "tls_enforcement": 92,
+    "auth_strength": 92,
+    "scope_granularity": 90,
+    "dependency_hygiene": 90,
+    "secret_handling": 92,
+    "security_notes": "Pure functional library — no network calls, no secrets handling. Failure containers may contain exception objects with sensitive information in their str representation. Avoid logging Failure objects directly without sanitizing potential secret values from exception messages."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 82,
+    "version_stability": 78,
+    "breaking_changes_history": 75,
+    "error_recovery": 88
+  }
+}
