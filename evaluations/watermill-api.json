@@ -1,0 +1,106 @@
+{
+  "id": "watermill-api",
+  "name": "Watermill",
+  "version_evaluated": "1.3+",
+  "homepage": "https://watermill.io/",
+  "repo_url": "https://github.com/ThreeDotsLabs/watermill",
+  "category": "developer-tools",
+  "subcategories": ["messaging", "event-driven", "go", "pubsub"],
+  "tags": ["go", "messaging", "pubsub", "event-driven", "kafka", "rabbitmq", "nats", "redis", "event-sourcing"],
+  "what_it_does": "Go library for building event-driven and messaging systems. Watermill provides a unified pub/sub interface with adapters for Kafka, RabbitMQ, NATS, Redis, SQL, and in-memory transports. Includes router for message processing pipelines, middleware (retry, poison queue, correlation ID), and CQRS/event sourcing helpers. Single API regardless of the underlying message broker.",
+  "use_cases": [
+    "Build agent event-driven pipelines where agent events are published to Kafka/NATS and consumed by multiple agent handlers",
+    "Implement reliable agent message processing with Watermill's built-in retry and dead-letter queue middleware for transient failures",
+    "Use Watermill's CQRS framework for agent command/event separation — commands trigger domain events, events update read models",
+    "Build agent pub/sub workflows that run locally with in-memory broker in tests and switch to Kafka in production via config",
+    "Add correlation IDs and tracing to agent message flows using Watermill's middleware for distributed agent pipeline observability"
+  ],
+  "not_for": [
+    "Simple synchronous agent communication — direct function calls or gRPC are simpler for request-response patterns",
+    "Very high-throughput streaming — for Kafka-native performance at scale, use sarama or confluent-kafka-go directly",
+    "Non-Go services — Watermill is Go-only; use Kafka client libraries or cloud pub/sub SDKs for other languages"
+  ],
+  "best_when": "You're building a Go event-driven agent system and want broker-agnostic pub/sub with built-in retry, dead letters, and CQRS helpers.",
+  "avoid_when": "You need maximum Kafka throughput with full control over consumer groups and offsets — use sarama or franz-go directly.",
+  "alternatives": ["sarama-api", "nats-go-api", "rabbitmq-go-api", "cloudevents-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["go"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["api_key", "bearer_token"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Auth configured per publisher/subscriber adapter (Kafka SASL, RabbitMQ credentials, NATS JWT). Watermill itself is auth-agnostic — each broker adapter has its own auth configuration."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Fully free, MIT licensed.",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "ThreeDotsLabs open source. MIT license."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — library. Performance depends on broker backend and message size.",
+    "data_source": "not_applicable"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 83,
+    "error_message_quality": 80,
+    "error_message_notes": "Message processing errors include message UUID and handler name. Middleware errors include retry attempt number and original error. Watermill uses structured logging (compatible with logrus, zap) for routing events.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Message delivery semantics depend on broker — at-least-once for Kafka, at-most-once for some brokers. Watermill's deduplication middleware supports message ID-based dedup for idempotent agent handlers.",
+    "pagination_style": "none",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Message.Ack() and Message.Nack() must be called for every received message — not calling either blocks the consumer goroutine indefinitely, preventing other messages from being processed",
+      "Watermill Router stops all handlers if any handler's publisher returns a permanent error — distinguish transient errors (nack) from permanent errors carefully to avoid stopping the whole router",
+      "CQRS framework requires registering all command/event handlers before starting — handlers added after router.Run() are ignored; register all handlers in the bootstrap phase",
+      "In-memory publisher/subscriber loses messages on process restart — suitable for testing only; production agents must use durable brokers (Kafka, RabbitMQ) for persistent message delivery",
+      "Middleware is applied in reverse registration order for outbound messages — middleware registered last runs first for outbound; same as HTTP middleware but easy to confuse for message ordering",
+      "Watermill's GoChannel (in-memory) has a channel buffer of 0 by default — publisher blocks until subscriber reads; configure buffer size for agent pipelines with burst patterns"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 83,
+    "error_handling_score": 80,
+    "auth_complexity_score": 82,
+    "rate_limit_clarity_score": 88
+  },
+  "security_score_components": {
+    "tls_enforcement": 90,
+    "auth_strength": 82,
+    "scope_granularity": 78,
+    "dependency_hygiene": 85,
+    "secret_handling": 82,
+    "security_notes": "TLS and auth delegated to broker adapters. ThreeDotsLabs maintains. No credential storage — broker credentials managed externally."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 84,
+    "version_stability": 82,
+    "breaking_changes_history": 78,
+    "error_recovery": 85
+  }
+}
