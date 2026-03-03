@@ -1,0 +1,106 @@
+{
+  "id": "termcolor-python-api",
+  "name": "termcolor",
+  "version_evaluated": "2.x",
+  "homepage": "https://github.com/termcolor/termcolor",
+  "repo_url": "https://github.com/termcolor/termcolor",
+  "category": "developer-tools",
+  "subcategories": ["cli", "python", "terminal", "colors", "formatting"],
+  "tags": ["python", "termcolor", "colors", "terminal", "ansi", "cli", "formatting"],
+  "what_it_does": "Simple ANSI terminal color library for Python — adds color and style to terminal text with minimal API. termcolor features: colored(text, color, on_color, attrs) for colored strings, cprint() for direct colored printing, NO_COLOR environment variable support, FORCE_COLOR for forcing colors in non-TTY, support for colors (red/green/yellow/blue/magenta/cyan/white/grey), highlights (on_red/on_green etc.), attributes (bold/dark/underline/blink/reverse/concealed), Python 3.8+ support, and zero dependencies. Much simpler than colorama but Unix/macOS focused.",
+  "use_cases": [
+    "Agent status output — from termcolor import colored, cprint; cprint('SUCCESS', 'green', attrs=['bold']); cprint('FAILED', 'red', attrs=['bold']); cprint('WARNING', 'yellow') — colored status; agent CLI output uses color coding for quick status scanning; cprint() is colored + print() in one call",
+    "Agent log level coloring — from termcolor import colored; levels = {'DEBUG': 'cyan', 'INFO': 'white', 'WARNING': 'yellow', 'ERROR': 'red', 'CRITICAL': ('red', 'on_white')}; def color_log(level, msg): color = levels.get(level, 'white'); print(f'{colored(level, color)}: {msg}') — colored log levels; agent custom logger colors by level",
+    "Agent diff display — from termcolor import colored; for line in diff: if line.startswith('+'): print(colored(line, 'green')); elif line.startswith('-'): print(colored(line, 'red')); else: print(line) — colored diff; agent shows changes with green additions and red removals",
+    "Agent table header — from termcolor import colored; headers = ['Name', 'Status', 'Score']; header_row = ' | '.join(colored(h, attrs=['bold', 'underline']) for h in headers); print(header_row) — styled headers; agent table output uses bold underlined headers; colored() returns string for composition",
+    "Agent error highlighting — from termcolor import colored; error_msg = colored(str(e), 'red', attrs=['bold']); context = colored(f'while processing {item.name}', 'yellow'); print(f'{error_msg} {context}') — highlighted errors; agent error output stands out from normal output; mixed styled text with string composition"
+  ],
+  "not_for": [
+    "Windows compatibility — termcolor has limited Windows ANSI support; for Windows use colorama",
+    "256-color or True Color — termcolor supports only 8 basic colors; for rich colors use rich or blessed",
+    "Complex terminal UI — termcolor is for colorizing text only; for TUI use rich, blessed, or textual"
+  ],
+  "best_when": "Simple colored terminal output on Unix/macOS — termcolor's minimal API (one function, zero dependencies) is perfect for adding basic color to CLI tools without framework overhead.",
+  "avoid_when": "Windows support needed (use colorama), 256-color output (use rich/blessed), or complex terminal UI (use textual).",
+  "alternatives": ["colorama-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — local terminal formatting library."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "termcolor is MIT licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Performance: O(1) string wrapping with ANSI codes. Zero overhead for color generation — pure string concatenation.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 88,
+    "error_message_quality": 85,
+    "error_message_notes": "ValueError for invalid color names. AttributeError for invalid attribute names. colored() returns string — errors are at call site. No exceptions for non-TTY environments — ANSI codes included in output regardless.",
+    "idempotency_support": "full",
+    "idempotency_notes": "colored() is idempotent — same text and parameters always produce same ANSI-escaped string. Pure function with no side effects.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "ANSI codes in non-TTY produce raw escape sequences — colored('text', 'red') always returns ANSI-wrapped string; in non-TTY (file redirect, subprocess): output shows raw escape codes like \\033[31mtext\\033[0m; detect TTY: if sys.stdout.isatty(): use colored(); else: use plain text; or set NO_COLOR=1 env var to disable",
+      "NO_COLOR environment variable disables all colors — if os.environ.get('NO_COLOR'): colored() returns plain text; agent testing colored output must unset NO_COLOR; agent CI environments with NO_COLOR=1 produce plain output — ensure tests don't assert on ANSI codes",
+      "Nested colored() calls stack ANSI codes — colored(colored('text', 'red'), 'bold') wraps both codes; text shows as red AND bold; reset at end clears all; but intermediate reset from inner colored() may disrupt outer color; agent code with nested styles should use attrs= parameter: colored('text', 'red', attrs=['bold'])",
+      "attrs must be a list not string — colored('text', attrs='bold') raises ValueError; must be: colored('text', attrs=['bold']); multiple attrs: colored('text', 'red', attrs=['bold', 'underline']); common mistake from reading docs examples incorrectly",
+      "Grey is spelled 'grey' not 'gray' — colored('text', 'gray') raises ValueError: invalid color; correct spelling: colored('text', 'grey'); agent code copy-pasting from colorama documentation uses 'gray' which fails with termcolor",
+      "Reset not always emitted — colored() wraps with ANSI start and reset codes; but if terminal resets mid-sequence (terminal crash, Ctrl+C during print): subsequent output may inherit last color; agent CLI tools should print a final: print(colored('', 'white')) or similar reset on exit"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 88,
+    "error_handling_score": 85,
+    "auth_complexity_score": 99,
+    "rate_limit_clarity_score": 99
+  },
+  "security_score_components": {
+    "tls_enforcement": 92,
+    "auth_strength": 92,
+    "scope_granularity": 90,
+    "dependency_hygiene": 95,
+    "secret_handling": 90,
+    "security_notes": "Pure terminal formatting library with zero dependencies and no network calls. No security concerns. Colored output containing sensitive values is just as exposed as plain text — don't add color to masked credentials."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 90,
+    "breaking_changes_history": 90,
+    "error_recovery": 90
+  }
+}

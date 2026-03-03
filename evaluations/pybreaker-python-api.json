@@ -1,0 +1,106 @@
+{
+  "id": "pybreaker-python-api",
+  "name": "pybreaker",
+  "version_evaluated": "1.x",
+  "homepage": "https://github.com/danielfm/pybreaker",
+  "repo_url": "https://github.com/danielfm/pybreaker",
+  "category": "developer-tools",
+  "subcategories": ["resilience", "python", "circuit-breaker", "fault-tolerance"],
+  "tags": ["python", "pybreaker", "circuit-breaker", "resilience", "fault-tolerance", "microservices"],
+  "what_it_does": "Circuit breaker pattern implementation for Python — prevents cascading failures by stopping calls to failing services. pybreaker features: CircuitBreaker decorator/wrapper, three states (CLOSED=normal, OPEN=failing, HALF_OPEN=testing), fail_max for failure threshold, reset_timeout for recovery wait, exclude= for non-failure exceptions, state persistence via Redis/SQLite listeners, per-listener state callbacks (before_state_change, after_state_change), threading.Lock for thread safety, CircuitBreakerError on open circuit, MongoDBStorage for distributed state, and async support via AsyncCircuitBreaker.",
+  "use_cases": [
+    "Agent service call protection — from pybreaker import CircuitBreaker; breaker = CircuitBreaker(fail_max=5, reset_timeout=60); @breaker; def call_external_api(url): return requests.get(url) — circuit breaks after 5 failures; agent external API calls stop immediately when service is down; CircuitBreakerError raised on open circuit instead of waiting for timeout",
+    "Agent async circuit breaker — from pybreaker import AsyncCircuitBreaker; breaker = AsyncCircuitBreaker(fail_max=3, reset_timeout=30); @breaker; async def call_llm(prompt): return await llm.complete(prompt) — async circuit breaker; agent LLM calls protected from cascading failures; open circuit fails fast without blocking event loop",
+    "Agent state monitoring — from pybreaker import CircuitBreaker, CircuitBreakerListener; class LogListener(CircuitBreakerListener): def state_change(self, cb, old_state, new_state): logger.warning(f'Circuit {cb.name} changed from {old_state} to {new_state}'); breaker = CircuitBreaker(name='api', listeners=[LogListener()]) — state change callbacks; agent monitors circuit state changes for alerting",
+    "Agent exception filtering — breaker = CircuitBreaker(fail_max=5, exclude=[HTTPError]); @breaker; def api_call(): response = requests.get(url); response.raise_for_status() — exclude client errors; agent 4xx errors (bad request, auth failure) don't count as circuit failures; only server errors and timeouts trip the breaker",
+    "Agent Redis state sharing — from pybreaker import CircuitBreaker, RedisStorage; storage = RedisStorage(redis.Redis()); breaker = CircuitBreaker(fail_max=5, state_storage=storage); @breaker; def service_call(): pass — distributed state; multiple agent instances share circuit state via Redis; one agent's failures trip circuit for all instances"
+  ],
+  "not_for": [
+    "Retry logic — circuit breaker stops calls; for automatic retry use tenacity",
+    "Rate limiting — circuit breaker reacts to failures; for proactive rate limiting use ratelimit or slowapi",
+    "Async-first framework without pybreaker — for native async resilience use stamina or circuitbreaker library"
+  ],
+  "best_when": "Protecting agent external service calls from cascading failures — circuit breaker pattern stops futile calls to failing services and allows automatic recovery after a cooldown period.",
+  "avoid_when": "Retry logic (use tenacity), rate limiting (use slowapi), or simple timeout wrapping (use asyncio.wait_for).",
+  "alternatives": ["tenacity-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — resilience pattern library. Redis storage for distributed state uses Redis auth."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, BSD licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "pybreaker is BSD licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Performance: negligible overhead for circuit check in CLOSED state (lock + counter check). OPEN state: immediate CircuitBreakerError (~microseconds). Redis state: one Redis read per call in HALF_OPEN state.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 82,
+    "error_message_quality": 80,
+    "error_message_notes": "CircuitBreakerError raised when circuit is OPEN. Exception includes circuit name and state. Underlying exception not preserved in CircuitBreakerError — check circuit state separately. State change listeners provide rich state information.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Circuit state check is idempotent — same state produces same behavior. Failure counting is stateful — not idempotent. HALF_OPEN state allows exactly one test call — subsequent calls fail until test succeeds.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "CircuitBreakerError is not the underlying exception — when circuit is open, pybreaker raises CircuitBreakerError not the original network error; agent code catching specific exceptions (requests.exceptions.Timeout) must also catch CircuitBreakerError; handle both: except (requests.Timeout, CircuitBreakerError): handle_failure()",
+      "fail_max counts consecutive failures — 5 failures followed by 1 success resets counter; circuit opens when fail_max failures occur WITHOUT intervening success; agent services with intermittent failures that succeed sometimes may never trip circuit; tune fail_max to your failure pattern",
+      "reset_timeout starts from last failure — circuit stays OPEN for reset_timeout seconds after the LAST failure; if failures keep occurring during test period, timer resets; agent code should not hammer OPEN circuit with retries — it extends the recovery time",
+      "HALF_OPEN allows exactly one call — after reset_timeout, circuit enters HALF_OPEN and allows one test call; if test succeeds: circuit closes; if test fails: circuit reopens for another reset_timeout; agent parallel requests during HALF_OPEN: one succeeds (test), others raise CircuitBreakerError",
+      "Thread safety with threading.Lock — pybreaker uses threading.Lock for thread safety; in asyncio, synchronous lock causes event loop blocking; use AsyncCircuitBreaker for async code; mixing sync CircuitBreaker with async code causes subtle blocking issues",
+      "State storage required for multi-process sharing — in-memory state (default) is per-process; each agent process has independent circuit state; agent deployed with multiple workers: use RedisStorage for shared circuit state; without shared storage, each worker independently trips/resets circuit"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 82,
+    "error_handling_score": 80,
+    "auth_complexity_score": 92,
+    "rate_limit_clarity_score": 95
+  },
+  "security_score_components": {
+    "tls_enforcement": 88,
+    "auth_strength": 85,
+    "scope_granularity": 82,
+    "dependency_hygiene": 88,
+    "secret_handling": 85,
+    "security_notes": "Resilience pattern library. No direct security concerns. Circuit breaker state visibility (open/closed) could leak information about backend service health — protect circuit status endpoints. Redis storage uses Redis auth — ensure Redis connection is secured."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 80,
+    "version_stability": 80,
+    "breaking_changes_history": 80,
+    "error_recovery": 85
+  }
+}

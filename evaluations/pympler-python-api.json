@@ -1,0 +1,106 @@
+{
+  "id": "pympler-python-api",
+  "name": "Pympler",
+  "version_evaluated": "1.0.x",
+  "homepage": "https://pythonhosted.org/Pympler/",
+  "repo_url": "https://github.com/pympler/pympler",
+  "category": "developer-tools",
+  "subcategories": ["profiling", "python", "memory", "debugging", "analysis"],
+  "tags": ["python", "pympler", "memory", "profiling", "size", "tracking", "debugging"],
+  "what_it_does": "Python memory profiling and object analysis toolkit — measures object sizes, tracks memory over time, and identifies memory leaks. Pympler features: asizeof() for object memory size, muppy for heap tracking and diff, summary.print_() for object type summary, tracker.SummaryTracker for incremental tracking, refbrowser for reference browser, classtracker.ClassTracker for class instance tracking, web interface for browser-based memory analysis, and flat_diff() for memory change detection. More accurate than sys.getsizeof() — includes referenced objects.",
+  "use_cases": [
+    "Agent object size measurement — from pympler import asizeof; model = load_large_model(); size_mb = asizeof.asizeof(model) / 1e6; print(f'Model size: {size_mb:.1f} MB') — deep size including all references; agent measures actual memory used by complex objects; sys.getsizeof() only measures shallow size; asizeof includes all referenced objects",
+    "Agent memory growth tracking — from pympler.muppy import muppy; from pympler import summary; before = summary.summarize(muppy.get_objects()); do_work(); after = summary.summarize(muppy.get_objects()); diff = summary.get_diff(before, after); summary.print_(diff) — show objects created; agent identifies what objects were created during operation",
+    "Agent incremental leak detection — from pympler import tracker; tr = tracker.SummaryTracker(); process_batch_1(); tr.print_diff(); process_batch_2(); tr.print_diff() — track growth between snapshots; agent periodic memory check shows cumulative growth; each print_diff() shows objects created since last snapshot",
+    "Agent class tracking — from pympler.classtracker import ClassTracker; ct = ClassTracker(); ct.track_class(AgentContext); ct.create_snapshot('before'); run_agent(); ct.create_snapshot('after'); ct.stats.print_summary() — class-specific tracking; agent monitors how many AgentContext instances exist and their total memory",
+    "Agent memory budget assertion — from pympler import asizeof; payload = build_response(data); size = asizeof.asizeof(payload); assert size < 10 * 1024 * 1024, f'Response too large: {size / 1e6:.1f}MB' — size budget check; agent test verifies response objects stay within memory budget"
+  ],
+  "not_for": [
+    "Production monitoring — Pympler has significant overhead; for production use psutil or prometheus_client",
+    "CPU profiling — Pympler measures memory not CPU; for CPU use cProfile or pyinstrument",
+    "High-frequency measurements — asizeof traverses full object graph; expensive for hot paths"
+  ],
+  "best_when": "Measuring actual memory usage of complex Python objects and detecting memory leaks during development — Pympler's asizeof() gives accurate deep sizes that sys.getsizeof() misses.",
+  "avoid_when": "Production monitoring (use psutil), CPU profiling (use pyinstrument), or when objgraph's simpler interface is sufficient.",
+  "alternatives": ["memory-profiler-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — local memory analysis tool."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, Apache 2.0 licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Pympler is Apache 2.0 licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Performance: asizeof() traverses full object graph — O(n) for n referenced objects. Large ML models or DataFrames: seconds. muppy.get_objects() scans entire heap — significant overhead. Use only during debugging, never in production.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 78,
+    "error_message_quality": 75,
+    "error_message_notes": "Pympler rarely raises exceptions. asizeof() handles cycles via reference tracking. muppy functions return data without raising. Web interface may raise if port is in use. Error messages are standard Python exceptions.",
+    "idempotency_support": "full",
+    "idempotency_notes": "asizeof() is idempotent — same object produces same size (assuming no concurrent modification). SummaryTracker.print_diff() is stateful — advances baseline on each call.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "asizeof() includes all referenced objects recursively — asizeof.asizeof(large_dict) includes all values in the dict and their children; for a dict of 1000 large objects: asizeof returns total memory of all 1000 objects; agent code comparing: asizeof vs sys.getsizeof: sys.getsizeof(d) returns just dict overhead, asizeof returns everything",
+      "muppy.get_objects() is slow on large heaps — getting all objects traverses entire Python heap; on systems with 1M+ objects (ML models): takes seconds; agent debugging must run outside production; never call in request handlers or background jobs",
+      "SummaryTracker captures its own objects — tracker.SummaryTracker() stores snapshot of objects including itself; first print_diff() includes tracker's own objects; subsequent calls show only net new objects; ignore 'tracker' type entries in diff output",
+      "asizeof doesn't see C extension internals — numpy arrays, PyTorch tensors: asizeof sees Python wrapper but not underlying C memory; numpy array of 1GB: asizeof returns small Python object size; for numpy use arr.nbytes; for PyTorch use tensor.element_size() * tensor.nelement()",
+      "Web interface opens browser — from pympler.web import start_profiler; start_profiler() opens browser-based memory viewer on localhost:8080; agent code in automated testing must not call start_profiler(); use programmatic API (SummaryTracker, asizeof) for automation",
+      "Pympler is mature but less maintained — Pympler hasn't had major releases since 2021; for active development consider memray (Bloomberg, active development) for more modern memory profiling; Pympler's asizeof remains useful and stable for object size analysis"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 78,
+    "error_handling_score": 75,
+    "auth_complexity_score": 99,
+    "rate_limit_clarity_score": 99
+  },
+  "security_score_components": {
+    "tls_enforcement": 85,
+    "auth_strength": 85,
+    "scope_granularity": 85,
+    "dependency_hygiene": 85,
+    "secret_handling": 75,
+    "security_notes": "Memory analysis tool that inspects all Python objects. asizeof() may traverse objects containing credentials. Web interface (start_profiler) exposes memory data on localhost — do not expose port externally. Development use only. Output may contain sensitive data from application memory."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 75,
+    "version_stability": 78,
+    "breaking_changes_history": 80,
+    "error_recovery": 78
+  }
+}
