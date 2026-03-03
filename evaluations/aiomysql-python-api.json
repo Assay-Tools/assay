@@ -1,0 +1,106 @@
+{
+  "id": "aiomysql-python-api",
+  "name": "aiomysql",
+  "version_evaluated": "0.2.x",
+  "homepage": "https://aiomysql.readthedocs.io/",
+  "repo_url": "https://github.com/aio-libs/aiomysql",
+  "category": "developer-tools",
+  "subcategories": ["database", "mysql", "python", "async", "asyncio"],
+  "tags": ["python", "aiomysql", "mysql", "async", "asyncio", "mariadb", "database", "aio-libs"],
+  "what_it_does": "Async MySQL client library for Python asyncio — wrapper around PyMySQL providing non-blocking MySQL connections. aiomysql features: aiomysql.connect() for single connection, aiomysql.create_pool() for connection pooling, cursor.execute()/executemany() for queries, cursor.fetchall()/fetchone()/fetchmany(), DictCursor for dict results, SSCursor for server-side cursors (large result sets), transactions (conn.begin(), commit(), rollback()), autocommit mode, SQLAlchemy ORM integration via aiomysql.sa, and aio-libs ecosystem integration. Part of aio-libs like aiohttp.",
+  "use_cases": [
+    "Agent async MySQL query — import aiomysql; async with aiomysql.connect(host='db', user='agent', password='pass', db='agentdb') as conn: async with conn.cursor(aiomysql.DictCursor) as cur: await cur.execute('SELECT * FROM sessions WHERE agent_id=%s', (agent_id,)); rows = await cur.fetchall() — async MySQL; agent FastAPI reads session data without blocking event loop; DictCursor returns list of dicts instead of tuples",
+    "Agent connection pool — pool = await aiomysql.create_pool(host='db', user='u', password='p', db='db', minsize=5, maxsize=20); async with pool.acquire() as conn: async with conn.cursor() as cur: await cur.execute(sql, args) — connection pool for multi-request agent; pool.acquire() reuses connections; pool closed with pool.close(); await pool.wait_closed()",
+    "Agent transaction — async with conn.cursor() as cur: await conn.begin(); try: await cur.execute('UPDATE balance SET amt=amt-? WHERE id=?', (amount, sender)); await cur.execute('UPDATE balance SET amt=amt+? WHERE id=?', (amount, receiver)); await conn.commit(); except: await conn.rollback(); raise — explicit transaction; agent financial operations atomic with rollback on error",
+    "Agent bulk insert — async with conn.cursor() as cur: data = [(f'agent_{i}', score) for i, score in enumerate(scores)]; await cur.executemany('INSERT INTO results (name, score) VALUES (%s, %s)', data); await conn.commit() — bulk insert with executemany; agent batch data loading inserts 10K rows in one roundtrip; much faster than individual execute calls",
+    "Agent large result streaming — async with conn.cursor(aiomysql.SSCursor) as cur: await cur.execute('SELECT * FROM large_table'); while True: row = await cur.fetchone(); if row is None: break; process(row) — SSCursor fetches row-by-row from server; agent avoids loading 10M-row result into memory; memory-efficient for large dataset processing"
+  ],
+  "not_for": [
+    "Sync Python code — aiomysql requires asyncio; for sync MySQL use PyMySQL or mysqlclient",
+    "PostgreSQL — aiomysql is MySQL/MariaDB only; for PostgreSQL use asyncpg or psycopg3",
+    "SQLAlchemy 2.x ORM — aiomysql.sa is for SQLAlchemy Core not ORM; for async SQLAlchemy ORM use SQLAlchemy 2.x async engine with aiomysql dialect"
+  ],
+  "best_when": "Async Python services (FastAPI, aiohttp) connecting to MySQL or MariaDB — aiomysql provides non-blocking MySQL access in asyncio without blocking the event loop.",
+  "avoid_when": "Your code is synchronous (use PyMySQL), you need PostgreSQL (use asyncpg), or you want SQLAlchemy ORM (use SQLAlchemy 2.x async).",
+  "alternatives": ["asyncpg-python-api", "psycopg3-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["password", "tls"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "MySQL username/password auth. SSL/TLS via ssl parameter (dict with ca, cert, key paths). No OAuth — database-level auth only. Use least-privilege MySQL users for agent connections."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "MySQL/MariaDB server hosting costs are separate",
+    "requires_credit_card": false,
+    "notes": "aiomysql is MIT licensed. MySQL server licensing varies — community edition is GPL."
+  },
+  "performance": {
+    "latency_p50_ms": 2,
+    "latency_p99_ms": 20,
+    "uptime_sla_percent": null,
+    "rate_limits": "No client rate limits. Connection pool: acquire() is near-instant from pool. Query latency: 1-5ms local MySQL. Network latency for remote MySQL. executemany() significantly faster than individual execute() for bulk inserts.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted", "cloud"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 78,
+    "error_message_quality": 78,
+    "error_message_notes": "aiomysql.OperationalError for connection issues. aiomysql.IntegrityError for constraint violations. aiomysql.ProgrammingError for SQL syntax errors. Error numbers match PyMySQL/MySQL error codes. Error messages include MySQL error number and description. Documentation is sparse — PyMySQL docs supplement aiomysql.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "SQL operations are idempotent when designed correctly (INSERT IGNORE, ON DUPLICATE KEY UPDATE). Transaction rollback on exception with explicit conn.begin()/rollback(). autocommit=True makes each execute() auto-committed.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "autocommit=False by default — aiomysql.connect() starts with autocommit=False; every execute() is in implicit transaction; agent code without explicit commit() or begin()/commit() never persists data; must either: set autocommit=True in connect(), or explicitly call await conn.commit() after writes; reads work without commit but writes silently rollback on close",
+      "Connection pool acquire() context manager required — pool.acquire() returns connection but must use: async with pool.acquire() as conn — if connection not returned to pool via context manager, pool exhausts; agent code must ALWAYS use async with for pool.acquire(); bare conn = await pool.acquire() leaks connections",
+      "Parameterized queries use %s not ? — aiomysql uses %s placeholder: execute('SELECT * WHERE id=%s', (id,)); NOT ? like sqlite3 or $1 like asyncpg; agent code migrating from other databases must change all placeholders; using ? raises ProgrammingError: not all arguments converted during string formatting",
+      "cursor.execute() must use tuple not list for args — await cur.execute(sql, (arg,)) with tuple; await cur.execute(sql, [arg]) with list also works; but await cur.execute(sql, arg) with single non-sequence raises TypeError for single-argument queries; always wrap single args in tuple: (value,) not just value",
+      "fetchall() after large queries loads all into memory — await cursor.fetchall() on million-row query loads all rows into Python list; agent processing large MySQL tables must use SSCursor for server-side cursor and iterate with fetchone(); or use LIMIT/OFFSET pagination; regular cursor with fetchall() on large tables causes OOM",
+      "Pool must be closed gracefully — pool = await aiomysql.create_pool(...); app_shutdown must call: pool.close(); await pool.wait_closed(); FastAPI agent must add shutdown event: @app.on_event('shutdown') async def shutdown(): pool.close(); await pool.wait_closed(); without cleanup, pool connections leak and MySQL server accumulates dead connections"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 75,
+    "error_handling_score": 78,
+    "auth_complexity_score": 88,
+    "rate_limit_clarity_score": 92
+  },
+  "security_score_components": {
+    "tls_enforcement": 82,
+    "auth_strength": 80,
+    "scope_granularity": 78,
+    "dependency_hygiene": 80,
+    "secret_handling": 80,
+    "security_notes": "CRITICAL: Always use parameterized queries — string interpolation into SQL causes SQL injection. Use TLS for MySQL connections in production: ssl={'ca': '/path/to/ca.pem'}. Use least-privilege MySQL users — agent should not have DROP or CREATE privileges. Store MySQL credentials in environment variables not source code. Use connection pooling to limit max connections to MySQL server."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 75,
+    "version_stability": 72,
+    "breaking_changes_history": 72,
+    "error_recovery": 78
+  }
+}
