@@ -1,0 +1,106 @@
+{
+  "id": "icecream-python-api",
+  "name": "IceCream",
+  "version_evaluated": "2.x",
+  "homepage": "https://github.com/gruns/icecream",
+  "repo_url": "https://github.com/gruns/icecream",
+  "category": "developer-tools",
+  "subcategories": ["debugging", "python", "logging", "development"],
+  "tags": ["python", "icecream", "ic", "debugging", "print-debugging", "development", "inspection"],
+  "what_it_does": "Debugging print statement replacement for Python — ic() prints variable names, types, and values with context (file, line, parent function). IceCream features: ic(var) prints 'ic| filename.py:10 in func()- var: value', ic() without args prints caller location, ic.disable() to suppress in production, ic.enable() to re-enable, ic.configureOutput() for custom prefix/output function, ic.includeContext for toggling context display, supports any expression not just variables, and returns its argument for inline use. Drop-in upgrade over print() for debugging Python agents.",
+  "use_cases": [
+    "Agent variable inspection — from icecream import ic; agent_response = llm.generate(prompt); ic(agent_response) — prints 'ic| agent.py:15 in process()- agent_response: {\"action\": \"search\", ...}' with file/line context; agent developer sees variable name automatically; no more print('agent_response:', agent_response)",
+    "Agent inline debugging — from icecream import ic; result = ic(process_response(ic(llm_call(prompt)))) — ic() returns its argument for inline use; agent code inspects intermediate values in expression chain without breaking into multiple lines; each ic() shows its value with automatic label",
+    "Agent conditional debugging — from icecream import ic; ic.disable(); # in production; ic.enable() # in debug mode; @agent_handler; def handle(request): ic(request.headers); result = process(request); ic(result) — disable all ic() calls without removing them; agent production code has ic() calls pre-placed for debugging; toggle with environment variable: ic.disable() if os.getenv('ENV') == 'prod' else ic.enable()",
+    "Agent location tracing — from icecream import ic; ic() # no args — prints only 'ic| myagent.py:42 in execute_step()' with no value; agent developer traces execution path without adding values; determine which branch was taken without boolean variables",
+    "Agent custom output — from icecream import ic; import logging; ic.configureOutput(prefix='DEBUG| ', outputFunction=logging.debug) — redirect ic() output to logger instead of stderr; agent logging integration: ic() sends to structured log instead of terminal; prefix identifies ic output in log stream"
+  ],
+  "not_for": [
+    "Production logging — ic() is for development debugging; for structured production logging use loguru or structlog",
+    "Performance profiling — ic() adds string formatting overhead; for performance measurement use py-spy or viztracer",
+    "Automated testing assertions — ic() is visual inspection not programmatic assertion; use assert or pytest assertions for test validation"
+  ],
+  "best_when": "Quick interactive debugging of Python agent code during development — ic() shows variable names and values automatically, saving time over print() and providing file/line context.",
+  "avoid_when": "You need production logging (use loguru), structured output, automated assertions, or performance profiling.",
+  "alternatives": ["loguru-python-api", "structlog-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — local debugging library."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "IceCream is MIT licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Output overhead when enabled: ~0.1ms per ic() call including string formatting and output. ic.disable() makes ic() a near-zero overhead no-op. Use disable() in production to eliminate overhead.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 90,
+    "error_message_quality": 85,
+    "error_message_notes": "ic() itself raises no exceptions for normal use. If outputFunction raises, exception propagates. ic() with no args (location only) works even if called from C extensions or compiled code — shows best-effort location. No complex error states.",
+    "idempotency_support": "full",
+    "idempotency_notes": "ic() is purely additive — prints output and returns argument unchanged. ic.disable() is idempotent. ic.enable() is idempotent. ic(x) always returns x regardless of output state.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "ic() output goes to stderr not stdout — ic(value) writes to sys.stderr by default; agent code capturing stdout misses ic() output; redirecting stdout does not capture ic() output; use ic.configureOutput(outputFunction=print) to redirect to stdout; or ic.configureOutput(outputFunction=logging.debug) for log integration",
+      "ic.disable() is global not per-instance — from icecream import ic; ic.disable() disables all ic() calls in all modules; agent code with separate debug contexts cannot disable selectively; ic() is a module-level singleton; for per-module control create separate instances: from icecream import IceCreamDebugger; my_ic = IceCreamDebugger(); my_ic.disable()",
+      "Large objects format slowly — ic(huge_dataframe) formats entire DataFrame repr for output; 100K-row DataFrame ic() call takes seconds; agent code using ic() in loops with large objects should: ic(df.shape) not ic(df); or ic.configureOutput(prefix='', outputFunction=lambda s: None) to suppress temporarily",
+      "includeContext=True requires inspect overhead — ic() by default includes file/line/function context via Python's inspect module; this adds ~0.05ms per call; agent hot paths should: ic.configureOutput(includeContext=False) for minimal overhead when context not needed; context is most valuable for location tracing not value inspection",
+      "ic() in comprehensions shows expression not variable — ic([x for x in range(3)]) shows 'ic| list comprehension result: [0,1,2]' not individual x values; agent code wanting per-iteration ic() must unroll: for x in range(3): ic(x); ic() inside comprehension shows final result only",
+      "Jupyter notebooks show duplicate output — in Jupyter, ic() outputs to stderr which appears inline with cell output; combined with cell's normal output creates duplicate display; agent Jupyter notebook debugging should use ic.configureOutput(outputFunction=print) for cleaner Jupyter display or use IPython display() for rich object inspection"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 88,
+    "error_handling_score": 85,
+    "auth_complexity_score": 99,
+    "rate_limit_clarity_score": 99
+  },
+  "security_score_components": {
+    "tls_enforcement": 92,
+    "auth_strength": 92,
+    "scope_granularity": 90,
+    "dependency_hygiene": 92,
+    "secret_handling": 72,
+    "security_notes": "CRITICAL: ic() prints variable values to stderr — if variables contain secrets (API keys, passwords, PII), ic() exposes them in output. Always call ic.disable() in production. Never commit code with ic() calls that may print sensitive data without ic.disable() guard. ic() output is not encrypted or access-controlled."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 88,
+    "breaking_changes_history": 90,
+    "error_recovery": 90
+  }
+}

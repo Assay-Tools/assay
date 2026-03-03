@@ -1,0 +1,106 @@
+{
+  "id": "mimesis-python-api",
+  "name": "mimesis",
+  "version_evaluated": "13.x",
+  "homepage": "https://mimesis.name/",
+  "repo_url": "https://github.com/lk-geimfari/mimesis",
+  "category": "developer-tools",
+  "subcategories": ["testing", "python", "fake-data", "data-generation", "fixtures"],
+  "tags": ["python", "mimesis", "fake-data", "testing", "fixtures", "localization", "data-generation"],
+  "what_it_does": "High-performance fake data generation library for Python — generates realistic test data for 50+ languages/locales with rich provider system. mimesis features: Person (name, email, phone), Address, Finance, Internet, Text, Datetime, File, Cryptographic, Code (ISBN, EAN, PIN), Transport (VIN, aircraft), Medical, Food, Science, Hardware, BinaryFile providers, Generic for all providers, Schema for structured data generation, Field/Fieldset for database seeding, locale support (en, de, ja, zh, etc.), and 2-5x faster than Faker for bulk generation.",
+  "use_cases": [
+    "Agent test data generation — from mimesis import Person, Address; from mimesis.locales import Locale; person = Person(Locale.EN); print(person.full_name(), person.email(), person.phone()) — generates realistic English names, emails, phone numbers; agent test suite creates users without manual fixtures; 2-5x faster than Faker for bulk generation",
+    "Agent database seeding — from mimesis import Generic; from mimesis.schema import Schema, Field; f = Field(Locale.EN); schema = Schema(schema=lambda: {'id': f('uuid'), 'name': f('person.full_name'), 'email': f('email'), 'created': f('datetime.date')}); data = schema.create(iterations=10000) — generate 10K structured records; agent test database seeded with realistic data; schema() factory called N times",
+    "Agent localized test data — from mimesis import Person; from mimesis.locales import Locale; de_person = Person(Locale.DE); ja_person = Person(Locale.JA); assert de_person.full_name() != ja_person.full_name() — locale-appropriate names; agent internationalization testing generates locale-realistic data; 50+ locales with culturally accurate data",
+    "Agent reproducible test data — from mimesis import Person; person = Person(Locale.EN, seed=42); name1 = person.full_name(); person2 = Person(Locale.EN, seed=42); name2 = person2.full_name(); assert name1 == name2 — seed parameter for reproducibility; agent test regression suite generates identical data across runs; deterministic fixtures without storing files",
+    "Agent bulk data generation — from mimesis import Generic; g = Generic(Locale.EN); data = [{'name': g.person.full_name(), 'ip': g.internet.ip_v4(), 'country': g.address.country()} for _ in range(100000)] — generate 100K records; agent load testing creates realistic network log data; mimesis generates ~1M records/sec for simple providers"
+  ],
+  "not_for": [
+    "Production data — mimesis generates fake data only; never use for production records or real transactions",
+    "Stateful entity relationships — mimesis generates independent random values; for related entities (user + orders + items) with FK integrity use factory_boy",
+    "Cryptographically secure random data — mimesis uses Python random not secrets; for security-sensitive random values use secrets module or os.urandom()"
+  ],
+  "best_when": "High-volume fake data generation for testing, database seeding, and load test fixtures — mimesis's provider system generates realistic localized data 2-5x faster than Faker.",
+  "avoid_when": "You need entity relationships with FK integrity (use factory_boy), cryptographically secure random data (use secrets), or production data generation.",
+  "alternatives": ["faker-python-api", "factory-boy-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — local data generation library."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "mimesis is MIT licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Generation speed: ~1-5M simple values/sec. Complex providers (address with geocoding): ~100K/sec. Schema with 10 fields: ~200K records/sec. Reuse provider instances across calls — creating new Person() per record is 10x slower.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 82,
+    "error_message_notes": "LocaleError for unsupported locale. FieldError in Schema for unknown field name. SchemaError for invalid schema definition. UnsupportedAlgorithmError for unknown hash algorithms. Error messages are clear with available options listed. Provider method names must match exactly (case-sensitive).",
+    "idempotency_support": "partial",
+    "idempotency_notes": "seed parameter makes generation deterministic — same seed produces same sequence. Without seed, generation is random and non-idempotent. Schema.create() produces different data each run without seed. Provider instances maintain internal random state.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Provider instances should be reused not recreated — Person(Locale.EN) initialization parses locale data files; creating new Person() for each record adds 10-50ms overhead per instance; agent bulk data generation must create providers once and call methods repeatedly: p = Person(Locale.EN); [p.full_name() for _ in range(10000)]",
+      "Schema field names must match provider.method format — Field('person.full_name') not Field('full_name') or Field('Person.full_name'); agent schema definitions must use lowercase provider name dot method; schema validation does not catch typos until generate() called; test with small iterations first",
+      "Locale affects all providers in Generic — Generic(Locale.DE) uses German data for all providers; g.person.full_name() returns German names, g.address.city() returns German cities; agent multi-locale data must create separate Generic instances per locale; Generic with Locale.EN does not generate German data",
+      "seed reproduces sequence not single value — person = Person(Locale.EN, seed=42); person.full_name(); person.full_name() returns different names; seed sets starting point for sequence; agent expecting same value from multiple calls must store first result not re-call with same seed; re-instantiating with same seed resets sequence",
+      "mimesis does not generate entity relationships — person.email() and person.full_name() are independent; agent test needing email matching name (john@doe.com with John Doe) must combine: name = p.name(); surname = p.surname(); email = f'{name.lower()}.{surname.lower()}@{p.email().split(\"@\")[1]}'; mimesis has no built-in correlated generation",
+      "BinaryFile provider generates actual binary content — g.file.image() returns PNG image bytes; g.file.audio() returns WAV bytes; agent test code receiving BinaryFile output must handle bytes not strings; schema with binary fields requires special serialization for JSON storage; check content type before treating as text"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 82,
+    "auth_complexity_score": 99,
+    "rate_limit_clarity_score": 99
+  },
+  "security_score_components": {
+    "tls_enforcement": 92,
+    "auth_strength": 92,
+    "scope_granularity": 90,
+    "dependency_hygiene": 90,
+    "secret_handling": 90,
+    "security_notes": "Fake data library with no network calls. Generated data is not cryptographically secure — do not use for tokens, passwords, or security-sensitive random values. Fake personal data (names, emails, addresses) should not be used in production systems as it may conflict with real data. Clearly document that generated data is fake in test environments."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 85,
+    "version_stability": 82,
+    "breaking_changes_history": 80,
+    "error_recovery": 85
+  }
+}

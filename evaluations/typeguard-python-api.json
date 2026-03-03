@@ -1,0 +1,106 @@
+{
+  "id": "typeguard-python-api",
+  "name": "typeguard",
+  "version_evaluated": "4.x",
+  "homepage": "https://typeguard.readthedocs.io/",
+  "repo_url": "https://github.com/agronholm/typeguard",
+  "category": "developer-tools",
+  "subcategories": ["type-checking", "python", "runtime", "validation", "typing"],
+  "tags": ["python", "typeguard", "runtime-type-checking", "typing", "validation", "decorator"],
+  "what_it_does": "Runtime type checking library for Python — enforces PEP 484 type hints at function call time and on arbitrary values. typeguard features: @typechecked decorator for function enforcement, check_type() for value validation, TypeCheckMemo for context, install_import_hook() for import-time instrumentation, TypeCheckError exception, CollectionCheckStrategy for container element checking, and pytest plugin (pytest-typeguard). More comprehensive than beartype for container checking at cost of higher overhead. typeguard 4.x is rewritten from 3.x with breaking changes.",
+  "use_cases": [
+    "Agent function type enforcement — from typeguard import typechecked; @typechecked; def process_config(config: dict[str, list[str]], limit: int) -> bool: return len(config) <= limit — @typechecked checks parameter types on each call; agent receives malformed config: TypeCheckError with message 'parameter config is not an instance of dict'; container element types validated",
+    "Agent value validation — from typeguard import check_type; check_type(api_response, dict[str, Any]) — validate arbitrary value against type hint; agent API response validation without decorating the parse function; raises TypeCheckError with detailed message if type mismatch; useful for validating data at boundaries",
+    "Agent import-time instrumentation — from typeguard import install_import_hook; install_import_hook('myagent') — instruments entire package at import time; all type annotations enforced without @typechecked decorator; agent debugging mode enables comprehensive type checking; disable in production by not calling install_import_hook",
+    "Agent container element checking — from typeguard import typechecked, CollectionCheckStrategy; @typechecked(collection_check_strategy=CollectionCheckStrategy.ALL_ITEMS); def validate_batch(items: list[AgentResult]) -> None: process(items) — check every element in list not just first; agent batch validation catches malformed items anywhere in batch; ALL_ITEMS is slower but more thorough than default (first item only)",
+    "Agent pytest integration — from typeguard.pytest_plugin import typeguard_packages; def pytest_configure(config): config.addinivalue_line('markers', 'typeguard: typecheck this test') — pytest-typeguard enforces types in test functions; agent test suite catches type contract violations during testing not just production; configure in pyproject.toml: [tool.pytest.ini_options] addopts = '--typeguard-packages=myagent'"
+  ],
+  "not_for": [
+    "High-performance hot paths — typeguard adds per-call overhead (microseconds to milliseconds); for minimal overhead use beartype which is 100-1000x faster for complex types",
+    "Data validation/coercion — typeguard validates existing Python objects; for parsing and converting external data use pydantic",
+    "Static type checking — typeguard is runtime only; use mypy or pyright for static analysis"
+  ],
+  "best_when": "Thorough runtime type checking during development and testing where type correctness matters more than overhead — typeguard's comprehensive container checking catches type errors that beartype misses.",
+  "avoid_when": "You need maximum performance (use beartype), data coercion (use pydantic), or static analysis (use mypy/pyright).",
+  "alternatives": ["beartype-python-api", "pydantic-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — local type checking library."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "typeguard is MIT licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Check overhead: 10-100μs per decorated function call for simple types. Container checking with ALL_ITEMS strategy is O(n) for list length. 100-1000x slower than beartype for complex generic types. Best suited for test/development environments.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 80,
+    "error_message_quality": 85,
+    "error_message_notes": "TypeCheckError with detailed message showing parameter name, expected type, actual type. Container check errors show which element failed and its value. TypeCheckMemo provides context for nested checks. Error messages are descriptive but can be verbose for deeply nested types. typeguard 4.x error messages improved over 3.x.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Type checking is pure — same input always produces same type check result. check_type() is idempotent. @typechecked decoration is idempotent for same function.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "typeguard 4.x breaking changes from 3.x — typeguard 4.0 rewrote internals; check_argument_types() and check_return_type() from 3.x removed; TypeCheckError replaced TypeError; agent code upgrading from typeguard 3.x must update exception handling and API calls; do not mix 3.x and 4.x documentation",
+      "install_import_hook() must be before imports — typeguard.install_import_hook('mypackage') must run before import mypackage; calling after import misses already-loaded modules; agent code must put install_import_hook at application entry point, not inside package being monitored; circular import issues arise if monitoring own package",
+      "CollectionCheckStrategy.ALL_ITEMS is O(n) — @typechecked on function accepting list[ComplexType] with ALL_ITEMS checks every element; 10K-element list checks 10K objects; agent batch functions must avoid ALL_ITEMS in production; default strategy checks only first item: CollectionCheckStrategy.FIRST_ITEM; use ALL_ITEMS in tests only",
+      "check_type() does not coerce — check_type('42', int) raises TypeCheckError even though '42' could be int; typeguard validates not converts; agent code receiving string from JSON API must convert before check_type: check_type(int(api_val), int); use pydantic for conversion + validation pipeline",
+      "@typechecked on class method requires self annotation — @typechecked on method: def fn(self, x: int) checks x but not self; if self annotation added (def fn(self: 'MyClass', x: int)), typeguard validates self type; agent code with @typechecked on staticmethod: use @staticmethod before @typechecked not after; decorator order matters",
+      "TypeVar and Generic checking is limited — @typechecked on Generic[T] function: def fn(x: T) -> T — typeguard cannot verify T is consistent between parameter and return at runtime; TypeVar bounds checked but not consistency; agent code with complex generics should use Protocol for structural checking instead of TypeVar for runtime guarantees"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 80,
+    "error_handling_score": 85,
+    "auth_complexity_score": 98,
+    "rate_limit_clarity_score": 98
+  },
+  "security_score_components": {
+    "tls_enforcement": 92,
+    "auth_strength": 92,
+    "scope_granularity": 90,
+    "dependency_hygiene": 88,
+    "secret_handling": 92,
+    "security_notes": "Type checking library with no network calls. TypeCheckError messages include actual values — avoid logging these exceptions if parameters may contain secrets. install_import_hook() instruments all code in package including internal modules — ensure no sensitive logic is bypassed."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 80,
+    "version_stability": 72,
+    "breaking_changes_history": 68,
+    "error_recovery": 82
+  }
+}
