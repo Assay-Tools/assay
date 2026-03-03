@@ -1,0 +1,106 @@
+{
+  "id": "dateparser-python-api",
+  "name": "dateparser",
+  "version_evaluated": "1.2.x",
+  "homepage": "https://dateparser.readthedocs.io/",
+  "repo_url": "https://github.com/scrapinghub/dateparser",
+  "category": "developer-tools",
+  "subcategories": ["datetime", "python", "nlp", "parsing", "internationalization"],
+  "tags": ["python", "dateparser", "date", "parsing", "nlp", "natural-language", "multilingual", "datetime"],
+  "what_it_does": "Natural language date parser for Python — parses dates from human-written text in 200+ languages. dateparser features: dateparser.parse() for flexible date parsing, PREFER_DAY_OF_MONTH/PREFER_DATES_FROM settings, timezone-aware parsing, relative date expressions ('yesterday', '3 days ago', 'next week'), formal date formats (ISO 8601, RFC 822), date range detection, DateDataParser for custom settings, language-specific parsers, RETURN_TIME_AS_PERIOD setting, and freshness_date_parser for 'X ago' patterns. Handles: '3 hours ago', 'Fri, 12 Dec 2014 10:55:50', 'le 12 décembre 2014', '12 Dec 2014'.",
+  "use_cases": [
+    "Agent web scraping dates — import dateparser; raw_date = '2 days ago'; parsed = dateparser.parse(raw_date) — datetime object; agent parses publication dates from scraped articles; handles relative dates, formal dates, and international formats in single call",
+    "Agent multilingual date parsing — parsed = dateparser.parse('le 12 décembre 2014') — French date; dateparser.parse('12. Dezember 2014') — German; dateparser.parse('2014年12月12日') — Chinese; agent processing international content parses dates from 200+ languages without explicit format string",
+    "Agent settings customization — import dateparser; result = dateparser.parse('January 5', settings={'PREFER_DATES_FROM': 'past', 'RETURN_TIME_AS_PERIOD': True, 'TIMEZONE': 'UTC'}) — configured parsing; agent specifies timezone and date ambiguity resolution; PREFER_DATES_FROM controls future vs past for ambiguous dates",
+    "Agent relative date processing — dates = ['yesterday', 'last week', '3 months ago', 'next Friday']; parsed = [dateparser.parse(d) for d in dates] — relative date list; agent newsletter parser converts relative publication dates to absolute datetimes; all parsed relative to current time",
+    "Agent bulk date extraction — from dateparser.search import search_dates; text = 'Meeting on January 5th and follow-up on the 12th'; dates = search_dates(text) — extract multiple dates from text; agent extracts all date references from document; returns list of (text_match, datetime) tuples"
+  ],
+  "not_for": [
+    "Strict format parsing — dateparser is permissive; for strict ISO 8601 parsing use datetime.fromisoformat() or arrow",
+    "Date arithmetic — dateparser parses strings to datetime; for date math use arrow or pendulum",
+    "High-performance bulk parsing — dateparser is slow (NLP-based); for parsing millions of dates in known format use pandas.to_datetime() or strptime"
+  ],
+  "best_when": "Parsing dates from unstructured text, web scraping, and international content where format is unknown — dateparser's language-aware fuzzy parsing handles the messiness of real-world date strings.",
+  "avoid_when": "Known strict formats (use strptime), high-performance bulk parsing (use pandas.to_datetime), or date arithmetic (use arrow/pendulum).",
+  "alternatives": ["arrow-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — local date parsing library."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, BSD licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "dateparser is BSD licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 50,
+    "latency_p99_ms": 500,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Performance: slow — NLP-based parsing with regex and language models; 50-200ms per parse call; not suitable for high-throughput (100K+ records); for bulk parsing of known formats use strptime; DateDataParser with explicit languages is faster than auto-detection.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 80,
+    "error_message_quality": 75,
+    "error_message_notes": "dateparser.parse() returns None for unparseable input — no exception. search_dates() returns None if no dates found. Rarely raises exceptions. Failed parses are silent — agent code must always check: if result is None: handle_failure().",
+    "idempotency_support": "partial",
+    "idempotency_notes": "parse() with fixed settings is idempotent for absolute dates. Relative dates ('yesterday', '3 days ago') produce different results on different days — not idempotent by nature. Use RELATIVE_BASE setting to fix reference time for reproducible tests.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Returns None on failure not exception — dateparser.parse('not a date') returns None silently; agent code must check: result = dateparser.parse(text); if result is None: log_warning('Could not parse date'); handle accordingly; forgetting None check causes AttributeError on result.strftime() or similar",
+      "Slow for high-volume parsing — dateparser processes each string through NLP pipeline; 50-500ms per call; agent pipeline processing 10K articles with dates takes 500-5000 seconds; pre-filter to likely date strings before dateparser; for known formats use: datetime.strptime() which is 100x faster",
+      "Relative dates are relative to current time — 'yesterday' parses to yesterday's date at parse time; agent code running in tests must set RELATIVE_BASE: dateparser.parse('yesterday', settings={'RELATIVE_BASE': datetime(2024, 1, 15)}) for reproducible test behavior",
+      "Ambiguous dates depend on locale — '01/02/2024': American = January 2nd; European = February 1st; agent code parsing mixed-locale content must set: settings={'DATE_ORDER': 'MDY'} for American or 'DMY' for European; no setting = system locale default",
+      "PREFER_DATES_FROM controls year ambiguity — 'January 5' without year: PREFER_DATES_FROM='past' returns previous January 5; PREFER_DATES_FROM='future' returns next January 5; PREFER_DATES_FROM='current_period' returns this year's January 5; agent scraping articles should usually use 'past'",
+      "Language detection has overhead — dateparser auto-detects language by default; for known-language content: dateparser.parse(date_str, languages=['en']) is faster; or use DateDataParser(languages=['en', 'fr']) instance; pre-specifying languages skips language detection loop"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 80,
+    "error_handling_score": 75,
+    "auth_complexity_score": 99,
+    "rate_limit_clarity_score": 99
+  },
+  "security_score_components": {
+    "tls_enforcement": 92,
+    "auth_strength": 92,
+    "scope_granularity": 90,
+    "dependency_hygiene": 88,
+    "secret_handling": 92,
+    "security_notes": "Date parsing library with no network calls. No security concerns for parsing untrusted date strings — worst case is None return. Large strings may cause slow parsing — validate string length before passing user input to dateparser."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 80,
+    "version_stability": 80,
+    "breaking_changes_history": 78,
+    "error_recovery": 80
+  }
+}
