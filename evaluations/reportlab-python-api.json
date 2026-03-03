@@ -1,0 +1,106 @@
+{
+  "id": "reportlab-python-api",
+  "name": "reportlab",
+  "version_evaluated": "4.x",
+  "homepage": "https://www.reportlab.com/",
+  "repo_url": "https://github.com/MrBitBucket/reportlab-mirror",
+  "category": "developer-tools",
+  "subcategories": ["document-generation", "python", "pdf", "reporting"],
+  "tags": ["python", "reportlab", "pdf", "report", "generation", "canvas", "platypus"],
+  "what_it_does": "Python PDF generation library — creates PDF documents programmatically with full layout control. reportlab features: Canvas API for low-level drawing (drawString, rect, line, image), PLATYPUS (Page Layout and Typography Using Scripts) for high-level document flow, Paragraph for styled text with HTML markup, Table with auto-sizing and style, Frame/PageTemplate for page layout, Flowable document model, graphics module (shapes, charts), color management, font embedding (TTF/OTF), SimpleDocTemplate and BaseDocTemplate, PDF encryption/metadata, and SVG rendering. The standard Python PDF generation library.",
+  "use_cases": [
+    "Agent PDF report — from reportlab.lib.pagesizes import letter; from reportlab.platypus import SimpleDocTemplate, Paragraph, Table; from reportlab.lib.styles import getSampleStyleSheet; doc = SimpleDocTemplate('report.pdf', pagesize=letter); styles = getSampleStyleSheet(); elements = [Paragraph('Report Title', styles['Title']), Table(data)]; doc.build(elements) — full report; agent generates formatted PDF reports with styled text and tables",
+    "Agent canvas drawing — from reportlab.pdfgen import canvas; c = canvas.Canvas('output.pdf'); c.setFont('Helvetica', 12); c.drawString(100, 750, 'Hello World'); c.rect(50, 700, 200, 50); c.save() — low-level canvas; agent draws directly on PDF page with pixel-precise positioning",
+    "Agent table generation — from reportlab.platypus import Table, TableStyle; data = [['Name', 'Value'], ['Item 1', '100'], ['Item 2', '200']]; table = Table(data, colWidths=[200, 100]); table.setStyle(TableStyle([('BACKGROUND', (0,0), (-1,0), colors.grey), ('GRID', (0,0), (-1,-1), 1, colors.black)])) — styled table; agent creates formatted tables with headers and borders in PDF",
+    "Agent paragraph with markup — from reportlab.platypus import Paragraph; from reportlab.lib.styles import getSampleStyleSheet; text = 'Normal <b>bold</b> <i>italic</i> text'; p = Paragraph(text, styles['Normal']) — inline styles; agent creates paragraphs with inline HTML-like formatting; bold, italic, color, font changes inline",
+    "Agent image in PDF — from reportlab.platypus import Image; img = Image('chart.png', width=400, height=300); elements = [paragraph, img, table]; doc.build(elements) — embedded image; agent embeds matplotlib charts or logos in PDF reports; Image flowable handles aspect ratio"
+  ],
+  "not_for": [
+    "HTML to PDF — reportlab generates from scratch; for HTML→PDF conversion use weasyprint or pdfkit",
+    "PDF editing — reportlab creates new PDFs not edits existing; for editing use pypdf or pikepdf",
+    "Simple text PDFs — reportlab has significant API complexity; for simple PDFs use fpdf2"
+  ],
+  "best_when": "Complex PDF report generation from data — reportlab is the industry standard for Python PDF generation with full layout control, used by Django-based reporting tools and financial report generators.",
+  "avoid_when": "HTML to PDF conversion (use weasyprint), editing existing PDFs (use pypdf), simple PDFs (use fpdf2), or when pandoc/LaTeX would be more appropriate.",
+  "alternatives": [],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — local PDF generation library."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, BSD licensed",
+    "paid_tiers": "ReportLab PLUS: commercial license with encryption, additional charts, support",
+    "requires_credit_card": false,
+    "notes": "reportlab is BSD licensed for open source use. ReportLab PLUS is commercial for additional features. Core library free."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Performance: simple PDF generation ~100-500ms. Complex documents with many tables/images: 1-10s. Image processing (JPEG/PNG embedding) is the main bottleneck. Pre-process images to appropriate size before embedding.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 78,
+    "error_message_quality": 72,
+    "error_message_notes": "LayoutError when content doesn't fit in frame. ValueError for invalid color specifications. AttributeError for wrong style names. Error messages can be cryptic — often just 'Cannot fit' without detail. Debug with paragraph overflow: ALLOW_ORPHANS setting.",
+    "idempotency_support": "full",
+    "idempotency_notes": "doc.build() is idempotent — same elements always produce same PDF. Canvas operations are deterministic. Output is byte-identical for same input (no timestamps embedded by default).",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Coordinate system origin is bottom-left — reportlab canvas uses PDF coordinates: (0,0) is bottom-left, y increases upward; agent code placing elements: y=750 is near top of letter page (792pt); common mistake: placing text at y=100 puts it near bottom not near top; convert: y_from_top = page_height - y_pdf",
+      "doc.build() consumes elements list — PLATYPUS Flowables are consumed on build(); cannot reuse elements list; agent code building multiple PDFs: recreate elements list each time; or use copy.deepcopy(elements) to clone before building; Table.style is mutable — clone before reuse",
+      "getSampleStyleSheet styles are shared — styles = getSampleStyleSheet() returns shared dict; modifying styles['Normal'] affects all paragraphs using that style in same process; agent code: create new ParagraphStyle instead of modifying sample styles: from reportlab.lib.styles import ParagraphStyle; custom = ParagraphStyle('custom', parent=styles['Normal'])",
+      "Paragraph HTML markup is limited subset — Paragraph text supports <b>, <i>, <u>, <br/>, <font color=''>, <link> — not full HTML; agent code rendering HTML to PDF: parse HTML separately and create Paragraphs; or use weasyprint for full HTML-to-PDF; invalid markup silently produces garbled text",
+      "Table requires 2D list not DataFrame — Table(data) where data is list of lists: [[header1, header2], [row1val1, row1val2]]; pandas DataFrame must be converted: data = [df.columns.tolist()] + df.values.tolist(); agent code with pandas data must convert before passing to Table",
+      "Image size in points not pixels — Image('file.png', width=400, height=300) uses PDF points (1 point = 1/72 inch); A4 page is 595x842 points; agent code: calculate size to fill page width: img = Image('file.png', width=doc.width, height=doc.width*0.6); use aspect ratio to avoid distortion"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 78,
+    "error_handling_score": 72,
+    "auth_complexity_score": 99,
+    "rate_limit_clarity_score": 99
+  },
+  "security_score_components": {
+    "tls_enforcement": 90,
+    "auth_strength": 90,
+    "scope_granularity": 88,
+    "dependency_hygiene": 85,
+    "secret_handling": 88,
+    "security_notes": "PDF generation library with no network calls. User-controlled content in PDFs: Paragraph markup HTML injection — sanitize user content before inserting into Paragraph. PDF can contain JavaScript — reportlab doesn't add JS by default. Image embedding: validate image sources to prevent SSRF if image URLs are user-controlled. Generated PDFs may be cached — avoid embedding secrets."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 78,
+    "version_stability": 80,
+    "breaking_changes_history": 78,
+    "error_recovery": 75
+  }
+}
