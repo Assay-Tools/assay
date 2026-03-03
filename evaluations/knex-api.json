@@ -2,27 +2,27 @@
   "id": "knex-api",
   "name": "Knex.js",
   "version_evaluated": "3.x",
-  "homepage": "https://knexjs.org",
+  "homepage": "https://knexjs.org/",
   "repo_url": "https://github.com/knex/knex",
   "category": "developer-tools",
-  "subcategories": ["query-builder"],
-  "tags": ["javascript", "typescript", "database", "sql", "query-builder", "postgresql", "mysql", "sqlite"],
-  "what_it_does": "Promise-based SQL query builder for Node.js with a chainable API, schema migrations, and connection pooling — sits between raw SQL and a full ORM.",
+  "subcategories": ["query-builder", "database", "node.js", "sql"],
+  "tags": ["node.js", "query-builder", "sql", "postgresql", "mysql", "sqlite", "migrations", "transactions"],
+  "what_it_does": "SQL query builder and database migration tool for Node.js. Provides a fluent chainable API for building SQL queries that compiles to the correct dialect (PostgreSQL, MySQL, SQLite, Oracle, MSSQL). Supports transactions, connection pooling, and a built-in migration runner. Not a full ORM — returns plain objects; no model/relationship abstraction.",
   "use_cases": [
-    "Build type-safe parameterized SQL queries programmatically without string concatenation in agent data pipelines",
-    "Manage schema migrations with knex.schema.createTable() and a versioned migration directory for deployment automation",
-    "Construct dynamic WHERE clauses with chained .where()/.orWhere()/.whereIn() calls based on runtime agent inputs",
-    "Execute raw SQL via knex.raw() with binding placeholders when the query builder abstraction is insufficient",
-    "Handle connection pooling and multi-dialect support (PostgreSQL, MySQL, SQLite, MSSQL) from a single interface"
+    "Build complex SQL queries for agent data retrieval with Knex's chainable query builder and type-aware placeholders",
+    "Manage Node.js agent database schema migrations with Knex's built-in migration runner and rollback support",
+    "Execute transactions in agent pipelines that span multiple database operations with automatic rollback on failure",
+    "Switch between database backends (SQLite in dev, PostgreSQL in prod) with a single config change in agent services",
+    "Build raw-SQL-close queries for agent reporting and analytics without full ORM overhead"
   ],
   "not_for": [
-    "Projects that need entity-level abstractions with relations and lifecycle hooks — use an ORM like TypeORM or Sequelize instead",
-    "Developers who prefer writing raw SQL directly — the query builder adds little value over a simple pg or mysql2 driver in that case",
-    "GraphQL or REST API generation — knex only handles the query layer and provides no schema-to-API tooling"
+    "Applications needing full ORM with model relationships and lazy loading — use Objection.js (built on Knex) or TypeORM for ORM features",
+    "TypeScript-first projects requiring type inference from schema — use Drizzle or Prisma for typed queries",
+    "Simple CRUD without complex queries — Prisma's client is easier to use for standard Create/Read/Update/Delete"
   ],
-  "best_when": "You need SQL-level control and portability across dialects without the overhead of a full ORM, especially for complex dynamic query construction.",
-  "avoid_when": "Your team needs entity-relation modeling with associations, eager loading, and model lifecycle hooks that a query builder does not provide.",
-  "alternatives": ["typeorm-api", "sequelize-api", "prisma"],
+  "best_when": "You need close-to-SQL query building in Node.js with multi-database support, built-in migrations, and connection pooling — without a full ORM abstraction layer.",
+  "avoid_when": "You need TypeScript type inference from your schema or full ORM relationship management — use Drizzle or Prisma for type-safe ORM in TypeScript.",
+  "alternatives": ["drizzle-orm-api", "prisma-client-api", "typeorm-api"],
   "interface": {
     "has_rest_api": false,
     "has_graphql": false,
@@ -30,7 +30,7 @@
     "has_mcp_server": false,
     "mcp_server_url": null,
     "has_sdk": true,
-    "sdk_languages": ["javascript", "typescript"],
+    "sdk_languages": ["node"],
     "openapi_spec_url": null,
     "webhooks": false
   },
@@ -38,28 +38,28 @@
     "methods": ["none"],
     "oauth": false,
     "scopes": false,
-    "notes": "Library — credentials are provided in the knex({ client, connection }) config object or via connection string."
+    "notes": "Query builder library — database auth configured in Knex connection config."
   },
   "pricing": {
     "model": "open_source",
     "free_tier_exists": true,
-    "free_tier_limits": "Unlimited, open source MIT license",
+    "free_tier_limits": "MIT licensed, completely free",
     "paid_tiers": "None",
     "requires_credit_card": false,
-    "notes": "Open source under MIT license."
+    "notes": "MIT license. Community-maintained project."
   },
   "performance": {
     "latency_p50_ms": null,
     "latency_p99_ms": null,
     "uptime_sla_percent": null,
-    "rate_limits": "None (library)",
+    "rate_limits": "No rate limits — local query builder. Connection pool managed by Knex/tarn.",
     "data_source": "llm_estimated"
   },
   "requirements": {
     "requires_signup": false,
     "requires_credit_card": false,
     "domain_verification": false,
-    "data_residency": ["self_hosted"],
+    "data_residency": ["local"],
     "compliance": [],
     "min_contract": "none"
   },
@@ -67,39 +67,40 @@
     "mcp_server_quality": null,
     "mcp_security_score": null,
     "documentation_accuracy": 85,
-    "error_message_quality": 80,
-    "error_message_notes": "Errors include the generated SQL and binding values in development mode, which aids debugging but can leak data — agents must configure debug:false in production.",
+    "error_message_quality": 78,
+    "error_message_notes": "Database errors include the generated SQL in debug mode (DEBUG=knex:query). Constraint violation errors propagate from the underlying driver. Migration errors include the failing migration filename.",
     "idempotency_support": "partial",
-    "idempotency_notes": "INSERT ... ON CONFLICT (upsert) is dialect-specific; knex.raw() is needed for full upsert semantics on PostgreSQL — no built-in idempotent insert abstraction.",
-    "pagination_style": "offset",
+    "idempotency_notes": "Queries follow SQL semantics. Use onConflict().merge() for PostgreSQL upserts. Migration runner tracks applied migrations and is idempotent.",
+    "pagination_style": "none",
     "retry_guidance_documented": false,
     "known_agent_gotchas": [
-      "knex() returns a query builder, not a Promise — agents must call .then() or await to actually execute the query, not just build it",
-      "knex.schema migrations are ordered by filename timestamp; generating migration files out of order will apply them incorrectly",
-      "Connection pool exhaustion is silent — queries will hang indefinitely rather than throwing if pool.max is reached and acquireTimeoutMillis is not set",
-      "knex.raw() does NOT escape identifiers (table/column names) — agent-generated identifiers must be whitelisted, not passed directly",
-      "Transaction rollback on error requires explicit try/catch with trx.rollback(); unhandled exceptions inside a transaction do not auto-rollback"
+      "Knex queries are lazy — knex('table').where(…) returns a query builder object, not a result; must await the query or call .then() to execute",
+      "Transaction callbacks must return the transaction knex object (trx), not the global knex — using knex inside a transaction instead of trx bypasses the transaction",
+      "knex.destroy() must be called when shutting down agent processes — Knex connection pools keep event loops alive and prevent clean process exit",
+      "Dynamic table names in .from(tableName) are interpolated without escaping — always use knex.ref() or ensure table names come from trusted sources to prevent SQL injection",
+      "Knex migration files use timestamps for ordering — files are sorted alphabetically; migrations with identical timestamps may run in wrong order on fast machines",
+      "TypeScript support is partial — Knex returns any type for query results; use explicit generic typing (knex<User>('users').select()) for type-safe results"
     ]
   },
   "af_score_components": {
     "mcp_score": 0,
     "api_doc_score": 85,
-    "error_handling_score": 80,
+    "error_handling_score": 78,
     "auth_complexity_score": 100,
-    "rate_limit_clarity_score": 100
+    "rate_limit_clarity_score": 95
   },
   "security_score_components": {
-    "tls_enforcement": 0,
-    "auth_strength": 0,
-    "scope_granularity": 0,
-    "dependency_hygiene": 80,
-    "secret_handling": 78,
-    "security_notes": "Query builder uses parameterized bindings by default, preventing SQL injection; knex.raw() with ?? identifier escaping is limited — agents must validate identifiers externally."
+    "tls_enforcement": 95,
+    "auth_strength": 90,
+    "scope_granularity": 90,
+    "dependency_hygiene": 85,
+    "secret_handling": 88,
+    "security_notes": "Parameterized queries prevent SQL injection for values. Dynamic identifiers (table names, column names) must be validated — use knex.ref() for safe identifier quoting."
   },
   "reliability_score_components": {
-    "uptime_documented": 0,
-    "version_stability": 82,
-    "breaking_changes_history": 80,
-    "error_recovery": 78
+    "uptime_documented": 88,
+    "version_stability": 85,
+    "breaking_changes_history": 82,
+    "error_recovery": 85
   }
 }
