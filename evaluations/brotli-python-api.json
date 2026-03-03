@@ -1,0 +1,106 @@
+{
+  "id": "brotli-python-api",
+  "name": "brotli",
+  "version_evaluated": "1.x",
+  "homepage": "https://github.com/google/brotli",
+  "repo_url": "https://github.com/google/brotli",
+  "category": "developer-tools",
+  "subcategories": ["compression", "python", "web", "utilities"],
+  "tags": ["python", "brotli", "compression", "web", "google", "http", "browser"],
+  "what_it_does": "Python bindings for Google's Brotli compression algorithm — optimized for web content compression with better ratios than gzip for text. brotli features: brotli.compress()/brotli.decompress() for one-shot, quality parameter (0-11, default 11), mode parameter (GENERIC/TEXT/FONT), lgwin for window size control, brotli.Compressor for incremental streaming, brotli.Decompressor for streaming decompression, process()/finish() for streaming API, and C extension binding to the official brotli library. Brotli is supported in all modern browsers as Content-Encoding: br — better ratio than gzip for HTML/CSS/JS.",
+  "use_cases": [
+    "Agent web asset compression — import brotli; html_content = b'<html>...</html>'; compressed = brotli.compress(html_content, quality=6, mode=brotli.MODE_TEXT); response.headers['Content-Encoding'] = 'br' — web compression; agent pre-compresses static assets for faster web serving; quality=6 balances speed vs ratio for dynamic content; quality=11 for maximum ratio on pre-compressed static files",
+    "Agent file compression — import brotli; with open('large.json', 'rb') as f: data = f.read(); compressed = brotli.compress(data, quality=11); with open('large.json.br', 'wb') as f: f.write(compressed) — high-ratio compression; agent compresses JSON/text files for storage; brotli achieves 15-25% better compression than gzip on text",
+    "Agent streaming compression — import brotli; compressor = brotli.Compressor(quality=6); chunks = []; for chunk in data_stream: chunks.append(compressor.process(chunk)); chunks.append(compressor.finish()); compressed = b''.join(chunks) — streaming API; agent compresses large data without buffering entire content in memory",
+    "Agent decompression — import brotli; compressed_data = fetch_brotli_content(); decompressed = brotli.decompress(compressed_data); text = decompressed.decode('utf-8') — decompress; agent handles brotli-encoded API responses or CDN content; brotli.decompress() is one-shot for complete compressed data",
+    "Agent browser-compatible compression — import brotli; for asset in static_assets: compressed = brotli.compress(asset.content, quality=11); store(asset.path + '.br', compressed) — pre-compression; agent generates .br pre-compressed files for nginx brotli_static serving; 30-40% smaller than equivalent gzip for HTML/CSS/JS"
+  ],
+  "not_for": [
+    "Non-web compression — brotli is optimized for web text content; for general-purpose use zstd (faster) or gzip (universal compatibility)",
+    "Real-time streaming at scale — quality=11 is slow (~50 KB/s); for real-time use quality 0-4 or switch to zstd/lz4",
+    "Non-text binary data — brotli's advantages are for text; for binary data (images, video) zstd provides better speed/ratio balance"
+  ],
+  "best_when": "Web content compression where browser compatibility is needed and best text compression ratio matters — brotli is the standard for serving HTML/CSS/JS with Content-Encoding: br.",
+  "avoid_when": "General file compression (use zstd), binary data, real-time compression at high throughput (use lz4/quality=0), or environments without browser compatibility requirement.",
+  "alternatives": ["zstd-python-api", "lz4-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — local compression library."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "brotli is MIT licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Performance: quality=11: ~5 MB/s compression (slow, best ratio). quality=6: ~50 MB/s. quality=1: ~200 MB/s. Decompression: ~300-500 MB/s regardless of quality. Ratio advantage over gzip: ~15-25% for HTML/CSS/JS. Binary data: minimal advantage over gzip.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 80,
+    "error_message_quality": 78,
+    "error_message_notes": "brotli.error for decompression of invalid data. No specific error subclasses — catch brotli.error for all brotli failures. CompressorError and DecompressorError for streaming API failures. Error messages are minimal but identify the failure type.",
+    "idempotency_support": "full",
+    "idempotency_notes": "brotli.compress() with same parameters and input produces identical output. brotli.decompress() is fully deterministic. Round-trip is lossless. Streaming API produces same output as one-shot for same input.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "import brotli not import brotli.brotli — the pip package is brotli; pip install brotli; import brotli; brotli.compress(data); there is also a Brotlipy package (different pure-Python implementation); ensure pip install brotli installs the C extension version (faster); check: brotli.__version__ should be present",
+      "quality=11 is very slow for dynamic content — quality=11 (default) optimizes for best compression but is 10-40x slower than quality=6; agent code compressing dynamic HTTP responses should use quality=4-6 for speed; quality=11 only for pre-compressed static assets stored on disk; never use quality=11 per-request in web servers",
+      "mode parameter significantly affects text compression ratio — brotli.compress(text_bytes, mode=brotli.MODE_TEXT) enables text-specific compression features; mode=brotli.MODE_GENERIC for binary; mode=brotli.MODE_FONT for WOFF fonts; agent compressing HTML/CSS/JS must use MODE_TEXT for best ratio — otherwise gets generic binary compression",
+      "decompressor streaming requires state — brotli.Decompressor is stateful; process() must be called sequentially; once decompress() (one-shot) or all process() chunks are done, Decompressor is finished; cannot reuse; agent code: create new Decompressor per decompression session; brotli.decompress() is simpler for one-shot use",
+      "brotli.error on truncated input — partial brotli data raises brotli.error: BrotliDecompress failed; agent code downloading brotli content must ensure complete transfer before decompressing; validate content-length or use chunked streaming via Decompressor.process() which handles partial input correctly",
+      "Not all Python HTTP servers support brotli natively — Flask/Django/FastAPI don't add Content-Encoding: br automatically; agent code serving brotli must either use nginx/caddy for brotli encoding or explicitly compress in Python and set headers; brotli responses without Accept-Encoding: br from client cause decompression errors in browsers"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 80,
+    "error_handling_score": 78,
+    "auth_complexity_score": 99,
+    "rate_limit_clarity_score": 99
+  },
+  "security_score_components": {
+    "tls_enforcement": 92,
+    "auth_strength": 92,
+    "scope_granularity": 90,
+    "dependency_hygiene": 90,
+    "secret_handling": 92,
+    "security_notes": "Compression library with no network calls. Decompression bomb risk: valid brotli data can expand to large output — always set size limits when decompressing untrusted input. brotli does not encrypt — compress then encrypt separately. C extension: validate source or use pip install from PyPI only."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 82,
+    "version_stability": 85,
+    "breaking_changes_history": 88,
+    "error_recovery": 82
+  }
+}

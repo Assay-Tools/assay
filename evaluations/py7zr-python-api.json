@@ -1,0 +1,106 @@
+{
+  "id": "py7zr-python-api",
+  "name": "py7zr",
+  "version_evaluated": "0.20.x",
+  "homepage": "https://py7zr.readthedocs.io/",
+  "repo_url": "https://github.com/miurahr/py7zr",
+  "category": "developer-tools",
+  "subcategories": ["compression", "python", "archives", "utilities"],
+  "tags": ["python", "py7zr", "7zip", "7z", "archive", "compression", "extraction"],
+  "what_it_does": "Pure Python 7-Zip archive library — reads and writes .7z archives without requiring the 7-Zip binary. py7zr features: SevenZipFile context manager (similar to zipfile API), extractall()/extract() for extraction, write()/writeall() for archive creation, compression methods (LZMA, LZMA2, Bzip2, ZStd, PPMd, BCJ filters), password encryption (AES-256), list() for archive contents, read() returning bytes dict, ArchiveInfo for member metadata, supports multi-volume archives, BCJ filter for executable compression, and solid archives. Enables Python agents to handle 7z files without external binary dependencies.",
+  "use_cases": [
+    "Agent archive extraction — import py7zr; with py7zr.SevenZipFile('archive.7z', mode='r') as archive: archive.extractall(path='output/') — extract; agent extracts 7z archives without 7zip installed; extractall() restores full directory structure; mode='r' for reading",
+    "Agent selective extraction — with py7zr.SevenZipFile('archive.7z') as archive: archive.extract(targets=['config.json', 'data/'], path='output/') — selective extract; agent extracts specific files from large archive; targets list specifies files/directories to extract; others skipped",
+    "Agent archive creation — with py7zr.SevenZipFile('output.7z', mode='w') as archive: archive.writeall('/path/to/directory/', 'backup') — create archive; agent compresses directory to 7z format; writeall() recursively adds directory contents; mode='w' creates new archive",
+    "Agent encrypted archive — with py7zr.SevenZipFile('secure.7z', mode='w', password='secret') as archive: archive.writeall('sensitive_data/') — encrypted 7z; agent creates password-protected 7z archives with AES-256 encryption; same password required for extraction",
+    "Agent archive listing — with py7zr.SevenZipFile('archive.7z') as archive: files = archive.list(); for f in files: print(f.filename, f.file_size, f.compress_size) — inspect contents; agent checks archive contents before extraction; ArchiveInfo has filename, file_size, compress_size, is_directory, lastwritetime"
+  ],
+  "not_for": [
+    "Zip/tar archives — py7zr handles .7z only; for .zip use Python's zipfile; for .tar.gz use tarfile module",
+    "High-speed compression — 7z LZMA2 optimizes for ratio not speed; for fast compression use zstd or lz4",
+    "Streaming compression — py7zr requires complete files; for streaming use zstd or gzip"
+  ],
+  "best_when": "Working with 7z archives in Python without installing the 7-Zip binary — py7zr handles reading, writing, and encrypting .7z files purely in Python.",
+  "avoid_when": "Zip/tar formats (use stdlib), high-speed compression (use zstd/lz4), streaming (use gzip/zstd), or when 7-Zip CLI is available and performance matters.",
+  "alternatives": ["zstd-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — local archive library. Archive-level password encryption via password= parameter."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, LGPL licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "py7zr is LGPL v2.1+ licensed. Free for use; LGPL applies to modifications of py7zr itself."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Performance: LZMA2 compression: ~5-20 MB/s (slow but excellent ratio). Extraction: ~30-50 MB/s. 7z typically achieves 30-50% better ratios than zip for similar data. Solid archives take more memory but compress better. ZStd method much faster: ~100 MB/s.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 80,
+    "error_message_quality": 78,
+    "error_message_notes": "Bad7zFile for invalid or corrupted archives. PasswordRequired for encrypted archives without password. WrongPassword for incorrect password. py7zr.exceptions module contains all custom exceptions. Corrupt archive errors surface as Bad7zFile with minimal detail on what is corrupt.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Extraction is idempotent — extracting to same path overwrites existing files. Archive creation with mode='w' overwrites existing archive. mode='a' appends to existing archive. Read operations are non-destructive.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Always use context manager — py7zr.SevenZipFile() must be used as context manager or explicitly closed; unclosed archive can corrupt 7z file being written; agent code: with py7zr.SevenZipFile('f.7z', mode='w') as archive: archive.writeall(...) — context manager ensures proper finalization of central directory",
+      "extractall() path must exist — py7zr does not create output directory automatically in all cases; agent code should: import os; os.makedirs(output_path, exist_ok=True) before extractall(); extractall() raises FileNotFoundError if target directory doesn't exist",
+      "Encrypted archives need password at open not extract — with py7zr.SevenZipFile('secure.7z', password='pass') as archive — password passed at construction; not at extractall(); forgetting password at open raises PasswordRequired on first read operation; not at archive open time",
+      "archive.read() returns dict of {filename: BytesIO} — archive.read(['file.txt']) returns {'file.txt': <BytesIO>}; agent code: content = archive.read(['config.json'])['config.json'].read() to get bytes; read() without arguments reads all files; returns BytesIO objects not strings; .read() to get bytes then .decode() for text",
+      "writeall() path argument is archive prefix — archive.writeall('/local/dir/', 'prefix') adds files as prefix/file.txt inside archive; archive.writeall('/local/dir/') without prefix adds files without path prefix; agent code archiving for later extraction must choose prefix carefully to match expected extraction structure",
+      "Solid archives cannot be selectively extracted efficiently — solid archive (default for multiple files) must decompress from beginning to extract any file; archive.extract(targets=['specific.txt']) from solid archive decompresses everything to extract one file; for selective extraction, use non-solid: py7zr.SevenZipFile('f.7z', mode='w', filters=[{'id': py7zr.FILTER_LZMA2}])"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 80,
+    "error_handling_score": 78,
+    "auth_complexity_score": 95,
+    "rate_limit_clarity_score": 99
+  },
+  "security_score_components": {
+    "tls_enforcement": 92,
+    "auth_strength": 88,
+    "scope_granularity": 88,
+    "dependency_hygiene": 85,
+    "secret_handling": 85,
+    "security_notes": "Archive extraction: validate extracted paths to prevent zip-slip path traversal — check that extracted paths don't escape target directory. Decompression bomb risk: 7z solid archives can expand to very large sizes. Encrypted archives use AES-256 — secure; but password in code is bad practice, use environment variable. Never trust archive contents from untrusted sources."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 80,
+    "version_stability": 80,
+    "breaking_changes_history": 78,
+    "error_recovery": 80
+  }
+}

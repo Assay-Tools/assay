@@ -1,0 +1,106 @@
+{
+  "id": "rope-python-api",
+  "name": "rope",
+  "version_evaluated": "1.x",
+  "homepage": "https://rope.readthedocs.io/",
+  "repo_url": "https://github.com/python-rope/rope",
+  "category": "developer-tools",
+  "subcategories": ["refactoring", "python", "code-analysis", "developer-tools"],
+  "tags": ["python", "rope", "refactoring", "rename", "extract", "move", "IDE", "ast"],
+  "what_it_does": "Python refactoring library — provides programmatic code refactoring operations on Python projects. rope features: rename (variables, functions, classes, modules), extract function/variable, move (class/function to different module), inline variable, introduce parameter, change function signature, auto-import suggestions, code completion via analysis, find-occurrences for symbol lookup, organize imports, undo/redo for refactoring operations, and Project abstraction for multi-file refactoring. Used by IDE plugins (Vim, Emacs, Sublime) for Python refactoring support.",
+  "use_cases": [
+    "Agent rename symbol — from rope.base.project import Project; from rope.refactor.rename import Rename; project = Project('/path/to/project'); resource = project.get_resource('mymodule.py'); offset = resource.read().index('old_name'); renamer = Rename(project, resource, offset); changes = renamer.get_changes('new_name'); project.do(changes) — programmatic rename; agent renames symbol across entire project",
+    "Agent extract function — from rope.refactor.extract import ExtractMethod; start = source.index('code_to_extract'); end = start + len('code_to_extract'); extractor = ExtractMethod(project, resource, start, end); changes = extractor.get_changes('extracted_function_name'); project.do(changes) — code extraction; agent extracts code region into new function",
+    "Agent find all occurrences — from rope.refactor.occurrences import create_finder; finder = create_finder(project, 'symbol_name', resource, offset); for occurrence in finder: print(occurrence.resource, occurrence.offset) — find usages; agent locates all references to a symbol across project for analysis",
+    "Agent move module — from rope.refactor.move import create_move; mover = create_move(project, resource, offset); changes = mover.get_changes('new.module.path'); project.do(changes) — module move; agent restructures project by moving classes/functions to different modules; updates all imports automatically",
+    "Agent undo refactoring — project.history.undo() — undo last refactoring operation; agent provides safe refactoring with undo capability; project.history.redo() for redo; enables dry-run workflow: apply refactoring, verify, undo if incorrect"
+  ],
+  "not_for": [
+    "Code formatting — rope is for semantic refactoring not style; for formatting use black/autopep8",
+    "Static analysis/linting — rope focuses on refactoring not error detection; use pylint/flake8 for analysis",
+    "High-volume automated transforms — rope is interactive-speed (100ms-1s per operation); for bulk transforms use AST manipulation directly"
+  ],
+  "best_when": "Programmatic Python refactoring where symbol-aware renaming and structural changes are needed — rope handles import updates, cross-file renames, and complex refactoring that simple text substitution cannot.",
+  "avoid_when": "Code formatting (use black), linting (use pylint), simple text substitution (use sed), or when AST manipulation is more appropriate (use ast module).",
+  "alternatives": [],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — local code refactoring library."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, LGPL licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "rope is LGPL 3.0 licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Performance: single rename in medium project: ~100ms-2s. Analysis builds internal cache in .ropeproject/ — subsequent operations faster. Large projects (10K+ files) may be slow on first analysis. Memory: rope caches entire project AST — large projects use significant RAM.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 72,
+    "error_message_quality": 70,
+    "error_message_notes": "rope.base.exceptions.RefactoringError for invalid refactoring operations. rope.base.exceptions.ResourceNotFoundError for missing files. Error messages can be cryptic — often just 'cannot refactor' without detail. Documentation is sparse; reading rope source code often necessary.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Refactoring changes are idempotent if symbol doesn't exist (no-op). project.do(changes) applies changes to filesystem — not reversible without undo. history.undo() reverts. Changes object can be inspected before applying.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Project() creates .ropeproject/ cache directory — Project('/path') writes .ropeproject/ folder with analysis cache; agent code on read-only filesystems or CI will fail; use: project = Project('/path', ropefolder=None) to disable cache directory creation; trade-off: slower analysis without cache",
+      "Offset is byte offset not line/column — rope.refactor operations take byte offset (character position in file string); agent code must compute offset: resource.read().index('symbol') for first occurrence; or: sum of lengths of preceding lines + column; offset is 0-based; wrong offset targets wrong symbol",
+      "get_changes() does not apply changes — changes = refactor.get_changes() returns ChangeSet describing what would change; project.do(changes) actually applies; agent code must call project.do(changes) explicitly; print(changes.get_description()) to preview changes before applying",
+      "rope handles dynamic Python poorly — rope uses static analysis; dynamically created attributes, monkey-patching, and metaprogramming confuse rope; agent code refactoring heavily dynamic Python (Django models, SQLAlchemy) may have missed references; always verify refactoring results manually",
+      "project.close() required to release locks — rope holds file handles on .ropeproject/ cache; not calling project.close() causes file handle leaks; agent code: use try/finally: try: ... finally: project.close(); or use contextlib.closing(project) as context manager",
+      "RefactoringError does not describe why — rope raises RefactoringError('cannot refactor') without detail; common causes: offset points to non-symbol, keyword not renameable, circular import would result; agent code debugging: try smaller refactoring scope or check offset calculation; rope documentation examples often more reliable than error messages"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 72,
+    "error_handling_score": 70,
+    "auth_complexity_score": 99,
+    "rate_limit_clarity_score": 99
+  },
+  "security_score_components": {
+    "tls_enforcement": 90,
+    "auth_strength": 90,
+    "scope_granularity": 88,
+    "dependency_hygiene": 88,
+    "secret_handling": 90,
+    "security_notes": "Local code refactoring library. project.do(changes) modifies files on disk — ensure backup before applying. Validate project root to prevent accidental refactoring outside intended scope. .ropeproject/ cache contains analyzed code — protect if code is sensitive."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 70,
+    "version_stability": 75,
+    "breaking_changes_history": 75,
+    "error_recovery": 72
+  }
+}
