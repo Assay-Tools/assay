@@ -2,27 +2,27 @@
   "id": "gorm-api",
   "name": "GORM",
   "version_evaluated": "2.x",
-  "homepage": "https://gorm.io/docs/",
+  "homepage": "https://gorm.io/",
   "repo_url": "https://github.com/go-gorm/gorm",
   "category": "developer-tools",
-  "subcategories": ["orm", "database", "go", "sql"],
-  "tags": ["go", "golang", "orm", "database", "sql", "sqlite", "postgresql", "mysql", "migrations"],
-  "what_it_does": "The most popular ORM library for Go. Provides struct-to-SQL mapping, automatic migrations, associations (has-one, has-many, many-to-many), transactions, hooks, and a builder API for complex queries. Supports PostgreSQL, MySQL, SQLite, and SQL Server. Used in Go web backends, microservices, and agent data persistence layers.",
+  "subcategories": ["orm", "database", "go"],
+  "tags": ["gorm", "go", "golang", "orm", "database", "sql", "postgresql", "mysql", "sqlite"],
+  "what_it_does": "The most popular ORM for Go. Provides chainable query building, model associations (has one, has many, belongs to, many-to-many), auto-migrations, hooks (before/after create/save/delete), soft deletes, transactions, and connection pooling. Works with PostgreSQL, MySQL, SQLite, and SQL Server. The de-facto standard ORM for Go database applications.",
   "use_cases": [
-    "Map Go structs to database tables for agent state persistence without writing raw SQL migrations",
-    "Query agent data (task history, tool call logs, session state) using GORM's chainable builder API",
-    "Implement agent data models with automatic timestamps, soft deletes, and relationship preloading",
-    "Run database migrations in Go agent services with GORM's AutoMigrate for schema evolution",
-    "Execute complex agent queries with GORM's raw SQL support for cases where the ORM query builder is limiting"
+    "Define Go agent data models as structs with GORM tags for automatic database schema management",
+    "Query agent data with chainable API: db.Where('status = ?', 'active').Find(&agents)",
+    "Implement agent domain model relationships (User has many Sessions) with automatic JOIN queries",
+    "Use GORM transactions for atomic agent operations: db.Transaction(func(tx *gorm.DB) error { ... })",
+    "Auto-migrate agent database schemas in development: db.AutoMigrate(&Agent{}, &Session{}, &Task{})"
   ],
   "not_for": [
-    "High-performance bulk data operations — GORM's ORM overhead is significant for batch inserts/updates; use pgx or sqlx directly",
-    "Complex analytical queries — GORM's query builder can't express all SQL; use raw queries or DuckDB for analytics",
-    "Applications where SQL control and predictability are critical — ORM abstractions can generate inefficient queries; review GORM's generated SQL"
+    "Complex SQL queries requiring full control — GORM's raw SQL support exists but complex CTEs/window functions are cleaner with sqlx or database/sql directly",
+    "Performance-critical high-throughput queries — GORM's reflection-based approach has overhead vs pgx or sqlc",
+    "Non-relational databases — GORM is SQL-only"
   ],
-  "best_when": "You're building a Go CRUD application or agent backend with standard relational data operations and want to avoid writing repetitive SQL boilerplate.",
-  "avoid_when": "You need maximum database performance or complex SQL — use sqlx or pgx directly for raw query control; GORM's overhead and generated SQL may surprise you.",
-  "alternatives": ["sqlx-go-api", "pgx-api", "ent-api"],
+  "best_when": "You're building a Go application with relational data and want ActiveRecord-style ORM conventions — associations, hooks, soft deletes, and auto-migration.",
+  "avoid_when": "You need maximum performance, complex SQL queries, or prefer SQL-first development — use sqlc (generate type-safe Go from SQL) or pgx for lower-level control.",
+  "alternatives": ["sqlx-api", "sqlc-api", "ent-api"],
   "interface": {
     "has_rest_api": false,
     "has_graphql": false,
@@ -38,67 +38,67 @@
     "methods": ["none"],
     "oauth": false,
     "scopes": false,
-    "notes": "Database ORM — connection auth is configured in DSN string. No application-level auth."
+    "notes": "Local library — no authentication required. MIT licensed. Database authentication configured via DSN."
   },
   "pricing": {
     "model": "open_source",
     "free_tier_exists": true,
-    "free_tier_limits": "MIT licensed, completely free",
+    "free_tier_limits": "MIT licensed — completely free",
     "paid_tiers": "None",
     "requires_credit_card": false,
-    "notes": "MIT license. Most popular Go ORM by GitHub stars."
+    "notes": "MIT licensed. Zero cost."
   },
   "performance": {
-    "latency_p50_ms": 1,
-    "latency_p99_ms": 10,
+    "latency_p50_ms": 5,
+    "latency_p99_ms": 50,
     "uptime_sla_percent": null,
-    "rate_limits": "No rate limits — local library. Performance limited by database and query complexity.",
+    "rate_limits": "No rate limits. Reflection-based ORM has overhead vs raw SQL. Connection pooling built-in.",
     "data_source": "llm_estimated"
   },
   "requirements": {
     "requires_signup": false,
     "requires_credit_card": false,
     "domain_verification": false,
-    "data_residency": ["local"],
+    "data_residency": ["self-hosted"],
     "compliance": [],
     "min_contract": "none"
   },
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
-    "documentation_accuracy": 82,
-    "error_message_quality": 75,
-    "error_message_notes": "GORM errors include database error codes wrapped with context. ErrRecordNotFound is a sentinel error for missing records. Validation errors from hooks return standard Go errors.",
+    "documentation_accuracy": 85,
+    "error_message_quality": 80,
+    "error_message_notes": "GORM wraps errors with context. result.Error for query errors. ErrRecordNotFound for missing records. Structured error types for common failure modes.",
     "idempotency_support": "partial",
-    "idempotency_notes": "FirstOrCreate() is idempotent for upsert operations. Save() creates or updates by primary key. Agent code should handle ErrRecordNotFound for safe idempotent reads.",
-    "pagination_style": "none",
+    "idempotency_notes": "CRUD operations are what you make them — use upsert (Save) for idempotent creates/updates.",
+    "pagination_style": "cursor",
     "retry_guidance_documented": false,
     "known_agent_gotchas": [
-      "GORM silently ignores some errors unless you check db.Error after every operation — always chain .Error or use GORM's Error method; missing error checks lead to silent data corruption",
-      "AutoMigrate only adds columns and indexes — it never removes or modifies existing columns; schema drift from development to production requires manual migration management",
-      "Zero values (0, false, \"\") are treated as 'not set' in GORM updates — use map[string]interface{} or Select() to explicitly update zero-value fields",
-      "Association creation via Create() with nested structs creates all associations in a transaction — be aware of the N+1 query problem with Preload for large association sets",
-      "GORM v1 and v2 have incompatible APIs — tutorials and StackOverflow answers may use v1 syntax; always verify which version is being referenced",
-      "Raw SQL with ? placeholders is safe (parameterized), but string interpolation in Where() clauses is an SQL injection vulnerability — always use parameterized queries"
+      "Always check result.Error after queries — GORM doesn't panic on errors: result := db.Find(&records); if result.Error != nil { return result.Error }",
+      "ErrRecordNotFound is NOT an error for Find() — only for First(), Last(), Take(); Find() with no results returns empty slice, not error",
+      "AutoMigrate is for DEVELOPMENT only — it adds columns but never removes them or changes column types; use proper migrations (goose, migrate) for production",
+      "Associations: preloading with db.Preload('Sessions').Find(&users) vs automatic join — Preload makes separate queries; use db.Joins('Sessions') for SQL JOIN",
+      "Soft delete: embedding gorm.Model adds DeletedAt field — deleted records are NOT removed from DB but filtered from queries; use db.Unscoped() to include soft-deleted",
+      "Transaction isolation: db.Transaction() auto-commits or rolls back; manual tx requires db.Begin(), tx.Commit()/Rollback() with proper defer for cleanup"
     ]
   },
   "af_score_components": {
     "mcp_score": 0,
-    "api_doc_score": 82,
-    "error_handling_score": 75,
-    "auth_complexity_score": 100,
-    "rate_limit_clarity_score": 95
+    "api_doc_score": 85,
+    "error_handling_score": 80,
+    "auth_complexity_score": 92,
+    "rate_limit_clarity_score": 88
   },
   "security_score_components": {
-    "tls_enforcement": 95,
-    "auth_strength": 90,
-    "scope_granularity": 90,
+    "tls_enforcement": 88,
+    "auth_strength": 85,
+    "scope_granularity": 82,
     "dependency_hygiene": 85,
-    "secret_handling": 90,
-    "security_notes": "Use parameterized queries (GORM's default) to prevent SQL injection. DB credentials in DSN — use environment variables. Go memory safety prevents buffer overflows."
+    "secret_handling": 85,
+    "security_notes": "MIT licensed. Parameterized queries prevent SQL injection by default. Use db.Raw() with ? placeholders for raw SQL. Avoid fmt.Sprintf() in queries — SQL injection risk."
   },
   "reliability_score_components": {
-    "uptime_documented": 90,
+    "uptime_documented": 95,
     "version_stability": 85,
     "breaking_changes_history": 80,
     "error_recovery": 82

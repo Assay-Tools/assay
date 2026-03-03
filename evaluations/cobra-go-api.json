@@ -1,28 +1,28 @@
 {
   "id": "cobra-go-api",
   "name": "Cobra",
-  "version_evaluated": "1.x",
+  "version_evaluated": "1.8.x",
   "homepage": "https://cobra.dev/",
   "repo_url": "https://github.com/spf13/cobra",
   "category": "developer-tools",
-  "subcategories": ["cli", "argument-parsing", "go"],
-  "tags": ["go", "golang", "cli", "command-line", "cobra", "kubectl", "docker", "subcommands", "completion"],
-  "what_it_does": "The standard Go CLI framework used by kubectl, Docker, GitHub CLI, Hugo, and hundreds of production CLIs. Provides nested subcommand support, flags (persistent and local), automatic help generation, shell completion (bash, zsh, fish, PowerShell), and a cobra-cli generator tool. The de facto standard for Go CLI applications.",
+  "subcategories": ["cli", "go", "utilities"],
+  "tags": ["cobra", "go", "golang", "cli", "command-line", "kubectl", "github-cli", "docker"],
+  "what_it_does": "The most popular Go library for creating CLI applications. Used by kubectl, GitHub CLI, Hugo, Docker CLI, Helm, and hundreds of other major tools. Provides subcommand structure, flag parsing, shell completion generation (bash/zsh/fish/powershell), auto-generated help text, man page generation, and integration with viper for configuration. The de-facto standard for Go CLI development.",
   "use_cases": [
-    "Build multi-subcommand agent CLI tools (agent run, agent config, agent logs) with nested command hierarchies",
-    "Add shell completion to agent CLI interfaces for improved operator experience",
-    "Implement persistent flags that apply to all subcommands and local flags scoped to specific commands",
-    "Create Go CLI interfaces for agent services following the kubectl/Docker CLI pattern",
-    "Generate project scaffolding with cobra-cli generator for new agent CLI projects"
+    "Build agent CLI tools with nested subcommands: agent start, agent config set, agent status",
+    "Create Go CLI management utilities for agent systems with auto-generated --help and shell completion",
+    "Build kubectl-style multi-level command hierarchies for agent administration tools",
+    "Implement CLI flags that read from environment variables and config files via viper integration",
+    "Generate shell completion scripts for agent CLI tools to improve developer experience"
   ],
   "not_for": [
-    "Simple single-command CLIs with one or two flags — flag package or pflag alone may be sufficient",
-    "Interactive terminal UIs — cobra handles argument parsing only; use bubbletea or promptui for TUI/interactive features",
-    "WASM environments — cobra requires OS I/O"
+    "Simple single-command scripts — the cobra/viper setup overhead is significant for trivial scripts; use flag package directly",
+    "Python/JavaScript CLIs — cobra is Go-only; use click (Python) or commander.js (Node.js)",
+    "TUI applications — cobra is for line-oriented command dispatch; use bubbletea for terminal UIs"
   ],
-  "best_when": "You're building a Go CLI tool with multiple subcommands following the kubectl/Docker pattern — Cobra is the universal standard in the Go CLI ecosystem.",
-  "avoid_when": "You have a very simple CLI with no subcommands — the standard library flag package or pflag alone is lighter weight.",
-  "alternatives": ["urfave-cli-api", "kingpin-api", "flag-stdlib-api"],
+  "best_when": "You're building a multi-command Go CLI tool with subcommands, persistent flags, shell completion, and config file support — the kubectl/docker CLI pattern.",
+  "avoid_when": "Your CLI has only one or two flags without subcommands — the pflag package alone is simpler for simple Go CLIs.",
+  "alternatives": ["urfave-cli-api", "kingpin-api"],
   "interface": {
     "has_rest_api": false,
     "has_graphql": false,
@@ -38,21 +38,21 @@
     "methods": ["none"],
     "oauth": false,
     "scopes": false,
-    "notes": "CLI framework — no authentication required."
+    "notes": "Local library — no authentication required. Apache 2.0 licensed."
   },
   "pricing": {
     "model": "open_source",
     "free_tier_exists": true,
-    "free_tier_limits": "Apache 2.0 licensed, completely free",
+    "free_tier_limits": "Apache 2.0 licensed — completely free",
     "paid_tiers": "None",
     "requires_credit_card": false,
-    "notes": "Apache 2.0 license. Created by Steve Francia (spf13). Powers kubectl, Hugo, GitHub CLI."
+    "notes": "Apache 2.0 licensed. Zero cost."
   },
   "performance": {
-    "latency_p50_ms": null,
-    "latency_p99_ms": null,
+    "latency_p50_ms": 0,
+    "latency_p99_ms": 5,
     "uptime_sla_percent": null,
-    "rate_limits": "No rate limits — startup-time argument parsing only.",
+    "rate_limits": "No rate limits — local CLI framework.",
     "data_source": "llm_estimated"
   },
   "requirements": {
@@ -66,26 +66,26 @@
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
-    "documentation_accuracy": 90,
-    "error_message_quality": 88,
-    "error_message_notes": "Unknown command and flag errors produce clear user-facing messages with suggestions. Required flag missing errors include the flag name. Help text auto-generated from command descriptions.",
+    "documentation_accuracy": 88,
+    "error_message_quality": 85,
+    "error_message_notes": "Auto-generated help text and usage errors. Custom error handling via RunE (returns error) vs Run (no error). cobra-gen for project scaffolding.",
     "idempotency_support": "full",
-    "idempotency_notes": "CLI argument parsing — deterministic, no side effects from the framework itself.",
+    "idempotency_notes": "CLI framework — idempotency is command implementation concern.",
     "pagination_style": "none",
     "retry_guidance_documented": false,
     "known_agent_gotchas": [
-      "cobra uses pflag for flags (not the standard library flag package) — flag syntax uses --flag=value and -f shorthand; standard library single-dash flags (-flag) are not supported",
-      "Persistent flags defined on the root command are available to ALL subcommands — local flags are only available on the specific command they're attached to",
-      "cobra.Command.RunE returns an error that cobra catches and prints — don't os.Exit() directly inside RunE; return the error and cobra handles exit codes",
-      "Shell completion generation changed in cobra 1.x — use RegisterFlagCompletionFunc() and ValidArgsFunction for custom completion; older completion APIs are deprecated",
-      "Command use string (e.g., \"serve\") is used in help text and error messages — keep it short and lowercase; the Use string becomes part of the help syntax shown to users",
-      "viper integration for config file binding requires explicit BindPFlag() calls after flags are defined — flag values don't automatically merge with viper config without explicit binding"
+      "Use RunE instead of Run to propagate errors: cmd.RunE = func(cmd *cobra.Command, args []string) error { return doWork() } — Run swallows errors",
+      "Persistent flags vs local flags: PersistentFlags() are inherited by subcommands; Flags() are local to the command only — use PersistentFlags for global options like --config",
+      "cobra-cli generator: go install github.com/spf13/cobra-cli@latest; cobra-cli init creates project structure; cobra-cli add subcommand adds commands",
+      "Shell completion: cmd.GenBashCompletion, GenZshCompletion, etc. generate completion scripts — add a 'completion' subcommand to make it easy for users",
+      "Viper integration: bind flags to viper: viper.BindPFlag('config', rootCmd.PersistentFlags().Lookup('config')) — enables config file, env var, and flag in priority order",
+      "InitializeConfig pattern: call cobra.OnInitialize(initConfig) to load viper config before command runs — standard pattern for cobra+viper applications"
     ]
   },
   "af_score_components": {
     "mcp_score": 0,
-    "api_doc_score": 90,
-    "error_handling_score": 88,
+    "api_doc_score": 88,
+    "error_handling_score": 85,
     "auth_complexity_score": 100,
     "rate_limit_clarity_score": 100
   },
@@ -94,13 +94,13 @@
     "auth_strength": 100,
     "scope_granularity": 100,
     "dependency_hygiene": 90,
-    "secret_handling": 85,
-    "security_notes": "CLI framework. Sensitive values passed as flags appear in process lists — prefer environment variables for secrets. No network calls in framework itself."
+    "secret_handling": 88,
+    "security_notes": "Apache 2.0 licensed. Used by security-critical tools (kubectl, GitHub CLI). Local computation — no network by itself. Hide sensitive flag values with cobra.NoOptDefVal."
   },
   "reliability_score_components": {
     "uptime_documented": 100,
     "version_stability": 92,
     "breaking_changes_history": 90,
-    "error_recovery": 95
+    "error_recovery": 92
   }
 }

@@ -1,28 +1,28 @@
 {
   "id": "gin-api",
   "name": "Gin",
-  "version_evaluated": "1.9+",
+  "version_evaluated": "1.x",
   "homepage": "https://gin-gonic.com/",
   "repo_url": "https://github.com/gin-gonic/gin",
   "category": "developer-tools",
-  "subcategories": ["web-framework", "go", "http", "api"],
-  "tags": ["go", "golang", "web-framework", "http", "rest-api", "middleware", "router", "performance"],
-  "what_it_does": "High-performance HTTP web framework for Go. Gin provides a radix tree router, middleware chain, request binding/validation, and JSON rendering with minimal overhead. Benchmarks at 40x faster than Martini with comparable API. The most popular Go web framework for building REST APIs and agent backend services. Used widely for microservices and API servers requiring Go's performance.",
+  "subcategories": ["web-framework", "api", "go"],
+  "tags": ["gin", "go", "golang", "web-framework", "http", "api", "rest", "router"],
+  "what_it_does": "The most popular Go web framework. High-performance HTTP router and middleware framework using httprouter under the hood. Provides JSON binding/validation, middleware chains, grouped routes, error management, and rendering utilities. Benchmarks 40x faster than Martini. Used by thousands of production Go services and agent APIs. Standard choice for Go API development.",
   "use_cases": [
-    "Build high-performance agent API backends in Go with Gin's fast routing and middleware pipeline",
-    "Create REST API servers for agent services with automatic request validation and JSON response helpers",
-    "Implement agent middleware chains for auth, rate limiting, logging, and request tracing in Go",
-    "Build concurrent agent services that handle many simultaneous requests with Go's goroutine model",
-    "Deploy lightweight agent microservices as single Go binaries with minimal dependencies"
+    "Build high-performance agent HTTP APIs in Go with minimal overhead and fast routing",
+    "Create agent REST APIs with automatic JSON binding from request bodies via c.ShouldBindJSON(&req)",
+    "Implement middleware chains for agent services (auth, logging, rate limiting, CORS) via gin.Use()",
+    "Build grouped API routes (/api/v1/...) with shared middleware in Go agent services",
+    "Develop Go-based agent tool servers with WebSocket support via gorilla/websocket integration"
   ],
   "not_for": [
-    "Python or JavaScript ecosystems — Gin is Go-only; use FastAPI or Express for Python/Node",
-    "Full-stack web apps with server-side rendering — Gin is API-focused; use Hugo or Templ for full-stack",
-    "Complex ORM requirements — Gin has no built-in ORM; pair with GORM or sqlx"
+    "Full-stack web with templating — Gin is API-first; use standard Go templates or Echo for template rendering",
+    "GraphQL servers — use gqlgen for GraphQL in Go",
+    "Applications needing OpenAPI/Swagger auto-generation — Gin requires manual swagger annotations or separate tools"
   ],
-  "best_when": "You're building a high-performance Go REST API or agent backend where you want fast routing, middleware, and request binding without a heavy framework.",
-  "avoid_when": "You're not using Go, or you need a full-stack framework — use Go's stdlib net/http for ultra-minimal, or Echo/Fiber for similar Go frameworks.",
-  "alternatives": ["echo-go-api", "fiber-go-api", "chi-router-api"],
+  "best_when": "You're building a Go REST API and want the most popular, battle-tested framework with excellent middleware ecosystem and minimal performance overhead.",
+  "avoid_when": "You need built-in WebSocket support, automatic OpenAPI docs, or a more opinionated full-stack framework — consider Echo or Fiber.",
+  "alternatives": ["echo-go-api", "fiber-api", "chi-api"],
   "interface": {
     "has_rest_api": false,
     "has_graphql": false,
@@ -38,28 +38,28 @@
     "methods": ["none"],
     "oauth": false,
     "scopes": false,
-    "notes": "No built-in auth — implement via middleware. Common pattern: gin-jwt middleware or custom Bearer token middleware."
+    "notes": "Framework for building APIs — auth is implemented by the developer via middleware."
   },
   "pricing": {
     "model": "open_source",
     "free_tier_exists": true,
-    "free_tier_limits": "Completely free, MIT licensed",
-    "paid_tiers": "none",
+    "free_tier_limits": "MIT licensed — completely free",
+    "paid_tiers": "None",
     "requires_credit_card": false,
-    "notes": "Completely free and open source."
+    "notes": "MIT licensed. Zero cost."
   },
   "performance": {
-    "latency_p50_ms": 1,
+    "latency_p50_ms": 0,
     "latency_p99_ms": 5,
     "uptime_sla_percent": null,
-    "rate_limits": "No rate limits — runs on your infrastructure",
+    "rate_limits": "No rate limits in the framework. Extremely fast — httprouter-based routing, minimal allocations.",
     "data_source": "llm_estimated"
   },
   "requirements": {
     "requires_signup": false,
     "requires_credit_card": false,
     "domain_verification": false,
-    "data_residency": ["self-hosted"],
+    "data_residency": ["local"],
     "compliance": [],
     "min_contract": "none"
   },
@@ -67,40 +67,40 @@
     "mcp_server_quality": null,
     "mcp_security_score": null,
     "documentation_accuracy": 88,
-    "error_message_quality": 85,
-    "error_message_notes": "Binding errors include field-level validation messages. Gin wraps errors in context.Error() chain. Recovery middleware catches panics and returns 500 with error.",
+    "error_message_quality": 82,
+    "error_message_notes": "Binding validation errors return structured JSON. c.AbortWithStatusJSON() for clean error responses. Custom error handling via gin.Recovery() middleware.",
     "idempotency_support": "full",
-    "idempotency_notes": "HTTP request handling is stateless — idempotency is application responsibility.",
+    "idempotency_notes": "Framework is stateless — idempotency is per handler implementation.",
     "pagination_style": "none",
     "retry_guidance_documented": false,
     "known_agent_gotchas": [
-      "c.ShouldBindJSON() reads the body once — calling it twice returns EOF; use c.GetRawData() to read and rebind if needed in middleware",
-      "Gin's router groups share middleware — middleware added to group applies to all routes in that group including sub-groups; be careful with auth middleware scope",
-      "Release mode (gin.SetMode(gin.ReleaseMode)) disables debug logging but also removes route listing — always set in production",
-      "Context (gin.Context) is not safe for concurrent access from multiple goroutines — use c.Copy() to pass context to goroutines spawned during request handling",
-      "Gin does not use standard library context.Context directly — c.Request.Context() gets the underlying context; use this for deadline propagation to databases",
-      "Default 32MB multipart memory limit — increase with r.MaxMultipartMemory for large file uploads in agent file handling endpoints"
+      "c.ShouldBindJSON(&req) vs c.BindJSON(&req): ShouldBind returns error (doesn't write response); BindJSON writes 400 on error — use ShouldBind for custom error handling",
+      "gin.Context.JSON() sets Content-Type and writes response; calling c.JSON() twice sends invalid HTTP — use c.Abort() or return after c.JSON()",
+      "Gin mode: gin.SetMode(gin.ReleaseMode) for production — reduces debug logging; default DebugMode logs all routes on startup",
+      "Path parameters: c.Param('id') for :id; c.Query('page') for ?page=1; c.PostForm('name') for form data",
+      "Middleware error handling: c.Abort() stops further middleware/handlers; c.AbortWithStatus(500) stops and sets status; next handler not called after Abort",
+      "Validator tags: binding:'required,email' uses go-playground/validator under the hood — learn validator tag syntax for complex validation rules"
     ]
   },
   "af_score_components": {
     "mcp_score": 0,
     "api_doc_score": 88,
-    "error_handling_score": 85,
+    "error_handling_score": 82,
     "auth_complexity_score": 90,
-    "rate_limit_clarity_score": 90
+    "rate_limit_clarity_score": 85
   },
   "security_score_components": {
-    "tls_enforcement": 95,
-    "auth_strength": 85,
-    "scope_granularity": 82,
-    "dependency_hygiene": 90,
+    "tls_enforcement": 90,
+    "auth_strength": 88,
+    "scope_granularity": 85,
+    "dependency_hygiene": 88,
     "secret_handling": 88,
-    "security_notes": "TLS handled at server level. No built-in auth — must implement. Go's type system prevents many injection vulnerabilities. CORS middleware available."
+    "security_notes": "MIT licensed. TLS configured at server level. CORS middleware available. gin.Recovery() prevents panics from crashing server. Add rate limiting middleware for production."
   },
   "reliability_score_components": {
-    "uptime_documented": 95,
+    "uptime_documented": 100,
     "version_stability": 90,
-    "breaking_changes_history": 88,
+    "breaking_changes_history": 85,
     "error_recovery": 88
   }
 }

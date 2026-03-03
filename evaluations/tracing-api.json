@@ -6,23 +6,23 @@
   "repo_url": "https://github.com/tokio-rs/tracing",
   "category": "developer-tools",
   "subcategories": ["observability", "logging", "tracing", "rust"],
-  "tags": ["rust", "tracing", "logging", "observability", "spans", "async", "structured-logging", "opentelemetry"],
-  "what_it_does": "Structured, contextual logging and tracing framework for Rust. Replaces the log crate with spans (contextual groupings) and events (individual log records) that carry structured key-value fields. Integrates with async Rust (Tokio) to propagate context across .await points. Pluggable subscriber system supports output to JSON, Jaeger, Zipkin, OpenTelemetry, or terminal.",
+  "tags": ["tracing", "rust", "logging", "observability", "opentelemetry", "structured-logging", "spans", "async"],
+  "what_it_does": "Structured, contextual logging and distributed tracing framework for Rust. Instruments async code with spans (logical units of work) and events (log messages with metadata). Works with multiple subscribers/collectors — tracing-subscriber for local logging, opentelemetry-rust for distributed tracing. The standard observability approach for async Rust services (Axum, Tokio use it internally).",
   "use_cases": [
-    "Add structured observability to Rust agent services with spans that track LLM API calls, tool executions, and pipeline stages",
-    "Propagate trace context across async agent tasks using tracing's async-aware span system",
-    "Export agent execution traces to Jaeger or Zipkin via tracing-opentelemetry integration for distributed tracing",
-    "Log structured agent events (tool calls, model responses, latency) with key-value fields for log aggregation",
-    "Debug complex async agent pipelines by examining span hierarchies and timing in tokio-console"
+    "Add structured logging to Rust agent services with span-based context propagation through async call chains",
+    "Instrument async Rust agent code where traditional logging loses context across .await points",
+    "Integrate with OpenTelemetry for distributed tracing across Rust agent microservices",
+    "Add #[tracing::instrument] to agent functions to automatically trace function entry, exit, and parameters",
+    "Correlate logs with request IDs across async Rust agent service handlers using span context"
   ],
   "not_for": [
-    "Simple println-style logging in scripts — the log crate or env_logger is simpler for basic text logging",
-    "Applications not using Rust — use OpenTelemetry SDKs for language-agnostic distributed tracing",
-    "Binary size-sensitive embedded systems — tracing adds non-trivial binary size overhead"
+    "Simple synchronous Rust programs — standard log crate is simpler for non-async code",
+    "Non-Rust environments — use OpenTelemetry SDKs for other languages",
+    "Zero-dependency projects — tracing adds compile time with proc-macro dependencies"
   ],
-  "best_when": "You're building a production Rust async service (agent backend, HTTP API) and need structured, contextual observability that integrates with Jaeger, Zipkin, or cloud observability platforms.",
-  "avoid_when": "You just need simple log output — use env_logger with the log crate for simpler setups; tracing is worth it for production services but overkill for scripts.",
-  "alternatives": ["log-rs-api", "slog-api", "opentelemetry-rust-api"],
+  "best_when": "You're building async Rust services (especially with Tokio/Axum) and need structured logging that preserves context through async .await boundaries.",
+  "avoid_when": "Simple synchronous Rust programs — the log crate is simpler. Tracing's value compounds with async complexity.",
+  "alternatives": ["log-api", "env-logger-api"],
   "interface": {
     "has_rest_api": false,
     "has_graphql": false,
@@ -38,21 +38,21 @@
     "methods": ["none"],
     "oauth": false,
     "scopes": false,
-    "notes": "Local observability library — auth for external backends (Jaeger, OTLP) is configured in the subscriber/exporter."
+    "notes": "Local library — no authentication required. MIT licensed."
   },
   "pricing": {
     "model": "open_source",
     "free_tier_exists": true,
-    "free_tier_limits": "MIT licensed, completely free",
+    "free_tier_limits": "MIT licensed — completely free",
     "paid_tiers": "None",
     "requires_credit_card": false,
-    "notes": "MIT license. Part of the Tokio project."
+    "notes": "MIT licensed. Zero cost."
   },
   "performance": {
-    "latency_p50_ms": null,
-    "latency_p99_ms": null,
+    "latency_p50_ms": 0,
+    "latency_p99_ms": 0,
     "uptime_sla_percent": null,
-    "rate_limits": "No rate limits. Minimal overhead when spans are disabled via level filtering. Async-compatible — no blocking in instrumented code.",
+    "rate_limits": "No rate limits. Zero-cost when disabled (no subscriber). Minimal overhead when enabled — designed for production use.",
     "data_source": "llm_estimated"
   },
   "requirements": {
@@ -66,39 +66,39 @@
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
-    "documentation_accuracy": 88,
-    "error_message_quality": 85,
-    "error_message_notes": "Structured events include file, line, and module path. Span context is automatically attached to events within the span. Subscriber configuration errors surface at initialization.",
+    "documentation_accuracy": 90,
+    "error_message_quality": 88,
+    "error_message_notes": "Span events and metadata are well-typed. tracing-subscriber provides flexible filtering. OpenTelemetry integration for distributed tracing backends.",
     "idempotency_support": "full",
-    "idempotency_notes": "Observability library — no side effects on application logic. Logging/tracing is always additive.",
+    "idempotency_notes": "Tracing is append-only observability — idempotency not applicable.",
     "pagination_style": "none",
     "retry_guidance_documented": false,
     "known_agent_gotchas": [
-      "tracing requires a subscriber to be installed globally (tracing_subscriber::fmt::init()) before any spans or events are recorded — events before init() are silently dropped",
-      "The #[instrument] macro creates a span for the function but async functions must have the async support enabled — use #[instrument] and ensure the function is async or use async_trait",
-      "Span fields are captured at span creation time — fields that change during the span must use span.record(\"field\", &value) to update",
-      "Multiple subscribers can be composed with tracing_subscriber::layer() but order matters — layer precedence determines which subscriber sees events first",
-      "tracing-opentelemetry integration requires matching version alignment between tracing, opentelemetry, and tracing-opentelemetry crates — version mismatches cause compilation failures",
-      "Dynamic field values in info!(key = %dynamic_value) use Display format — use ?value for Debug format; mixing up format specifiers causes unexpected output"
+      "tracing is the instrumentation API; tracing-subscriber is the output backend — must add both as dependencies; tracing alone produces no output without a subscriber",
+      "#[tracing::instrument] on async functions traces function entry/exit — use skip() for large/sensitive args: #[tracing::instrument(skip(password, db))]",
+      "Span context propagates through async code automatically — but NOT across thread boundaries via std::thread::spawn; use tokio::spawn which preserves span context",
+      "tracing::info_span!() creates a span but you must .enter() it or use span.in_scope(|| {}) — forgotten enter() means no span context",
+      "Log interop: tracing-log bridges the log crate to tracing — add tracing_log::LogTracer::init() to capture third-party library logs in tracing subscriber",
+      "OpenTelemetry integration: opentelemetry-otlp + tracing-opentelemetry — multiple crate versions must be compatible; pin exact versions in Cargo.lock"
     ]
   },
   "af_score_components": {
     "mcp_score": 0,
-    "api_doc_score": 88,
-    "error_handling_score": 85,
+    "api_doc_score": 90,
+    "error_handling_score": 88,
     "auth_complexity_score": 100,
     "rate_limit_clarity_score": 100
   },
   "security_score_components": {
     "tls_enforcement": 100,
-    "auth_strength": 95,
-    "scope_granularity": 95,
-    "dependency_hygiene": 95,
-    "secret_handling": 82,
-    "security_notes": "Be careful not to log sensitive data (API keys, PII) in span fields — structured fields are exportable. Use redaction layer for production deployments handling sensitive data."
+    "auth_strength": 100,
+    "scope_granularity": 100,
+    "dependency_hygiene": 92,
+    "secret_handling": 88,
+    "security_notes": "MIT licensed. Avoid tracing sensitive data — span fields are visible in logs. Use skip() in #[instrument] for sensitive parameters."
   },
   "reliability_score_components": {
-    "uptime_documented": 95,
+    "uptime_documented": 100,
     "version_stability": 90,
     "breaking_changes_history": 88,
     "error_recovery": 92

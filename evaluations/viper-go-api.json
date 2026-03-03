@@ -1,28 +1,28 @@
 {
   "id": "viper-go-api",
-  "name": "Viper (Go)",
-  "version_evaluated": "1.x",
+  "name": "Viper",
+  "version_evaluated": "1.x / 2.x",
   "homepage": "https://github.com/spf13/viper",
   "repo_url": "https://github.com/spf13/viper",
   "category": "developer-tools",
-  "subcategories": ["configuration", "cli", "golang"],
-  "tags": ["go", "config", "environment", "yaml", "json", "toml", "12-factor", "open-source"],
-  "what_it_does": "Complete configuration solution for Go applications. Supports reading from config files (JSON, TOML, YAML, HCL, INI, dotenv), environment variables, remote config systems (etcd, Consul), and command-line flags. Integrates with Cobra for CLI flag binding. Handles 12-factor app configuration patterns with priority ordering (flags > env > config > defaults).",
+  "subcategories": ["configuration", "go", "utilities"],
+  "tags": ["viper", "go", "golang", "configuration", "config", "environment-variables", "yaml", "json", "toml"],
+  "what_it_does": "Complete configuration solution for Go applications. Reads configuration from multiple sources in priority order: flags, environment variables, config files (JSON, YAML, TOML, HCL, INI, Java Properties), remote config (etcd, Consul, Firestore), and default values. Works with Cobra for CLI configuration. The de-facto standard for Go configuration management.",
   "use_cases": [
-    "Manage application configuration from multiple sources (files, env vars, flags) with a single priority-ordered API",
-    "Bind Cobra CLI flags to Viper config values for consistent configuration across CLI and server modes",
-    "Load configuration from remote sources (etcd, Consul) with live config reload for long-running services",
-    "Use environment variable overrides for Docker/Kubernetes deployments without changing config files",
-    "Provide typed configuration access (GetString, GetInt, GetDuration) with sensible defaults"
+    "Manage agent service configuration from multiple sources — defaults, config files, environment variables, and CLI flags",
+    "Implement 12-factor app configuration for agent services where env vars override config file values",
+    "Watch config files for hot-reload in long-running agent services: viper.WatchConfig()",
+    "Bind Cobra CLI flags to Viper config keys for unified flag/env/file configuration in agent CLIs",
+    "Load remote configuration from etcd or Consul for distributed agent system configuration"
   ],
   "not_for": [
-    "Strongly-typed config structs at compile time — use envconfig or cleanenv for struct-based config validation",
-    "Secrets management — use HashiCorp Vault or cloud KMS; Viper handles config, not secrets",
-    "Non-Go applications — Viper is Go-specific"
+    "Simple single-value env var reading — os.Getenv() or godotenv is simpler for straightforward env var reading",
+    "Type-safe config structs without UnmarshalKey — consider envconfig or kelseyhightower/envconfig for typed struct unmarshaling",
+    "Projects requiring immutable config — Viper supports runtime config changes; use struct-based config for immutable application config"
   ],
-  "best_when": "You're building a Go application or CLI that needs layered configuration from files, environment variables, and flags with a clean priority hierarchy.",
-  "avoid_when": "You need compile-time config validation or strongly-typed structs — consider alternatives with struct tags for type safety.",
-  "alternatives": ["cobra-go-api"],
+  "best_when": "You're building a Cobra CLI or Go service that needs configuration from multiple sources (file + env + flags) with a priority system and optionally hot-reload.",
+  "avoid_when": "Your configuration needs are simple (a few env vars) — os.Getenv() or a minimal config struct is sufficient without Viper's complexity.",
+  "alternatives": ["godotenv-api", "envconfig-api"],
   "interface": {
     "has_rest_api": false,
     "has_graphql": false,
@@ -38,69 +38,69 @@
     "methods": ["none"],
     "oauth": false,
     "scopes": false,
-    "notes": "Library with no auth requirement. Remote config backends (etcd, Consul) require their own auth configuration."
+    "notes": "Local library — no authentication required. MIT licensed."
   },
   "pricing": {
     "model": "open_source",
     "free_tier_exists": true,
-    "free_tier_limits": "MIT licensed, completely free",
+    "free_tier_limits": "MIT licensed — completely free",
     "paid_tiers": "None",
     "requires_credit_card": false,
-    "notes": "Free and open source. Maintained by Steve Francia (spf13), part of the Cobra/Viper CLI toolkit."
+    "notes": "MIT licensed. Zero cost."
   },
   "performance": {
-    "latency_p50_ms": null,
-    "latency_p99_ms": null,
+    "latency_p50_ms": 0,
+    "latency_p99_ms": 0,
     "uptime_sla_percent": null,
-    "rate_limits": "No rate limits — local library",
+    "rate_limits": "No rate limits — local configuration library.",
     "data_source": "llm_estimated"
   },
   "requirements": {
     "requires_signup": false,
     "requires_credit_card": false,
     "domain_verification": false,
-    "data_residency": ["self-hosted"],
+    "data_residency": ["local"],
     "compliance": [],
     "min_contract": "none"
   },
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
-    "documentation_accuracy": 80,
-    "error_message_quality": 72,
-    "error_message_notes": "Viper returns zero-values for missing keys rather than errors — agents must use IsSet() to distinguish missing vs zero-value config. Config file parse errors return Go errors.",
+    "documentation_accuracy": 85,
+    "error_message_quality": 78,
+    "error_message_notes": "Config read errors returned from ReadInConfig(). Key not found returns zero value — viper.IsSet('key') needed to check existence. No panic for missing keys.",
     "idempotency_support": "full",
-    "idempotency_notes": "Config reads are idempotent. Viper's global state can cause issues in tests — use viper.New() for isolated instances.",
+    "idempotency_notes": "Configuration reading is deterministic for the same input state.",
     "pagination_style": "none",
     "retry_guidance_documented": false,
     "known_agent_gotchas": [
-      "Viper uses a global singleton by default — concurrent tests that modify Viper config will conflict; always use viper.New() for test isolation",
-      "GetString() returns empty string for missing keys, not an error — use IsSet() or required config validation to catch missing required fields",
-      "Environment variable binding requires explicit BindEnv() or AutomaticEnv() call — env vars are NOT automatically read without enabling AutomaticEnv",
-      "AutomaticEnv with SetEnvKeyReplacer replaces dots with underscores by default — config key 'server.port' maps to env var 'SERVER_PORT'",
-      "Viper config keys are case-insensitive — 'Database.Host' and 'database.host' are the same key, which can cause confusion with YAML/JSON keys",
-      "WatchConfig() for live reload uses fsnotify and only works on local files — remote config (etcd/Consul) has different reload mechanisms"
+      "Viper uses a global instance by default — for testing or multiple configs, use viper.New() to create isolated instances: v := viper.New(); v.SetConfigFile('config.yaml')",
+      "Environment variable binding: viper.AutomaticEnv() automatically reads env vars; viper.SetEnvPrefix('APP') makes APP_KEY bind to 'key' — set prefix before AutomaticEnv",
+      "Config key lookup is case-insensitive: viper.Get('DATABASE_URL') == viper.Get('database_url') — stored lowercase internally",
+      "Unmarshaling: viper.Unmarshal(&cfg) maps all config to a struct — use mapstructure tags on struct fields: mapstructure:'database_url'",
+      "Hot reload: viper.WatchConfig(); viper.OnConfigChange(func(e fsnotify.Event) { ... }) — requires fsnotify and must restart dependent subsystems",
+      "Priority order: explicit Set > flag > env > config > key/value store > default — understanding this order is critical for debugging config issues"
     ]
   },
   "af_score_components": {
     "mcp_score": 0,
-    "api_doc_score": 80,
-    "error_handling_score": 72,
-    "auth_complexity_score": 100,
-    "rate_limit_clarity_score": 100
+    "api_doc_score": 85,
+    "error_handling_score": 78,
+    "auth_complexity_score": 92,
+    "rate_limit_clarity_score": 95
   },
   "security_score_components": {
-    "tls_enforcement": 85,
-    "auth_strength": 80,
-    "scope_granularity": 80,
+    "tls_enforcement": 88,
+    "auth_strength": 85,
+    "scope_granularity": 82,
     "dependency_hygiene": 82,
-    "secret_handling": 70,
-    "security_notes": "Config files may contain secrets — Viper provides no encryption. Use separate secrets management. AutomaticEnv is convenient but can accidentally expose config via env vars if keys conflict."
+    "secret_handling": 82,
+    "security_notes": "MIT licensed. Secrets in config files risk accidental exposure — use environment variables or secret backends for sensitive values. Config file permissions should restrict read access."
   },
   "reliability_score_components": {
-    "uptime_documented": 85,
-    "version_stability": 80,
-    "breaking_changes_history": 82,
-    "error_recovery": 78
+    "uptime_documented": 95,
+    "version_stability": 85,
+    "breaking_changes_history": 80,
+    "error_recovery": 85
   }
 }
