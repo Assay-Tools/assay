@@ -1,0 +1,106 @@
+{
+  "id": "pyarrow-python-api",
+  "name": "PyArrow",
+  "version_evaluated": "15.x",
+  "homepage": "https://arrow.apache.org/docs/python/",
+  "repo_url": "https://github.com/apache/arrow",
+  "category": "developer-tools",
+  "subcategories": ["data-processing", "python", "columnar", "parquet", "arrow"],
+  "tags": ["python", "pyarrow", "apache-arrow", "parquet", "columnar", "data-processing", "feather", "arrow", "pandas"],
+  "what_it_does": "Apache Arrow columnar data format Python library — high-performance in-memory columnar data processing and Parquet/Feather file I/O. PyArrow features: pa.Table for columnar in-memory data, pa.array()/pa.chunked_array() for typed arrays, parquet.read_table()/write_table() for Parquet I/O, feather.read_feather()/write_feather(), pyarrow.dataset for partitioned datasets, compute functions (pc.filter, pc.sort_indices, pc.cast), pa.Schema for explicit typing, zero-copy conversion with pandas, Arrow IPC format for inter-process data transfer, S3/GCS/HDFS filesystem integration, and memory-mapped files. Standard library for Parquet I/O, columnar data processing, and zero-copy data sharing between Python processes.",
+  "use_cases": [
+    "Agent Parquet I/O — import pyarrow.parquet as pq; table = pq.read_table('data.parquet', columns=['id', 'value']); df = table.to_pandas() — read Parquet with column projection (only read needed columns); agent data pipeline reads 10GB Parquet file in seconds by skipping unused columns; write with pq.write_table(table, 'output.parquet', compression='snappy')",
+    "Agent zero-copy pandas interop — table = pa.Table.from_pandas(df); df2 = table.to_pandas(zero_copy_only=True) — convert pandas DataFrame to Arrow Table without copying data; agent passes large datasets between components without memory duplication; Arrow is the common currency between pandas, polars, and DuckDB",
+    "Agent partitioned dataset scanning — import pyarrow.dataset as ds; dataset = ds.dataset('s3://bucket/data/', format='parquet', partitioning='hive'); table = dataset.to_table(filter=ds.field('date') > '2024-01-01') — scan partitioned S3 Parquet dataset with predicate pushdown; agent reads only matching partitions instead of all data",
+    "Agent columnar compute — import pyarrow.compute as pc; filtered = pc.filter(table, pc.greater(table['score'], 0.5)); sorted_idx = pc.sort_indices(table, sort_keys=[('score', 'descending')]); top_n = table.take(sorted_idx[:100]) — filter and sort Arrow tables without pandas; faster than pandas for columnar operations on large tables",
+    "Agent IPC data transfer — sink = pa.BufferOutputStream(); writer = pa.ipc.new_stream(sink, table.schema); writer.write_table(table); writer.close(); buf = sink.getvalue() — serialize Arrow table to bytes for inter-process transfer; agent shares large datasets between workers via shared memory or network without serialization overhead"
+  ],
+  "not_for": [
+    "Row-oriented data processing — Arrow is columnar; row-level operations (iterating rows) are slow; use pandas or Python dicts for row-oriented workflows",
+    "In-place mutation — Arrow arrays are immutable; for mutable data use pandas or numpy arrays with Arrow only for I/O",
+    "Complex analytics — Arrow compute is limited; for complex aggregations use DuckDB or pandas on Arrow data"
+  ],
+  "best_when": "Reading/writing Parquet files, zero-copy data exchange between libraries (pandas, polars, DuckDB), or scanning large partitioned datasets on S3/GCS — PyArrow is the foundational data interchange format that all modern Python data tools understand.",
+  "avoid_when": "You need row-level iteration, in-place mutation, or complex SQL analytics — use pandas or DuckDB for those instead.",
+  "alternatives": ["pandas-api", "polars-python-api", "duckdb-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "r", "java", "cpp", "rust", "go"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth for local files. S3/GCS access uses boto3/google-auth credentials. HDFS uses Kerberos."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, Apache 2.0 licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "PyArrow/Apache Arrow is Apache 2.0 licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 5,
+    "latency_p99_ms": 500,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Parquet read with column projection reads only needed columns (10-100x speedup for wide tables). Predicate pushdown skips row groups. Memory-mapped files avoid copying. S3 read throughput depends on network.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted", "cloud"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 82,
+    "error_message_quality": 80,
+    "error_message_notes": "pa.lib.ArrowInvalid for type mismatches or invalid data. pa.lib.ArrowNotImplementedError for unsupported operations. FileNotFoundError for missing Parquet files. Schema mismatch errors when appending incompatible tables. Clear error messages with column name and type info.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Reading same Parquet file always returns same table. write_table() is deterministic. Arrow compute functions are pure. S3 reads are idempotent for consistent data.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Column projection dramatically reduces read time — pq.read_table('data.parquet') reads ALL columns; for 100-column file reading 3 columns, use pq.read_table('data.parquet', columns=['a', 'b', 'c']); agent data pipelines reading wide Parquet files MUST specify columns to avoid reading 10-100x more data than needed",
+      "Arrow arrays are immutable — pa.array([1, 2, 3]) cannot be modified in place; agent code doing arr[0] = 5 raises TypeError; convert to list, modify, and create new array; or use pandas for mutable intermediate computation and convert back to Arrow for I/O",
+      "Type inference may not match schema — pa.Table.from_pandas(df) infers types; integer columns with NaN become float64; agent code must specify schema explicitly: pa.Table.from_pandas(df, schema=my_schema) to enforce types; especially important for nullable integers (use pa.int64() not python int)",
+      "to_pandas() copies data by default — table.to_pandas() always copies even when zero-copy is possible; use table.to_pandas(zero_copy_only=True) for zero-copy when data is contiguous; raises ArrowNotImplementedError if zero-copy impossible; agent large dataset pipelines should try zero_copy_only first",
+      "Partitioned datasets require partitioning scheme — ds.dataset('path/', partitioning='hive') assumes hive-style (date=2024-01-01/); wrong partitioning scheme causes wrong filter pushdown or ValueError; agent must match partitioning to how data was written",
+      "Large Parquet writes need row group size tuning — pq.write_table(table, 'out.parquet') uses 64MB row groups by default; for filter pushdown effectiveness, smaller row groups (1-10MB) enable finer skipping; agent write pipeline should tune: pq.write_table(table, path, row_group_size=50000)"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 82,
+    "error_handling_score": 80,
+    "auth_complexity_score": 95,
+    "rate_limit_clarity_score": 95
+  },
+  "security_score_components": {
+    "tls_enforcement": 88,
+    "auth_strength": 85,
+    "scope_granularity": 82,
+    "dependency_hygiene": 85,
+    "secret_handling": 88,
+    "security_notes": "S3/GCS credentials use standard cloud IAM — store in environment variables or instance roles, not code. Parquet files may contain sensitive data — apply appropriate filesystem permissions. Memory-mapped files expose data to same-user processes."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 85,
+    "breaking_changes_history": 80,
+    "error_recovery": 85
+  }
+}

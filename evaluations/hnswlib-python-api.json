@@ -1,0 +1,106 @@
+{
+  "id": "hnswlib-python-api",
+  "name": "hnswlib",
+  "version_evaluated": "0.8.x",
+  "homepage": "https://github.com/nmslib/hnswlib",
+  "repo_url": "https://github.com/nmslib/hnswlib",
+  "category": "ai-ml",
+  "subcategories": ["vector-search", "approximate-nearest-neighbor", "python", "embeddings"],
+  "tags": ["python", "hnswlib", "ann", "vector-search", "embeddings", "hnsw", "approximate-nearest-neighbor", "similarity-search"],
+  "what_it_does": "Fast approximate nearest neighbor (ANN) search library implementing HNSW (Hierarchical Navigable Small World) algorithm. hnswlib features: hnswlib.Index for in-memory vector index, add_items() for batch insertion, knn_query() for k-nearest-neighbor search, save_index()/load_index() for persistence, ef_construction and M parameters for accuracy/speed trade-off, ef (query-time) parameter, multi-threading for batch queries, mark_deleted() for soft deletion, and both L2 (Euclidean) and cosine space metrics. 10-100x faster than brute-force search at slight accuracy cost. Lightweight alternative to FAISS for CPU-only environments.",
+  "use_cases": [
+    "Agent semantic search — import hnswlib; dim = 384; index = hnswlib.Index(space='cosine', dim=dim); index.init_index(max_elements=10000, ef_construction=200, M=16); index.add_items(embeddings, labels); labels, distances = index.knn_query(query_embedding, k=5) — fast cosine similarity search over document embeddings; agent retrieval pipeline searches 100K documents in <10ms",
+    "Agent recommendation engine — index = hnswlib.Index(space='l2', dim=128); index.init_index(max_elements=1000000); index.set_ef(50); index.add_items(item_embeddings, item_ids); similar_ids, dists = index.knn_query(user_embedding, k=20) — product/content recommendations via embedding similarity; agent serves personalized recommendations from 1M+ item catalog",
+    "Agent deduplication — index.add_items(doc_embeddings); for i, emb in enumerate(doc_embeddings): labels, dists = index.knn_query(emb, k=2); if dists[0][1] < 0.1: mark_as_duplicate(i, labels[0][1]) — find near-duplicate documents via cosine similarity threshold; agent data cleaning pipeline removes semantically duplicate content",
+    "Agent index persistence — index.save_index('embeddings.bin'); loaded = hnswlib.Index(space='cosine', dim=dim); loaded.load_index('embeddings.bin', max_elements=10000) — save and restore index across agent restarts; agent persists vector index to disk between sessions without rebuilding",
+    "Agent dynamic index updates — index.mark_deleted(label); index.add_items(new_embeddings, new_labels) — soft-delete and add items to live index; agent knowledge base updates embeddings for edited documents without full rebuild; deleted items excluded from future searches"
+  ],
+  "not_for": [
+    "GPU-accelerated search — hnswlib is CPU-only; for GPU vector search use FAISS with GPU index or cuVS",
+    "Disk-based indexes for 100M+ vectors — hnswlib is in-memory; for billion-scale search use DiskANN or FAISS with disk-based IVF",
+    "Exact nearest neighbor — hnswlib is approximate; for exact results use brute-force FAISS FlatIndex or scipy.spatial.cKDTree for small datasets"
+  ],
+  "best_when": "CPU-based semantic search over millions of embeddings — hnswlib's HNSW algorithm provides near-exact recall (>95%) with <10ms query latency for 1M vectors, with a simpler API than FAISS for CPU-only deployments.",
+  "avoid_when": "You need GPU acceleration (use FAISS), billion-scale search (use DiskANN), or exact results (use brute-force).",
+  "alternatives": ["faiss-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "cpp"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — local in-memory index."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, Apache 2.0 licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "hnswlib is Apache 2.0 licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 1,
+    "latency_p99_ms": 10,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Query latency: <1ms for 100K vectors, <10ms for 1M vectors on modern CPU. Index build: ~1 min for 1M 384-dim vectors. Num_threads parameter enables parallel batch queries. Memory: ~(M × 8 + dim × 4) bytes per element.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 80,
+    "error_message_quality": 72,
+    "error_message_notes": "RuntimeError for capacity exceeded (max_elements limit). ValueError for dimension mismatch. Exception for loading index with wrong space/dim. Errors are C++ exceptions surfaced through pybind11 — messages are clear but stack traces show C++ internals.",
+    "idempotency_support": "full",
+    "idempotency_notes": "knn_query() on same index and query always returns same results. save_index()/load_index() round-trip is lossless. add_items() with same labels and data is deterministic.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "max_elements must be set at init — index.init_index(max_elements=10000) reserves memory for exactly 10000 elements; adding more raises RuntimeError: Cannot insert element — out of available memory; agent code must estimate max size upfront or use resize_index(new_max) to grow; cannot shrink",
+      "Cosine space requires pre-normalized vectors — hnswlib.Index(space='cosine') computes inner product not true cosine; vectors must be L2-normalized: v = v / np.linalg.norm(v) before add_items(); unnormalized vectors with 'cosine' space give wrong similarity scores silently",
+      "ef must be set before each query batch — index.set_ef(50) sets query-time ef globally; ef controls recall/speed trade-off (higher=better recall, slower); default ef is often too low; agent code must call set_ef() with appropriate value before knn_query(); ef must be >= k",
+      "Labels must be uint integers — add_items(embeddings, labels) requires labels as numpy uint array; Python list of ints or negative integers raise errors; agent code using string IDs must maintain separate label→string mapping; store integer label as index, lookup string from list",
+      "No true deletion — mark_deleted(label) soft-deletes by excluding from results but element stays in memory; deleted count against max_elements capacity; agent with frequent updates must rebuild index periodically to reclaim space from deleted elements",
+      "Thread safety requires num_threads — index.set_num_threads(4) enables parallel add_items() and knn_query(); single-threaded by default; agent parallel indexing pipelines must call set_num_threads() matching CPU count; concurrent knn_query() calls without thread setting cause race conditions"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 78,
+    "error_handling_score": 68,
+    "auth_complexity_score": 98,
+    "rate_limit_clarity_score": 98
+  },
+  "security_score_components": {
+    "tls_enforcement": 92,
+    "auth_strength": 92,
+    "scope_granularity": 90,
+    "dependency_hygiene": 85,
+    "secret_handling": 92,
+    "security_notes": "Local in-memory index — no network access, no data exfiltration risk. Index files saved to disk should be protected if containing sensitive embeddings. C++ core with Python bindings — supply chain risk is low (widely used library)."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 80,
+    "version_stability": 82,
+    "breaking_changes_history": 80,
+    "error_recovery": 75
+  }
+}
