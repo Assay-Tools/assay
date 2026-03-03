@@ -2,27 +2,27 @@
   "id": "alembic-api",
   "name": "Alembic",
   "version_evaluated": "1.x",
-  "homepage": "https://alembic.sqlalchemy.org/en/latest/",
+  "homepage": "https://alembic.sqlalchemy.org/",
   "repo_url": "https://github.com/sqlalchemy/alembic",
   "category": "developer-tools",
-  "subcategories": ["database-migrations", "python", "sqlalchemy", "devops"],
-  "tags": ["python", "database", "migrations", "sqlalchemy", "schema", "postgresql", "mysql", "sqlite"],
-  "what_it_does": "Database schema migration tool for SQLAlchemy in Python. Generates migration scripts from model changes (or manual authoring), tracks migration history in an alembic_version table, and applies migrations in order. The standard migration tool for SQLAlchemy-based Python applications and agent data layers.",
+  "subcategories": ["database", "migrations", "python", "sqlalchemy"],
+  "tags": ["alembic", "python", "database", "migrations", "sqlalchemy", "schema", "versioning"],
+  "what_it_does": "Database migration tool for SQLAlchemy. Generates and applies schema migration scripts to evolve database schema over time. Creates versioned migration files with upgrade/downgrade functions. Detects schema differences between SQLAlchemy models and current database state (autogenerate). The standard migration tool for SQLAlchemy-based Python applications.",
   "use_cases": [
-    "Manage database schema evolution for Python agent services with versioned migration scripts and rollback support",
-    "Auto-generate migration scripts from SQLAlchemy model changes using alembic --autogenerate",
-    "Apply schema changes to agent production databases safely with up/down migration scripts",
-    "Integrate database migrations into Python agent deployment pipelines (alembic upgrade head before app start)",
-    "Track migration history across multiple environments (dev, staging, prod) for agent data layer consistency"
+    "Manage database schema evolution in production agent systems with tracked, reversible migrations",
+    "Autogenerate migration scripts by comparing SQLAlchemy model definitions to current database schema",
+    "Apply schema migrations as part of agent service deployment pipeline with alembic upgrade head",
+    "Roll back schema changes in agent development or production with alembic downgrade",
+    "Maintain migration history for auditing and reproducing exact database schema states"
   ],
   "not_for": [
-    "Non-SQLAlchemy databases — Alembic is designed for SQLAlchemy ORM; use flyway or liquibase for Java/multi-language",
-    "No-SQL databases — Alembic is SQL-schema focused; use MongoDB Atlas App Services for NoSQL schema management",
-    "Simple single-file SQLite apps where schema is recreated from scratch — Alembic overhead isn't worth it for throwaway DBs"
+    "Non-SQLAlchemy ORMs — Alembic is specifically for SQLAlchemy; use Django migrations for Django, Flyway for Java, Prisma migrations for Node.js",
+    "Data migrations (moving data between columns) — Alembic handles schema changes; complex data migrations require custom op.execute() SQL in migration scripts",
+    "Non-SQL databases — Alembic is SQL-only"
   ],
-  "best_when": "You're using SQLAlchemy for your Python agent's data layer and need production-grade database schema migrations with version tracking and rollback.",
-  "avoid_when": "You're not using SQLAlchemy — use Flyway, Liquibase, or Django's built-in migrations for other ORM/framework migrations.",
-  "alternatives": ["flyway-api", "django-migrations-api", "yoyo-migrations-api"],
+  "best_when": "You're using SQLAlchemy for your Python database models and need version-controlled, reversible database schema migrations.",
+  "avoid_when": "You're using Django (use Django migrations) or a non-SQLAlchemy stack. For simple SQLite scripts, manual migrations may be simpler.",
+  "alternatives": ["flyway-api", "liquibase-api"],
   "interface": {
     "has_rest_api": false,
     "has_graphql": false,
@@ -38,69 +38,69 @@
     "methods": ["none"],
     "oauth": false,
     "scopes": false,
-    "notes": "Migration tool — database auth configured via SQLAlchemy connection URL."
+    "notes": "Local CLI tool — no authentication required. MIT licensed. Database authentication configured via connection URL."
   },
   "pricing": {
     "model": "open_source",
     "free_tier_exists": true,
-    "free_tier_limits": "MIT licensed, completely free",
+    "free_tier_limits": "MIT licensed — completely free",
     "paid_tiers": "None",
     "requires_credit_card": false,
-    "notes": "MIT license. Maintained by Michael Bayer (SQLAlchemy author)."
+    "notes": "MIT licensed. Zero cost."
   },
   "performance": {
-    "latency_p50_ms": null,
-    "latency_p99_ms": null,
+    "latency_p50_ms": 100,
+    "latency_p99_ms": 5000,
     "uptime_sla_percent": null,
-    "rate_limits": "No rate limits — migration execution speed depends on schema changes and table sizes.",
+    "rate_limits": "No rate limits. Migration speed depends on database size and schema complexity.",
     "data_source": "llm_estimated"
   },
   "requirements": {
     "requires_signup": false,
     "requires_credit_card": false,
     "domain_verification": false,
-    "data_residency": ["local", "self-hosted"],
+    "data_residency": ["self-hosted"],
     "compliance": [],
     "min_contract": "none"
   },
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
-    "documentation_accuracy": 85,
-    "error_message_quality": 80,
-    "error_message_notes": "Migration conflicts (multiple heads) give clear error messages. Database errors during migration include the failing SQL. alembic history and alembic current commands show migration state.",
-    "idempotency_support": "full",
-    "idempotency_notes": "Alembic tracks applied migrations in alembic_version table — running alembic upgrade head is idempotent (skips already-applied migrations).",
+    "documentation_accuracy": 88,
+    "error_message_quality": 85,
+    "error_message_notes": "Migration errors include detailed SQL execution context. Autogenerate warnings for unsupported operations (renaming). alembic history and alembic current show migration state.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Each migration is version-tracked — running the same migration twice is prevented by the version table. Downgrade is reversible if down migration is implemented.",
     "pagination_style": "none",
     "retry_guidance_documented": false,
     "known_agent_gotchas": [
-      "autogenerate does not detect all schema changes — custom types, indexes on expressions, and some constraints may not be auto-detected; always review generated migrations before applying",
-      "Migration conflicts (multiple heads) occur when branches are created without merging — use alembic merge to create a merge migration before running upgrade",
-      "Running migrations in CI/CD requires database access — avoid running migrations in unit tests against production DB; use separate test DB or in-memory SQLite for unit tests",
-      "Alembic online vs. offline mode — offline migration scripts generate SQL without DB connection; useful for DBAs who apply SQL manually in production",
-      "--autogenerate compares against the current database state, not previous migration — running autogenerate on a fresh DB with no tables generates all tables; running on existing DB detects diffs",
-      "Large table migrations (adding columns with defaults, building indexes) lock tables in PostgreSQL/MySQL — use concurrent index builds and zero-downtime migration patterns for production"
+      "Autogenerate has limitations — it detects column adds/removes but NOT renames (interpreted as drop+add, losing data); manually write rename migrations using op.alter_column()",
+      "alembic.ini contains the database URL — do NOT hardcode in alembic.ini; override in env.py using environment variables: context.configure(url=os.environ['DATABASE_URL'])",
+      "Migration files are Python scripts — must be committed to version control; migration file history is the schema audit log",
+      "Running migrations in production: always test against a staging database first; migrations that add NOT NULL columns without defaults will fail on existing data",
+      "Multiple databases or schemas: use --name option or configure multiple script locations; Alembic supports branch migrations for feature branches",
+      "alembic upgrade head runs all pending migrations; alembic upgrade +1 applies exactly one — use +1 for incremental testing, head for deployment"
     ]
   },
   "af_score_components": {
     "mcp_score": 0,
-    "api_doc_score": 85,
-    "error_handling_score": 80,
+    "api_doc_score": 88,
+    "error_handling_score": 85,
     "auth_complexity_score": 95,
-    "rate_limit_clarity_score": 95
+    "rate_limit_clarity_score": 90
   },
   "security_score_components": {
-    "tls_enforcement": 95,
-    "auth_strength": 92,
-    "scope_granularity": 90,
+    "tls_enforcement": 88,
+    "auth_strength": 85,
+    "scope_granularity": 82,
     "dependency_hygiene": 90,
-    "secret_handling": 88,
-    "security_notes": "DB credentials in alembic.ini URL — use environment variable interpolation (%(DB_URL)s) rather than hardcoding credentials. Migration scripts run with full DB privileges — use separate migration user with schema-change permissions."
+    "secret_handling": 85,
+    "security_notes": "MIT licensed. Database credentials in connection URL — use environment variables, never hardcode. Migration scripts contain schema-sensitive SQL — treat migration files as sensitive code."
   },
   "reliability_score_components": {
-    "uptime_documented": 92,
-    "version_stability": 92,
-    "breaking_changes_history": 90,
-    "error_recovery": 88
+    "uptime_documented": 95,
+    "version_stability": 90,
+    "breaking_changes_history": 85,
+    "error_recovery": 85
   }
 }
