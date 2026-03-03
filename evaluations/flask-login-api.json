@@ -1,0 +1,106 @@
+{
+  "id": "flask-login-api",
+  "name": "Flask-Login",
+  "version_evaluated": "0.6.x",
+  "homepage": "https://flask-login.readthedocs.io/",
+  "repo_url": "https://github.com/maxcountryman/flask-login",
+  "category": "developer-tools",
+  "subcategories": ["authentication", "python", "flask", "session", "security"],
+  "tags": ["python", "flask", "authentication", "session", "login", "security", "user-management"],
+  "what_it_does": "User session management for Flask — handles login, logout, and remember-me cookies without dictating authentication mechanism. Flask-Login provides: LoginManager (integrates with Flask app), @login_required decorator for protected routes, current_user proxy (accessing logged-in user from any route), load_user callback (load user from session ID), login_user()/logout_user() functions, and optional 'remember me' persistent cookies. Flask-Login stores user ID in Flask session (cookie-based); developers implement user loading from database. Works alongside Flask-SQLAlchemy for agent user models. Does NOT provide password hashing — use passlib or werkzeug.security.",
+  "use_cases": [
+    "Protect agent dashboard routes with @login_required — unauthorized users redirected to login page; authenticated agent operators access admin interface",
+    "Agent operator authentication with Flask-Login + Flask-SQLAlchemy — load_user callback fetches agent operator by ID from database; login_user(operator) establishes session after password verification",
+    "Remember-me for agent admin portal — login_user(user, remember=True) sets persistent cookie for agent admins who don't want to log in on every visit",
+    "Role-based agent access control with current_user — check current_user.role == 'admin' in route to restrict agent management operations",
+    "API token authentication extending Flask-Login — implement custom request_loader for Bearer token authentication alongside session-based login for agent API and web interface coexistence"
+  ],
+  "not_for": [
+    "JWT token-based stateless APIs — Flask-Login is session-based (stateful); for agent REST APIs consumed by mobile/SPA, use Flask-JWT-Extended for JWT token authentication",
+    "OAuth2 / social login — Flask-Login doesn't handle OAuth flows; use Flask-Dance or Authlib alongside Flask-Login for social auth for agent services",
+    "Microservices — Flask-Login session requires sticky sessions or shared session store; agent microservices with multiple instances need Redis session store or JWT instead"
+  ],
+  "best_when": "You're building a Flask web application with traditional session-based login (forms, cookies) for agent admin portals, CMS, or web dashboards — Flask-Login is the standard Flask auth session manager.",
+  "avoid_when": "You're building an API-first service (use JWT), you need OAuth social login (use Flask-Dance), or you have multiple stateless agent service instances without shared session storage.",
+  "alternatives": ["flask-jwt-extended-api", "authlib-api", "flask-security-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["session"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Session-based auth library. Integrates with Flask session (signed cookie). Remember-me uses separate persistent cookie. Does not implement password hashing — use werkzeug.security.generate_password_hash/check_password_hash."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Flask-Login is MIT licensed, maintained by Max Countryman. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 0,
+    "latency_p99_ms": 2,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — session library. Session validation on each request: user_loader callback runs per request for @login_required routes.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 88,
+    "error_message_quality": 82,
+    "error_message_notes": "Flask-Login redirects unauthorized users to login_manager.login_view; no exception for unauthorized access (redirect only). Current_user.is_anonymous True before login. User loader returning None logs out user with flash message. Custom unauthorized_handler for API 401 responses.",
+    "idempotency_support": "full",
+    "idempotency_notes": "login_user() is idempotent — calling again with same user updates session. logout_user() clears session safely regardless of login state.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "user_loader must return None for invalid IDs — @login_manager.user_loader callback returning None (user not found) automatically logs out and redirects; raising exception from user_loader causes 500 error instead of graceful logout",
+      "User model must implement is_authenticated, is_active, is_anonymous, get_id — Flask-Login requires these 4 UserMixin methods; use flask_login.UserMixin as base class for agent user models; missing any causes AttributeError on current_user access",
+      "SECRET_KEY required for session security — Flask-Login sessions use Flask's signed cookies; missing SECRET_KEY causes 'No secret key set for Flask application' error; use strong random SECRET_KEY from os.urandom(24) in agent app config",
+      "Remember-me cookie duration needs explicit config — REMEMBER_COOKIE_DURATION defaults to 365 days; set to shorter value (30 days) for agent admin accounts; REMEMBER_COOKIE_SECURE=True for HTTPS-only for agent production deployments",
+      "user_loader called on every request — user_loader runs a database query per request for @login_required routes; cache user object in Flask g or use session storage to avoid N database queries for agent pages with multiple protected resources",
+      "Multiple authentication methods need request_loader — @login_manager.request_loader decorator enables API token auth alongside session auth; request_loader runs first, user_loader for session; agent APIs can support both Bearer token and session cookie with dual loader setup"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 88,
+    "error_handling_score": 82,
+    "auth_complexity_score": 80,
+    "rate_limit_clarity_score": 95
+  },
+  "security_score_components": {
+    "tls_enforcement": 82,
+    "auth_strength": 80,
+    "scope_granularity": 75,
+    "dependency_hygiene": 88,
+    "secret_handling": 82,
+    "security_notes": "SESSION_COOKIE_SECURE=True required for HTTPS production. SESSION_COOKIE_HTTPONLY=True prevents JavaScript access. CSRF protection not included — add Flask-WTF for form CSRF. Brute force protection not included — add rate limiting to login route for agent admin portals. Remember-me tokens stored in plain cookie — user DB must have token invalidation for logout-all-devices."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 85,
+    "breaking_changes_history": 82,
+    "error_recovery": 88
+  }
+}
