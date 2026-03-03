@@ -1,0 +1,106 @@
+{
+  "id": "laravel-horizon-api",
+  "name": "Laravel Horizon",
+  "version_evaluated": "5.x",
+  "homepage": "https://laravel.com/docs/horizon",
+  "repo_url": "https://github.com/laravel/horizon",
+  "category": "developer-tools",
+  "subcategories": ["background-jobs", "php", "laravel", "redis", "monitoring"],
+  "tags": ["php", "laravel", "queue", "redis", "horizon", "monitoring", "workers", "dashboard"],
+  "what_it_does": "Queue supervisor and dashboard for Laravel — provides a beautiful web UI for monitoring Redis queues, configuring workers, and managing failed jobs. Horizon features: real-time queue metrics (jobs/min, wait time, throughput), worker configuration via config/horizon.php (supervisor processes, queue priorities, max jobs per worker), job tags for filtering, job retry from dashboard, failed job alerts, job metrics history, and Supervisor-compatible process management. Horizon supervises worker processes automatically, maintaining configured worker count. Requires Redis queue driver. Alternative to plain `php artisan queue:work` with process management and observability.",
+  "use_cases": [
+    "Agent job queue monitoring dashboard — Horizon dashboard at /horizon shows real-time agent job throughput, wait times, and failed jobs; operations team monitors agent task processing health without CLI access",
+    "Priority queue configuration for agents — horizon.php supervisors config: agents-critical queue (3 workers, max 1 job/worker) runs alongside agents-default queue (1 worker); critical agent tasks never wait behind bulk processing",
+    "Failed agent job investigation — Horizon captures failed agent jobs with full payload, exception, and stack trace; retry failed jobs from dashboard or via php artisan horizon:clear for bulk cleanup",
+    "Auto-scaling agent workers — Horizon balancing: 'auto' dynamically scales workers based on queue depth; agent burst loads automatically get more workers; idle periods release workers reducing server load",
+    "Agent job tagging for filtering — implement tags() method on AgentJob returning ['agent:'.$this->agentId, 'tenant:'.$this->tenantId] enables Horizon dashboard filtering by agent or tenant for multi-tenant agent platform monitoring"
+  ],
+  "not_for": [
+    "Non-Redis queue drivers — Horizon requires Redis; for Laravel agent apps on database or SQS queue drivers, use Laravel Telescope for job monitoring or SQS console",
+    "Non-supervisor deployments — Horizon manages php artisan horizon as primary process; in Docker containers without Supervisor, run horizon as CMD directly; for complex multi-service Docker Compose agent setups, configure horizon restart policy",
+    "Simple single-queue setups — if agent app has one queue and straightforward processing, php artisan queue:work with Supervisor is simpler than Horizon's overhead"
+  ],
+  "best_when": "Your Laravel agent platform uses Redis queues and you need production-grade worker management, real-time queue monitoring, and easy failed job handling — Horizon is the first-party queue dashboard for Laravel.",
+  "avoid_when": "You're not using Redis queue driver, you need cross-service queue monitoring, or your queue setup is simple enough for direct queue:work supervision.",
+  "alternatives": ["laravel-telescope-api", "queue-monitor-laravel-api", "laravel-pulse-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["php"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["session"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Horizon dashboard gated by HorizonServiceProvider::gate callback. Define in AuthServiceProvider: Horizon::auth(function ($request) { return Auth::user()?->isAdmin(); }). Dashboard protected from unauthorized agent platform users."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed. Redis hosting costs separate.",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Laravel Horizon is MIT licensed, maintained by Laravel team. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 10,
+    "latency_p99_ms": 100,
+    "uptime_sla_percent": null,
+    "rate_limits": "No library rate limits. Horizon adds minimal overhead to queue processing. Worker throughput configurable via maxProcesses and maxJobs in supervisor config. Redis RPOPLPUSH for atomic job dequeue.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 90,
+    "error_message_quality": 85,
+    "error_message_notes": "Horizon captures failed agent jobs with exception class, message, and full stack trace in Redis. Dashboard shows failure reason per job. php artisan horizon:status shows supervisor process health. Failed job table queryable via Horizon::failedJobs() for programmatic agent monitoring.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Job dispatch is idempotent per call. Job processing is not — implement idempotent job logic for agent tasks that may be retried. Horizon retry button re-dispatches job with new job ID.",
+    "pagination_style": "none",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Horizon must restart after config changes — horizon.php config changes (new supervisor, queue priorities) require php artisan horizon:terminate followed by Supervisor restart of Horizon; running Horizon reads config at startup; changes while Horizon runs are ignored for agent worker configuration",
+      "php artisan horizon runs as foreground process — Horizon requires Supervisor (or systemd) to keep it running; raw php artisan horizon exits on server disconnect; configure Supervisor program: command=php artisan horizon, autostart=true, autorestart=true for agent production deployments",
+      "Balance strategy affects CPU usage — balance: 'auto' continuously monitors queue depth and adjusts workers; frequent worker creation/destruction for bursty agent queues causes overhead; balance: 'simple' with fixed workers is more predictable for steady agent load patterns",
+      "Failed jobs stored in Redis, not database — unlike queue:failed (database), Horizon failed jobs stored in Redis with TTL; failed agent jobs expire after 7 days by default; critical agent job failures may be lost if not investigated within retention window; configure failed_job_timeout in horizon.php",
+      "Horizon Dashboard auth gate must handle unauthenticated users — Horizon::auth callback receives Request; if user is not logged in, Auth::user() returns null; gate returning null (falsy) denies access; explicitly return false for unauthenticated to prevent PHP notice and ensure clean 403 for agent platform security",
+      "maxJobs per worker prevents memory leaks — PHP processes accumulate memory over time; max_jobs: 500 in supervisor config restarts worker after 500 jobs; for agent jobs loading large documents or LLM responses, lower maxJobs (50-100) prevents memory exhaustion in long-running agent workers"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 90,
+    "error_handling_score": 85,
+    "auth_complexity_score": 88,
+    "rate_limit_clarity_score": 90
+  },
+  "security_score_components": {
+    "tls_enforcement": 88,
+    "auth_strength": 85,
+    "scope_granularity": 82,
+    "dependency_hygiene": 88,
+    "secret_handling": 82,
+    "security_notes": "Horizon dashboard exposes all job payloads (may contain agent data/credentials) — always gate with authentication. Job payloads stored in Redis — use Redis AUTH and TLS for agent production Redis. Avoid storing sensitive agent data in job payloads; pass IDs and fetch from database in job handler."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 92,
+    "version_stability": 90,
+    "breaking_changes_history": 88,
+    "error_recovery": 88
+  }
+}

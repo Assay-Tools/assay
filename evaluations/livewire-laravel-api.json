@@ -1,0 +1,106 @@
+{
+  "id": "livewire-laravel-api",
+  "name": "Laravel Livewire",
+  "version_evaluated": "3.x",
+  "homepage": "https://livewire.laravel.com/",
+  "repo_url": "https://github.com/livewire/livewire",
+  "category": "developer-tools",
+  "subcategories": ["frontend", "php", "laravel", "realtime", "components"],
+  "tags": ["php", "laravel", "livewire", "reactive", "components", "full-stack", "blade", "ajax"],
+  "what_it_does": "Full-stack component framework for Laravel — enables reactive, dynamic UIs without writing JavaScript by rendering PHP/Blade components that automatically sync with server state. Livewire components: PHP class extends Component (public string $search = ''; public function updatedSearch() { ... }), Blade view renders component, wire:model binds input to property, wire:click calls PHP method. Livewire intercepts browser events, sends AJAX request to re-render component, swaps DOM using Morphdom. Wire:loading shows loading states. Wire:poll for auto-refresh. Alpine.js for additional client-side behavior. Alternative to SPA frameworks (React/Vue) for Laravel teams who prefer PHP-centric development.",
+  "use_cases": [
+    "Agent search with live filtering — public $search = ''; public function updatedSearch() { $this->agents = Agent.where('name', 'like', \"%{$this->search}%\")->get(); } wire:model.live=\"search\" on input triggers server re-render as user types for agent catalog search",
+    "Agent form with real-time validation — wire:model binds form fields; Livewire re-validates on property update; validation errors shown instantly without page reload for agent configuration forms",
+    "Real-time agent task status dashboard — wire:poll.5s=\"refreshTasks\" auto-polls PHP method every 5 seconds to update agent task statuses without manual WebSocket setup",
+    "Agent wizard multi-step form — Livewire component tracks $step property; wire:click=\"nextStep\" advances without page reload; component state persists across steps for multi-step agent configuration workflow",
+    "Infinite scroll agent list — wire:scroll.window=\"loadMore\" triggers loadMore() PHP method appending next page of agents to $agents collection; smooth infinite scroll without JavaScript pagination code"
+  ],
+  "not_for": [
+    "Complex client-side interactivity — Livewire requires server roundtrip for every interaction (~100-200ms latency); for agent UIs with complex animations, drag-and-drop, or frequent real-time updates, SPA frameworks (Inertia + Vue/React) provide better UX",
+    "High-concurrency real-time — wire:poll creates HTTP request per component per interval; thousands of connected agent users polling creates high server load; use Laravel Echo + Pusher/WebSockets for true real-time with shared connections",
+    "API-first architectures — Livewire tightly couples frontend to Laravel backend; for agent apps requiring a separate mobile app or third-party integrations consuming the same API, build REST/GraphQL API instead"
+  ],
+  "best_when": "Your Laravel agent application needs dynamic UI (search, forms, modals) and your team prefers PHP-centric development over JavaScript frameworks — Livewire delivers reactive features without context-switching to JavaScript.",
+  "avoid_when": "You need complex animations/interactions, high-frequency real-time updates, mobile app with shared API, or your team is more comfortable with Vue/React.",
+  "alternatives": ["inertia-js-api", "filament-laravel-api", "laravel-hotwire-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["php"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["session"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Livewire uses Laravel session auth — same auth as blade views. Component methods can access Auth::user(). Wire:confirm for sensitive operations. CSRF protection built-in."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Livewire is MIT licensed, maintained by Caleb Porzio (creator). Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 100,
+    "latency_p99_ms": 500,
+    "uptime_sla_percent": null,
+    "rate_limits": "No library rate limits. Each Livewire interaction is an HTTP AJAX request; server handles as normal Laravel request. Debounce rapid user input with wire:model.lazy or wire:model.debounce.500ms for agent search to reduce request frequency.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 88,
+    "error_message_quality": 82,
+    "error_message_notes": "Livewire component exceptions surface as browser-visible error messages in development (ShowErrorMessages middleware). Production hides errors; catch exceptions in component methods and set error message properties. Validation errors via $this->validate() integrate with Blade @error directives.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Livewire component renders are idempotent. Wire:click actions are not idempotent — multiple clicks trigger multiple method calls; use wire:click.once or disable button wire:loading for agent form submissions.",
+    "pagination_style": "offset",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Public properties are exposed to client — all public component properties are serialized to client and back; never store sensitive agent data (API keys, tokens) in public Livewire properties; use private/protected for sensitive state and pass only what UI needs",
+      "wire:model.live vs wire:model.lazy — wire:model fires on every keystroke (300ms debounce default); wire:model.lazy fires on blur/change; wire:model.live with debounce for agent search field: wire:model.live.debounce.500ms=\"search\"; wrong model modifier causes excessive server requests or delayed agent search response",
+      "Component class cannot use constructor dependency injection — Livewire instantiates components differently from normal Laravel; inject dependencies via mount() lifecycle hook: public function mount(AgentService $service); using __construct() for DI causes component initialization failure in Livewire 3",
+      "Nested components require $wire.entangle for state sync — parent and child Livewire components have isolated state; to sync agent filter state between parent list component and child filter component, use @entangle in parent template or events (dispatch/on); direct property access across component boundaries fails silently",
+      "File uploads require @livewire('notifications') — Livewire file upload via wire:model on input type=file requires Livewire notifications component in layout for upload progress events; missing @livewire('notifications') causes file upload to silently fail without progress for agent document uploads",
+      "Livewire 3 changed component mounting and directive syntax — Livewire 3 removed mount() return value, changed wire:model to wire:model.live, changed emit() to dispatch(), and removed wire:init; upgrading agent Livewire 2 components requires updating all emits to dispatches and model directives; check Livewire 3 upgrade guide before migrating"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 88,
+    "error_handling_score": 80,
+    "auth_complexity_score": 85,
+    "rate_limit_clarity_score": 88
+  },
+  "security_score_components": {
+    "tls_enforcement": 88,
+    "auth_strength": 85,
+    "scope_granularity": 82,
+    "dependency_hygiene": 85,
+    "secret_handling": 75,
+    "security_notes": "Livewire public properties are transmitted to browser — never expose sensitive agent data in public properties. Component actions (wire:click methods) are publicly callable via HTTP; validate authorization in every component method (Gate::authorize('update', $agent)). CSRF protection is built-in. Avoid storing auth credentials in component state."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 85,
+    "version_stability": 82,
+    "breaking_changes_history": 75,
+    "error_recovery": 82
+  }
+}

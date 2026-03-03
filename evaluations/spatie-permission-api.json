@@ -1,0 +1,106 @@
+{
+  "id": "spatie-permission-api",
+  "name": "Spatie Laravel Permission",
+  "version_evaluated": "6.x",
+  "homepage": "https://spatie.be/docs/laravel-permission",
+  "repo_url": "https://github.com/spatie/laravel-permission",
+  "category": "developer-tools",
+  "subcategories": ["authorization", "php", "laravel", "roles", "permissions"],
+  "tags": ["php", "laravel", "roles", "permissions", "rbac", "authorization", "spatie", "gates"],
+  "what_it_does": "Role and permission management package for Laravel — stores roles and permissions in database, assigns them to users, and integrates with Laravel's Gate/policy authorization system. Spatie Permission features: `$user->assignRole('admin')`, `$user->givePermissionTo('edit agents')`, `$user->hasRole('admin')`, `$user->can('edit agents')`, model-level role/permission (multiple guard support), permission inheritance (roles have permissions), permission caching, and Blade directives (@role('admin'), @can('edit agents')). Permission and role tables with has_many_through relationship. Artisan commands for role/permission seeding. The de-facto standard permission library for Laravel.",
+  "use_cases": [
+    "Agent platform RBAC — $user->assignRole('agent-creator'); $user->givePermissionTo('deploy-agents'); permission-based agent feature gating using standard Laravel can() method throughout agent application",
+    "Blade permission-gated agent UI — @can('delete-agents') shows delete button only to authorized users; @role('admin') shows admin-only agent management panels; integrates with Laravel's @can directive natively",
+    "Agent API middleware protection — middleware(['auth:api', 'role:admin']) protects agent admin endpoints; permission middleware: middleware('permission:create-agent') restricts agent creation API to authorized service accounts",
+    "Permission seeding for agent platform — Artisan command php artisan db:seed --class=AgentPermissionsSeeder creates all agent permissions and admin role on fresh deployment; repeatable permission setup",
+    "Multi-guard agent permissions — permission guards separate web session permissions from API token permissions; givePermissionTo('create-agent', 'api') for API-specific agent creation permission separate from web UI permissions"
+  ],
+  "not_for": [
+    "Instance-level permissions — Spatie Permission is role/permission based, not resource instance based; for 'user can only edit their OWN agents', use Laravel Policies with Gate::define or combine with Spatie for role check + policy for ownership",
+    "Non-Laravel PHP frameworks — Spatie Permission is Laravel-specific; for Symfony or vanilla PHP agent services, use Symfony Security or custom RBAC",
+    "Very simple 2-role systems — if agent app has just 'user' and 'admin' with simple hard-coded checks, a column on users table is simpler than Spatie Permission database overhead"
+  ],
+  "best_when": "Your Laravel agent platform has multiple roles and fine-grained permissions that need to be managed dynamically in database — Spatie Permission is the community standard with complete documentation and ecosystem.",
+  "avoid_when": "You need resource-instance level permissions, you're not on Laravel, or your role model is simple enough for a user type enum.",
+  "alternatives": ["bouncer-laravel-api", "laravel-acl-api", "laravel-policies-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["php"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Permission library — works with Laravel's auth system. Integrates with Sanctum, Passport, and session auth. Separate guards for API vs web agent permission checks."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Spatie Laravel Permission is MIT licensed, maintained by Spatie. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 1,
+    "latency_p99_ms": 10,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — database-backed permission checks. Spatie caches permissions in application cache (config permission.cache_expiration_time); first request loads from DB, subsequent requests from cache. Clear cache after role changes: app()['cache']->forget('spatie.permission.cache').",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 90,
+    "error_message_quality": 85,
+    "error_message_notes": "Spatie Permission throws Spatie\\Permission\\Exceptions\\RoleDoesNotExist for unknown role names. PermissionDoesNotExist for unknown permissions. Unauthorized permission check throws AuthorizationException via Laravel Gate (403 in production, exception details in debug). UnauthorizedException from middleware for missing role/permission.",
+    "idempotency_support": "full",
+    "idempotency_notes": "assignRole is idempotent — assigning existing role does not create duplicate (uses syncRoles or firstOrCreate). givePermissionTo is idempotent. Role/permission seeding is idempotent via firstOrCreate.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Permission cache must be cleared after changes — Spatie caches all permissions; adding new agent permission or role via seeders/migrations requires cache clear (php artisan permission:cache-reset or app()['cache']->forget('spatie.permission.cache')); without cache clear, new permissions are invisible to running agent application",
+      "HasRoles trait required on User model — must add use HasRoles to User model AND the HasRoles trait from Spatie\\Permission\\Traits\\HasRoles; without trait, $user->assignRole() throws 'Method not found'; forgetting trait is most common Spatie setup mistake for agent platform user models",
+      "Guard must match between permission creation and check — Permission::create(['name' => 'create-agent', 'guard_name' => 'api']); $user->givePermissionTo('create-agent') uses default guard (web); mismatched guards cause 'A permission with this name does not exist' even though permission exists in different guard for agent API",
+      "Super admin pattern requires Gate::before — Spatie doesn't have built-in super admin; implement via Gate::before(function ($user, $ability) { if ($user->hasRole('super-admin')) { return true; } }) in AuthServiceProvider; without Gate::before, super admin still checked against each agent permission individually",
+      "Wildcard permissions not built-in — Spatie Permission doesn't support glob-style permissions (agents.*); implement custom Gate checks for wildcard agent permission patterns; each agent permission must be explicitly created and assigned; design agent permission names with namespacing (agents:create, agents:delete) for organization",
+      "syncRoles removes all previous roles — $user->syncRoles(['admin', 'editor']) removes all existing roles and replaces with provided list; using syncRoles when intending to ADD a role removes other agent roles; use assignRole to add, removeRole to remove; syncRoles for complete replacement only"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 90,
+    "error_handling_score": 85,
+    "auth_complexity_score": 85,
+    "rate_limit_clarity_score": 92
+  },
+  "security_score_components": {
+    "tls_enforcement": 88,
+    "auth_strength": 85,
+    "scope_granularity": 88,
+    "dependency_hygiene": 88,
+    "secret_handling": 90,
+    "security_notes": "Authorization is security-critical — missing or incorrect agent permission checks create access control vulnerabilities. Always validate in controller/policy even with middleware; defense in depth. Never trust client-provided role names — validate against allowed list. Permission cache in Redis should be secured (Redis AUTH) to prevent cache poisoning attacks on agent permissions."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 90,
+    "version_stability": 88,
+    "breaking_changes_history": 85,
+    "error_recovery": 88
+  }
+}
