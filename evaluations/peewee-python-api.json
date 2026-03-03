@@ -1,0 +1,106 @@
+{
+  "id": "peewee-python-api",
+  "name": "Peewee",
+  "version_evaluated": "3.x",
+  "homepage": "https://docs.peewee-orm.com/",
+  "repo_url": "https://github.com/coleifer/peewee",
+  "category": "developer-tools",
+  "subcategories": ["database", "python", "orm", "sqlite", "postgresql"],
+  "tags": ["python", "peewee", "orm", "sqlite", "postgresql", "mysql", "lightweight", "active-record"],
+  "what_it_does": "Lightweight Python ORM for SQLite, PostgreSQL, and MySQL — minimal, expressive ORM with Active Record pattern. Peewee features: Model subclasses as tables, Field types (CharField, IntegerField, ForeignKeyField, JSONField), ModelSelect query builder with .where()/.order_by()/.join(), database proxies for lazy initialization, migrations via peewee-migrate or playhouse.migrate, playhouse extensions (SQLiteExtDatabase, PostgresqlExtDatabase), atomic() context manager for transactions, chunked_models for large result sets, and in-process SQLite support. Ideal for scripts, CLIs, and lightweight agent services that don't need Django or SQLAlchemy's complexity.",
+  "use_cases": [
+    "Agent state persistence in scripts — class Agent(Model): name = CharField(); status = CharField(default='idle'); Agent.create(name='search-agent') creates agent; Agent.select().where(Agent.status == 'idle') queries idle agents; peewee handles SQLite in single-file agent scripts",
+    "Lightweight agent microservice — Flask + Peewee + SQLite for agent tool tracking; no SQLAlchemy Session management; Agent.get_by_id(1) fetches agent; agent.save() persists changes; simple enough for agent tools team to maintain without ORM expertise",
+    "Agent configuration store — class AgentConfig(Model): agent_id = CharField(index=True); key = CharField(); value = JSONField(); Meta: database = SqliteDatabase('config.db') — agent config stored in local SQLite file without external DB dependency",
+    "Batch agent data processing — for row in Agent.select().where(...).order_by(Agent.created).iterator(): process(row) — .iterator() fetches rows lazily without loading all into memory; peewee chunked for processing thousands of agent records",
+    "Peewee with PostgreSQL for agent APIs — db = PostgresqlDatabase('agents', host='localhost', user='agent_user', password=os.environ['DB_PASS']); Agent.select().join(Task).where(Task.status == 'failed') — same API as SQLite for agent production PostgreSQL"
+  ],
+  "not_for": [
+    "Async agent backends — Peewee is synchronous; for async FastAPI agent services use SQLAlchemy async or Tortoise ORM",
+    "Complex ORM relationships — Peewee's query builder is simpler than SQLAlchemy; for complex agent domain models with polymorphism, mixins, and inheritance use SQLAlchemy",
+    "Enterprise Django apps — Django has its own ORM; Peewee doesn't integrate with Django admin, migrations, or management commands"
+  ],
+  "best_when": "Your Python agent script, CLI tool, or lightweight Flask/Bottle service needs database access without SQLAlchemy's complexity — Peewee is small enough to understand completely and expressive enough for most agent data persistence needs.",
+  "avoid_when": "You need async support, complex relational modeling, Django integration, or auto-generated migrations — SQLAlchemy or Django ORM serve those needs better.",
+  "alternatives": ["sqlalchemy-api", "tortoise-orm-api", "sqlmodel-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["password"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "PostgreSQL/MySQL auth via connection parameters. SQLite needs no auth. Store credentials in environment variables."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Peewee is MIT licensed, maintained by Charles Leifer. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 2,
+    "latency_p99_ms": 20,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. SQLite single-writer limitation applies. Peewee generates efficient SQL; use .dicts() for faster dict results without model instantiation. .iterator() for memory-efficient large result sets.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 82,
+    "error_message_quality": 78,
+    "error_message_notes": "peewee.DoesNotExist raised by Model.get() when record not found. peewee.IntegrityError for unique constraint violations. OperationalError for DB connection issues. peewee.DatabaseError wraps driver-specific errors. No SQLAlchemy-style query explanation — use peewee.logger to log generated SQL.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Model.create() is not idempotent — creates new row each call. Model.get_or_create() is idempotent for lookup-or-create patterns. Model.insert().on_conflict_replace() provides upsert. bulk_create with conflict handling for batch idempotent inserts.",
+    "pagination_style": "offset",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Database must be initialized before Model definition — db = SqliteDatabase('agent.db'); class Agent(Model): class Meta: database = db; db.connect() must be called before any query; agent scripts calling Agent.select() before db.connect() raise OperationalError; use database proxy for lazy init",
+      "Model.get() raises DoesNotExist not None — Agent.get(Agent.id == 999) raises Agent.DoesNotExist if not found; agent code expecting None return gets exception; use Agent.get_or_none(Agent.id == 999) for optional fetch or wrap in try/except",
+      "SQLite concurrency limited to single writer — multiple agent processes writing to same SQLite file cause 'database is locked' errors; use WAL mode (SqliteDatabase('agent.db', pragmas={'journal_mode': 'wal'})) to allow concurrent reads with single writer; for multi-process agent writes use PostgreSQL",
+      "ForeignKeyField doesn't fetch related by default — agent.task returns Task instance via lazy load (separate SQL query per access); agent code iterating 100 agents accessing agent.task makes 101 queries (N+1); use Agent.select().join(Task) or prefetch(agents, Task) to avoid agent N+1 queries",
+      "Peewee doesn't have built-in migrations — peewee-migrate or playhouse.migrate.migrate() provide schema migration; no built-in migration tracking like Django or Alembic; agent schema changes require manual migration scripts; use peewee-migrate for version-tracked agent schema evolution",
+      "Closed connection not auto-reconnected — Peewee connections don't auto-reconnect after PostgreSQL timeout; long-running agent scripts hit 'InterfaceError: connection already closed'; use db.connection_context() or call db.connect(reuse_if_open=True) at start of each agent task"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 80,
+    "error_handling_score": 75,
+    "auth_complexity_score": 85,
+    "rate_limit_clarity_score": 90
+  },
+  "security_score_components": {
+    "tls_enforcement": 80,
+    "auth_strength": 78,
+    "scope_granularity": 75,
+    "dependency_hygiene": 85,
+    "secret_handling": 80,
+    "security_notes": "Peewee parameterizes queries by default — .where(Agent.name == name) generates SQL with %s placeholder, not string interpolation. Raw SQL via Model.raw('SELECT...') is vulnerable to injection — avoid raw queries with user input. Store database passwords in environment variables."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 78,
+    "version_stability": 82,
+    "breaking_changes_history": 80,
+    "error_recovery": 75
+  }
+}

@@ -1,0 +1,106 @@
+{
+  "id": "psycopg3-api",
+  "name": "psycopg3",
+  "version_evaluated": "3.x",
+  "homepage": "https://www.psycopg.org/psycopg3/",
+  "repo_url": "https://github.com/psycopg/psycopg",
+  "category": "developer-tools",
+  "subcategories": ["database", "python", "postgresql", "async", "orm"],
+  "tags": ["python", "postgresql", "psycopg3", "database", "async", "asyncio", "type-safe", "binary"],
+  "what_it_does": "Modern Python PostgreSQL adapter — the successor to psycopg2 with native async support, binary protocol, and improved type system. psycopg3 features: async/await API (AsyncConnection, AsyncCursor), synchronous API with same interface, server-side parameters (not string interpolation), binary protocol for performance, row_factory for dict/dataclass results, connection pools (AsyncConnectionPool), COPY support (copy.write_row()), pipeline mode for batched queries, adapters for custom Python types, and native PostgreSQL COPY protocol. Required for FastAPI/async agent backends using PostgreSQL.",
+  "use_cases": [
+    "Async agent backend — async with await psycopg.AsyncConnection.connect(dsn) as conn: async with conn.cursor(row_factory=dict_row) as cur: await cur.execute('SELECT * FROM agents WHERE id = %s', [agent_id]); row = await cur.fetchone() — fully async PostgreSQL for FastAPI agent APIs",
+    "Agent connection pool — pool = AsyncConnectionPool(dsn, min_size=5, max_size=20); async with pool.connection() as conn: await conn.execute(query, params) — connection reuse for high-throughput agent request handling without connection overhead",
+    "Type-safe agent queries — await cur.execute('INSERT INTO agent_tasks (agent_id, payload) VALUES (%s, %s)', [agent.id, Json(payload)]) — parameterized queries prevent SQL injection; psycopg3 Json adapter for JSONB columns; no string formatting",
+    "Bulk agent data loading — async with conn.cursor().copy('COPY agent_logs FROM STDIN') as copy: for log in logs: await copy.write_row((log.agent_id, log.event, log.timestamp)) — native COPY protocol for bulk agent telemetry ingestion; 10x faster than INSERT for large batches",
+    "Agent pipeline batching — async with conn.pipeline(): await conn.execute(q1, p1); await conn.execute(q2, p2) — pipeline mode sends multiple queries without waiting for individual responses; agent batch operations (update 100 agent statuses) in one network round-trip"
+  ],
+  "not_for": [
+    "Non-PostgreSQL databases — psycopg3 is PostgreSQL-specific; for MySQL use aiomysql, for SQLite use aiosqlite",
+    "ORM usage — psycopg3 is raw SQL adapter; for Django or SQLAlchemy ORM use their respective PostgreSQL adapters (psycopg2/psycopg3 backend)",
+    "Synchronous-only codebases using psycopg2 — psycopg3 API differs from psycopg2; migration requires code changes; for psycopg2 drop-in use psycopg2-binary"
+  ],
+  "best_when": "Your async Python agent backend (FastAPI, aiohttp) needs PostgreSQL access with connection pooling, native async/await, and binary protocol performance — psycopg3 is the modern async successor to psycopg2.",
+  "avoid_when": "You need Django ORM support (use psycopg2 until Django fully supports psycopg3), or are using SQLAlchemy with psycopg2 compatibility mode.",
+  "alternatives": ["psycopg2-api", "asyncpg-api", "sqlalchemy-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["password", "certificate"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "PostgreSQL authentication via connection string (dsn): password, md5, SCRAM-SHA-256, certificate. Connection string includes credentials — use environment variables, never hardcode."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, LGPL-3 licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "psycopg3 is LGPL-3 licensed. Free for all use including commercial. Requires PostgreSQL server."
+  },
+  "performance": {
+    "latency_p50_ms": 2,
+    "latency_p99_ms": 20,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Connection pool prevents connection exhaustion. Binary protocol reduces serialization overhead vs text protocol. Pipeline mode reduces round-trips for batch agent operations. Performance depends on PostgreSQL server and network.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 82,
+    "error_message_quality": 82,
+    "error_message_notes": "psycopg3 raises psycopg.OperationalError for connection failures, psycopg.errors.UniqueViolation for constraint violations, psycopg.errors.ForeignKeyViolation for FK issues. Error messages include PostgreSQL error code and detail. Async connection timeout raises asyncio.TimeoutError wrapping psycopg error.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Raw SQL queries are as idempotent as the SQL itself. INSERT operations not idempotent without ON CONFLICT. Agent workflows should use INSERT ... ON CONFLICT DO UPDATE for upsert patterns. Connection pool checkout is idempotent (reuses connections).",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "psycopg3 import is 'psycopg' not 'psycopg3' — pip install psycopg[binary]; import psycopg (not import psycopg3); agent developers expecting psycopg3 module name get ImportError; package installs as psycopg, imports as psycopg",
+      "Async connection must be awaited — conn = await psycopg.AsyncConnection.connect(dsn) not conn = psycopg.AsyncConnection.connect(dsn); forgetting await returns coroutine object; agent async code using sync psycopg2 patterns gets coroutine not connection",
+      "Connection pool max_size must account for all coroutines — AsyncConnectionPool max_size=5 with 50 concurrent FastAPI agent requests causes pool exhaustion and TimeoutError; size pool to peak concurrent agent DB operations, not request count; most requests don't hold connections simultaneously",
+      "Binary protocol requires psycopg[binary] — default psycopg uses libpq text protocol; pip install psycopg[binary] uses C extension for binary protocol (2-10x faster for large result sets); agent analytics queries over large datasets should use binary install; note: libpq must be installed on system",
+      "Pipeline mode disables autocommit isolation — conn.pipeline() requires explicit transaction management; agent code using pipeline must handle commit/rollback; unexpected exception in pipeline block leaves transaction open; always use try/finally or async context manager with pipeline",
+      "row_factory must be set per cursor not connection — conn.cursor(row_factory=dict_row) applies to that cursor; conn.cursor() without factory returns tuples; agent code mixing dict and tuple cursors on same connection must specify factory per cursor; global default requires subclassing AsyncConnection"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 82,
+    "error_handling_score": 82,
+    "auth_complexity_score": 85,
+    "rate_limit_clarity_score": 90
+  },
+  "security_score_components": {
+    "tls_enforcement": 85,
+    "auth_strength": 85,
+    "scope_granularity": 80,
+    "dependency_hygiene": 88,
+    "secret_handling": 82,
+    "security_notes": "Always use parameterized queries (%s placeholders) — never f-strings or string formatting for SQL; psycopg3 parameterized queries prevent SQL injection by design. Store DATABASE_URL in environment variables, never hardcode. Use TLS (sslmode=require) for production agent database connections. Limit PostgreSQL user permissions to minimum required."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 80,
+    "version_stability": 78,
+    "breaking_changes_history": 75,
+    "error_recovery": 82
+  }
+}
