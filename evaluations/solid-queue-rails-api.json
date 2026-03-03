@@ -1,0 +1,106 @@
+{
+  "id": "solid-queue-rails-api",
+  "name": "Solid Queue",
+  "version_evaluated": "1.x",
+  "homepage": "https://github.com/rails/solid_queue",
+  "repo_url": "https://github.com/rails/solid_queue",
+  "category": "developer-tools",
+  "subcategories": ["background-jobs", "ruby", "rails", "queues", "database-backed"],
+  "tags": ["ruby", "rails", "solid-queue", "background-jobs", "active-job", "database-queue", "sqlite"],
+  "what_it_does": "Database-backed job queue for Rails — uses the application database (SQLite, PostgreSQL, MySQL) instead of Redis for background job processing. Solid Queue features: Active Job adapter (config.active_job.queue_adapter = :solid_queue), job persistence in DB tables (solid_queue_jobs, solid_queue_paused_queues), scheduled jobs, concurrency controls (key: 'agent-#{agent_id}' prevents duplicate agent processing), multi-queue workers, failed job visibility, Mission Control dashboard integration, and SKIP_TRANSACTION option for non-transactional workers. Default queue adapter in Rails 8+. Eliminates Redis dependency for agent apps that don't need Redis for other purposes.",
+  "use_cases": [
+    "Agent task background processing — AgentTaskJob < ApplicationJob { queue_as :agents; def perform(agent_id) { Agent.find(agent_id).run_task } }; AgentTaskJob.perform_later(@agent) enqueues via Solid Queue; no Redis required for agent background jobs",
+    "Agent concurrency control — with_concurrency: { key: 'agent-run-#{agent_id}', limit: 1 } prevents multiple simultaneous executions of same agent; duplicate job submissions block until first completes; prevents agent race conditions without custom mutex logic",
+    "Scheduled agent tasks — AgentHealthCheckJob.set(wait: 1.hour).perform_later(agent_id) schedules future agent health check; Solid Queue stores in DB with scheduled time; Mission Control shows upcoming agent scheduled jobs",
+    "SQLite-backed agent queues — Rails 8 default with SQLite database; no Redis, no Sidekiq installation needed; agent apps on single-server VPS get background jobs for free with SQLite; production-ready for moderate agent job volumes",
+    "Multi-queue agent worker — bin/jobs or solid_queue.yml with workers: [{queues: ['critical'], threads: 5}, {queues: ['default'], threads: 2}] dedicates threads to critical agent API calls separate from batch processing queues"
+  ],
+  "not_for": [
+    "High-throughput job processing — Solid Queue SQL polling adds overhead vs Sidekiq/Redis BLPOP for very high agent job volumes (>1000 jobs/sec); use Sidekiq for agent systems with extreme throughput requirements",
+    "Real-time job dispatch — Solid Queue polls DB for new jobs (configurable polling interval); Sidekiq with Redis has sub-millisecond job pickup; for agent tasks requiring immediate execution use Sidekiq",
+    "Cross-language job consumers — Solid Queue jobs are Ruby/ActiveJob; for agent jobs consumed by Python/Node services use Redis-based queues (Sidekiq/BullMQ) with shared Redis"
+  ],
+  "best_when": "Your Rails 8 agent app wants background jobs without adding Redis — Solid Queue uses your existing database for reliable job processing with sensible concurrency controls and Rails 8 default integration.",
+  "avoid_when": "You need Redis for other purposes and Sidekiq is already integrated, you have extreme throughput requirements, or your jobs need to be consumed by non-Ruby services.",
+  "alternatives": ["sidekiq-api", "good-job-ruby-api", "resque-ruby-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["ruby"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No external auth — uses existing database connection. Mission Control dashboard requires Rails authentication configuration for access control."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Solid Queue is MIT licensed, maintained by the Rails core team. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 100,
+    "latency_p99_ms": 500,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Job pickup latency: 100-500ms (DB polling interval). For agent systems needing sub-100ms job pickup use Sidekiq. Concurrency scales with DB connection pool and worker thread count.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 80,
+    "error_message_quality": 78,
+    "error_message_notes": "Job failures captured in solid_queue_failed_executions table with error class and message. Mission Control shows failed jobs with backtrace. Worker crashes logged to Rails log. Job timeout shown as SolidQueue::Timeouts::Error in failed jobs table.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "ActiveJob perform_later enqueues a new job regardless of existing pending jobs (not idempotent). Concurrency controls prevent duplicate execution but not duplicate enqueue. Implement job deduplication in job class or use uniqueness check before enqueue for agent idempotent task processing.",
+    "pagination_style": "none",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "bin/jobs must run as separate process — Solid Queue worker runs via `bin/jobs` or `bundle exec solid_queue start`; not automatically started by Rails server; agent production deployments need supervisor (systemd, Kamal accessory) for bin/jobs; without worker process, enqueued agent jobs sit in DB never executed",
+      "Database connection pool must accommodate workers — each Solid Queue worker thread uses a DB connection; config.active_record.pool_size must be >= worker threads; default pool of 5 with 10 worker threads causes ActiveRecord::ConnectionTimeoutError; agent deployments must size DB pool to solid_queue.yml thread count",
+      "Concurrency key scope is per-queue by default — with_concurrency key: 'agent-#{id}' is global; same concurrency key across different queues blocks cross-queue; intended for preventing duplicate agent processing; set within: :queue for queue-scoped concurrency to allow parallel execution across agent queues",
+      "Failed jobs require manual retry — Solid Queue stores failures in solid_queue_failed_executions; jobs do NOT auto-retry by default; add retry_on in ActiveJob class: retry_on NetworkError, wait: :exponentially_longer, attempts: 5; agent jobs without retry_on are permanently failed on first error",
+      "SQLite write contention under high load — SQLite's write lock causes Solid Queue worker contention with many concurrent agent jobs; SQLite WAL mode (pragma journal_mode=WAL) significantly reduces contention; for high agent job concurrency on SQLite use WAL or migrate to PostgreSQL adapter",
+      "Mission Control dashboard requires separate gem — Solid Queue job visibility needs mission_control-jobs gem and route mounting; without it, monitoring agent failed/scheduled/running jobs requires direct SQL queries; add gem 'mission_control-jobs' and mount MissionControl::Jobs::Engine in routes for agent ops visibility"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 80,
+    "error_handling_score": 78,
+    "auth_complexity_score": 88,
+    "rate_limit_clarity_score": 88
+  },
+  "security_score_components": {
+    "tls_enforcement": 88,
+    "auth_strength": 85,
+    "scope_granularity": 82,
+    "dependency_hygiene": 88,
+    "secret_handling": 85,
+    "security_notes": "Job arguments stored in database as serialized data — don't pass agent secrets or PII in job arguments; use record IDs and fetch from DB inside job. Mission Control dashboard exposes all job data including arguments; secure with Rails authentication before exposing to non-admin agent team members. DB-backed queue eliminates Redis network hop security surface."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 80,
+    "version_stability": 80,
+    "breaking_changes_history": 80,
+    "error_recovery": 82
+  }
+}

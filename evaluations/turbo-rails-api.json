@@ -1,0 +1,106 @@
+{
+  "id": "turbo-rails-api",
+  "name": "Turbo (Rails/Hotwire)",
+  "version_evaluated": "2.x",
+  "homepage": "https://turbo.hotwired.dev/",
+  "repo_url": "https://github.com/hotwired/turbo-rails",
+  "category": "developer-tools",
+  "subcategories": ["frontend", "ruby", "rails", "hotwire", "spa-alternative"],
+  "tags": ["ruby", "rails", "turbo", "hotwire", "turbo-frames", "turbo-streams", "ssr", "ajax"],
+  "what_it_does": "Server-side rendering acceleration framework for Rails — makes multi-page Rails apps feel like SPAs without writing JavaScript. Turbo has three parts: Turbo Drive (intercepts link clicks/form submits, replaces <body> via AJAX — no full page reload), Turbo Frames (<turbo-frame id='agents'> loads frame content independently), and Turbo Streams (server-side HTML fragments pushed via WebSocket or SSE to update specific page elements). Server broadcasts: Turbo::StreamsChannel broadcasts DOM updates from ActiveRecord callbacks. <%= turbo_stream.append 'agents', @agent %> appends new agent to list in real-time. Core of Rails 7+ Hotwire stack. Works with Action Cable for real-time agent updates.",
+  "use_cases": [
+    "Agent list real-time updates — after_create_commit { broadcast_append_to 'agents' } on Agent model pushes new agent HTML to all subscribers; <%= turbo_stream_from 'agents' %> in view subscribes to updates; new agents appear in real-time list without page refresh",
+    "Turbo Frame for agent detail panel — <turbo-frame id='agent-detail'> lazy-loads agent details on click; clicking agent row fetches agent detail view and replaces only the frame content; SPA-like navigation without JavaScript routing",
+    "Agent form submission with validation — Turbo intercepts form POST; controller returns Turbo Stream on success (appends agent) or 422 with re-rendered form on validation error; user sees inline validation without page reload",
+    "Agent bulk operations — turbo_stream.remove 'agent-#{agent.id}' removes deleted agent from list; turbo_stream.replace 'agent-status-badge', partial: 'agents/status', locals: { agent: @agent } updates agent status indicator in real-time across all open sessions",
+    "Turbo Drive for agent navigation — all link clicks become XHR requests; Rails layout rendered once; page content swapped; back/forward work normally; agent app feels fast without React/Vue bundle complexity"
+  ],
+  "not_for": [
+    "Complex client-side state management — Turbo renders server HTML; for agent UIs with complex client state (real-time collaborative editing, drag-drop with optimistic updates) use React/Vue",
+    "Offline-capable PWAs — Turbo requires server for every interaction; for agent apps needing offline support use service workers with React",
+    "Non-Rails server frameworks — turbo-rails gem integrates with Rails; for Django/FastAPI/Express backends use the standalone turbo JS library without Rails-specific helpers"
+  ],
+  "best_when": "You're building a Rails agent app and want real-time UI updates (new agents appearing, status changes) and SPA-like navigation without building a separate JavaScript frontend — Turbo + Action Cable enables reactive agent UIs in pure Rails.",
+  "avoid_when": "Your agent UI needs complex client-side state, offline capability, or your team is more comfortable with React/Vue than server-rendered HTML.",
+  "alternatives": ["livewire-laravel-api", "react-api", "vue-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["ruby", "javascript"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — Rails frontend framework. Broadcasts use Action Cable authentication (connection.rb current_user). Turbo Drive respects Rails session/cookie auth transparently."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Turbo (turbo-rails gem and @hotwired/turbo npm package) is MIT licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 50,
+    "latency_p99_ms": 200,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Turbo Drive eliminates full page render overhead. Turbo Streams broadcasts via Action Cable — same performance characteristics as Action Cable WebSocket. Real-time broadcast latency: 10-50ms typical.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 82,
+    "error_message_quality": 78,
+    "error_message_notes": "Turbo Stream errors appear as browser console errors when response is not Turbo Stream format. 422 status required for form validation (not 200) or Turbo ignores re-render. Turbo Frame network errors shown in frame as error message. broadcast errors appear in Rails logs via Action Cable. Missing turbo-frame id mismatch logs warning.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Turbo Drive navigation is idempotent — clicking same link produces same page state. Turbo Streams are append/replace/remove operations; broadcast_append idempotency requires checking for duplicate DOM IDs. broadcast_replace is idempotent — replacing same element with same content.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Forms must respond with 422 for validation errors — Turbo expects 422 Unprocessable Entity for invalid form submissions to re-render the form with errors; responding with 200 on validation failure causes Turbo to redirect (Turbo Drive behavior), losing error display; agent controllers using render :new on validation must include status: :unprocessable_entity",
+      "Turbo Frame id must match server and client — <turbo-frame id='agent-detail'> in HTML must match turbo_frame_tag 'agent-detail' in response; id mismatch causes frame to silently not update; case-sensitive; agent view refactors changing frame IDs break navigation without obvious error",
+      "broadcast_* methods require Redis in production — Turbo Streams broadcasts use Action Cable which needs Redis adapter for multi-process/multi-server agent deployments; default async adapter only works single-process; missing Redis causes broadcasts to silently not reach clients in multi-Puma-worker agent deployments",
+      "Turbo Drive breaks JavaScript that runs on page load — third-party scripts using DOMContentLoaded or window.onload don't re-fire on Turbo navigation; agent analytics (Google Analytics pageview) or ad scripts miss subsequent page views; use document.addEventListener('turbo:load') instead of DOMContentLoaded for agent scripts",
+      "Turbo Frame link clicks stay inside frame by default — all links inside <turbo-frame> load response into same frame; to navigate outside frame, add data-turbo-frame='_top'; agent detail pages with 'Edit' links open edit form inside detail frame unless data-turbo-frame='_top' added to edit links",
+      "broadcast_to authorization not automatic — broadcast_append_to 'agents' broadcasts to ALL subscribers of 'agents' stream; agent broadcasts are not scoped to authorized users by default; use broadcast_append_to @agent.user or stream_from 'agent_#{current_user.id}' for agent user-scoped real-time updates; global streams expose agent data across users"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 82,
+    "error_handling_score": 78,
+    "auth_complexity_score": 82,
+    "rate_limit_clarity_score": 88
+  },
+  "security_score_components": {
+    "tls_enforcement": 85,
+    "auth_strength": 80,
+    "scope_granularity": 72,
+    "dependency_hygiene": 88,
+    "secret_handling": 82,
+    "security_notes": "Turbo Stream broadcasts don't auto-scope to current user — ensure broadcast streams use user-specific keys for private agent data. Turbo Drive preserves page HTML in history; sensitive agent data in DOM may persist in browser history cache. CSRF protection: Turbo includes Rails CSRF token in XHR requests automatically for agent form submissions."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 82,
+    "version_stability": 82,
+    "breaking_changes_history": 78,
+    "error_recovery": 80
+  }
+}

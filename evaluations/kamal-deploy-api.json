@@ -1,0 +1,106 @@
+{
+  "id": "kamal-deploy-api",
+  "name": "Kamal",
+  "version_evaluated": "2.x",
+  "homepage": "https://kamal-deploy.org/",
+  "repo_url": "https://github.com/basecamp/kamal",
+  "category": "developer-tools",
+  "subcategories": ["deployment", "ruby", "rails", "docker", "devops"],
+  "tags": ["ruby", "rails", "deployment", "kamal", "docker", "ssh", "traefik", "basecamp"],
+  "what_it_does": "Docker-based deployment tool for Rails and any web app — SSH into servers, deploy Docker containers, manage rolling deployments, and configure Traefik reverse proxy. Kamal 2 features: deploy.yml configuration, `kamal setup` for initial server setup (installs Docker, Traefik), `kamal deploy` for zero-downtime rolling deployments, `kamal rollback` for instant rollback, health checks before traffic switchover, secrets management via .kamal/secrets, accessory services (PostgreSQL, Redis alongside app), multi-host deployment, environment-specific configs, and SSH-based execution (no Kubernetes required). Created by Basecamp as alternative to Heroku for self-hosted VPS deployment of Rails agent apps.",
+  "use_cases": [
+    "Agent Rails deployment to VPS — deploy.yml with image: registry.example.com/agent-app, servers: ['10.0.0.1', '10.0.0.2'], proxy: { host: agent.example.com }; `kamal deploy` builds Docker image, pushes to registry, SSHs to servers, starts new containers, waits for health check, switches Traefik to new containers",
+    "Agent zero-downtime deployment — Kamal deploys new container alongside old, waits for health check to pass, switches Traefik routing, then removes old container; agent service has no downtime during deployment with rolling update",
+    "Agent rollback — `kamal rollback` switches Traefik back to previous container (still running); instant rollback without rebuild; previous agent version served within seconds of identifying deployment issue",
+    "Accessory services — accessories: { db: { image: postgres:16, host: 10.0.0.3 }, redis: { image: redis:7 } } manages PostgreSQL and Redis containers on separate hosts via Kamal accessory commands; agent infrastructure as code alongside app deployment",
+    "Agent secrets management — .kamal/secrets with RAILS_MASTER_KEY, DATABASE_URL, REDIS_URL; secrets not stored in deploy.yml; `kamal secrets print` shows resolved values; agent production secrets injected at deploy time via environment"
+  ],
+  "not_for": [
+    "Kubernetes environments — Kamal deploys to plain Docker on SSH-accessible servers; for Kubernetes use Helm, ArgoCD, or Flux",
+    "Managed PaaS hosting — Kamal requires SSH-accessible VPS; for Heroku/Render/Fly.io managed hosting use platform-specific CLI tools",
+    "Non-containerized deployments — Kamal assumes Docker; for Capistrano-style git-based deployment on bare metal use Capistrano"
+  ],
+  "best_when": "You want Heroku-like one-command deployment for your Rails agent app to your own VPS without Kubernetes complexity — Kamal provides zero-downtime Docker deployment via SSH with Traefik reverse proxy.",
+  "avoid_when": "You need Kubernetes orchestration, managed PaaS, or non-Docker deployment strategies.",
+  "alternatives": ["capistrano-ruby-api", "fly-io-api", "heroku-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": false,
+    "sdk_languages": [],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["api_key"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "SSH key authentication to servers. Docker registry auth (docker login). .kamal/secrets for app-level secrets injection at deployment. No agent user-facing auth."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed. Server hosting costs are your own VPS.",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Kamal is MIT licensed, maintained by Basecamp/37signals. Free for all use. VPS hosting costs are your infrastructure."
+  },
+  "performance": {
+    "latency_p50_ms": 0,
+    "latency_p99_ms": 0,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Deployment speed depends on Docker image build time and registry push. Typical agent deployment: 2-5 minutes. Rollback: 10-30 seconds (switches existing containers).",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 80,
+    "error_message_quality": 78,
+    "error_message_notes": "Kamal shows SSH connection errors with server IP and command. Docker build failures show full build output. Health check failures show response code and retry count before rollback. Container start failures show Docker exit code and logs. `kamal app logs` streams container logs for agent debugging.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "`kamal setup` is idempotent — re-running on configured server is safe. `kamal deploy` with same image tag is idempotent. `kamal redeploy` forces new deployment. Kamal maintains deployment lock to prevent concurrent deploys.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Health check must respond before cutover — Kamal waits for health_check path (default /up) to return 200 before switching traffic; agent Rails apps without /up endpoint configured in routes or health check path mismatch cause deployment to wait indefinitely and rollback; add get '/up', to: proc { [200, {}, ['OK']] } to agent routes",
+      "Docker registry push required before deploy — Kamal pushes built image to registry then SSH servers pull from registry; CI must authenticate to registry before kamal deploy; agent CI pipelines using kamal deploy need KAMAL_REGISTRY_PASSWORD/USERNAME in CI environment variables before kamal deploy command",
+      "deploy.yml secrets reference .kamal/secrets — secrets: ['RAILS_MASTER_KEY'] in deploy.yml references .kamal/secrets file; .kamal/secrets not committed to git; each developer and CI must have .kamal/secrets populated; CI agents need kamal secrets env create to populate from CI environment variables",
+      "Kamal 2 breaking changes from Kamal 1 — Kamal 2 renamed proxy (Traefik config) and changed accessory syntax; agent deploy.yml from Kamal 1 (kamal-deploy gem v1.x) doesn't work with Kamal 2; migration guide required when upgrading; pin kamal gem version in Gemfile to prevent unexpected Kamal 2 upgrade",
+      "Accessory data volumes persist across deploys — kamal accessory reboot db recreates PostgreSQL container but volume data persists; kamal accessory remove db --volumes deletes data permanently; agent operators must understand this distinction to avoid accidental data loss during agent infrastructure changes",
+      "SSH key must be on all servers — Kamal connects via SSH using key specified in deploy.yml ssh.keys or default key; agent servers added to fleet must have deploy SSH key in authorized_keys before `kamal server bootstrap`; missing key causes SSH connection refused for new agent servers"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 78,
+    "error_handling_score": 78,
+    "auth_complexity_score": 80,
+    "rate_limit_clarity_score": 88
+  },
+  "security_score_components": {
+    "tls_enforcement": 88,
+    "auth_strength": 82,
+    "scope_granularity": 78,
+    "dependency_hygiene": 85,
+    "secret_handling": 82,
+    "security_notes": "SSH key access to production agent servers is high privilege; use dedicated deploy key with minimum required permissions. .kamal/secrets must never be committed to version control. Traefik handles TLS termination; configure Let's Encrypt auto-cert in deploy.yml proxy.ssl for agent HTTPS. Docker registry credentials in CI must be rotated regularly for agent deployment security."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 78,
+    "version_stability": 75,
+    "breaking_changes_history": 70,
+    "error_recovery": 80
+  }
+}
