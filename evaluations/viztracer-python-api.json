@@ -1,0 +1,106 @@
+{
+  "id": "viztracer-python-api",
+  "name": "VizTracer",
+  "version_evaluated": "0.16.x",
+  "homepage": "https://viztracer.readthedocs.io/",
+  "repo_url": "https://github.com/gaogaotiantian/viztracer",
+  "category": "developer-tools",
+  "subcategories": ["profiling", "python", "tracing", "debugging", "performance"],
+  "tags": ["python", "viztracer", "tracing", "profiling", "performance", "timeline", "flamegraph", "perfetto"],
+  "what_it_does": "Low-overhead tracing profiler for Python with rich visualization — records function call timeline for deterministic execution analysis. VizTracer features: viztracer script.py for CLI tracing, VizTracer() context manager, @tracer.log_sparse decorator for selective tracing, add_variable() for custom data logging, save() to HTML/JSON, Perfetto UI integration (Google's trace viewer), multi-process/thread support, counter and object logging, filter (include/exclude functions), and remote attach via command line. Unlike sampling profilers (py-spy, scalene), VizTracer records EVERY function call — exact execution timeline at the cost of 10-50% overhead. Shows exactly what happened, not statistical approximation.",
+  "use_cases": [
+    "Agent execution timeline — viztracer agent.py --output_file agent_trace.html — generates interactive Perfetto timeline showing every function call with exact start/end time; agent developer sees precise call order, parallelism, and timing without statistical sampling noise; click any function to see call stack",
+    "Agent selective tracing — tracer = VizTracer(); with tracer: tracer.start(); slow_agent_function(); tracer.stop(); tracer.save('slow_func.html') — profile specific suspicious function; full-trace overhead amortized over targeted section; agent developer narrows to exact subsystem causing latency",
+    "Agent custom event logging — tracer = VizTracer(); with tracer: tracer.add_instant('agent_start', {'task_id': '123', 'model': 'gpt-4'}); tracer.add_counter('queue_depth', {'depth': len(queue)}); tracer.save() — custom events and counters in trace timeline; agent traces business events alongside function calls for correlated debugging",
+    "Agent multi-threaded trace — tracer = VizTracer(pid_suffix=True); with tracer: [threading.Thread(target=worker, args=(tracer,)).start() for _ in range(4)]; tracer.save() — trace all threads in one timeline; agent thread pool execution visualized as parallel lanes; see exact thread synchronization and bottlenecks",
+    "Agent sparse logging for production — @tracer.log_sparse(); def process_batch(batch): return model.predict(batch) — log_sparse only records decorated function, not all callees; agent production logging captures key function boundaries with 1% overhead instead of full trace"
+  ],
+  "not_for": [
+    "Low-overhead sampling profiling — VizTracer records every call (10-50% overhead); use py-spy or scalene for <5% overhead statistical profiling",
+    "Memory profiling — VizTracer is CPU timeline only; use memray for memory analysis",
+    "Production always-on tracing — overhead too high for always-on; use OpenTelemetry for production distributed tracing"
+  ],
+  "best_when": "Debugging complex execution order issues, understanding parallel execution, or confirming exact call sequences in async/multi-threaded agent code — VizTracer's deterministic timeline shows exactly what happened unlike statistical samplers.",
+  "avoid_when": "You need low overhead (<5%) profiling (use py-spy/scalene), memory analysis (use memray), or production tracing (use OpenTelemetry).",
+  "alternatives": ["py-spy-python-api", "scalene-python-api", "memray-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — local profiling tool."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, Apache 2.0 licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "VizTracer is Apache 2.0 licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Tracing overhead: 10-50% CPU slowdown (C extension overhead per call). Trace file size: ~50MB per second of traced execution. Long-running agents produce large trace files — use log_sparse for targeted tracing.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 82,
+    "error_message_quality": 78,
+    "error_message_notes": "RuntimeError when tracer already running. FileNotFoundError for invalid output path. Perfetto UI errors for malformed trace files. Error messages are clear. Main failure mode is output file too large for browser to open.",
+    "idempotency_support": "full",
+    "idempotency_notes": "tracer.save() produces deterministic trace file from same execution. Timeline is deterministic for same code path. Parallel execution traces may differ between runs.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Trace file too large for browser — 30+ second agent traces produce 1GB+ trace files; browser Perfetto viewer crashes or hangs loading large files; agent developers must: use --log_sparse for long runs; use max_stack_depth to reduce trace depth; use include_files=['agent.py'] to filter to agent code only; or use viztracer --save_as json for external analysis",
+      "Overhead proportional to function call frequency — agent code with tight loops (100K+ calls/sec) experiences 50%+ slowdown from VizTracer instrumentation; CPU-intensive numerical code (numpy, PyTorch) often has C-level loops invisible to VizTracer anyway; overhead mainly matters for Python-heavy loop code",
+      "Async functions show as non-blocking — asyncio coroutines trace correctly but async gaps (awaiting I/O) show as gaps in timeline; VizTracer cannot show 'waiting for network' time; agent async code latency diagnosis requires combining VizTracer (what Python ran) with network traces (what was awaited)",
+      "VizTracer context manager must wrap all traced code — with VizTracer() as tracer: agent_function() traces correctly; code outside context not traced; import-time code or signal handlers not captured; agent profiling must place context manager at highest level containing all relevant execution",
+      "save() output format from file extension — tracer.save('trace.html') generates HTML; tracer.save('trace.json') generates JSON; tracer.save('trace.json.gz') generates compressed JSON; agent code choosing format must use correct extension; wrong extension produces incorrect format silently",
+      "Multi-process tracing requires spawn not fork — VizTracer multi-process support works with spawn start method; fork start method may corrupt tracer state in child processes; agent code using multiprocessing must: import multiprocessing; multiprocessing.set_start_method('spawn') before using VizTracer with Pool"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 82,
+    "error_handling_score": 78,
+    "auth_complexity_score": 98,
+    "rate_limit_clarity_score": 98
+  },
+  "security_score_components": {
+    "tls_enforcement": 92,
+    "auth_strength": 92,
+    "scope_granularity": 90,
+    "dependency_hygiene": 85,
+    "secret_handling": 82,
+    "security_notes": "Trace files contain function names and call trees — may expose code structure and potentially argument values if logged via custom events. Treat trace files as sensitive if profiling security-sensitive code. No network calls during tracing."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 80,
+    "version_stability": 78,
+    "breaking_changes_history": 78,
+    "error_recovery": 78
+  }
+}
