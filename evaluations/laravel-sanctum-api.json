@@ -1,0 +1,106 @@
+{
+  "id": "laravel-sanctum-api",
+  "name": "Laravel Sanctum",
+  "version_evaluated": "4.x",
+  "homepage": "https://laravel.com/docs/sanctum",
+  "repo_url": "https://github.com/laravel/sanctum",
+  "category": "developer-tools",
+  "subcategories": ["authentication", "php", "laravel", "api", "tokens"],
+  "tags": ["php", "laravel", "auth", "api-tokens", "spa", "sanctum", "bearer-token", "csrf"],
+  "what_it_does": "Lightweight authentication system for Laravel — provides API token authentication for SPAs, mobile apps, and simple token-based APIs. Sanctum features: personal access tokens (opaque bearer tokens stored hashed in personal_access_tokens table), SPA authentication (cookie-based session auth for same-domain SPAs, no tokens needed), token abilities (fine-grained scopes: agent:read, agent:create), token expiration, and the HasApiTokens trait for User model. Simpler alternative to Passport (OAuth2) — no OAuth server overhead. `$token = $user->createToken('agent-client', ['agent:read', 'agent:create'])->plainTextToken` generates token. Middleware: auth:sanctum validates Bearer token for agent API.",
+  "use_cases": [
+    "Agent API token generation — $user->createToken('agent-platform-cli', ['agent:read', 'agent:deploy'])->plainTextToken returns token for agent CLI authentication; token abilities restrict agent operations to declared permissions",
+    "SPA agent dashboard authentication — Sanctum cookie auth for React/Vue agent dashboard on same domain; CSRF token endpoint (/sanctum/csrf-cookie) enables cookie-based auth without token management in agent SPA",
+    "Mobile agent app token management — user creates named token per device ($user->createToken('iPhone 15')); tokens listed and revocable in agent account settings; user revokes compromised device tokens without affecting other sessions",
+    "Agent API token abilities — $request->user()->tokenCan('agent:delete') checks if agent API token has delete ability before destructive operations; granular agent permission control per token issuance",
+    "Agent API integration testing — Sanctum::actingAs($user, ['agent:read']) in tests authenticates as user with specific token abilities; no real token generation needed for agent API integration tests"
+  ],
+  "not_for": [
+    "Third-party OAuth authorization — Sanctum issues tokens for your own apps and users; for allowing third-party services to authorize as your agent platform users via OAuth2 flows, use Laravel Passport",
+    "Federated identity (SSO) — Sanctum doesn't handle SAML, OIDC, or SSO; for enterprise agent platform SSO, use Laravel Passport or Socialite with OIDC provider",
+    "High-security token requirements — Sanctum tokens are opaque bearer tokens; for agent APIs requiring JWT with embedded claims (offline validation), use custom JWT implementation or Passport with JWT"
+  ],
+  "best_when": "Your Laravel agent service needs API token authentication for your own first-party apps, CLI tools, or SPA — Sanctum provides simple, secure token management without OAuth2 complexity.",
+  "avoid_when": "You need OAuth2 authorization server for third-party apps, SSO, or JWT tokens with embedded claims.",
+  "alternatives": ["laravel-passport-api", "jwt-auth-api", "laravel-fortify-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["php"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["bearer_token", "cookie"],
+    "oauth": false,
+    "scopes": true,
+    "notes": "Sanctum provides the auth mechanism. Bearer tokens via Authorization header; cookie auth for SPA. Token abilities are custom scopes defined by application."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Laravel Sanctum is MIT licensed, maintained by Laravel team. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 5,
+    "latency_p99_ms": 30,
+    "uptime_sla_percent": null,
+    "rate_limits": "No Sanctum rate limits. Token validation queries personal_access_tokens table per request; add index on token column (default migration adds it). Consider caching token lookups for high-traffic agent APIs.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 90,
+    "error_message_quality": 85,
+    "error_message_notes": "Sanctum returns 401 Unauthenticated for invalid/expired tokens with JSON response for API guards. 403 for insufficient token abilities via tokenCan() checks in controllers. SPA CSRF mismatch returns 419 with 'CSRF token mismatch' message.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Token validation is idempotent — same token produces same authentication result. Token creation is append-only. Token revocation (delete) is idempotent.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "api guard vs sanctum guard — using 'middleware(auth:api)' instead of 'middleware(auth:sanctum)' uses different guard; Sanctum tokens are validated by auth:sanctum middleware, not auth:api; agent routes protected with wrong guard always return 401 even with valid Sanctum tokens",
+      "SPA CSRF requires same domain or trusted origin config — Sanctum SPA auth only works when frontend and API share same domain or domain in sanctum.stateful_domains config; cross-domain agent SPAs fall back to token auth; missing domain configuration causes 401 for all SPA agent requests despite valid session",
+      "Token hashing means plaintext shown once only — $user->createToken('name')->plainTextToken is the only time plaintext is available; Sanctum stores SHA-256 hash; agent clients must save token immediately; lost token requires revoke and reissue; no way to retrieve original token after creation",
+      "Token abilities not enforced automatically — tokenCan('agent:delete') must be called explicitly in controller; Sanctum middleware (auth:sanctum) validates token exists and isn't expired but doesn't check abilities; omitting ability check in agent controller action bypasses ability-based access control even with scoped tokens",
+      "Multiple tokens per user requires token management UI — users can create unlimited tokens; without token listing and revocation UI ($user->tokens()->get()), users cannot manage compromised agent API tokens; implement token management for agent platform users to list devices/apps and revoke access",
+      "Expiration requires configured pruning — Sanctum token expiration (sanctum.expiration config in minutes) marks tokens expired but doesn't delete them; expired tokens remain in database until manually pruned; schedule $schedule->command('sanctum:prune-expired --hours=24') to remove expired agent tokens"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 90,
+    "error_handling_score": 85,
+    "auth_complexity_score": 88,
+    "rate_limit_clarity_score": 90
+  },
+  "security_score_components": {
+    "tls_enforcement": 92,
+    "auth_strength": 88,
+    "scope_granularity": 85,
+    "dependency_hygiene": 90,
+    "secret_handling": 88,
+    "security_notes": "Sanctum tokens are hashed in database (SHA-256) — cannot be recovered if database is compromised. Implement HTTPS-only for agent token transmission. Set token expiration via sanctum.expiration config. Implement rate limiting on token generation endpoint to prevent agent token flooding. Store agent tokens in client-side secure storage (iOS Keychain, Android KeyStore, browser storage with XSS protection)."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 92,
+    "version_stability": 90,
+    "breaking_changes_history": 88,
+    "error_recovery": 90
+  }
+}

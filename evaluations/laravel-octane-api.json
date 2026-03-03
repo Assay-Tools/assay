@@ -1,0 +1,106 @@
+{
+  "id": "laravel-octane-api",
+  "name": "Laravel Octane",
+  "version_evaluated": "2.x",
+  "homepage": "https://laravel.com/docs/octane",
+  "repo_url": "https://github.com/laravel/octane",
+  "category": "developer-tools",
+  "subcategories": ["performance", "php", "laravel", "swoole", "roadrunner"],
+  "tags": ["php", "laravel", "performance", "swoole", "roadrunner", "concurrency", "worker", "server"],
+  "what_it_does": "Application server for Laravel that supercharges performance by keeping the application in memory between requests. Octane runs Laravel on Swoole or RoadRunner servers that boot the application once, then handle multiple requests in long-lived worker processes — eliminating PHP's traditional bootstrap-per-request overhead. Octane features: php artisan octane:start (replaces nginx/php-fpm), request concurrency via coroutines (Swoole), shared application state between requests, task workers for concurrent operations (Octane::concurrently()), flush() for clearing state between requests, and tables (shared memory across workers). 5-10x request throughput improvement over traditional PHP-FPM for agent API services.",
+  "use_cases": [
+    "High-throughput agent API serving — Octane Swoole server handles agent API requests 5-10x faster than php-fpm by eliminating Laravel bootstrap overhead; critical for agent platforms with high concurrent request volume",
+    "Concurrent agent operations — $results = Octane::concurrently([ fn() => $this->fetchAgentMetrics($id), fn() => $this->fetchAgentTools($id) ]) runs two agent data fetches in parallel coroutines for faster agent detail page response",
+    "Agent WebSocket handling with Swoole — Swoole's built-in WebSocket server enables real-time agent status updates alongside HTTP API in same Octane process; consolidated realtime infrastructure for agent platform",
+    "Octane task workers for agent background work — Octane::task(fn() => processAgentJob($id)) offloads agent processing to task worker without queue overhead; sub-second lightweight agent task execution",
+    "Laravel Octane with FrankenPHP — Octane FrankenPHP server provides Caddy-based PHP worker mode with HTTP/3; modern agent API serving with automatic HTTPS and HTTP/3 support"
+  ],
+  "not_for": [
+    "Legacy PHP codebases — Octane requires stateless request handling; code relying on global state, static properties between requests, or request-scoped singletons breaks under Octane; audit agent codebase for static state before Octane adoption",
+    "Simple low-traffic agent APIs — Octane's complexity (server management, state isolation) not justified for agent APIs with <100 req/s; traditional php-fpm is simpler and sufficient",
+    "Shared hosting — Octane requires control over server process (Swoole extension or RoadRunner binary); not available on shared PHP hosting; requires VPS/container deployment for agent services"
+  ],
+  "best_when": "Your Laravel agent API needs maximum PHP throughput without migrating to a different language — Octane delivers Node.js-competitive performance for PHP-based agent services.",
+  "avoid_when": "Your agent codebase has static state or singletons, you're on shared hosting, or your traffic doesn't justify Octane's operational complexity.",
+  "alternatives": ["frankenphp-api", "roadrunner-api", "fastcgi-php-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["php"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Server runtime — no auth concepts. Works with any Laravel auth (Sanctum, Passport, session). Auth state must be properly isolated between requests."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Laravel Octane is MIT licensed. Swoole extension is also open source. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 5,
+    "latency_p99_ms": 50,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — application server. Octane worker count and max_requests config determine concurrency. Swoole enables coroutine-based I/O concurrency within a single worker.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 80,
+    "error_message_notes": "Octane worker errors logged to octane.log. Uncaught exceptions in worker restart worker process. Max requests per worker prevents memory leaks from crashing server. Worker startup errors (missing Swoole extension, port conflict) surface at startup with clear error messages.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Request handling is stateless when correctly implemented. State isolation between requests requires explicit flush() or singleton reset. Agent services with state isolation issues may process requests correctly but leak data between agent users.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Static properties persist between requests — traditional PHP-FPM reinitializes static properties per request; Octane workers run same PHP process for multiple requests; static MyClass::$cache = [] set in one agent request persists to next request; use Octane::flush() listeners to reset static agent state between requests",
+      "Singletons bound before first request stay bound — service container singletons resolved in AppServiceProvider bind() are reused across all agent requests in same worker; if singleton holds request-scoped data (current user, tenant), it returns first request's data for subsequent requests; use app()->forgetInstance('service') in flush callbacks",
+      "max_requests setting prevents memory leaks — octane.php max_requests: 500 restarts worker after 500 requests; without max_requests, PHP memory leaks in agent service code (holding references, accumulating caches) grow unbounded causing worker OOM; tune max_requests based on agent service memory growth rate",
+      "Octane::concurrently() requires Swoole extension — concurrent task execution only works with Swoole driver; RoadRunner Octane doesn't support Octane::concurrently(); agent code using concurrent tasks is driver-specific and fails on RoadRunner deployments without clear error",
+      "Database connections must be refreshed per request — database connections established before Octane starts may timeout between requests; configure DB reconnect on exception or use connection pooling; Octane flushes service provider state but raw database connection state from Laravel's DB facade may persist between agent requests",
+      "File-based sessions break with multiple workers — multiple Octane workers using file sessions each write to own session files; user hitting different worker sees different session state for agent platform; use Redis or database sessions for agent applications with multiple Octane worker processes"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 80,
+    "auth_complexity_score": 85,
+    "rate_limit_clarity_score": 90
+  },
+  "security_score_components": {
+    "tls_enforcement": 88,
+    "auth_strength": 85,
+    "scope_granularity": 80,
+    "dependency_hygiene": 85,
+    "secret_handling": 82,
+    "security_notes": "Octane's shared memory between requests is a security risk if not handled correctly — agent user data in static properties or singletons can leak to other users' requests. Audit all static state and ensure request isolation. Swoole's shared memory (Table) is accessible to all workers — protect agent sensitive data stored in Octane tables."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 85,
+    "version_stability": 82,
+    "breaking_changes_history": 78,
+    "error_recovery": 82
+  }
+}

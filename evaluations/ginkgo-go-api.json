@@ -1,0 +1,106 @@
+{
+  "id": "ginkgo-go-api",
+  "name": "Ginkgo + Gomega",
+  "version_evaluated": "2.x",
+  "homepage": "https://onsi.github.io/ginkgo/",
+  "repo_url": "https://github.com/onsi/ginkgo",
+  "category": "developer-tools",
+  "subcategories": ["testing", "go", "bdd", "unit-testing", "integration-testing"],
+  "tags": ["go", "golang", "testing", "bdd", "ginkgo", "gomega", "describe", "it", "expect"],
+  "what_it_does": "BDD testing framework for Go — provides Describe/Context/It block structure and Gomega assertion library for readable, expressive Go tests. Ginkgo features: Describe('AgentService', func() { Context('when creating agent', func() { It('returns agent with ID', func() { Expect(agent.ID).NotTo(BeEmpty()) }) }) }) structure, BeforEach/AfterEach setup/teardown, BeforeSuite/AfterSuite for suite-wide setup, parallel specs (ginkgo --parallel), flaky test detection (ginkgo --flake-attempts), focused specs (FIt, FDescribe), and Gomega matchers (Equal, ContainElement, HaveLen, MatchError, Eventually for async). Used by Kubernetes, Cloud Foundry, and many Go infrastructure projects. Alternative to table-driven tests with t.Run() for complex Go agent service test scenarios.",
+  "use_cases": [
+    "Agent service BDD tests — Describe('AgentService.Create', func() { Context('with valid request', func() { It('creates agent in DB', func() { agent, err := svc.Create(ctx, req); Expect(err).NotTo(HaveOccurred()); Expect(agent.Name).To(Equal(req.Name)) }) }) }) readable agent test structure",
+    "Async agent operation testing — Eventually(func() string { return getAgentStatus(id) }, 10*time.Second, 500*time.Millisecond).Should(Equal('complete')) retries assertion until agent async operation completes",
+    "Agent test suite setup with Ginkgo — BeforeSuite(func() { db = setupTestDB(); cache = setupRedis() }) runs once before all agent tests; AfterSuite tears down shared agent test infrastructure",
+    "Parallel agent integration tests — ginkgo --parallel runs agent test specs concurrently; Ginkgo parallelizes across multiple processes for faster agent test suite execution in CI",
+    "Table-driven equivalent with Ginkgo Entry — DescribeTable('validates agent name', func(name string, valid bool) { Expect(validateName(name)).To(Equal(valid)) }, Entry('empty string', '', false), Entry('valid name', 'my-agent', true)) replaces Go table tests with readable BDD entries"
+  ],
+  "not_for": [
+    "Simple unit tests — Ginkgo adds ceremony for simple unit tests; Go's built-in testing package with t.Run() is sufficient for straightforward agent function tests; use Ginkgo for complex integration test scenarios",
+    "Teams preferring standard Go idioms — Ginkgo uses closures and global state (ginkgo.Suite), which some Go developers consider non-idiomatic; for teams preferring stdlib testing, testify or tabledriven tests are more Go-native",
+    "Benchmarking — Ginkgo is for behavioral tests; use Go's built-in testing.B for agent performance benchmarks"
+  ],
+  "best_when": "Your Go agent service has complex integration test scenarios with shared setup, nested contexts, and async operations — Ginkgo's BDD structure makes test intent clear and provides powerful async assertions via Eventually.",
+  "avoid_when": "Your team prefers idiomatic Go testing patterns, your tests are simple unit tests, or you don't need BDD structure's organization benefits.",
+  "alternatives": ["testify-api", "gocheck-api", "goblin-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["go"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Testing framework — no auth concepts."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Ginkgo and Gomega are MIT licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 0,
+    "latency_p99_ms": 0,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — test execution speed depends on test complexity and parallelism. ginkgo --parallel <N> uses N processes for agent test suite parallelism.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 88,
+    "error_message_quality": 88,
+    "error_message_notes": "Gomega failure messages include expected and actual values with detailed diff. Expect(err).NotTo(HaveOccurred()) shows full error with message on failure. Eventually timeout shows last assertion failure after all retries exhausted. HaveError matcher shows error message vs expected.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Test specs are deterministic given same setup. Eventually retries are idempotent — same condition checked repeatedly. Parallel specs are isolated by process.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Bootstrap file required for ginkgo test suite — each Go package using Ginkgo needs a bootstrap test file: var _ = Describe('...') and TestAgentService(t *testing.T) { RegisterFailHandler(Fail); RunSpecs(t, 'Agent Service Suite') }; missing bootstrap causes ginkgo specs to not run via go test; generate with ginkgo bootstrap in package directory",
+      "Shared variables in Describe require BeforeEach assignment — var agent *Agent declared in Describe closure must be reassigned in BeforeEach: BeforeEach(func() { agent = createTestAgent() }); Go closures capture by reference not value; agent variable from previous spec bleeds into next spec without BeforeEach reassignment",
+      "Eventually requires polling function, not value — Eventually(agentStatus).Should(Equal('done')) FAILS; Eventually requires a function: Eventually(func() string { return getStatus(agentId) }).Should(Equal('done')); passing non-function value to Eventually causes panic in Ginkgo 2.x for agent async assertions",
+      "FDescribe and FIt create focused suites that skip others — accidentally leaving FDescribe (focused) in agent test code causes all non-focused specs to be skipped; CI sees pass result because focused specs pass but entire test categories silently skip; Ginkgo warns about focused specs in output but doesn't fail CI by default; add --forbid-focus-files flag in agent CI pipeline",
+      "Parallel specs cannot share mutable state — ginkgo --parallel spawns separate Go test processes; each process has own memory; shared BeforeSuite setup must recreate per-process state; agent tests sharing in-memory cache or map across parallel specs cause data races; use parallel-safe infrastructure (each process gets own DB schema)",
+      "Gomega Consistently is inverse of Eventually — Consistently(func() bool { return agent.IsActive() }, 2*time.Second, 100*time.Millisecond).Should(BeTrue()) asserts condition stays true for duration; Consistently fails as soon as condition is false; useful for agent state machine tests ensuring no unexpected state transitions during hold period"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 88,
+    "error_handling_score": 88,
+    "auth_complexity_score": 98,
+    "rate_limit_clarity_score": 98
+  },
+  "security_score_components": {
+    "tls_enforcement": 95,
+    "auth_strength": 95,
+    "scope_granularity": 90,
+    "dependency_hygiene": 90,
+    "secret_handling": 92,
+    "security_notes": "Testing framework — no production security concerns. Ensure agent test infrastructure (test databases, test Redis) uses separate credentials from production. Never hardcode production agent credentials in Ginkgo test files."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 92,
+    "version_stability": 88,
+    "breaking_changes_history": 82,
+    "error_recovery": 90
+  }
+}
