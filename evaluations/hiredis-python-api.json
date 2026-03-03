@@ -1,0 +1,106 @@
+{
+  "id": "hiredis-python-api",
+  "name": "hiredis",
+  "version_evaluated": "2.x",
+  "homepage": "https://github.com/redis/hiredis-py",
+  "repo_url": "https://github.com/redis/hiredis-py",
+  "category": "developer-tools",
+  "subcategories": ["redis", "python", "performance", "c-extension"],
+  "tags": ["python", "hiredis", "redis", "c-extension", "performance", "parser", "protocol"],
+  "what_it_does": "C extension for fast Redis protocol parsing in Python — accelerates redis-py and other Redis clients by replacing the Python RESP protocol parser with a C implementation. hiredis features: automatic activation when installed alongside redis-py (no code changes needed), Reader class for manual RESP parsing, 2-10x faster response parsing for bulk operations, pipeline optimization, and compatibility with redis-py 4.x/5.x. Single-purpose optimization: install it, get faster Redis, no API changes.",
+  "use_cases": [
+    "Agent Redis performance boost — # pip install redis hiredis; # No code changes needed; import redis; r = redis.Redis() — redis-py automatically uses hiredis if installed; agent Redis operations run 2-10x faster for bulk data; no code modification required; transparent optimization for pipeline and MGET operations",
+    "Agent pipeline optimization — r = redis.Redis(); pipe = r.pipeline(); [pipe.get(f'key:{i}') for i in range(1000)]; results = pipe.execute() — hiredis accelerates pipeline response parsing; 1000-command pipeline parses 5-10x faster with hiredis vs pure Python parser; agent bulk reads benefit most from hiredis",
+    "Agent MGET bulk reads — r = redis.Redis(); values = r.mget([f'session:{i}' for i in range(500)]) — MGET returns list; hiredis parses large response lists faster than pure Python; agent session lookup for 500 users returns results significantly faster with hiredis installed",
+    "Agent manual RESP parsing — from hiredis import Reader; reader = Reader(); reader.feed(b'+OK\\r\\n'); reader.gets() — manual Redis protocol parsing; agent building custom Redis tools or proxy parsers uses hiredis Reader directly; gets() returns parsed Python objects",
+    "Agent aioredis acceleration — # pip install redis[hiredis]; from redis.asyncio import Redis; r = Redis() — redis-py async client also uses hiredis; agent FastAPI with async Redis automatically benefits; same no-code-change activation as sync redis-py"
+  ],
+  "not_for": [
+    "Code changes required — hiredis is a drop-in performance optimization; if expecting API changes, there are none",
+    "Non-Redis protocols — hiredis only parses Redis RESP protocol; not applicable to other databases",
+    "Environments without C compiler — hiredis requires C extension compilation; Docker images and wheels handle this automatically; rare edge case on minimal containers"
+  ],
+  "best_when": "Any Python application using redis-py with high-throughput Redis operations — install hiredis alongside redis-py for 2-10x faster protocol parsing with zero code changes.",
+  "avoid_when": "You're not using Redis, have C extension restrictions, or don't need the performance boost (low-throughput Redis usage).",
+  "alternatives": ["redis-py-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — C extension library. Auth handled by redis-py connection configuration."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, BSD licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "hiredis-py is BSD licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Performance improvement: 2-10x faster response parsing. Best for: MGET/MSET bulk operations, pipelines, large response sets. Single GET/SET: improvement is smaller (network latency dominates). Throughput improvement: thousands more operations per second for pipeline workloads.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 88,
+    "error_message_quality": 85,
+    "error_message_notes": "hiredis raises hiredis.ReplyError for Redis error responses. hiredis.ProtocolError for malformed RESP data. Errors are propagated by redis-py transparently. No new error types for normal usage — errors behave same as pure Python parser.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Protocol parser is stateless between commands. Parsing same bytes always produces same Python objects. Reader.gets() is deterministic. No side effects from hiredis installation.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "hiredis activated automatically — no code to change; redis-py detects hiredis at import time; pip install hiredis is sufficient; agent code does not import hiredis directly for redis-py acceleration; verifying hiredis is active: python -c 'from redis import connection; print(connection.HIREDIS_AVAILABLE)'",
+      "Wheels available for major platforms — hiredis ships pre-compiled wheels for Linux x86_64, macOS, Windows; pip install hiredis installs without compilation on these platforms; Alpine Linux (musl) requires compilation: apk add gcc musl-dev; Docker images using Alpine must install build deps before hiredis; use python:3.x-slim (Debian) instead of Alpine for easier hiredis installation",
+      "hiredis version must match redis-py compatibility — hiredis 2.x works with redis-py 4.x/5.x; hiredis 1.x is for old redis-py 3.x; agent requirements.txt should pin compatible versions; pip install redis[hiredis] installs compatible versions automatically — use this over manual version management",
+      "Benefits minimal for single small GET/SET — hiredis benefit is 2-10x for response parsing only; single GET where network latency is 1ms and parsing is 0.01ms: improvement from 0.01ms to 0.001ms is negligible; agent code with one Redis call per request sees minimal improvement; agent with pipeline or MGET of 100+ keys sees significant improvement",
+      "Reader.gets() returns False not None for incomplete data — hiredis.Reader.gets() returns False when more data needed (not yet complete response); returns None when Redis returns null bulk string; agent custom parser code must check: result = reader.gets(); if result is False: need_more_data() vs if result is None: redis_nil_response(); confusing False with None causes subtle bugs",
+      "hiredis does not help with connection overhead — Redis connection establishment (TCP handshake + AUTH + SELECT) is unchanged by hiredis; hiredis only accelerates RESP parsing; agent code with high connection churn (new connection per request) gets no benefit; use connection pooling via redis.ConnectionPool for connection overhead reduction"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 88,
+    "error_handling_score": 85,
+    "auth_complexity_score": 99,
+    "rate_limit_clarity_score": 99
+  },
+  "security_score_components": {
+    "tls_enforcement": 88,
+    "auth_strength": 88,
+    "scope_granularity": 86,
+    "dependency_hygiene": 88,
+    "secret_handling": 88,
+    "security_notes": "C extension library with no network calls of its own. Security is inherited from redis-py connection configuration. C extension parsing of network data: if Redis sends malformed RESP, hiredis raises ProtocolError safely. No known buffer overflow vulnerabilities. Use TLS and auth as configured in redis-py."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 88,
+    "breaking_changes_history": 88,
+    "error_recovery": 88
+  }
+}

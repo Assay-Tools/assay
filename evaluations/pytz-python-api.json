@@ -1,0 +1,106 @@
+{
+  "id": "pytz-python-api",
+  "name": "pytz",
+  "version_evaluated": "2024.x",
+  "homepage": "https://pythonhosted.org/pytz/",
+  "repo_url": "https://github.com/stub42/pytz",
+  "category": "developer-tools",
+  "subcategories": ["datetime", "python", "timezone", "utilities"],
+  "tags": ["python", "pytz", "timezone", "datetime", "utc", "localize", "tzinfo"],
+  "what_it_does": "Timezone library for Python datetime — provides Olson timezone database for datetime localization and conversion. pytz features: pytz.timezone() for timezone objects, datetime.astimezone() for conversion, pytz.localize() for naive datetime localization, pytz.utc for UTC timezone, pytz.all_timezones for all timezone names, pytz.common_timezones for common zones, and normalization after arithmetic. Predates Python 3.9 zoneinfo module. Now largely superseded by stdlib zoneinfo but widely used in existing codebases.",
+  "use_cases": [
+    "Agent UTC storage — from datetime import datetime; import pytz; utc = pytz.utc; now_utc = datetime.now(utc); stored = now_utc.isoformat() — always store as UTC; agent converts to local for display; pytz.utc is the recommended UTC timezone object for stdlib datetime",
+    "Agent timezone conversion — eastern = pytz.timezone('US/Eastern'); utc_time = datetime(2024, 6, 15, 12, 0, 0, tzinfo=pytz.utc); eastern_time = utc_time.astimezone(eastern) — convert UTC to local timezone; agent displays timestamps in user's timezone; astimezone() handles DST transitions automatically",
+    "Agent datetime localization — eastern = pytz.timezone('US/Eastern'); naive_dt = datetime(2024, 3, 15, 12, 0, 0); localized = eastern.localize(naive_dt) — localize naive datetime; agent receives naive datetime from external system; localize() makes it timezone-aware; do not use replace(tzinfo=eastern) — wrong for DST boundary times",
+    "Agent timezone list — user_tz = request.json.get('timezone'); if user_tz not in pytz.all_timezones_set: return error; tz = pytz.timezone(user_tz) — validate user-provided timezone; agent user preference validation uses pytz.all_timezones_set for O(1) membership check; pytz.common_timezones for UI dropdown",
+    "Agent DST-aware scheduling — eastern = pytz.timezone('US/Eastern'); scheduled = eastern.localize(datetime(2024, 11, 3, 9, 0)); utc_scheduled = scheduled.astimezone(pytz.utc) — 9 AM Eastern before/after DST change is different UTC times; agent scheduler computes correct UTC for 'same local time' after DST change via localize"
+  ],
+  "not_for": [
+    "New Python 3.9+ code — use stdlib zoneinfo module which is simpler and has no pitfalls; pytz is legacy but maintained",
+    "Datetime arithmetic with pytz — adding timedelta to pytz-localized datetime can produce wrong result without normalize(); use pendulum or arrow for safe arithmetic",
+    "Modern Django/SQLAlchemy — both now support zoneinfo natively; pytz still works but zoneinfo is preferred"
+  ],
+  "best_when": "Maintaining existing Python codebases that use pytz for timezone handling — pytz remains correct and maintained but new code should use Python 3.9+ zoneinfo instead.",
+  "avoid_when": "Starting new projects on Python 3.9+ (use zoneinfo), need safe timezone arithmetic (use pendulum), or want minimal dependencies.",
+  "alternatives": ["pendulum-python-api", "arrow-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — local timezone library."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "pytz is MIT licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. pytz.timezone() lookup: ~1μs. localize() and astimezone(): ~5μs. Suitable for real-time use. pytz caches timezone objects internally.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 82,
+    "error_message_quality": 80,
+    "error_message_notes": "pytz.exceptions.UnknownTimeZoneError for invalid timezone names. NonExistentTimeError for DST gap times. AmbiguousTimeError for DST fall-back times. Error messages include the invalid timezone name. pytz errors are clear for common issues.",
+    "idempotency_support": "full",
+    "idempotency_notes": "pytz timezone operations are deterministic. localize() and astimezone() produce consistent results. pytz.timezone() returns same object for same name (cached). Timezone conversions are idempotent.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Never use replace(tzinfo=tz) — datetime(2024, 1, 1).replace(tzinfo=eastern) uses historical EST offset not LMT; correct: eastern.localize(datetime(2024, 1, 1)); agent code using replace() instead of localize() gets wrong UTC offset for many timezones; pytz documentation explicitly warns against replace() for pytz timezones",
+      "Datetime arithmetic requires normalize() — localized = eastern.localize(datetime(2024, 3, 10, 1, 0)); wrong = localized + timedelta(hours=1); correct = eastern.normalize(localized + timedelta(hours=1)) — adding timedelta crosses DST boundary without normalize() gives wrong timezone offset; use pendulum or arrow for safe arithmetic; pytz normalize() fixes the offset after arithmetic",
+      "AmbiguousTimeError during DST fall-back — eastern.localize(datetime(2024, 11, 3, 1, 30)) raises AmbiguousTimeError — 1:30 AM exists twice on fall-back day; must specify: eastern.localize(datetime(2024, 11, 3, 1, 30), is_dst=True) for first occurrence or is_dst=False for second; agent scheduling during fall-back must explicitly handle ambiguity",
+      "NonExistentTimeError during DST spring-forward — eastern.localize(datetime(2024, 3, 10, 2, 30)) raises NonExistentTimeError — 2:30 AM doesn't exist (clocks spring to 3:00); agent must handle: try: eastern.localize(dt); except pytz.NonExistentTimeError: use is_dst=True to interpret as spring forward equivalent",
+      "pytz is de-prioritized in Python 3.9+ — Python 3.9 added zoneinfo module covering pytz's functionality; datetime(2024, 1, 1, tzinfo=ZoneInfo('America/New_York')) is the modern approach; agent new code should use from zoneinfo import ZoneInfo; pytz remains correct but zoneinfo is stdlib-native",
+      "pytz timezone objects are not equal to zoneinfo objects — pytz.timezone('UTC') != datetime.timezone.utc; mixing pytz and zoneinfo objects raises TypeError in comparisons; agent codebase mixing old (pytz) and new (zoneinfo) code must normalize to one timezone library; convert pytz tz to zoneinfo: ZoneInfo(str(pytz_tz))"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 80,
+    "error_handling_score": 82,
+    "auth_complexity_score": 99,
+    "rate_limit_clarity_score": 99
+  },
+  "security_score_components": {
+    "tls_enforcement": 92,
+    "auth_strength": 92,
+    "scope_granularity": 90,
+    "dependency_hygiene": 90,
+    "secret_handling": 92,
+    "security_notes": "Timezone library with no network calls. Incorrect timezone handling (wrong DST, naive datetimes) can cause security issues in time-sensitive agent operations (token expiry, session management). Always use timezone-aware datetimes for security-critical time comparisons."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 85,
+    "version_stability": 88,
+    "breaking_changes_history": 90,
+    "error_recovery": 88
+  }
+}
