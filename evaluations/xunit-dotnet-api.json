@@ -1,0 +1,106 @@
+{
+  "id": "xunit-dotnet-api",
+  "name": "xUnit.net",
+  "version_evaluated": "2.x",
+  "homepage": "https://xunit.net/",
+  "repo_url": "https://github.com/xunit/xunit",
+  "category": "developer-tools",
+  "subcategories": ["testing", "dotnet", "csharp", "unit-testing", "tdd"],
+  "tags": ["dotnet", "csharp", "testing", "unit-testing", "tdd", "xunit", "assertions", "test-runner"],
+  "what_it_does": "Unit testing framework for .NET — uses [Fact] for parameterless tests, [Theory] with [InlineData] for parameterized tests, constructor injection for setup, and IDisposable/IAsyncDisposable for teardown. xUnit.net features: no [SetUp]/[TearDown] attributes (constructor/dispose pattern instead), [ClassFixture<T>] for shared expensive setup across tests in a class, [CollectionFixture<T>] for shared setup across test classes, Assert.Throws<T>, Assert.Equal with detailed diffs, and parallel test execution by default. Preferred over NUnit and MSTest for modern .NET projects — used by ASP.NET Core and Entity Framework Core test suites. Integrates with Moq/NSubstitute for mocking agent service dependencies.",
+  "use_cases": [
+    "Agent service unit tests — [Fact] public async Task CreateAgent_WithValidInput_ReturnsAgentDto() tests CreateAgentCommandHandler in isolation with mocked dependencies using xUnit's clean constructor injection pattern",
+    "Parameterized agent validation tests — [Theory] [InlineData(\"\", false)] [InlineData(\"valid-name\", true)] public void ValidateName_ReturnsExpected(string name, bool expected) tests agent name validation across multiple inputs",
+    "Agent integration tests with WebApplicationFactory — [ClassFixture<AgentApiFactory>] shares test server across agent API integration tests; factory configures test database and DI overrides for agent endpoints",
+    "Async agent handler tests — [Fact] public async Task Handle_WhenAgentNotFound_ThrowsNotFoundException() with await Assert.ThrowsAsync<NotFoundException>(() => handler.Handle(cmd, CancellationToken.None)) tests async agent exceptions",
+    "Test output for agent debugging — ITestOutputHelper injected via constructor; _output.WriteLine($\"Agent created: {agent.Id}\") writes to test output visible in IDE test runner for agent test debugging"
+  ],
+  "not_for": [
+    "BDD-style tests — xUnit uses [Fact]/[Theory] attribute style; for Given/When/Then agent test scenarios readable by non-developers, use SpecFlow (Gherkin) or use xUnit with FluentAssertions",
+    "Integration tests requiring database isolation — xUnit tests run in parallel by default; database integration tests need explicit collection-based parallelism control or Respawn for database cleanup between agent tests",
+    "Load or performance testing — xUnit is functional test framework; use k6, NBomber, or BenchmarkDotNet for agent performance testing"
+  ],
+  "best_when": "You're writing unit or integration tests for .NET agent services — xUnit's clean pattern (constructor setup, IDisposable teardown) and parallel execution make it the modern standard for .NET testing.",
+  "avoid_when": "You need BDD-style Gherkin scenarios, your existing test suite uses NUnit (migration cost), or you need load/performance testing.",
+  "alternatives": ["nunit-api", "mstest-api", "specflow-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["csharp", "fsharp"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Testing framework — no auth concepts."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, Apache 2.0 licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "xUnit.net is Apache 2.0 licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 0,
+    "latency_p99_ms": 0,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — test execution speed depends on test count and parallelism. xUnit runs test classes in parallel by default; configure [assembly: CollectionBehavior(MaxParallelThreads = 4)] for agent CI parallelism.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 90,
+    "error_message_quality": 90,
+    "error_message_notes": "xUnit assertion failures include expected vs actual values with diffs. Assert.Equal(expected, actual) shows side-by-side comparison. Assert.Throws<T> returns thrown exception for additional assertion. Test output via ITestOutputHelper visible in dotnet test and IDE runners.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Test execution is deterministic given same test code and mocks. Parallel execution is randomized across classes but deterministic within class.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "No [SetUp]/[TearDown] — xUnit uses constructor for setup and IDisposable.Dispose for teardown; tests expecting [SetUp] from NUnit or MSTest experience method-not-recognized errors; migrate agent test setup to constructor and cleanup to Dispose or DisposeAsync",
+      "Test parallelism can cause database conflicts — xUnit runs test classes in parallel by default; agent integration tests sharing a database cause race conditions and test order dependencies; use [Collection] attribute to group agent database tests into single non-parallel collection or use Respawn to isolate each test",
+      "IClassFixture vs ICollectionFixture scope — IClassFixture<T> creates fixture once per test class; ICollectionFixture<T> creates once per [Collection] across classes; agent integration tests needing shared WebApplicationFactory should use ICollectionFixture to avoid creating multiple test servers",
+      "async void test methods are not awaited — [Fact] public async void TestAsync() runs but exceptions are not caught by xUnit; use async Task for all async agent tests; async void tests appear to pass even when throwing exceptions causing false positive agent test results",
+      "[Theory] with complex objects requires [MemberData] — [InlineData] only accepts compile-time constants (primitives, strings, Type); for agent test scenarios with complex objects (AgentConfig), use [MemberData(nameof(GetAgentTestCases))] with IEnumerable<object[]> property or method",
+      "Test output only visible on test failure by default — ITestOutputHelper messages are captured but only displayed when test fails; to always show agent debug output, run with dotnet test --logger 'console;verbosity=detailed'; IDE test runners show output in test detail pane regardless of pass/fail status"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 90,
+    "error_handling_score": 90,
+    "auth_complexity_score": 98,
+    "rate_limit_clarity_score": 98
+  },
+  "security_score_components": {
+    "tls_enforcement": 95,
+    "auth_strength": 95,
+    "scope_granularity": 90,
+    "dependency_hygiene": 90,
+    "secret_handling": 88,
+    "security_notes": "Never include real agent credentials in test code — use test doubles and environment variables. Ensure agent test projects don't ship to production containers. Test databases should use separate credentials from production. Integration tests should not connect to production agent services."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 95,
+    "version_stability": 92,
+    "breaking_changes_history": 90,
+    "error_recovery": 92
+  }
+}

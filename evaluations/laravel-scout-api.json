@@ -1,0 +1,106 @@
+{
+  "id": "laravel-scout-api",
+  "name": "Laravel Scout",
+  "version_evaluated": "10.x",
+  "homepage": "https://laravel.com/docs/scout",
+  "repo_url": "https://github.com/laravel/scout",
+  "category": "developer-tools",
+  "subcategories": ["search", "php", "laravel", "full-text-search", "elasticsearch"],
+  "tags": ["php", "laravel", "search", "algolia", "meilisearch", "typesense", "elasticsearch", "full-text"],
+  "what_it_does": "Full-text search abstraction for Laravel Eloquent models — adds search driver via Searchable trait, indexing, and search() method with driver-agnostic API. Scout features: use Searchable in Eloquent model enables automatic syncing (queue-based), Agent::search('query')->get() for full-text search, toSearchableArray() customizes indexed data, searchable()/unsearchable() for manual index management, soft delete support, custom search engines (Algolia, Meilisearch, Typesense, Elasticsearch via community drivers, database engine for development). Automatic reindexing on model events (save/delete). Driver-agnostic search with pluggable backends — switch from Algolia to Meilisearch without changing search code.",
+  "use_cases": [
+    "Agent catalog full-text search — use Searchable on Agent model; Agent::search($request->query)->where('active', true)->paginate(15) returns ranked search results from Algolia/Meilisearch without Elasticsearch complexity for agent marketplace",
+    "Agent search with filters — Agent::search('assistant')->where('category', 'customer-service')->orderBy('usage_count', 'desc')->get() filters and sorts agent search results; Scout translates to driver-specific filter syntax",
+    "Queued agent index updates — SCOUT_QUEUE=true batches agent model index updates in queue jobs; prevents blocking agent model save with synchronous indexing; background index sync for agent catalog freshness",
+    "Meilisearch for self-hosted agent search — SCOUT_DRIVER=meilisearch with Meilisearch running locally; free self-hosted full-text search for agent catalog with typo tolerance; no Algolia cost for agent startup",
+    "toSearchableArray customization for agent relevance — public function toSearchableArray(): array { return ['name' => $this->name, 'description' => $this->description, 'capability_tags' => $this->capabilities->pluck('name')] } indexes only relevant agent fields for search quality"
+  ],
+  "not_for": [
+    "Faceted search with complex aggregations — Scout's abstraction limits driver-specific features; for agent facet counts, complex Elasticsearch aggregations, or Algolia facet filtering, use vendor SDK directly or community Elasticsearch driver",
+    "Geospatial search — Scout doesn't abstract geographic search; for agent location-based search (nearest agents), use driver-specific geo features directly or PostGIS with PostgreSQL",
+    "Real-time search — Scout queues index updates; there's a delay between agent model save and searchable index update; use instant sync (SCOUT_QUEUE=false) for small datasets where indexing latency matters"
+  ],
+  "best_when": "Your Laravel agent platform needs full-text search with a pluggable backend (Algolia for managed, Meilisearch for self-hosted) — Scout's Eloquent integration and driver abstraction make search a first-class Laravel citizen.",
+  "avoid_when": "You need complex Elasticsearch aggregations/facets, geospatial search, or you're using a search engine not supported by Scout drivers.",
+  "alternatives": ["elasticsearch-laravel-api", "meilisearch-api", "algolia-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["php"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["api_key"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Scout uses search driver credentials. Algolia: ALGOLIA_APP_ID + ALGOLIA_SECRET. Meilisearch: MEILISEARCH_HOST + MEILISEARCH_KEY. Credentials in .env for agent search configuration."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free library, MIT licensed. Search backends (Algolia, Typesense) have separate pricing. Meilisearch is self-hostable free.",
+    "paid_tiers": "None for library",
+    "requires_credit_card": false,
+    "notes": "Laravel Scout is MIT licensed. Algolia has free tier (10k search ops/month). Meilisearch is open source and free to self-host."
+  },
+  "performance": {
+    "latency_p50_ms": 20,
+    "latency_p99_ms": 200,
+    "uptime_sla_percent": null,
+    "rate_limits": "No Scout rate limits. Driver-specific limits apply (Algolia: operations/month by plan). Queued indexing prevents rate limit impact on agent model saves.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted", "cloud"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 88,
+    "error_message_quality": 82,
+    "error_message_notes": "Scout search failures throw engine-specific exceptions (Algolia\\Search\\Exception\\RequestException, MeiliSearch\\Exception). Index out of sync (model updated but index stale) is silent — results return without error. php artisan scout:flush Agent clears index for debugging.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Scout indexing is idempotent — re-indexing same model updates existing index document. php artisan scout:import Agent is safe to run multiple times (full reindex).",
+    "pagination_style": "offset",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "use Searchable does not immediately index existing records — adding Searchable trait to Agent model does not populate search index; must run php artisan scout:import 'App\\Models\\Agent' after adding Scout to existing agent data; new records auto-index on create, but existing records require import command",
+      "SCOUT_QUEUE=true delays search visibility — queued agent indexing creates delay between model save and search index update; if agent is created and immediately searched, it may not appear in results until queue processes; for agent creation pages that redirect to search, add brief delay or use SCOUT_QUEUE=false in critical paths",
+      "toSearchableArray must return flat array for most drivers — returning nested arrays or Eloquent collections in toSearchableArray causes driver-specific serialization errors; Algolia accepts nested objects but Meilisearch requires flat structure; normalize agent data to flat key-value pairs for cross-driver Scout compatibility",
+      "softDeletes trait required for Scout soft delete support — Scout's soft delete support only works when model uses SoftDeletes trait AND Agent::withTrashed() is used in search; without explicit SoftDeletes config, deleted agents remain in search index after soft delete",
+      "Database driver returns SQLite LIKE matches, not ranked — SCOUT_DRIVER=database uses SQL LIKE for local development; relevance ranking differs completely from Algolia/Meilisearch; agent search results order differs between local and production; don't rely on result ranking in tests using database driver",
+      "Index name includes table name by default — Scout index name defaults to model's table name ('agents'); changing table name or using multi-tenant prefixes changes index name; explicit searchableAs() method overrides: public function searchableAs(): string { return 'agents_'.app('tenant')->id; } for tenant-scoped agent search indexes"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 88,
+    "error_handling_score": 82,
+    "auth_complexity_score": 85,
+    "rate_limit_clarity_score": 88
+  },
+  "security_score_components": {
+    "tls_enforcement": 88,
+    "auth_strength": 85,
+    "scope_granularity": 82,
+    "dependency_hygiene": 88,
+    "secret_handling": 85,
+    "security_notes": "Agent search indexes may expose sensitive data — toSearchableArray() controls what's indexed; never include API keys, passwords, or PII in agent search index. Scout results bypass Eloquent query scopes (global scopes); add Scout wheres() for multi-tenant agent search to prevent cross-tenant data exposure in search results."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 88,
+    "breaking_changes_history": 85,
+    "error_recovery": 82
+  }
+}

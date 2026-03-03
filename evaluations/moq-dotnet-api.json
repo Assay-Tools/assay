@@ -1,0 +1,106 @@
+{
+  "id": "moq-dotnet-api",
+  "name": "Moq",
+  "version_evaluated": "4.x",
+  "homepage": "https://github.com/devlooped/moq",
+  "repo_url": "https://github.com/devlooped/moq",
+  "category": "developer-tools",
+  "subcategories": ["testing", "dotnet", "csharp", "mocking", "unit-testing"],
+  "tags": ["dotnet", "csharp", "mocking", "unit-testing", "test-double", "mock", "stub", "verify"],
+  "what_it_does": "Mocking library for .NET — creates test doubles (mocks) of interfaces and abstract classes using lambda-based LINQ setup API. Moq features: var mock = new Mock<IAgentRepository>(); mock.Setup(r => r.FindAsync(agentId)).ReturnsAsync(agent) stubs method return; mock.Verify(r => r.SaveAsync(It.IsAny<Agent>()), Times.Once()) verifies call occurred; Mock.Of<T>() for inline mock creation; MockBehavior.Strict throws on unexpected calls; Callback for capturing arguments; SetupSequence for multiple sequential returns. Moq uses Castle.DynamicProxy to generate mock implementations at runtime. Most widely used .NET mocking library. Works with xUnit, NUnit, and MSTest for agent service unit tests.",
+  "use_cases": [
+    "Mock agent repository in handler tests — var repoMock = new Mock<IAgentRepository>(); repoMock.Setup(r => r.GetByIdAsync(agentId, ct)).ReturnsAsync(testAgent); inject mock into CreateAgentCommandHandler; verify handler calls repo correctly",
+    "Verify agent service method calls — mock.Verify(s => s.SendNotification(It.Is<string>(id => id == agentId), It.IsAny<string>()), Times.Once()) asserts agent service sent exactly one notification with correct agent ID",
+    "Stub LLM client for agent tests — var llmMock = new Mock<ILlmClient>(); llmMock.Setup(c => c.CompleteAsync(It.IsAny<string>(), ct)).ReturnsAsync(\"Agent response\") stubs LLM without API calls in agent unit tests",
+    "Callback to capture agent arguments — mock.Setup(r => r.SaveAsync(It.IsAny<Agent>(), ct)).Callback<Agent, CancellationToken>((a, _) => savedAgent = a).ReturnsAsync(true) captures saved agent for assertions",
+    "Setup sequences for agent state machine tests — mock.SetupSequence(r => r.GetStatusAsync(id)).ReturnsAsync(Status.Pending).ReturnsAsync(Status.Running).ReturnsAsync(Status.Complete) simulates agent status progression"
+  ],
+  "not_for": [
+    "Mocking static methods or sealed classes — Moq cannot mock static methods, sealed classes without interfaces, or extension methods; for agent code with static dependencies, refactor to use interfaces or use Fakes (MSTest) for system statics",
+    "Integration tests — Moq is for unit test isolation; integration tests should use real implementations or test databases for agent service behavior verification",
+    "Performance-critical test suites — Moq uses reflection and Castle.DynamicProxy; large test suites with thousands of mocks are slower than NSubstitute; benchmark if agent test execution time is critical"
+  ],
+  "best_when": "You're writing .NET agent service unit tests that need to isolate dependencies (repositories, external APIs, LLM clients) — Moq's lambda setup API is the most intuitive mocking experience for C# developers.",
+  "avoid_when": "You need to mock static/sealed classes (use Fakes or refactor), you prefer source-generator-based mocking (use Moq.AutoMock or Rocks), or you want F# native testing.",
+  "alternatives": ["nsubstitute-dotnet-api", "fakeiteasy-api", "justmock-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["csharp"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Mocking library — no auth concepts."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, BSD-3 licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Moq is BSD-3 licensed. Free for all use. Note: 2023 controversy over SponsorLink telemetry was resolved; v4.20+ removed SponsorLink."
+  },
+  "performance": {
+    "latency_p50_ms": 0,
+    "latency_p99_ms": 0,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — in-process mocking. First mock creation uses reflection; subsequent creations use cached proxy types. Large agent test suites may see slower startup due to proxy generation.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 88,
+    "error_message_quality": 88,
+    "error_message_notes": "Moq MockException on Verify failure shows expected invocation count vs actual with method signature. Setup not matched throws NotSupportedException (strict mocks) or returns default value (loose mocks). Invalid setup expressions throw ArgumentException with expression that failed.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Mock setups are deterministic — same Setup produces same behavior for same inputs. VerifyAll() verifies all setups were called. Reset() clears all setups for reuse.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Only interfaces and virtual methods can be mocked — new Mock<AgentService>() fails if AgentService is sealed or has non-virtual methods; Moq can only intercept virtual/abstract members; refactor agent service to use interface (IAgentService) and mock the interface for unit testing",
+      "Setup must match exact arguments or use It.IsAny — mock.Setup(r => r.GetAsync(agentId)) only matches exact agentId value; if test calls GetAsync with different ID, setup doesn't match and returns default null; use It.IsAny<string>() for flexible matching or It.Is<string>(id => id.StartsWith('agent-')) for agent ID pattern matching",
+      "Verify after act, not before — mock.Verify() checks if method was called during test; calling Verify before the actual code-under-test runs always fails; structure agent tests as Arrange (setup mock) → Act (call handler) → Assert (verify mock calls); common mistake is verifying in Arrange phase",
+      "MockBehavior.Strict throws on any unsetup call — strict mocks throw MockException for any method call without matching Setup; for agent tests, strict behavior prevents accidental calls to real dependencies but requires setting up all methods called by agent code under test; loose (default) returns defaults without setup",
+      "Returns vs ReturnsAsync for async methods — mock.Setup(r => r.GetAsync(id)).Returns(Task.FromResult(agent)) works but mock.Setup(r => r.GetAsync(id)).ReturnsAsync(agent) is cleaner; Returns(null) for async methods returns null Task causing NullReferenceException; always use ReturnsAsync for agent async interface mocks",
+      "Captured callbacks execute during Act not Arrange — .Callback(x => captured = x) runs when mocked method is called; captured value not available during setup phase; assert captured value in Assert phase after agent code calls the mock; using captured before Act causes null/default value assertion failure"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 88,
+    "error_handling_score": 88,
+    "auth_complexity_score": 98,
+    "rate_limit_clarity_score": 98
+  },
+  "security_score_components": {
+    "tls_enforcement": 95,
+    "auth_strength": 95,
+    "scope_granularity": 90,
+    "dependency_hygiene": 85,
+    "secret_handling": 95,
+    "security_notes": "Mocking library for tests only — never use in production code. Ensures agent service unit tests don't make real external calls (LLM APIs, databases) preventing credential leakage in CI. Note: use v4.20+ to avoid deprecated SponsorLink telemetry from earlier versions."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 92,
+    "version_stability": 88,
+    "breaking_changes_history": 82,
+    "error_recovery": 90
+  }
+}
