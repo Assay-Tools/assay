@@ -1,0 +1,106 @@
+{
+  "id": "dashmap-rust-api",
+  "name": "DashMap (Rust)",
+  "version_evaluated": "6.x",
+  "homepage": "https://github.com/xacrimon/dashmap",
+  "repo_url": "https://github.com/xacrimon/dashmap",
+  "category": "developer-tools",
+  "subcategories": ["concurrency", "data-structures", "rust"],
+  "tags": ["rust", "concurrent", "hashmap", "thread-safe", "lock-free", "performance", "open-source"],
+  "what_it_does": "High-performance concurrent HashMap for Rust using a sharded lock design. DashMap provides thread-safe key-value storage that replaces Arc<Mutex<HashMap<K, V>>> with dramatically better concurrent performance. Uses fine-grained sharding (default 16 shards) so concurrent reads and writes to different shards don't contend. Drop-in ergonomic replacement for std::collections::HashMap in concurrent contexts.",
+  "use_cases": [
+    "Replace Arc<Mutex<HashMap>> with DashMap for concurrent caches, session stores, or shared state in async Rust services",
+    "Build high-throughput concurrent registries (plugin registries, connection pools) where multiple threads read and write concurrently",
+    "Implement distributed counters or metrics accumulators that are updated from many async tasks simultaneously",
+    "Use as a concurrent cache in Axum/Actix-web services as shared application state (State<DashMap>)",
+    "Store per-request or per-user state in concurrent request handlers without blocking on a global mutex"
+  ],
+  "not_for": [
+    "Single-threaded applications — std HashMap is simpler and faster without concurrent overhead",
+    "Distributed caching across multiple processes — use Redis or distributed cache; DashMap is in-process only",
+    "Databases or persistent storage — DashMap is an in-memory data structure"
+  ],
+  "best_when": "You need a shared HashMap accessible from multiple threads/async tasks in Rust and want better performance than Arc<Mutex<HashMap>>.",
+  "avoid_when": "Single-threaded code — std HashMap is faster; or use tokio::sync::RwLock<HashMap> if you prefer explicit lock semantics.",
+  "alternatives": [],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["rust"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Library with no auth requirement."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "MIT licensed, completely free",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Free and open source."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — local library. 5-10x faster than Arc<Mutex<HashMap>> under contention.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 80,
+    "error_message_quality": 78,
+    "error_message_notes": "DashMap errors are Rust compile-time type errors for wrong key/value types. Deadlocks from holding references across await points produce runtime panics with clear messages.",
+    "idempotency_support": "full",
+    "idempotency_notes": "HashMap operations are idempotent for reads. Writes are developer responsibility.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "DashMap uses reference-counted shards — holding a Ref<K, V> or RefMut<K, V> reference across an .await point causes deadlocks; never hold DashMap references across async boundaries",
+      "DashMap's entry() API returns an OccupiedEntry or VacantEntry — the reference holds a shard lock; operations must complete before the guard is dropped",
+      "iter() on DashMap holds per-shard locks during iteration — long iterations block concurrent writers to the same shard; collect first if iteration is slow",
+      "DashMap is not fairness-guaranteed for writers — heavy read workloads can starve writers; consider tokio::sync::RwLock for write-priority scenarios",
+      "Cloning a DashMap clones the entire contents — for large maps, prefer Arc<DashMap> to share ownership without copying",
+      "DashMap versions have changed the API between major versions — ensure dashmap dependency version matches your usage; version 5.x and 6.x have incompatible changes"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 80,
+    "error_handling_score": 78,
+    "auth_complexity_score": 100,
+    "rate_limit_clarity_score": 100
+  },
+  "security_score_components": {
+    "tls_enforcement": 88,
+    "auth_strength": 88,
+    "scope_granularity": 88,
+    "dependency_hygiene": 88,
+    "secret_handling": 88,
+    "security_notes": "Memory safety guaranteed by Rust's borrow checker. Deadlock risks from cross-await reference holding — must be addressed at design time. No known security vulnerabilities."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 85,
+    "version_stability": 82,
+    "breaking_changes_history": 78,
+    "error_recovery": 82
+  }
+}
