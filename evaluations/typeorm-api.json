@@ -5,24 +5,24 @@
   "homepage": "https://typeorm.io",
   "repo_url": "https://github.com/typeorm/typeorm",
   "category": "developer-tools",
-  "subcategories": ["orm"],
-  "tags": ["javascript", "typescript", "database", "orm", "postgresql", "mysql", "sqlite"],
-  "what_it_does": "TypeScript/JavaScript ORM supporting ActiveRecord and DataMapper patterns with decorator-based entity definitions, migrations, and relations for SQL databases.",
+  "subcategories": ["database", "orm", "typescript", "nodejs"],
+  "tags": ["orm", "typescript", "database", "postgresql", "mysql", "sqlite", "mongodb", "decorators", "active-record", "open-source"],
+  "what_it_does": "ORM for TypeScript and JavaScript using decorator-based entity definitions. TypeORM supports Active Record and Data Mapper patterns, multiple databases (PostgreSQL, MySQL, SQLite, MongoDB, CockroachDB), and migrations. Popular in NestJS ecosystem where it integrates deeply with NestJS modules. Older than Prisma but more established in the enterprise TypeScript ecosystem.",
   "use_cases": [
-    "Define database entities with @Entity/@Column decorators and generate TypeScript types alongside schema",
-    "Run and manage schema migrations via CLI to evolve database structure in agent workflows",
-    "Query related entities using eager or lazy loading with OneToMany/ManyToMany/ManyToOne relations",
-    "Use Repository or EntityManager pattern to perform CRUD operations without writing raw SQL",
-    "Scaffold a data layer for an agent-managed application with PostgreSQL, MySQL, or SQLite"
+    "Define database entities using TypeScript decorators (@Entity, @Column, @ManyToOne) co-located with model code",
+    "Use with NestJS via @nestjs/typeorm module for seamless repository injection and entity management",
+    "Build complex queries with QueryBuilder for joins, subqueries, and database-specific SQL features",
+    "Run database migrations with TypeORM's migration system for schema version control",
+    "Use Active Record pattern (entity.save()) or Data Mapper (repository.save(entity)) based on team preference"
   ],
   "not_for": [
-    "NoSQL databases — TypeORM is SQL-only despite some MongoDB support being incomplete",
-    "Production auto-synchronization — synchronize:true will drop columns and is dangerous outside development",
-    "Ultra-high-performance bulk inserts — use raw SQL or a query builder like knex for batch operations"
+    "Projects prioritizing type safety over flexibility — Prisma offers better TypeScript inference for generated queries",
+    "Teams that want schema-first database definitions — TypeORM is code-first with decorators",
+    "New projects not locked into NestJS — Prisma or Drizzle offer better DX for greenfield TypeScript projects"
   ],
-  "best_when": "Building TypeScript applications where schema-as-code and type-safe entity relations are more important than raw query flexibility.",
-  "avoid_when": "You need fine-grained SQL control, run in an environment without decorator support, or are operating at bulk-insert scale where ORM overhead matters.",
-  "alternatives": ["sequelize-api", "knex-api", "prisma"],
+  "best_when": "You're building NestJS applications where TypeORM's deep NestJS integration, decorator-based entities, and mature ecosystem are advantages.",
+  "avoid_when": "You want best-in-class TypeScript type safety for queries — Prisma's generated client outperforms TypeORM's type inference.",
+  "alternatives": ["prisma-api", "drizzle-orm-api"],
   "interface": {
     "has_rest_api": false,
     "has_graphql": false,
@@ -30,7 +30,7 @@
     "has_mcp_server": false,
     "mcp_server_url": null,
     "has_sdk": true,
-    "sdk_languages": ["javascript", "typescript"],
+    "sdk_languages": ["node"],
     "openapi_spec_url": null,
     "webhooks": false
   },
@@ -38,28 +38,28 @@
     "methods": ["none"],
     "oauth": false,
     "scopes": false,
-    "notes": "Library — authentication is handled via database connection string or DataSourceOptions config object."
+    "notes": "ORM library with no auth — database credentials in connection config."
   },
   "pricing": {
     "model": "open_source",
     "free_tier_exists": true,
-    "free_tier_limits": "Unlimited, open source MIT license",
+    "free_tier_limits": "MIT licensed, completely free",
     "paid_tiers": "None",
     "requires_credit_card": false,
-    "notes": "Open source under MIT license."
+    "notes": "Free and open source."
   },
   "performance": {
     "latency_p50_ms": null,
     "latency_p99_ms": null,
     "uptime_sla_percent": null,
-    "rate_limits": "None (library)",
+    "rate_limits": "No rate limits — local library",
     "data_source": "llm_estimated"
   },
   "requirements": {
     "requires_signup": false,
     "requires_credit_card": false,
     "domain_verification": false,
-    "data_residency": ["self_hosted"],
+    "data_residency": ["self-hosted"],
     "compliance": [],
     "min_contract": "none"
   },
@@ -68,17 +68,18 @@
     "mcp_security_score": null,
     "documentation_accuracy": 78,
     "error_message_quality": 75,
-    "error_message_notes": "Errors often surface as raw database driver messages; TypeORM wraps them inconsistently — agents must parse driver-level text.",
+    "error_message_notes": "TypeORM errors include QueryFailedError for database errors and EntityNotFoundError for missing records. Error messages include the SQL query and database error. Some errors require checking database-specific error codes.",
     "idempotency_support": "partial",
-    "idempotency_notes": "Upsert via .save() is idempotent only if primary key is known; findOrCreate patterns require manual implementation.",
+    "idempotency_notes": "Read operations idempotent. save() is upsert-like but not guaranteed idempotent without explicit conflict handling.",
     "pagination_style": "offset",
     "retry_guidance_documented": false,
     "known_agent_gotchas": [
-      "synchronize:true silently drops columns on entity change — never enable in production or CI environments an agent controls",
-      "Lazy loading relations returns Promises but looks like property access — agents must await or use eager loading to avoid undefined",
-      "Migration generation diffs against the current database state, not source control; running on a dirty DB produces wrong migrations",
-      "EntityManager and Repository share a transaction only if the same QueryRunner is passed explicitly — easy to miss in agent-generated code",
-      "Circular relation definitions (e.g., bidirectional OneToMany/ManyToOne) can cause infinite recursion in JSON serialization"
+      "TypeORM requires reflect-metadata polyfill imported FIRST before any TypeORM imports — missing import or wrong order causes 'Cannot read properties of undefined' errors for decorators",
+      "DataSource initialization must complete before any repository or entity operations — forgetting to await dataSource.initialize() causes cryptic 'DataSource is not initialized' errors",
+      "Eager loading relations with eager: true on @ManyToOne can cause circular reference issues and N+1 queries — use explicit find options instead",
+      "TypeORM's find() returns empty array for no results, findOne() returns null — not throwing means agents must check for null explicitly",
+      "Migration generation (typeorm migration:generate) reflects schema diffs — running in CI without a database connection requires mock database setup",
+      "Decorator metadata requires experimentalDecorators and emitDecoratorMetadata in tsconfig.json — missing these flags causes silent decorator failures"
     ]
   },
   "af_score_components": {
@@ -89,17 +90,17 @@
     "rate_limit_clarity_score": 100
   },
   "security_score_components": {
-    "tls_enforcement": 0,
-    "auth_strength": 0,
-    "scope_granularity": 0,
-    "dependency_hygiene": 72,
-    "secret_handling": 78,
-    "security_notes": "Connection credentials live in DataSourceOptions — agents must not log or serialize this object. Parameterized queries are used by default but raw() bypasses protection."
+    "tls_enforcement": 85,
+    "auth_strength": 82,
+    "scope_granularity": 80,
+    "dependency_hygiene": 80,
+    "secret_handling": 82,
+    "security_notes": "QueryBuilder uses parameterized queries by default — prevent SQL injection. Raw query methods (query()) allow SQL injection if string interpolation is used. TypeORM has had historical vulnerabilities; keep up to date."
   },
   "reliability_score_components": {
-    "uptime_documented": 0,
-    "version_stability": 70,
-    "breaking_changes_history": 65,
-    "error_recovery": 72
+    "uptime_documented": 82,
+    "version_stability": 78,
+    "breaking_changes_history": 72,
+    "error_recovery": 78
   }
 }
