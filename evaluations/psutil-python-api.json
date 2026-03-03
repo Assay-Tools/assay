@@ -1,0 +1,106 @@
+{
+  "id": "psutil-python-api",
+  "name": "psutil",
+  "version_evaluated": "5.x / 6.x",
+  "homepage": "https://github.com/giampaolo/psutil",
+  "repo_url": "https://github.com/giampaolo/psutil",
+  "category": "developer-tools",
+  "subcategories": ["system-monitoring", "python", "process", "metrics", "operations"],
+  "tags": ["python", "psutil", "system", "process", "monitoring", "cpu", "memory", "disk", "network"],
+  "what_it_does": "Cross-platform system and process monitoring for Python — provides CPU, memory, disk, network, and process information via unified API. psutil features: cpu_percent()/cpu_count() for CPU, virtual_memory()/swap_memory() for RAM, disk_usage()/disk_io_counters() for storage, net_io_counters()/net_connections() for network, Process class for per-process info (pid, name, cpu_percent, memory_info, status, open_files, connections), process_iter() for all processes, Popen integration, boot_time(), users(), pids(), and wait_procs(). Cross-platform: Linux, macOS, Windows, FreeBSD.",
+  "use_cases": [
+    "Agent system health check — import psutil; mem = psutil.virtual_memory(); cpu = psutil.cpu_percent(interval=1); disk = psutil.disk_usage('/'); health = {'cpu_pct': cpu, 'mem_pct': mem.percent, 'disk_pct': disk.percent, 'mem_available_gb': mem.available/1e9} — system metrics; agent health endpoint returns real-time system stats; interval=1 measures CPU over 1 second for accuracy",
+    "Agent process monitoring — proc = psutil.Process(os.getpid()); mem_mb = proc.memory_info().rss / 1e6; cpu_pct = proc.cpu_percent(interval=0.5); fds = proc.num_fds() — self-monitoring; agent tracks own resource usage; memory leak detection via trending rss; file descriptor leak detection via num_fds()",
+    "Agent process management — for proc in psutil.process_iter(['name', 'pid', 'status']): if 'agent' in proc.info['name']: print(proc.info) — process discovery; agent finds running agent instances; filter by name/status/username; process_iter() is memory-efficient vs listing all",
+    "Agent network monitoring — io = psutil.net_io_counters(); bandwidth_mbps = (io.bytes_sent + io.bytes_recv) / 1e6 — cumulative bytes; agent tracks network usage since boot; call twice with time.sleep() delta to get rate: (io2.bytes_sent - io1.bytes_sent) / elapsed_seconds",
+    "Agent resource enforcement — while True: proc = psutil.Process(target_pid); if proc.memory_info().rss > MAX_RSS: proc.kill(); time.sleep(1) — memory limit enforcement; agent watchdog kills processes exceeding memory budget; proc.suspend()/proc.resume() for graceful throttling"
+  ],
+  "not_for": [
+    "Metrics collection at scale — psutil reads from /proc on Linux but doesn't aggregate or export; for Prometheus metrics use prometheus_client",
+    "Container-aware metrics — psutil reads host metrics not container cgroup limits; in containers, cpu_count() returns host CPUs not container limit; use cgroup files directly for container resource limits",
+    "Distributed monitoring — psutil is local process only; for distributed system monitoring use Datadog, Grafana, or OpenTelemetry"
+  ],
+  "best_when": "Local system monitoring and process management in Python — psutil provides unified cross-platform access to OS metrics without shell commands or platform-specific code.",
+  "avoid_when": "Container-aware metrics (read cgroup files), distributed monitoring (use Prometheus/Datadog), or when /proc parsing is sufficient on Linux.",
+  "alternatives": ["prometheus-client-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — reads OS metrics. Some operations require elevated privileges (e.g., reading other users' process memory)."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, BSD licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "psutil is BSD licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 1,
+    "latency_p99_ms": 10,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. cpu_percent(interval=None) uses cumulative non-blocking (fast); cpu_percent(interval=1) blocks 1 second for accurate measurement. process_iter() with attribute list is faster than per-process calls. Reading /proc is lightweight but avoid calling in tight loops.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 90,
+    "error_message_quality": 88,
+    "error_message_notes": "psutil.NoSuchProcess when process terminates between discovery and access. psutil.AccessDenied for processes owned by other users without root. psutil.ZombieProcess for zombie processes. All psutil-specific exceptions inherit from psutil.Error.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "System metric reads are idempotent — same call at same time returns same values. cpu_percent(interval=None) returns cumulative since last call — not idempotent. Process termination (kill/terminate) is idempotent if process is already dead (NoSuchProcess).",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "cpu_percent(interval=None) first call always returns 0.0 — psutil.cpu_percent() measures CPU since last call; very first call returns 0.0 because there's no previous reference; agent code must call cpu_percent() twice: cpu_percent() once to initialize; sleep briefly; cpu_percent() again for actual reading; or use cpu_percent(interval=1) for blocking measurement",
+      "NoSuchProcess when process terminates between discovery and access — for proc in process_iter(): try: print(proc.cpu_percent()); except psutil.NoSuchProcess: pass — race condition; process can die after iteration discovers it; agent code must wrap ALL process attribute access in try/except NoSuchProcess",
+      "Container CPU count is wrong — psutil.cpu_count() returns host CPU count not container CPU limit; Docker --cpus=2 on 32-core host: cpu_count() returns 32 not 2; agent code in containers reading CPU metrics must use /sys/fs/cgroup/cpu.max for container CPU quota",
+      "virtual_memory() returns host memory in containers — memory_info().rss is correct per-process but virtual_memory().total shows host RAM not container memory limit; agent memory limit check in containers: read /sys/fs/cgroup/memory.max instead",
+      "disk_usage() needs actual mount point — psutil.disk_usage('/') shows root filesystem; psutil.disk_usage('/data') shows /data filesystem; agent monitoring data directory must use the correct mount point; disk_usage('/') on host showing 99% while /data has 50% are separate filesystems",
+      "net_io_counters() is cumulative since boot — bytes_sent/bytes_recv increase monotonically since system boot; agent code measuring bandwidth must calculate delta: t1 = net_io_counters(); sleep(interval); t2 = net_io_counters(); rate = (t2.bytes_sent - t1.bytes_sent) / interval; raw values without delta are meaningless for rate"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 90,
+    "error_handling_score": 88,
+    "auth_complexity_score": 95,
+    "rate_limit_clarity_score": 99
+  },
+  "security_score_components": {
+    "tls_enforcement": 90,
+    "auth_strength": 88,
+    "scope_granularity": 85,
+    "dependency_hygiene": 90,
+    "secret_handling": 88,
+    "security_notes": "psutil reads system information including process command lines (which may contain secrets/tokens). proc.cmdline() may expose credentials passed as arguments. process_iter() may expose sensitive process names. Protect psutil output in logs. AccessDenied is the correct security behavior for cross-user process inspection — do not run as root to bypass it."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 90,
+    "version_stability": 90,
+    "breaking_changes_history": 88,
+    "error_recovery": 88
+  }
+}

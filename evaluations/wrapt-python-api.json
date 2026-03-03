@@ -1,0 +1,106 @@
+{
+  "id": "wrapt-python-api",
+  "name": "wrapt",
+  "version_evaluated": "1.16.x",
+  "homepage": "https://wrapt.readthedocs.io/",
+  "repo_url": "https://github.com/GrahamDumpleton/wrapt",
+  "category": "developer-tools",
+  "subcategories": ["decorators", "python", "monkey-patching", "utilities"],
+  "tags": ["python", "wrapt", "decorators", "monkey-patching", "wrappers", "introspection", "functools"],
+  "what_it_does": "Transparent function wrapper and decorator factory for Python — provides correctly-behaving function wrappers that preserve introspection. wrapt features: @wrapt.decorator for creating properly transparent decorators, ObjectProxy for transparent object wrapping, FunctionWrapper/BoundFunctionWrapper for function proxies, @wrapt.patch_function_wrapper() for monkey-patching, apply_patch() for runtime function replacement, decorator protocol support (works with @decorator, @decorator(), @decorator(arg)), correct __wrapped__ attribute, preserved function signatures and docstrings, and C extension optimization. Used by New Relic, DataDog agents, and APM tools for transparent instrumentation.",
+  "use_cases": [
+    "Agent transparent decorator — import wrapt; @wrapt.decorator; def trace(wrapped, instance, args, kwargs): print(f'Calling {wrapped.__name__}'); result = wrapped(*args, **kwargs); print(f'Done: {result}'); return result; @trace; def agent_step(x): return x * 2 — transparent wrapper; decorated function preserves signature and introspection; works on methods, class methods, static methods",
+    "Agent retry decorator factory — @wrapt.decorator; def retry(wrapped, instance, args, kwargs): for i in range(3): try: return wrapped(*args, **kwargs); except Exception as e: if i == 2: raise; time.sleep(1) — decorator using wrapt; agent retry logic applied to any function; instance parameter handles method vs function correctly",
+    "Agent function timing — import wrapt; @wrapt.decorator; def timed(wrapped, instance, args, kwargs): start = time.perf_counter(); result = wrapped(*args, **kwargs); elapsed = time.perf_counter() - start; metrics.record(wrapped.__name__, elapsed); return result — timing decorator; agent performance monitoring wraps all key functions; wrapped.__name__ gets original function name",
+    "Agent monkey-patching — @wrapt.patch_function_wrapper('module.to.patch', 'function_name'); def patched(wrapped, instance, args, kwargs): log('called'); return wrapped(*args, **kwargs) — runtime patching; agent instruments third-party code without modifying source; used for APM agents and logging injection",
+    "Agent parameterized decorator — def with_timeout(timeout=30): @wrapt.decorator; def wrapper(wrapped, instance, args, kwargs): signal.alarm(timeout); try: result = wrapped(*args, **kwargs); finally: signal.alarm(0); return result; return wrapper; @with_timeout(60); def long_task(): pass — decorator with args; wrapt correctly handles both @with_timeout and @with_timeout() forms"
+  ],
+  "not_for": [
+    "Simple decorators — wrapt is advanced; for basic @functools.wraps use stdlib functools",
+    "Async decorators — wrapt is primarily sync; for async decorators use functools.wraps with async def wrapper",
+    "Performance-critical paths — wrapt adds wrapper overhead; for no-overhead use functools.wraps"
+  ],
+  "best_when": "Creating production-grade decorators that correctly handle methods, classmethods, staticmethods, and preserve full introspection — wrapt eliminates the subtle bugs in hand-rolled decorators that use functools.wraps.",
+  "avoid_when": "Simple one-off decorators (use functools.wraps), async-heavy code, or performance-critical tight loops.",
+  "alternatives": ["functools-stdlib"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — pure Python decorator utility library."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, BSD licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "wrapt is BSD licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Performance: C extension available for lower overhead. Pure Python fallback if C extension not compiled. Wrapper overhead: microseconds per call. For functions with nanosecond bodies, wrapt overhead dominates — use functools.wraps for critical paths.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 82,
+    "error_message_quality": 80,
+    "error_message_notes": "wrapt propagates all exceptions from wrapped functions. TypeError for incorrect decorator application. AttributeError if accessing attributes on ObjectProxy that don't exist on wrapped object. Error messages are standard Python exceptions.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Decorators created with wrapt are idempotent — same inputs produce same outputs. Monkey-patching via patch_function_wrapper is applied once at import time. Decorating same function twice with same decorator applies wrapper twice.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "@wrapt.decorator signature — wrapped function must accept (wrapped, instance, args, kwargs): instance is None for functions, self for bound methods, class for classmethods; agent code checking if being called as method uses: if instance is None: treat as function; many bugs arise from ignoring instance parameter",
+      "Decorator must call wrapped(*args, **kwargs) — forgetting to call wrapped in @wrapt.decorator body makes decorated function return None; agent code trace-only decorators must: return wrapped(*args, **kwargs); not just wrapped(*args, **kwargs) without return",
+      "patch_function_wrapper replaces globally — @wrapt.patch_function_wrapper('requests', 'get') patches requests.get for ALL callers in the process; agent monkey-patching for testing patches entire process; use unittest.mock.patch() for test-scoped patching that restores original after test",
+      "ObjectProxy requires explicit attribute delegation — ObjectProxy wraps object but attribute access goes to proxy first; custom attributes added to proxy shadow wrapped object attributes; agent code using ObjectProxy must: obj.__wrapped__ to access the original; or explicitly forward attributes in __getattr__",
+      "async functions need special handling — @wrapt.decorator on async def creates non-async wrapper; calling it returns coroutine that wraps another coroutine; agent code decorating async functions should: import asyncio; check asyncio.iscoroutinefunction(wrapped) and call differently; or use wrapt's async support in 1.15+",
+      "C extension compilation optional — wrapt has C extension for better performance; if compilation fails, falls back to pure Python silently; agent checking performance-sensitive code: import wrapt; print(wrapt.WRAPT_DISABLE_EXTENSIONS) — True means pure Python mode; pip install wrapt on systems without C compiler gets pure Python"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 82,
+    "error_handling_score": 80,
+    "auth_complexity_score": 99,
+    "rate_limit_clarity_score": 99
+  },
+  "security_score_components": {
+    "tls_enforcement": 92,
+    "auth_strength": 92,
+    "scope_granularity": 90,
+    "dependency_hygiene": 90,
+    "secret_handling": 88,
+    "security_notes": "Decorator and monkey-patching utility with no network calls. patch_function_wrapper modifies global behavior — use cautiously in security contexts as it changes all callers. Decorators created with wrapt inherit the security properties of the wrapped function. No security concerns for standard decorator usage."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 82,
+    "version_stability": 85,
+    "breaking_changes_history": 85,
+    "error_recovery": 85
+  }
+}
