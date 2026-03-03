@@ -1,0 +1,106 @@
+{
+  "id": "pymoo-python-api",
+  "name": "pymoo",
+  "version_evaluated": "0.6.x",
+  "homepage": "https://pymoo.org/",
+  "repo_url": "https://github.com/anyoptimization/pymoo",
+  "category": "developer-tools",
+  "subcategories": ["optimization", "python", "multi-objective", "evolutionary-algorithms", "scientific"],
+  "tags": ["python", "pymoo", "multi-objective", "optimization", "nsga2", "nsga3", "pareto", "evolutionary"],
+  "what_it_does": "Multi-objective optimization framework for Python — provides state-of-the-art evolutionary algorithms (NSGA-II, NSGA-III, MOEAD, R-NSGA-II) with visualization and decision-making tools. pymoo features: Problem class for problem definition, minimize() as entry point, NSGA2/NSGA3 algorithms, Result object with res.X (solutions) res.F (objective values) res.G (constraint violations), Pareto front visualization, callback functions for tracking convergence, mixed-variable optimization (real, integer, binary, choice), gradient-based support, elementwise vs vectorized evaluation, and hypervolume/IGD performance indicators.",
+  "use_cases": [
+    "Agent multi-objective optimization — from pymoo.algorithms.moo.nsga2 import NSGA2; from pymoo.core.problem import Problem; class AgentProblem(Problem): def __init__(self): super().__init__(n_var=5, n_obj=2, xl=0, xu=1); def _evaluate(self, x, out, *args): out['F'] = np.column_stack([f1(x), f2(x)]); res = minimize(AgentProblem(), NSGA2(pop_size=100), ('n_gen', 200)) — optimize two competing objectives simultaneously; agent ML hyperparameter tuning balances accuracy vs training time with Pareto front",
+    "Agent Pareto front extraction — res = minimize(problem, algorithm, termination); pareto_X = res.X; pareto_F = res.F; print(f'{len(pareto_X)} non-dominated solutions found') — Pareto optimal solutions all represent different trade-off points; agent decision system presents Pareto front to user who selects based on preferences; no single 'best' solution in multi-objective problems",
+    "Agent constrained optimization — class ConstrainedProblem(Problem): def _evaluate(self, x, out): out['F'] = objective(x); out['G'] = constraint_violations(x) — G > 0 means constraint violated; agent resource allocation ensures power, budget, time constraints satisfied while optimizing multiple KPIs; pymoo handles constraints natively in NSGA-II",
+    "Agent convergence tracking — from pymoo.core.callback import Callback; class ConvergenceCallback(Callback): def notify(self, algorithm): self.data['n_evals'].append(algorithm.evaluator.n_eval); self.data['opt'].append(algorithm.opt.get('F').min()) — track optimization progress; agent stops early when convergence criteria met; visualize fitness improvement over generations",
+    "Agent mixed-variable optimization — from pymoo.core.variable import Real, Integer, Choice; class MixedProblem(ElementwiseProblem): vars = {'x': Real(bounds=(0,1)), 'n': Integer(bounds=(1,10)), 'algo': Choice(options=['A','B','C'])}; res = minimize(MixedProblem(), MixedVariableGA(pop_size=20)) — optimize real + integer + categorical variables; agent pipeline configuration selects algorithm, batch size, and continuous parameters simultaneously"
+  ],
+  "not_for": [
+    "Single-objective optimization — pymoo is multi-objective focused; for single-objective use scipy.optimize, optuna, or nevergrad which are simpler and faster",
+    "Gradient-based optimization — pymoo evolutionary algorithms are gradient-free; for differentiable objectives use scipy.optimize.minimize with gradient methods",
+    "Production HPO at scale — pymoo is research-oriented; for production hyperparameter optimization use Optuna or Ray Tune with distributed trials"
+  ],
+  "best_when": "Optimizing two or more genuinely competing objectives where no single solution is best — pymoo's NSGA-II provides the Pareto front showing all trade-off solutions for agent or human decision-making.",
+  "avoid_when": "You have a single objective (use scipy/optuna), need gradient-based optimization, or require distributed/parallel HPO at production scale.",
+  "alternatives": ["optuna-python-api", "nevergrad-python-api", "hyperopt-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — local optimization library."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, Apache 2.0 licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "pymoo is Apache 2.0 licensed. Free for all use including commercial."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Performance depends on problem complexity and population size. NSGA-II with pop_size=100, n_gen=200 takes seconds to minutes. Vectorized evaluation (default) is 10-100x faster than elementwise for numpy-compatible objectives. Parallel evaluation via n_process parameter.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 82,
+    "error_message_quality": 78,
+    "error_message_notes": "ValueError for mismatched objective/variable dimensions. TypeError for wrong return type in _evaluate. res.X is None if no feasible solution found. Constraint violations tracked in res.CV. Error messages are descriptive but require understanding of multi-objective optimization concepts.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Evolutionary algorithms are stochastic — same problem gives different Pareto fronts each run. Set seed=42 in minimize() for reproducibility. res.X solutions differ between runs but Pareto front shape is similar. Performance indicators (hypervolume) vary slightly.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "res.X is None when no feasible solution — if all solutions violate constraints, res.X is None; agent code must check: if res.X is None: raise NoFeasibleSolution(); increase pop_size or relax constraints; constraint formulation as G <= 0 (not G >= 0) is pymoo convention — constraint violated when G > 0",
+      "Vectorized vs elementwise evaluation mismatch — Problem() default expects _evaluate(X) where X is (n_pop, n_var) matrix; if agent objective function is not vectorized, subclass ElementwiseProblem not Problem; calling element-wise function on batched X raises index/shape errors; use elementwise_evaluation=True parameter for non-vectorized objectives",
+      "Objectives must all be minimization — pymoo minimizes all objectives by default; to maximize objective k, negate it: out['F'][:, k] = -maximize_this(X); agent code forgetting negation maximizes wrong objective; no maximize parameter exists in pymoo Problem",
+      "pop_size must be divisible by 4 for NSGA-II — NSGA2(pop_size=100) works but pop_size=50 may cause issues in crossover; agent code should use multiples of 4 (100, 200, 400); odd pop_size raises ValueError in some versions or produces incorrect behavior",
+      "Termination criterion affects result quality — minimize(problem, algo, ('n_gen', 50)) stops at 50 generations regardless of convergence; agent should use: from pymoo.termination import get_termination; t = get_termination('n_eval', 10000); or use DefaultSingleObjectiveTermination for adaptive stopping; fixed generation count may stop before convergence",
+      "Callback data accumulation grows memory — ConvergenceCallback storing res.F each generation accumulates pop_size * n_obj * n_gen values; 1000-generation run with pop=100 stores 100K+ objective vectors; agent long-running optimizations should sample: store every 10th generation or only min/max statistics"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 80,
+    "error_handling_score": 75,
+    "auth_complexity_score": 98,
+    "rate_limit_clarity_score": 98
+  },
+  "security_score_components": {
+    "tls_enforcement": 90,
+    "auth_strength": 90,
+    "scope_granularity": 88,
+    "dependency_hygiene": 85,
+    "secret_handling": 90,
+    "security_notes": "Local optimization library — no network calls, no secrets handling. Optimization results (Pareto front) are plain numpy arrays. No security concerns beyond standard Python dependency management."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 82,
+    "version_stability": 75,
+    "breaking_changes_history": 72,
+    "error_recovery": 78
+  }
+}

@@ -1,0 +1,106 @@
+{
+  "id": "plumbum-python-api",
+  "name": "plumbum",
+  "version_evaluated": "1.8.x",
+  "homepage": "https://plumbum.readthedocs.io/",
+  "repo_url": "https://github.com/tomerfiliba-org/plumbum",
+  "category": "developer-tools",
+  "subcategories": ["shell", "python", "automation", "cli", "subprocess"],
+  "tags": ["python", "plumbum", "shell", "subprocess", "cli", "pipeline", "remote", "ssh"],
+  "what_it_does": "Shell scripting library for Python — provides Pythonic API for running subprocesses, building pipelines, and remote execution. plumbum features: local['cmd'] for local commands, local.path for path manipulation, | operator for pipelines, & for background execution, remote machines via SshMachine, FG/BG/TEE run modes, command composition (ls['-la'] | grep['py']), retcode handling, working directory context manager (local.cwd), environment variable context manager (local.env), CLI application framework (plumbum.cli), and cross-platform path handling. Bridges gap between shell scripts and Python programs.",
+  "use_cases": [
+    "Agent shell command execution — from plumbum import local; ls = local['ls']; git = local['git']; result = (git['log', '--oneline', '-10'])(); print(result) — Pythonic subprocess execution; agent build automation runs git, docker, kubectl commands with clean syntax; [] operator for arguments, () to run, result is stdout string",
+    "Agent pipeline composition — from plumbum import local; cat = local['cat']; grep = local['grep']; wc = local['wc']; count = (cat['access.log'] | grep['ERROR'] | wc['-l'])() — Unix pipe composition with Python objects; agent log analysis chains commands without shell=True string interpolation vulnerabilities; each command is an object not a string",
+    "Agent remote execution — from plumbum.machines import SshMachine; with SshMachine('remote-host', user='deploy', keyfile='~/.ssh/id_rsa') as rem: r_git = rem['git']; output = r_git['pull']() — run commands on remote host via SSH; agent deployment automation runs same commands locally and remotely with identical API; rem.path for remote path operations",
+    "Agent working directory management — from plumbum import local; with local.cwd('/tmp/build'): result = local['make']('all') — context manager changes working directory; agent build system runs commands in correct directory without os.chdir() state leakage; nested context managers stack correctly; restores original cwd on exit",
+    "Agent background execution — cmd = local['long-running-process']; future = cmd & plumbum.BG; result = future.wait() — & operator runs command in background; agent parallel task execution runs multiple commands concurrently; BG returns Future-like object; TEE mode streams output while capturing it"
+  ],
+  "not_for": [
+    "Interactive process control — plumbum is for non-interactive subprocesses; for interactive CLI automation use pexpect",
+    "High-performance subprocess — plumbum adds overhead over subprocess.run(); for performance-critical subprocess use subprocess directly",
+    "Windows compatibility — plumbum works on Windows but some Unix pipe features have limited compatibility; test carefully on Windows"
+  ],
+  "best_when": "Writing Python scripts that heavily orchestrate shell commands — replacing bash scripts with readable Python that has proper error handling, variable injection safety, and cross-platform path handling.",
+  "avoid_when": "You only need one or two subprocess calls (use subprocess.run()), need interactive process control (use pexpect), or need maximum subprocess performance.",
+  "alternatives": ["paramiko-python-api", "pexpect-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none", "ssh_key"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth for local commands. SshMachine uses SSH key authentication. Password auth supported but SSH keys preferred."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "plumbum is MIT licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 10,
+    "latency_p99_ms": 100,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Process spawn overhead ~5-10ms vs subprocess. Pipeline overhead from Python-mediated I/O between processes. Remote execution adds SSH latency. For tight loops spawning many processes, use subprocess directly.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 78,
+    "error_message_quality": 78,
+    "error_message_notes": "ProcessExecutionError raised when command exits with non-zero retcode (contains stdout, stderr, retcode). CommandNotFound when command missing from PATH. Contains retcode, stdout, stderr on exception — easy to inspect. retcode parameter controls which exit codes raise exceptions.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Command execution is not inherently idempotent — depends on underlying command. Path operations are deterministic. Pipeline composition is idempotent (building pipeline object). Execution result depends on system state.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "ProcessExecutionError swallows non-zero exit by default — local['ls']['/nonexistent']() raises ProcessExecutionError not returns error code; agent code expecting return code must use: retcode, stdout, stderr = local['cmd'].run(retcode=None); or cmd.run(retcode=[0, 1]) to allow specific non-zero codes; () operator always raises on non-zero",
+      "Command arguments must be strings not integers — local['git']['log', '-n', 5]() raises TypeError; agent code passing integer arguments must convert: local['git']['log', '-n', str(5)]; plumbum does not auto-convert argument types unlike shell interpolation",
+      "Pipeline stderr not captured by default — cmd1 | cmd2 captures only stdout between processes; stderr goes to terminal; agent code needing stderr from pipeline must: cmd1 & plumbum.BG and capture stderr separately; or redirect: cmd1['2>&1'] | cmd2 using string redirect syntax",
+      "SshMachine requires paramiko or openssh — from plumbum.machines import SshMachine requires paramiko installed (pip install plumbum[ssh]); agent code using remote execution must install extras; base plumbum install does not include SSH support; ImportError at first SshMachine() call if paramiko missing",
+      "local.cwd context manager is not thread-safe — with local.cwd('/tmp'): is process-global; multiple threads using local.cwd concurrently corrupt each other's working directory; agent parallel command execution must use plumbum.local.path('/tmp/build')['cmd']() instead of context manager for thread-safe directory scoping",
+      "local['cmd'] lookup happens at import time on some platforms — from plumbum.cmd import git evaluates at import; if git not installed raises CommandNotFound at import not at call site; agent code should use local['git'] for lazy lookup that fails at call time with better error context; conditional imports must use local['cmd'] not from plumbum.cmd import"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 76,
+    "error_handling_score": 78,
+    "auth_complexity_score": 92,
+    "rate_limit_clarity_score": 95
+  },
+  "security_score_components": {
+    "tls_enforcement": 85,
+    "auth_strength": 82,
+    "scope_granularity": 80,
+    "dependency_hygiene": 82,
+    "secret_handling": 82,
+    "security_notes": "plumbum is safer than shell=True subprocess for command injection — arguments are passed as lists not shell strings. However, local[user_input] allows arbitrary command execution — never use user input as command name. local.env context manager leaks environment variables to child processes — avoid passing secrets via env vars to untrusted commands."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 78,
+    "version_stability": 80,
+    "breaking_changes_history": 78,
+    "error_recovery": 80
+  }
+}

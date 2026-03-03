@@ -1,0 +1,106 @@
+{
+  "id": "pexpect-python-api",
+  "name": "pexpect",
+  "version_evaluated": "4.x",
+  "homepage": "https://pexpect.readthedocs.io/",
+  "repo_url": "https://github.com/pexpect/pexpect",
+  "category": "developer-tools",
+  "subcategories": ["automation", "python", "terminal", "process-control", "testing"],
+  "tags": ["python", "pexpect", "expect", "terminal", "automation", "interactive", "process", "ssh", "pty"],
+  "what_it_does": "Python library for controlling and automating interactive terminal applications — spawns child processes and interacts with them via pseudo-terminal (pty), similar to Unix expect. pexpect features: pexpect.spawn() for process spawning, expect() with string/regex/EOF/TIMEOUT patterns, sendline()/send() for input, before/after attributes for matched text, interact() for handoff to user, pexpect.run() for simple one-shot execution, pxssh class for SSH automation, timeout and maxread configuration, logfile for interaction logging, and fdpexpect for existing file descriptors. Essential for automating CLI tools that don't support piped stdin/stdout.",
+  "use_cases": [
+    "Agent SSH automation — import pexpect; child = pexpect.spawn('ssh user@host'); child.expect(['password:', pexpect.EOF]); child.sendline('mypassword'); child.expect('\\$'); child.sendline('ls -la'); child.expect('\\$'); output = child.before.decode() — automate interactive SSH login; agent infrastructure automation handles password prompts that break subprocess.run(); captures command output between prompts",
+    "Agent interactive CLI control — child = pexpect.spawn('python3 -i'); child.expect('>>> '); child.sendline('import sys; sys.version'); child.expect('>>> '); version = child.before.decode().strip() — control interactive Python REPL; agent test framework drives interactive interpreters; works for any CLI tool that reads from TTY",
+    "Agent process with pxssh — from pexpect import pxssh; s = pxssh.pxssh(); s.login('hostname', 'username', 'password'); s.sendline('uptime'); s.prompt(); print(s.before.decode()); s.logout() — high-level SSH automation; agent remote management runs commands on multiple hosts; pxssh handles SSH prompt detection better than raw spawn",
+    "Agent expect with timeout — child = pexpect.spawn('slow_tool', timeout=30); index = child.expect(['success', 'error', pexpect.TIMEOUT, pexpect.EOF]); if index == 2: handle_timeout(); elif index == 3: handle_eof() — pattern list returns index of matched pattern; agent handles multiple possible outcomes; TIMEOUT and EOF are special sentinels not strings",
+    "Agent interaction logging — child = pexpect.spawn('interactive_tool', logfile=open('session.log', 'wb')); child.expect('prompt>'); child.sendline('command') — all I/O logged to file; agent audit trail records complete terminal session for debugging; logfile receives raw bytes including ANSI escape codes"
+  ],
+  "not_for": [
+    "Non-interactive processes — pexpect uses PTY overhead; for processes that support piped I/O use subprocess.run() or subprocess.Popen() which are simpler and faster",
+    "Windows — pexpect.spawn() requires Unix PTY; use wexpect or winpexpect on Windows; pexpect.run() works on Windows but without pty features",
+    "Async code — pexpect is synchronous blocking; for async process control use asyncio.create_subprocess_exec() or anyio.run_process()"
+  ],
+  "best_when": "Automating interactive terminal applications that check if stdin is a TTY and behave differently with pipes — SSH clients, Python REPL, sudo, sftp, interactive database CLIs — where subprocess cannot work.",
+  "avoid_when": "The process supports non-interactive piped I/O (use subprocess), you're on Windows, or you need async process control.",
+  "alternatives": ["paramiko-python-api", "fabric-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — pexpect itself has no auth. SSH automation via pxssh passes credentials to SSH process. Never hardcode passwords in production — use SSH keys instead of pexpect password automation."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, ISC licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "pexpect is ISC licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 50,
+    "latency_p99_ms": 500,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. PTY overhead adds 1-5ms per interaction. Throughput limited by process I/O and PTY buffer. For bulk data transfer, use subprocess or paramiko SFTP instead of pexpect.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 80,
+    "error_message_quality": 75,
+    "error_message_notes": "pexpect.TIMEOUT raised when expect() times out (shows pattern list and output received). pexpect.EOF raised when process ends before matching pattern. ExceptionPexpect base for all pexpect exceptions. before attribute contains output before match — crucial for debugging. Error messages show what was expected vs what was received.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "spawn() creates new process each call — not idempotent. expect() patterns are deterministic for same process output. SSH session results depend on remote system state. Process output may vary with timing.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "expect() raises TIMEOUT not returns it — child.expect('prompt') raises pexpect.TIMEOUT after timeout seconds; agent code must use try/except pexpect.TIMEOUT or pass TIMEOUT in pattern list: child.expect(['prompt', pexpect.TIMEOUT]); forgetting to handle timeout leaves agent hanging forever without error output",
+      "before attribute contains bytes not string — child.before and child.after are bytes objects; agent code doing child.before.split('\\n') fails with TypeError; must decode: child.before.decode('utf-8', errors='replace'); ANSI escape codes in before require stripping: re.sub(r'\\x1b\\[[0-9;]*m', '', text)",
+      "PTY echoes sent input in before — when agent sends 'ls -la', the expect() match includes echoed 'ls -la' in before; agent parsing before for command output receives the command itself followed by output; skip first line or use sendline() + expect() + before[before.find('\\n'):] to skip echo",
+      "spawn() requires full path on some systems — pexpect.spawn('ssh') may fail if ssh not in PATH; use pexpect.spawn('/usr/bin/ssh') or pexpect.which('ssh') to get full path; agent code relying on PATH works in interactive shells but may fail in cron/systemd where PATH is minimal",
+      "Windows not supported for spawn() — pexpect.spawn() raises ImportError on Windows (no pty module); agent cross-platform code must check: if sys.platform == 'win32': use subprocess else: use pexpect; pexpect.run() works on Windows but without TTY features that make pexpect necessary",
+      "interact() blocks until EOF — child.interact() hands control to user and blocks until process exits; agent code calling interact() inside automation flow will block indefinitely if no human is present; only use interact() for debugging or hybrid human/agent workflows where human takes over at specific point"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 78,
+    "error_handling_score": 75,
+    "auth_complexity_score": 92,
+    "rate_limit_clarity_score": 95
+  },
+  "security_score_components": {
+    "tls_enforcement": 80,
+    "auth_strength": 75,
+    "scope_granularity": 72,
+    "dependency_hygiene": 82,
+    "secret_handling": 72,
+    "security_notes": "CRITICAL: pexpect is frequently used to automate SSH password entry — this embeds passwords in Python source code or process arguments visible in ps output. Always prefer SSH key authentication over pexpect password automation. Process arguments may be visible to other users via ps aux. Use environment variables or secret managers for credentials passed to spawned processes."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 80,
+    "version_stability": 82,
+    "breaking_changes_history": 80,
+    "error_recovery": 75
+  }
+}

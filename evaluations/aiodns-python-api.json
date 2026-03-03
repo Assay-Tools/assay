@@ -1,0 +1,106 @@
+{
+  "id": "aiodns-python-api",
+  "name": "aiodns",
+  "version_evaluated": "3.x",
+  "homepage": "https://github.com/saghul/aiodns",
+  "repo_url": "https://github.com/saghul/aiodns",
+  "category": "developer-tools",
+  "subcategories": ["dns", "python", "asyncio", "networking", "async"],
+  "tags": ["python", "aiodns", "dns", "async", "asyncio", "resolver", "pycares", "c-ares"],
+  "what_it_does": "Async DNS resolver for Python asyncio — thin wrapper around pycares (c-ares C library) providing non-blocking DNS resolution. aiodns features: DNSResolver class, query() for A/AAAA/MX/NS/CNAME/TXT/SRV/PTR/NAPTR/SOA records, gethostbyname() for simple hostname resolution, resolve() for A/AAAA with fallback, cancel() for in-flight query cancellation, loop integration with asyncio, and DNS query type constants. Essential for async web crawlers, agentic HTTP clients, and services making high volumes of DNS lookups without blocking the event loop.",
+  "use_cases": [
+    "Agent async hostname resolution — import aiodns; resolver = aiodns.DNSResolver(); async def resolve_host(hostname): result = await resolver.gethostbyname(hostname, socket.AF_INET); return result.addresses[0] — non-blocking DNS in asyncio agent; HTTP client building blocks for crawlers; resolves thousands of hostnames concurrently without blocking event loop",
+    "Agent MX record lookup — resolver = aiodns.DNSResolver(); result = await resolver.query('gmail.com', 'MX'); mx_records = sorted(result, key=lambda r: r.priority); primary_mx = mx_records[0].host — async MX record query; agent email validation checks deliverability without blocking; query() returns record-type-specific objects",
+    "Agent bulk DNS resolution — resolver = aiodns.DNSResolver(nameservers=['8.8.8.8', '1.1.1.1']); tasks = [resolver.gethostbyname(h, socket.AF_INET) for h in hostnames]; results = await asyncio.gather(*tasks, return_exceptions=True) — parallel DNS resolution; agent domain scanning resolves 1000 hostnames concurrently; return_exceptions=True prevents one failure from canceling all",
+    "Agent reverse DNS lookup — resolver = aiodns.DNSResolver(); result = await resolver.query('1.1.1.1.in-addr.arpa', 'PTR'); hostname = result[0].name — PTR record query for IP-to-hostname; agent IP enrichment adds hostname context to IP addresses; in-addr.arpa format required for IPv4 PTR queries",
+    "Agent custom nameserver resolution — resolver = aiodns.DNSResolver(nameservers=['192.168.1.1'], timeout=5.0); try: result = await resolver.query('internal.corp', 'A'); except aiodns.error.DNSError as e: handle_nxdomain(e) — configure internal DNS; agent service discovery queries private DNS for internal service endpoints; timeout prevents stalls on unreachable nameservers"
+  ],
+  "not_for": [
+    "Sync Python code — aiodns requires asyncio event loop; for sync DNS use dnspython or socket.getaddrinfo()",
+    "Full DNS toolkit — aiodns is resolution only; for DNS zone management, record parsing, or authoritative DNS use dnspython",
+    "Production DNS caching — aiodns does not cache responses; implement TTL-aware caching layer (aiocache + aiodns) for high-volume production use"
+  ],
+  "best_when": "Async Python services (aiohttp, FastAPI, Starlette) needing high-volume non-blocking DNS resolution — aiodns's c-ares backend provides true async DNS without blocking the event loop unlike socket.getaddrinfo().",
+  "avoid_when": "Your code is synchronous (use dnspython/socket), you need DNS zone management, or you need response caching (add aiocache layer).",
+  "alternatives": ["dnspython-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — DNS queries use standard UDP/TCP port 53. Custom nameservers specified in DNSResolver constructor."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "aiodns is MIT licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 5,
+    "latency_p99_ms": 50,
+    "uptime_sla_percent": null,
+    "rate_limits": "No client-side rate limits. Performance limited by DNS server and network. c-ares backend handles thousands of concurrent queries. Public DNS (8.8.8.8, 1.1.1.1) may rate-limit aggressive bulk queries. Local/private DNS resolvers support higher throughput.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted", "cloud"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 75,
+    "error_message_quality": 72,
+    "error_message_notes": "aiodns.error.DNSError raised with error code and message. Error codes map to c-ares codes (ARES_ENOTFOUND for NXDOMAIN, ARES_ETIMEOUT for timeout). Error messages are terse C library strings. aiodns.error.DNSError.args[0] is numeric code — check against aiodns.error constants. Documentation on error codes is sparse.",
+    "idempotency_support": "full",
+    "idempotency_notes": "DNS queries are stateless and idempotent — same query returns same result (within DNS TTL). Retry on timeout is safe. Multiple concurrent queries for same hostname return independent results (no deduplication).",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "pycares must be installed separately — pip install aiodns requires pycares C extension; on systems without C compiler or c-ares dev headers, installation fails; agent Docker images must: apt-get install -y libcares-dev; or use pre-built wheels; ImportError at aiodns import if pycares not installed",
+      "DNSResolver must be created inside event loop — aiodns.DNSResolver() created at module level before asyncio.run() raises RuntimeError in newer Python; agent code must create resolver inside async context: async def main(): resolver = aiodns.DNSResolver(); or as class attribute initialized in async __init__; module-level resolver creation is not safe",
+      "query() result type depends on record type — resolver.query('domain', 'A') returns list of AResult objects with .host; resolver.query('domain', 'MX') returns list of MXResult with .priority and .host; resolver.query('domain', 'TXT') returns list of TXTResult with .text as bytes list; agent code must handle different result schemas per query type",
+      "No built-in retry on SERVFAIL — aiodns raises DNSError on SERVFAIL without automatic retry; recursive resolvers sometimes return SERVFAIL transiently; agent DNS code should implement: async def resolve_with_retry(host, retries=3): for _ in range(retries): try: return await resolver.query(host, 'A'); except aiodns.error.DNSError: await asyncio.sleep(0.1); raise",
+      "gethostbyname() vs query() return different formats — resolver.gethostbyname(host, AF_INET) returns HostResult with .addresses list; resolver.query(host, 'A') returns list of AResult with .host string; agent code mixing both APIs will encounter AttributeError accessing wrong attribute; use consistent API across codebase",
+      "Concurrent queries share resolver state — single DNSResolver instance handles all concurrent queries via c-ares event loop; closing resolver with resolver.cancel() cancels ALL in-flight queries not just one; agent code canceling one slow query must use separate resolver instance per query group or implement per-query timeout with asyncio.wait_for()"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 70,
+    "error_handling_score": 68,
+    "auth_complexity_score": 95,
+    "rate_limit_clarity_score": 90
+  },
+  "security_score_components": {
+    "tls_enforcement": 72,
+    "auth_strength": 80,
+    "scope_granularity": 75,
+    "dependency_hygiene": 80,
+    "secret_handling": 88,
+    "security_notes": "DNS queries are unencrypted UDP by default — susceptible to DNS spoofing and monitoring. For security-sensitive applications use DNS-over-HTTPS (DoH) or DNS-over-TLS (DoT) providers. aiodns does not support DoH/DoT natively. DNS reconnaissance (bulk domain enumeration) raises legal/ethical concerns — only query domains you have authorization to enumerate."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 72,
+    "version_stability": 75,
+    "breaking_changes_history": 75,
+    "error_recovery": 72
+  }
+}
