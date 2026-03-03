@@ -1,0 +1,106 @@
+{
+  "id": "shrine-ruby-api",
+  "name": "Shrine",
+  "version_evaluated": "3.x",
+  "homepage": "https://shrinerb.com/",
+  "repo_url": "https://github.com/shrinerb/shrine",
+  "category": "developer-tools",
+  "subcategories": ["file-upload", "ruby", "rails", "storage", "media"],
+  "tags": ["ruby", "rails", "file-upload", "s3", "gcs", "storage", "image-processing", "tus"],
+  "what_it_does": "Flexible file upload library for Ruby — handles the complete file upload lifecycle with pluggable storage backends (S3, GCS, Azure, local disk, memory). Shrine features: file validation (type, size), metadata extraction (mime type, image dimensions), background processing (ImageMagick, libvips thumbnails), direct uploads (presigned S3 URLs), multiple file versions (thumb, medium, original), resumable uploads via TUS protocol, and ORM integration (ActiveRecord, Sequel, Mongoid). Shrine's plugin architecture allows using only needed features. Replacement for CarrierWave and Paperclip (deprecated). Used for agent application avatars, document uploads, agent knowledge base file ingestion.",
+  "use_cases": [
+    "Handle agent document uploads with S3 backend — Shrine S3 storage uploads agent PDF/document files directly to S3 with presigned URL; ImageUploader validates mime type and size before storing",
+    "Agent profile image processing with versions — Shrine `:versions` plugin generates thumbnail, medium, and original sizes from uploaded agent avatar images using ImageMagick/libvips",
+    "Direct browser-to-S3 agent file upload — Shrine presigned S3 upload URL enables browser to upload agent training data files directly to S3 without routing through Rails server",
+    "Background agent document processing — Shrine backgrounding plugin processes agent document thumbnails in Sidekiq job asynchronously after direct upload completes",
+    "Validate agent knowledge file uploads — Shrine validators restrict uploads to PDF/CSV/JSON mime types with 10MB max size for agent knowledge base ingestion endpoints"
+  ],
+  "not_for": [
+    "Simple one-off file operations — if just storing a file without processing, validation, or multiple versions, use AWS SDK directly",
+    "Video streaming — Shrine handles uploads and storage but not video transcoding or HLS streaming; use dedicated video processing services (Mux, Cloudinary) for agent video content",
+    "Non-Ruby projects — Shrine is Ruby-specific; use Multer (Node), Django storages (Python), or Spring Content (Java) for agent file upload in other stacks"
+  ],
+  "best_when": "You're building a Ruby on Rails agent app that needs production-grade file uploads with validation, processing, multiple storage backends, and background jobs — Shrine's plugin system handles the full file lifecycle.",
+  "avoid_when": "You're not on Ruby, you need video processing, or your file handling is simple enough for direct S3 SDK calls.",
+  "alternatives": ["carrierwave-api", "activestorage-api", "paperclip-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["ruby"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["api_key"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Shrine uses storage-backend credentials (AWS IAM keys, GCS service account) for cloud storage. Presigned URL generation requires storage credentials. Direct upload tokens are short-lived for security."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed. Cloud storage costs are separate (S3, GCS pricing).",
+    "paid_tiers": "None for the library",
+    "requires_credit_card": false,
+    "notes": "Shrine is MIT licensed, maintained by Janko Marohnić. Free for all use. Cloud storage backend costs are determined by provider."
+  },
+  "performance": {
+    "latency_p50_ms": 500,
+    "latency_p99_ms": 5000,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits on library. Cloud storage upload latency depends on file size and provider. Use background processing plugin for image processing to avoid blocking web requests.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted", "cloud"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 88,
+    "error_message_quality": 85,
+    "error_message_notes": "Shrine validation errors surface as standard Ruby errors added to model errors hash. File not found raises Shrine::FileNotFound. Storage connection errors (S3 timeout, GCS auth failure) raise storage-specific exceptions. Validation failures include violation type (mime_type, max_size) with configured limits.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Shrine upload is not inherently idempotent — same file uploads to new S3 key unless custom location is set. Promotion (moving from cache to permanent store) is atomic. Background processing re-triggers on re-promotion.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Two-phase upload: cache then promote — Shrine stores to temporary cache storage first, then promotes to permanent storage on model save; files exist in cache until promotion; if model save fails, cache file exists but permanent storage is empty; cleanup via cache_cleaner plugin",
+      "Direct upload requires presigned URL then assign — direct-to-S3 upload flow: 1) request presigned URL from Rails, 2) upload from browser to S3, 3) assign returned data JSON to model; skipping step 3 (model assignment) leaves file in S3 cache never associated with agent model",
+      "Backgrounding plugin requires serializable uploaded file — when using backgrounding plugin for Sidekiq processing, Shrine::UploadedFile is serialized to JSON; all custom metadata must be JSON-serializable; Complex Ruby objects in metadata cause Sidekiq job marshal errors",
+      "Storage credentials must match lifecycle — if agent uploaded files in S3 us-east-1 are referenced from Rails app, S3 storage must use same region and bucket; wrong region config causes S3::Errors::NoSuchKey for valid files; environment-specific storage config required",
+      "Validate before upload, not after — Shrine validators run during promotion; for large files, validation after upload wastes bandwidth; use client-side validation and presigned URL conditions (content-type, max-size in presigned policy) for agent uploads to reject at upload time",
+      "Versions are stored as JSON hash — Shrine versions plugin stores { thumb: <UploadedFile>, original: <UploadedFile> } as JSON in database; accessing agent.document_url requires specifying version: agent.document_url(:thumb); calling agent.document_url without version returns hash string, not URL"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 88,
+    "error_handling_score": 85,
+    "auth_complexity_score": 82,
+    "rate_limit_clarity_score": 88
+  },
+  "security_score_components": {
+    "tls_enforcement": 90,
+    "auth_strength": 85,
+    "scope_granularity": 82,
+    "dependency_hygiene": 88,
+    "secret_handling": 85,
+    "security_notes": "Validate file mime type and size to prevent malicious agent file uploads. Presigned URLs should have short expiry (15 minutes). S3 bucket policy should restrict public access; use presigned download URLs for agent document access. Never serve user-uploaded files from application domain to prevent stored XSS."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 85,
+    "breaking_changes_history": 82,
+    "error_recovery": 85
+  }
+}
