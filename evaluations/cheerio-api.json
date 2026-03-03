@@ -5,24 +5,24 @@
   "homepage": "https://cheerio.js.org/",
   "repo_url": "https://github.com/cheeriojs/cheerio",
   "category": "developer-tools",
-  "subcategories": ["html-parsing", "web-scraping", "node"],
-  "tags": ["html-parsing", "jquery", "dom", "scraping", "node", "css-selectors", "server-side", "fast"],
-  "what_it_does": "Fast, flexible jQuery-like HTML parsing and manipulation for Node.js. Cheerio loads HTML into a traversable DOM using CSS selectors ($('#id'), $('a.link').attr('href')) without a browser or headless Chrome. Used for HTML scraping, parsing HTML API responses, and server-side DOM manipulation where a headless browser is too heavy.",
+  "subcategories": ["web-scraping", "html-parsing", "utilities"],
+  "tags": ["html-parsing", "web-scraping", "jquery", "dom", "selector", "node", "scraping"],
+  "what_it_does": "Fast, flexible jQuery-like HTML/XML parser for Node.js. Implements a subset of jQuery's core API for traversing and manipulating parsed HTML/XML documents without a browser. Used for server-side HTML scraping, parsing, and manipulation. Parses HTML strings into a traversable DOM using htmlparser2 or parse5, then exposes jQuery-style selectors and traversal methods ($('.class'), $('a').attr('href'), etc.).",
   "use_cases": [
-    "Scrape structured data from HTML pages in agent data collection pipelines using jQuery-style CSS selector navigation",
-    "Parse HTML email content or API responses in agent workflows where HTML must be navigated without a full browser",
-    "Extract specific elements (tables, lists, metadata) from HTML documents using Cheerio's familiar jQuery-like API",
-    "Manipulate HTML in agent content processing pipelines — clean, sanitize, or transform HTML documents server-side",
-    "Build lightweight web scraping agents for pages that don't require JavaScript execution — faster and lighter than Puppeteer"
+    "Scrape structured data from HTML pages in agent web data collection pipelines using CSS selectors",
+    "Parse and extract specific content from HTML documents returned by agent HTTP requests",
+    "Transform HTML documents server-side — add/remove/modify elements before rendering or forwarding",
+    "Extract links, tables, or structured content from web pages for agent knowledge base population",
+    "Parse HTML email bodies to extract specific information in agent email processing workflows"
   ],
   "not_for": [
-    "JavaScript-rendered pages (React, Vue, Angular SPAs) — Cheerio only parses static HTML; use Puppeteer or Playwright for JS-rendered content",
-    "Browser automation (clicking, form submission, navigation) — Cheerio is a parser only, not a browser; use Playwright for browser automation",
-    "PDF or Word document parsing — use specialized PDF/DOCX parsers; Cheerio handles HTML only"
+    "JavaScript-rendered pages requiring actual browser execution — use Playwright or Puppeteer for dynamic content",
+    "CSS styling or layout calculations — Cheerio has no rendering engine; purely structural DOM traversal",
+    "High-performance streaming HTML processing — use htmlparser2 directly for streaming; Cheerio loads full document into memory"
   ],
-  "best_when": "Parsing static HTML documents or server-rendered pages in Node.js where jQuery-style selector navigation is familiar and a headless browser would be overkill.",
-  "avoid_when": "The target pages require JavaScript execution to render content — use Puppeteer or Playwright for JS-rendered SPAs.",
-  "alternatives": ["puppeteer-api", "playwright-api", "jsdom-api"],
+  "best_when": "You have static HTML (from HTTP responses or file reads) and need to extract data using familiar jQuery-like CSS selectors in Node.js.",
+  "avoid_when": "The page requires JavaScript execution to render content — use Playwright, Puppeteer, or a headless browser for dynamic pages.",
+  "alternatives": ["playwright-api", "puppeteer-api", "jsdom-api"],
   "interface": {
     "has_rest_api": false,
     "has_graphql": false,
@@ -38,21 +38,21 @@
     "methods": ["none"],
     "oauth": false,
     "scopes": false,
-    "notes": "No authentication — HTML parsing library. HTTP requests (to fetch HTML) are handled separately by fetch/got/axios."
+    "notes": "Local library — no authentication required. MIT licensed."
   },
   "pricing": {
     "model": "open_source",
     "free_tier_exists": true,
-    "free_tier_limits": "Completely free, MIT license",
+    "free_tier_limits": "MIT licensed — completely free",
     "paid_tiers": "None",
     "requires_credit_card": false,
-    "notes": "Cheerio is open source and free."
+    "notes": "MIT licensed. Zero cost."
   },
   "performance": {
-    "latency_p50_ms": 10,
+    "latency_p50_ms": 5,
     "latency_p99_ms": 100,
     "uptime_sla_percent": null,
-    "rate_limits": "No rate limits — local HTML parsing.",
+    "rate_limits": "No rate limits. Performance scales with HTML document size. Loads full document into memory — large HTML may be slow.",
     "data_source": "llm_estimated"
   },
   "requirements": {
@@ -67,25 +67,25 @@
     "mcp_server_quality": null,
     "mcp_security_score": null,
     "documentation_accuracy": 88,
-    "error_message_quality": 80,
-    "error_message_notes": "Cheerio fails gracefully on malformed HTML (parses what it can). Invalid selectors throw with the selector string in the error. Missing elements return empty arrays (not null) — jQuery-style empty collection.",
+    "error_message_quality": 78,
+    "error_message_notes": "Selector failures return empty Cheerio objects (not null/throw) — jQuery-style: check .length > 0 before accessing data. Well-documented jQuery-compatible API.",
     "idempotency_support": "full",
-    "idempotency_notes": "HTML parsing is deterministic — same HTML input always produces same parsed structure.",
+    "idempotency_notes": "HTML parsing and querying is deterministic — same HTML and selectors always produce same results.",
     "pagination_style": "none",
     "retry_guidance_documented": false,
     "known_agent_gotchas": [
-      "Cheerio does NOT execute JavaScript — pages using React, Vue, or any client-side rendering will return empty or skeleton HTML; use Puppeteer for JS-rendered pages",
-      "Cheerio 1.x changed the default parser from htmlparser2 to parse5 — this changes how malformed HTML is handled; test existing scraper output after upgrading from 0.x",
-      "CSS selector behavior differs slightly from browser — some complex pseudo-selectors (:nth-child with expressions) may not work; test selectors in browser first",
-      "$('selector') returns a Cheerio object (jQuery-like) not an array — use .each() to iterate, not for..of; Array.from($('selector')) converts to array if needed",
-      "Relative URLs in href/src attributes are returned as-is — Cheerio doesn't resolve them against the base URL; construct absolute URLs manually using new URL(href, baseUrl)",
-      "Memory usage with large HTML documents (>1MB) can be significant — Cheerio builds a full DOM tree in memory; stream processing of very large HTML is not supported"
+      "Cheerio only parses STATIC HTML — JavaScript-rendered content is invisible; use Playwright/Puppeteer for SPAs or React/Vue apps",
+      "selector returns empty object (not null) when no match — always check .length: if ($('.item').length > 0) { /* exists */ }",
+      "load() creates a new Cheerio scope: const $ = cheerio.load(html) — must create $ before using selectors; the module export is not directly a $ function",
+      "v1 changed the HTML parser from htmlparser2 to parse5 by default (more spec-compliant but different behavior for malformed HTML) — use load(html, {xmlMode: false}) for consistent behavior",
+      "Text extraction: $('.selector').text() concatenates all text including children; .html() returns inner HTML; choose based on whether you need nested tags",
+      "Modification doesn't affect the original HTML string — Cheerio creates an in-memory DOM; use $.html() or $.xml() to serialize back to string"
     ]
   },
   "af_score_components": {
     "mcp_score": 0,
     "api_doc_score": 88,
-    "error_handling_score": 80,
+    "error_handling_score": 78,
     "auth_complexity_score": 100,
     "rate_limit_clarity_score": 100
   },
@@ -94,13 +94,13 @@
     "auth_strength": 100,
     "scope_granularity": 100,
     "dependency_hygiene": 85,
-    "secret_handling": 88,
-    "security_notes": "Local HTML parsing. XSS not applicable (server-side only). Ensure HTML from untrusted sources is sanitized before processing agent-generated outputs from Cheerio-processed content."
+    "secret_handling": 100,
+    "security_notes": "MIT licensed. Local HTML parsing — no network calls from Cheerio itself. XSS risk if parsed HTML is rendered back to browser without sanitization."
   },
   "reliability_score_components": {
     "uptime_documented": 100,
     "version_stability": 85,
     "breaking_changes_history": 80,
-    "error_recovery": 85
+    "error_recovery": 88
   }
 }

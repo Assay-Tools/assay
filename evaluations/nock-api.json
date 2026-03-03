@@ -1,28 +1,28 @@
 {
   "id": "nock-api",
   "name": "Nock",
-  "version_evaluated": "13+",
+  "version_evaluated": "13.x / 14.x",
   "homepage": "https://github.com/nock/nock",
   "repo_url": "https://github.com/nock/nock",
   "category": "developer-tools",
-  "subcategories": ["testing", "http-mocking", "api-testing"],
-  "tags": ["http", "mocking", "testing", "node", "interceptor", "unit-testing"],
-  "what_it_does": "HTTP server mocking and expectations library for Node.js. Nock intercepts outgoing HTTP requests from your Node.js code and returns predefined responses without making real network calls. Enables unit testing of code that makes HTTP requests without requiring a real server or internet access. Works with http/https modules and most HTTP libraries (axios, node-fetch, got).",
+  "subcategories": ["testing", "mocking", "http"],
+  "tags": ["testing", "mocking", "http", "interceptor", "node", "jest", "mocha", "api-testing"],
+  "what_it_does": "HTTP request mocking and intercepting library for Node.js. Intercepts outgoing HTTP/HTTPS requests at the Node.js http/https module level and returns mocked responses without actual network calls. Used in unit/integration tests to mock external API calls. Works with any HTTP client library (axios, node-fetch, got, http.request) since it intercepts at the Node.js core level.",
   "use_cases": [
-    "Unit test code that calls external APIs without making real HTTP requests — mock responses for consistent, fast tests",
-    "Test error handling logic by intercepting HTTP calls and simulating 500 errors, timeouts, or network failures",
-    "Record and replay real HTTP interactions (nock.recorder) for integration test snapshots that don't require network access",
-    "Prevent accidental HTTP requests in test suites using nock.disableNetConnect() to catch unintended external calls",
-    "Test agent code that calls multiple external services by mocking each service's responses independently"
+    "Mock external API calls in agent unit tests to test agent behavior with controlled responses without network access",
+    "Record real API responses (nock.recorder) and replay them in tests for reproducible integration testing",
+    "Test error handling in agent code by mocking specific HTTP error responses (500, 401, timeouts)",
+    "Test retry logic and backoff behavior in agent HTTP clients by simulating transient failures",
+    "Mock Stripe, OpenAI, GitHub, or other external APIs in CI pipelines without live API credentials"
   ],
   "not_for": [
-    "Browser-based HTTP mocking — use Mock Service Worker (MSW) for browser environments",
-    "Load testing — Nock mocks requests, not a performance tool",
-    "End-to-end tests that should exercise real API behavior — save Nock for unit/integration tests only"
+    "Browser testing — nock intercepts Node.js http module; use msw (Mock Service Worker) for browser or Playwright's route interception",
+    "Persistent test doubles across process restarts — nock interceptors exist only in-memory for current test process",
+    "GraphQL-specific mocking — nock works at HTTP level; use graphql-mocking libraries for schema-aware mocks"
   ],
-  "best_when": "You need to unit test Node.js code making HTTP calls without real network access — Nock is the standard Node.js HTTP mocking library.",
-  "avoid_when": "You need browser HTTP mocking (use MSW), or you want tests that exercise real API behavior (use real API or SuperTest).",
-  "alternatives": ["msw-api", "supertest-api"],
+  "best_when": "You're writing Node.js unit/integration tests and need to mock HTTP API calls for any HTTP client library without test-specific adapter code.",
+  "avoid_when": "You're testing browser-side code — use msw instead. For integration tests hitting real APIs, nock may over-constrain test fidelity.",
+  "alternatives": ["msw-api", "sinon-api", "jest-fetch-mock-api"],
   "interface": {
     "has_rest_api": false,
     "has_graphql": false,
@@ -38,21 +38,21 @@
     "methods": ["none"],
     "oauth": false,
     "scopes": false,
-    "notes": "No authentication — testing library. Can mock auth endpoints by intercepting login requests."
+    "notes": "Local testing library — no authentication required. MIT licensed."
   },
   "pricing": {
     "model": "open_source",
     "free_tier_exists": true,
-    "free_tier_limits": "Fully free and open source (MIT)",
+    "free_tier_limits": "MIT licensed — completely free",
     "paid_tiers": "None",
     "requires_credit_card": false,
-    "notes": "MIT-licensed open source library."
+    "notes": "MIT licensed. Zero cost."
   },
   "performance": {
-    "latency_p50_ms": null,
-    "latency_p99_ms": null,
+    "latency_p50_ms": 0,
+    "latency_p99_ms": 1,
     "uptime_sla_percent": null,
-    "rate_limits": "No rate limits — in-memory mocking",
+    "rate_limits": "No rate limits. Test-time only — zero production overhead since it's never imported in production code.",
     "data_source": "llm_estimated"
   },
   "requirements": {
@@ -67,40 +67,40 @@
     "mcp_server_quality": null,
     "mcp_security_score": null,
     "documentation_accuracy": 85,
-    "error_message_quality": 82,
-    "error_message_notes": "Unmatched requests throw descriptive errors showing the expected vs actual request details. nock.pendingMocks() shows uncalled interceptors. Clear debugging output.",
+    "error_message_quality": 80,
+    "error_message_notes": "Throws if unmatched request is made (nock.disableNetConnect()). Error messages include the unmatched request URL and method. Interceptor scope provides .isDone() to check if mock was called.",
     "idempotency_support": "full",
-    "idempotency_notes": "Mocks are consumed once by default — must re-setup between tests or use .persist() for reusable mocks. afterEach(nock.cleanAll) ensures clean state.",
+    "idempotency_notes": "Nock interceptors are consumed once by default (one-use) — use .persist() for interceptors that should match multiple requests.",
     "pagination_style": "none",
     "retry_guidance_documented": false,
     "known_agent_gotchas": [
-      "Nock interceptors are consumed once by default — if a test triggers multiple calls to the same endpoint, each call requires a separate interceptor setup or .times(n)",
-      "nock.cleanAll() must be called in afterEach or before each test — unconsumed interceptors bleed into subsequent tests causing confusing failures",
-      "Nock only intercepts Node.js http/https module — HTTP libraries using fetch() natively (Undici, node-fetch v3) may not be intercepted; verify compatibility",
-      "Request body matching is strict by default — request body must exactly match nock interceptor body; use match functions for partial matching",
-      "nock.disableNetConnect() is a powerful guard but must be re-enabled for any tests that need real network access",
-      "Nock doesn't support HTTP/2 or WebSocket mocking — only HTTP/1.1 is intercepted via the Node.js http module"
+      "Always call nock.cleanAll() in afterEach/afterAll — stale interceptors affect subsequent tests and cause hard-to-debug test pollution",
+      "Nock interceptors are consumed on first match by default — use .persist() for interceptors that handle multiple requests: nock('https://api.example.com').get('/data').reply(200, data).persist()",
+      "nock.disableNetConnect() is essential for preventing accidental real network calls in tests — call in global test setup; add allowUnmocked for specific hosts if needed",
+      "Request body matching: nock intercepts based on URL+method by default; add .matchHeader() or request body matchers for precise interception",
+      "Nock v13+ dropped Node.js < 12 support — ensure test environment compatibility",
+      "Nock intercepts http AND https but hostname must match exactly — 'https://api.example.com' does NOT match 'http://api.example.com'; specify correct protocol"
     ]
   },
   "af_score_components": {
     "mcp_score": 0,
     "api_doc_score": 85,
-    "error_handling_score": 82,
+    "error_handling_score": 80,
     "auth_complexity_score": 100,
     "rate_limit_clarity_score": 100
   },
   "security_score_components": {
-    "tls_enforcement": 90,
-    "auth_strength": 90,
-    "scope_granularity": 90,
+    "tls_enforcement": 100,
+    "auth_strength": 100,
+    "scope_granularity": 100,
     "dependency_hygiene": 85,
-    "secret_handling": 90,
-    "security_notes": "Testing library — no production security concerns. Prevents real API calls in test environments, reducing accidental data exposure."
+    "secret_handling": 100,
+    "security_notes": "MIT licensed. Test-only library — never deployed to production. Intercepts at OS level — ensure test isolation with nock.cleanAll()."
   },
   "reliability_score_components": {
-    "uptime_documented": 85,
-    "version_stability": 82,
-    "breaking_changes_history": 80,
-    "error_recovery": 82
+    "uptime_documented": 100,
+    "version_stability": 88,
+    "breaking_changes_history": 82,
+    "error_recovery": 88
   }
 }

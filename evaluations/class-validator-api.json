@@ -1,28 +1,28 @@
 {
   "id": "class-validator-api",
   "name": "class-validator",
-  "version_evaluated": "0.14+",
+  "version_evaluated": "0.14.x",
   "homepage": "https://github.com/typestack/class-validator",
   "repo_url": "https://github.com/typestack/class-validator",
   "category": "developer-tools",
-  "subcategories": ["validation", "typescript", "decorators", "nestjs"],
-  "tags": ["typescript", "validation", "decorators", "nestjs", "class", "dto", "request-validation"],
-  "what_it_does": "TypeScript/JavaScript validation library using decorators. class-validator uses property decorators (@IsString, @IsEmail, @IsNotEmpty, etc.) on class definitions to declare validation rules. Works with class-transformer for transforming plain JSON objects to class instances before validation. The standard validation approach for NestJS and TypeORM-based agent backends.",
+  "subcategories": ["validation", "decorators", "typescript", "nestjs"],
+  "tags": ["validation", "decorators", "class", "nestjs", "typescript", "dto", "reflect-metadata"],
+  "what_it_does": "Decorator-based validation for TypeScript/JavaScript classes. Add validation decorators (@IsString(), @IsEmail(), @MinLength(5)) to class properties and call validate(instance) to check validity. Works with NestJS DTOs (Data Transfer Objects) as the standard validation approach. Built on validator.js for the underlying validators. Part of the typestack ecosystem alongside class-transformer.",
   "use_cases": [
-    "Validate agent API request DTOs in NestJS backends with decorator-based validation rules",
-    "Define data transfer objects for agent APIs with TypeScript type safety and runtime validation",
-    "Validate configuration objects for agent services with nested object and array validation",
-    "Combine with class-transformer in NestJS pipes for automatic request body transformation and validation",
-    "Create reusable validation groups for agent workflows where different operations require different field subsets"
+    "Validate NestJS DTO classes — the standard approach for request body validation in NestJS applications",
+    "Define typed data contracts for agent API endpoints with inline validation rules as class decorators",
+    "Combine with class-transformer to validate and transform plain JSON objects into validated class instances",
+    "Validate TypeScript domain model classes at runtime using the same decorator definitions used for type checking",
+    "Implement layered validation with groups (@IsNotEmpty({ groups: ['create'] })) for create vs update scenarios"
   ],
   "not_for": [
-    "Non-class-based (functional) TypeScript — use Zod or Valibot for schema-based validation",
-    "Projects not using decorators — requires TypeScript experimental decorators and reflect-metadata",
-    "Frontend-only applications — Zod or Valibot have better tree-shaking for browser bundles"
+    "Non-NestJS or non-decorator TypeScript projects — Zod or Joi provide better DX without TypeScript decorator requirements",
+    "Plain JavaScript — class-validator requires TypeScript with experimentalDecorators enabled",
+    "Simple one-off validations — decorator-based approach requires class definitions; use Zod for ad-hoc schema validation"
   ],
-  "best_when": "You're building NestJS agent backends with TypeORM and want decorator-based validation on DTO classes that integrates with NestJS's validation pipe.",
-  "avoid_when": "You're not using NestJS or TypeScript decorators — use Zod for schema-based validation with better type inference.",
-  "alternatives": ["zod-api", "valibot-api", "typebox-api"],
+  "best_when": "You're building NestJS applications where class-validator is the de-facto standard for DTO validation with NestJS's built-in ValidationPipe.",
+  "avoid_when": "You're not using NestJS or TypeScript decorators — the decorator-based approach has unnecessary boilerplate outside NestJS context.",
+  "alternatives": ["zod-api", "joi-api", "yup-api"],
   "interface": {
     "has_rest_api": false,
     "has_graphql": false,
@@ -38,54 +38,54 @@
     "methods": ["none"],
     "oauth": false,
     "scopes": false,
-    "notes": "Local validation library — no authentication."
+    "notes": "Local library — no authentication required. MIT licensed."
   },
   "pricing": {
     "model": "open_source",
     "free_tier_exists": true,
-    "free_tier_limits": "Completely free, MIT licensed",
-    "paid_tiers": "none",
+    "free_tier_limits": "MIT licensed — completely free",
+    "paid_tiers": "None",
     "requires_credit_card": false,
-    "notes": "Completely free and open source."
+    "notes": "MIT licensed. Zero cost."
   },
   "performance": {
-    "latency_p50_ms": null,
-    "latency_p99_ms": null,
+    "latency_p50_ms": 1,
+    "latency_p99_ms": 10,
     "uptime_sla_percent": null,
-    "rate_limits": "No rate limits — local library",
+    "rate_limits": "No rate limits. Async validation returns Promise. Decorator metadata reflection adds minor startup overhead.",
     "data_source": "llm_estimated"
   },
   "requirements": {
     "requires_signup": false,
     "requires_credit_card": false,
     "domain_verification": false,
-    "data_residency": ["self-hosted"],
+    "data_residency": ["local"],
     "compliance": [],
     "min_contract": "none"
   },
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
-    "documentation_accuracy": 85,
-    "error_message_quality": 85,
-    "error_message_notes": "ValidationError array with property, constraints, and children fields. Nested errors in children array. Errors are structured and programmatically queryable.",
+    "documentation_accuracy": 82,
+    "error_message_quality": 82,
+    "error_message_notes": "Returns array of ValidationError objects with property, constraints, and children. Error messages customizable per decorator. Well-integrated with NestJS error formatting.",
     "idempotency_support": "full",
-    "idempotency_notes": "Validation is deterministic — same object always produces same validation result.",
+    "idempotency_notes": "Validation is deterministic — same class instance always produces same validation results.",
     "pagination_style": "none",
     "retry_guidance_documented": false,
     "known_agent_gotchas": [
-      "requires reflect-metadata to be imported ONCE at application entry point — missing import causes all decorators to silently fail validation",
-      "Must enable experimentalDecorators and emitDecoratorMetadata in tsconfig.json — without these, type metadata is not available for type-based validators",
-      "Plain objects (from JSON.parse) must be transformed to class instances with class-transformer before validation — validating plain objects skips decorator checks",
-      "Nested object validation requires @ValidateNested() + @Type(() => NestedClass) — without @Type, nested objects are not recursively validated",
-      "validate() is async, validateSync() is sync — using validateSync in async contexts works but validateSync may be slower for complex schemas",
-      "Custom validators using @ValidatorConstraint must be registered as providers in NestJS — missing injection causes runtime errors on first validation"
+      "Requires tsconfig.json: experimentalDecorators: true and emitDecoratorMetadata: true — without these, decorators silently do nothing",
+      "Must import 'reflect-metadata' at application entry point: import 'reflect-metadata' — required for decorator metadata to work",
+      "validate() is ASYNC — returns Promise<ValidationError[]>; use validateSync() for synchronous validation but it has limitations",
+      "Plain objects are NOT validated — must use class-transformer's plainToInstance() to convert JSON to class instances before validation: const dto = plainToInstance(CreateUserDto, reqBody); validate(dto)",
+      "Nested object validation requires @ValidateNested() decorator AND class-transformer's @Type() decorator: @ValidateNested() @Type(() => AddressDto) address: AddressDto",
+      "forbidUnknownValues: true is recommended — without it, unknown properties in the class are silently ignored; set in ValidationPipe options for NestJS"
     ]
   },
   "af_score_components": {
     "mcp_score": 0,
-    "api_doc_score": 85,
-    "error_handling_score": 85,
+    "api_doc_score": 82,
+    "error_handling_score": 82,
     "auth_complexity_score": 100,
     "rate_limit_clarity_score": 100
   },
@@ -93,14 +93,14 @@
     "tls_enforcement": 100,
     "auth_strength": 100,
     "scope_granularity": 100,
-    "dependency_hygiene": 88,
+    "dependency_hygiene": 82,
     "secret_handling": 100,
-    "security_notes": "Validation is the security boundary — define comprehensive validation rules to prevent malformed agent inputs from reaching business logic."
+    "security_notes": "MIT licensed. Input validation reduces attack surface. Whitelist validation (whitelist: true in NestJS) prevents over-posting attacks. Decorator metadata requires reflect-metadata polyfill."
   },
   "reliability_score_components": {
     "uptime_documented": 95,
-    "version_stability": 85,
-    "breaking_changes_history": 82,
-    "error_recovery": 88
+    "version_stability": 82,
+    "breaking_changes_history": 78,
+    "error_recovery": 85
   }
 }
