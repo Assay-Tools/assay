@@ -1,0 +1,106 @@
+{
+  "id": "sidekiq-api",
+  "name": "Sidekiq",
+  "version_evaluated": "7.x",
+  "homepage": "https://sidekiq.org/",
+  "repo_url": "https://github.com/sidekiq/sidekiq",
+  "category": "developer-tools",
+  "subcategories": ["job-queue", "background-processing", "ruby", "redis"],
+  "tags": ["ruby", "rails", "background-jobs", "redis", "async", "worker", "scheduling", "retries"],
+  "what_it_does": "The de-facto standard background job processor for Ruby on Rails applications. Sidekiq uses Redis as its job store and multi-threaded Sidekiq workers to process jobs concurrently. Provides built-in retry with exponential backoff, job scheduling (perform_at/perform_in), dead job queue, and a web UI dashboard. Sidekiq Pro/Enterprise add batches, unique jobs, rate limiting, and multi-tenant features.",
+  "use_cases": [
+    "Offload LLM API calls from Rails request cycle to Sidekiq workers — prevents HTTP timeouts and improves response time for users",
+    "Schedule periodic agent maintenance tasks using Sidekiq-Cron or Sidekiq-Scheduler for recurring jobs without a separate cron daemon",
+    "Process webhook events asynchronously with Sidekiq — enqueue incoming webhook payloads immediately and process in background workers",
+    "Implement retry logic for unreliable external API calls using Sidekiq's exponential backoff retry — jobs retry automatically up to 25 times by default",
+    "Fan out agent tasks to multiple Sidekiq queues with different priorities and worker pools for latency-sensitive vs. batch processing workloads"
+  ],
+  "not_for": [
+    "Non-Ruby/Rails stacks — Celery (Python), Oban (Elixir), BullMQ (Node.js) for other languages",
+    "Exactly-once processing guarantees — Sidekiq is at-least-once delivery; workers must be idempotent for duplicate job safety",
+    "Complex workflow orchestration with DAG dependencies — use Temporal or Airflow for complex multi-step workflows with dependencies"
+  ],
+  "best_when": "You're building Rails applications that need reliable background job processing with minimal setup — Redis + Sidekiq is the standard Rails background job stack.",
+  "avoid_when": "You need exactly-once guarantees, complex workflow dependencies, or aren't using Ruby. GoodJob (Postgres-backed) is an alternative if you want to avoid Redis.",
+  "alternatives": ["oban-elixir-api", "celery-api", "bullmq-api", "temporal-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["ruby"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Sidekiq is a library — no external auth. Web UI can be secured with Rack basic auth or Rails session auth. Redis connection configured with URL including auth credentials."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Core Sidekiq is free, LGPL licensed",
+    "paid_tiers": "Sidekiq Pro: $99/month, Sidekiq Enterprise: $179/month — adds batches, unique jobs, rate limiting, super_fetch (at-least-once delivery improvement)",
+    "requires_credit_card": false,
+    "notes": "Open source Sidekiq is production-ready for most use cases. Pro/Enterprise are worth it for teams needing advanced features at scale."
+  },
+  "performance": {
+    "latency_p50_ms": 5,
+    "latency_p99_ms": 50,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — self-hosted. Multi-threaded processing; default 10 threads per process. Scale horizontally with multiple Sidekiq processes.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 88,
+    "error_message_quality": 85,
+    "error_message_notes": "Failed jobs stored in dead queue with full backtrace. Web UI shows job history, failure reasons, retry count. Sidekiq.logger for structured job logging. Error service integration via Sidekiq's error_handlers.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Sidekiq is at-least-once delivery — jobs may be processed multiple times on Redis failure or Sidekiq crash. Workers must be idempotent. Sidekiq Pro adds unique jobs for deduplication.",
+    "pagination_style": "none",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Sidekiq serializes job args to JSON — ActiveRecord objects, symbols (converted to strings), and non-JSON-serializable types must be converted before enqueueing",
+      "At-least-once delivery means jobs can run twice — always design workers to be idempotent; check-then-act patterns (if record.status == 'pending' then process) prevent duplicate processing",
+      "Sidekiq threads share the Rails process — thread-unsafe code (class variables, global state) causes race conditions when multiple jobs run concurrently in the same process",
+      "Redis memory can grow unbounded with dead jobs — configure dead_max_jobs and dead_timeout_in_seconds to prevent Redis OOM; monitor dead queue size",
+      "Scheduled jobs (perform_at) poll Redis every 5 seconds — jobs scheduled to run at exact times have up to 5-second delay; not suitable for millisecond-precision scheduling",
+      "Sidekiq Pro's super_fetch improves reliability but requires Redis 6.2+ LMOVE — verify Redis version compatibility before enabling in production"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 88,
+    "error_handling_score": 85,
+    "auth_complexity_score": 90,
+    "rate_limit_clarity_score": 85
+  },
+  "security_score_components": {
+    "tls_enforcement": 95,
+    "auth_strength": 82,
+    "scope_granularity": 78,
+    "dependency_hygiene": 85,
+    "secret_handling": 82,
+    "security_notes": "Job args stored in Redis as JSON — avoid storing sensitive data in job args. Redis TLS via rediss:// URL scheme. Web UI must be secured separately — no auth by default in development."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 90,
+    "breaking_changes_history": 85,
+    "error_recovery": 88
+  }
+}
