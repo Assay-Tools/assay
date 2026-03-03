@@ -1,0 +1,106 @@
+{
+  "id": "optax-python-api",
+  "name": "Optax",
+  "version_evaluated": "0.2.x",
+  "homepage": "https://optax.readthedocs.io/",
+  "repo_url": "https://github.com/google-deepmind/optax",
+  "category": "ai-ml",
+  "subcategories": ["ml-framework", "optimization", "python", "jax", "gradient-descent"],
+  "tags": ["python", "optax", "jax", "optimization", "gradient-descent", "adam", "sgd", "lr-schedule"],
+  "what_it_does": "Gradient processing and optimization library for JAX — composable optimizer building blocks for training neural networks. Optax features: standard optimizers (optax.adam, optax.sgd, optax.adamw, optax.rmsprop, optax.adagrad, optax.lion), learning rate schedules (optax.cosine_decay_schedule, optax.warmup_cosine_decay_schedule, optax.linear_schedule), gradient clipping (optax.clip, optax.clip_by_global_norm), optimizer chaining (optax.chain), masked updates (optax.masked), exponential moving average (optax.ema), gradient accumulation (optax.MultiSteps), and custom optimizer composition. JAX ecosystem optimizer library — pairs with Flax for neural network training. DeepMind-maintained.",
+  "use_cases": [
+    "Agent AdamW optimizer — optimizer = optax.adamw(learning_rate=1e-4, weight_decay=0.01); opt_state = optimizer.init(params); updates, opt_state = optimizer.update(grads, opt_state, params) — standard optimizer for agent transformer fine-tuning; weight_decay in AdamW applied correctly to params not gradients",
+    "Agent cosine LR schedule — schedule = optax.warmup_cosine_decay_schedule(init_value=0, peak_value=1e-3, warmup_steps=1000, decay_steps=10000); optimizer = optax.adam(schedule) — agent training with warmup + cosine decay; learning rate decays from peak to near-zero; standard schedule for transformer agent training",
+    "Agent gradient clipping — optimizer = optax.chain(optax.clip_by_global_norm(1.0), optax.adam(1e-3)) — clip gradients before Adam update; prevents agent training instability from exploding gradients; chain() composes gradient clipping with optimizer in correct order",
+    "Agent layer-wise learning rates — tx = optax.masked(optax.adam(1e-4), mask={'backbone': True, 'head': False}); optax.chain(tx, optax.masked(optax.adam(1e-3), mask={'backbone': False, 'head': True})) — different LR for pretrained backbone vs task head; agent fine-tuning with frozen backbone uses masked optimizer",
+    "Agent gradient accumulation — optimizer = optax.MultiSteps(optax.adam(1e-3), every_k_schedule=4) — accumulate gradients over 4 steps before applying update; agent training with large effective batch size on memory-constrained GPU; MultiSteps correctly handles gradient accumulation with stateful optimizers"
+  ],
+  "not_for": [
+    "Non-JAX training — Optax is JAX-only; for PyTorch optimizers use torch.optim; for TensorFlow use tf.keras.optimizers",
+    "Non-gradient optimization — Optax is for gradient-based optimization; for evolutionary algorithms or black-box optimization use scipy.optimize or evosax",
+    "Production hyperparameter tuning — Optax defines optimizers; for automated HPO use Optuna or Ray Tune"
+  ],
+  "best_when": "Training JAX/Flax neural networks where you need composable optimizer building blocks — Optax's chain() and mask() allow building complex optimizer pipelines (gradient clipping + warmup + AdamW + layer-wise LR) as composable transforms.",
+  "avoid_when": "You're not using JAX, need non-gradient optimization, or prefer all-in-one frameworks.",
+  "alternatives": ["torch-api", "jax-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — local optimization library."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, Apache 2.0 licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Optax is Apache 2.0 licensed by Google DeepMind. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 1,
+    "latency_p99_ms": 10,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Optimizer update step is jit-compiled with JAX for near-zero overhead. Negligible per-step cost compared to forward/backward pass. MultiSteps accumulation adds memory overhead proportional to accumulation steps.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 80,
+    "error_message_quality": 75,
+    "error_message_notes": "TypeError if gradient pytree structure doesn't match parameter pytree from optimizer.init(). ValueError for incompatible chain() transform combinations. JAX tracing errors in jit-compiled update step. schedule callable type errors if int step passed to float-expecting schedule.",
+    "idempotency_support": "full",
+    "idempotency_notes": "optimizer.update() is deterministic for same gradients and optimizer state. Stateless transforms (clip, scale) are fully idempotent. Stateful transforms (adam, ema) accumulate state — same step produces same result given same previous state.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "optimizer.init() must be called with parameters pytree — optimizer = optax.adam(1e-3); opt_state = optimizer.init(params) initializes Adam moment vectors matching params structure; calling optimizer.update(grads, opt_state) with different pytree structure than params raises ValueError; agent code must init optimizer after defining model parameters",
+      "Gradient pytree must match parameter pytree exactly — optimizer.update(grads, opt_state) requires grads and params to have identical pytree structure (same keys, shapes); agent code where model architecture changes between init and update gets inscrutable JAX errors; verify pytree structures with jax.tree_util.tree_map",
+      "optax.chain order matters — optax.chain(optax.clip_by_global_norm(1.0), optax.adam(1e-3)) clips THEN updates; optax.chain(optax.adam(1e-3), optax.clip_by_global_norm(1.0)) updates THEN clips parameter changes (wrong); agent gradient clipping must come before optimizer transform in chain",
+      "Learning rate schedules need step counter — optax.cosine_decay_schedule produces a callable; optimizer.update(grads, opt_state, params, count=step) requires step counter for schedule evaluation; agent training loop must track and pass step count; forgetting count uses step 0 for entire training",
+      "AdamW weight decay excludes bias and LayerNorm — optax.adamw applies weight decay to ALL parameters including biases and LayerNorm weights; for correct transformer training use optax.masked to exclude bias terms from weight decay; incorrect weight decay degrades agent model quality",
+      "MultiSteps accumulate_fn must handle empty gradients — optax.MultiSteps accumulates over K steps; agent code computing gradients on empty batches (end of dataset) gets NaN accumulated gradients; ensure dataset length is divisible by accumulation steps or handle remainder batches explicitly"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 80,
+    "error_handling_score": 72,
+    "auth_complexity_score": 98,
+    "rate_limit_clarity_score": 98
+  },
+  "security_score_components": {
+    "tls_enforcement": 92,
+    "auth_strength": 92,
+    "scope_granularity": 88,
+    "dependency_hygiene": 88,
+    "secret_handling": 92,
+    "security_notes": "Local optimization library — no network access, no data exfiltration. Pure JAX pytree transformations. No security concerns beyond standard Python dependency hygiene."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 80,
+    "version_stability": 78,
+    "breaking_changes_history": 72,
+    "error_recovery": 78
+  }
+}

@@ -1,0 +1,106 @@
+{
+  "id": "torchvision-api",
+  "name": "torchvision",
+  "version_evaluated": "0.19.x",
+  "homepage": "https://pytorch.org/vision/",
+  "repo_url": "https://github.com/pytorch/vision",
+  "category": "ai-ml",
+  "subcategories": ["computer-vision", "python", "pytorch", "deep-learning", "image-processing"],
+  "tags": ["python", "torchvision", "pytorch", "computer-vision", "image-classification", "object-detection", "transforms"],
+  "what_it_does": "PyTorch computer vision library — datasets, model architectures, and image transforms for vision ML. torchvision features: pretrained models (ResNet, EfficientNet, ViT, DETR, Mask R-CNN via torchvision.models), datasets (ImageNet, CIFAR-10, COCO, VOC via torchvision.datasets), transforms v2 (torchvision.transforms.v2 — random crops, flips, normalize, augmentation pipelines), torchvision.io for image/video I/O, torchvision.ops (nms, box_iou, roi_align for detection), and torchvision.utils (make_grid, draw_bounding_boxes). Standard vision library for PyTorch — pairs with DataLoader for training classification, detection, and segmentation agent models.",
+  "use_cases": [
+    "Agent image classification — model = torchvision.models.resnet50(weights=ResNet50_Weights.IMAGENET1K_V2); model.eval(); output = model(preprocess(image)) — pretrained ResNet50 classifies images; agent vision pipeline uses ImageNet-pretrained features; 1000-class ImageNet classifier in 3 lines",
+    "Agent transfer learning — model = torchvision.models.efficientnet_b0(weights=EfficientNet_B0_Weights.DEFAULT); model.classifier[-1] = nn.Linear(1280, num_agent_classes) — replace classification head; agent fine-tunes EfficientNet on custom categories; pretrained backbone extracts visual features",
+    "Agent image augmentation pipeline — transform = v2.Compose([v2.RandomHorizontalFlip(), v2.RandomCrop(224), v2.ColorJitter(brightness=0.2), v2.ToDtype(torch.float32, scale=True), v2.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])]) — standard augmentation for agent vision training; v2 API handles boxes/masks alongside images",
+    "Agent object detection — model = torchvision.models.detection.fasterrcnn_resnet50_fpn(weights=FasterRCNN_ResNet50_FPN_Weights.DEFAULT); predictions = model(images) — pretrained Faster R-CNN detects objects; agent perceives visual scene with bounding boxes and class labels; DETR and Mask R-CNN also available",
+    "Agent dataset loading — dataset = torchvision.datasets.ImageFolder('data/agent_images/', transform=transform); loader = DataLoader(dataset, batch_size=32, shuffle=True) — ImageFolder loads images from directory structure; agent training data organized as one subdirectory per class; integrates directly with PyTorch DataLoader"
+  ],
+  "not_for": [
+    "Non-PyTorch frameworks — torchvision requires PyTorch; for TensorFlow/Keras vision use tf.keras.applications; for JAX use Flax model zoo",
+    "Video processing at scale — torchvision.io has basic video I/O but limited; for production video pipelines use decord or ffmpeg directly",
+    "3D point cloud vision — torchvision is 2D image/video focused; for 3D vision use PyTorch3D or Open3D"
+  ],
+  "best_when": "Building PyTorch-based agent vision systems — torchvision provides pretrained models, standard datasets, and image transforms in a single package that integrates directly with PyTorch training loops.",
+  "avoid_when": "You're not using PyTorch, need advanced video processing, or work with 3D/point cloud data.",
+  "alternatives": ["timm-api", "keras-python-api", "jax-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — local ML library. Model weights downloaded from PyTorch Hub automatically on first use."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, BSD licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "torchvision is BSD licensed by Meta/PyTorch Foundation. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 10,
+    "latency_p99_ms": 100,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Inference speed depends on model size and hardware. EfficientNet-B0 ~10ms/image on GPU T4. ResNet50 ~15ms/image on GPU T4. CPU inference 10-50x slower. First model load downloads weights (once).",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 82,
+    "error_message_quality": 80,
+    "error_message_notes": "UserWarning on deprecated transform API (v1 vs v2). RuntimeError for tensor dimension mismatch in transforms. TypeError if image dtype not float32 after transforms. CUDA OOM for large batches. Model weight download errors show URL and suggest offline cache.",
+    "idempotency_support": "full",
+    "idempotency_notes": "model.eval() inference is deterministic. Transforms with random ops use torch.manual_seed() for reproducibility. DataLoader with generator=torch.Generator().manual_seed(42) produces same shuffle order.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "torchvision version must match PyTorch version — torchvision 0.19 requires torch 2.4; mismatched versions cause ImportError or CUDA kernel mismatch; agent Docker images must install matching versions: pip install torch==2.4.0 torchvision==0.19.0 together; use official PyTorch install matrix",
+      "transforms v2 vs v1 API differ — torchvision.transforms (v1) and torchvision.transforms.v2 (v2) have different behavior for bounding boxes and masks; v2 transforms can be applied to images+annotations simultaneously; agent detection pipelines should use v2; don't mix v1 and v2 transforms in same pipeline",
+      "Normalize must come after ToTensor/ToDtype — v2.Normalize(mean=..., std=...) expects float tensor; applying Normalize before v2.ToDtype(torch.float32) raises TypeError; agent augmentation pipelines must order: load image → random augments → to float → normalize",
+      "pretrained weights enum required since torchvision 0.13 — models.resnet50(pretrained=True) deprecated; use models.resnet50(weights=ResNet50_Weights.IMAGENET1K_V2) with explicit weights enum; agent code using pretrained=True gets DeprecationWarning and may get different weights version than expected",
+      "model.eval() required for inference — torchvision models with BatchNorm and Dropout are in training mode by default; agent inference without model.eval() gives inconsistent predictions and non-deterministic output; always call model.eval() before agent inference and model.train() before training",
+      "ImageFolder requires exact directory structure — torchvision.datasets.ImageFolder('data/') requires data/class_name/image.jpg structure; flat directory or wrong nesting raises FileNotFoundError; agent custom datasets with non-standard structure must subclass Dataset or use torchvision.datasets.ImageList"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 82,
+    "error_handling_score": 78,
+    "auth_complexity_score": 98,
+    "rate_limit_clarity_score": 98
+  },
+  "security_score_components": {
+    "tls_enforcement": 90,
+    "auth_strength": 88,
+    "scope_granularity": 85,
+    "dependency_hygiene": 82,
+    "secret_handling": 90,
+    "security_notes": "Local ML library. Model weights downloaded from PyTorch Hub (download.pytorch.org) over HTTPS with hash verification. Pretrained weights from untrusted sources should be hash-verified before loading into agent models."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 82,
+    "version_stability": 80,
+    "breaking_changes_history": 75,
+    "error_recovery": 80
+  }
+}

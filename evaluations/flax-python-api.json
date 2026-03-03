@@ -1,0 +1,106 @@
+{
+  "id": "flax-python-api",
+  "name": "Flax",
+  "version_evaluated": "0.9.x",
+  "homepage": "https://flax.readthedocs.io/",
+  "repo_url": "https://github.com/google/flax",
+  "category": "ai-ml",
+  "subcategories": ["ml-framework", "deep-learning", "python", "jax", "neural-networks"],
+  "tags": ["python", "flax", "jax", "neural-networks", "deep-learning", "google", "linen", "nnx"],
+  "what_it_does": "Neural network library for JAX — defines and trains neural networks using JAX's functional programming model. Flax features: NNX API (flax.nnx.Module, stateful object-oriented style), Linen API (flax.linen.Module, legacy functional style), built-in layers (nnx.Linear, nnx.Conv, nnx.MultiHeadAttention), parameter initialization, batch normalization with mutable state, dropout, scan for recurrent networks, flax.training.train_state.TrainState for training loop boilerplate, and Orbax for checkpointing. JAX ecosystem neural network library — used by Google DeepMind, Hugging Face (transformers via flax weights), and ML research labs. Pairs with Optax for optimizers.",
+  "use_cases": [
+    "Agent NNX neural network — class AgentModel(nnx.Module): def __init__(self): self.linear = nnx.Linear(128, 64); self.out = nnx.Linear(64, 10); model = AgentModel(rngs=nnx.Rngs(0)); logits = model(x) — Flax NNX object-oriented model definition with stateful parameters; agent model code resembles PyTorch style",
+    "Agent training with Optax — optimizer = optax.adam(1e-3); opt_state = optimizer.init(nnx.state(model)); @jax.jit; def train_step(model, batch): loss, grads = jax.value_and_grad(loss_fn)(model, batch); updates, opt_state = optimizer.update(grads, opt_state); nnx.update(model, updates) — JAX-compiled agent training step",
+    "Agent checkpoint save/restore — from flax.training import orbax_utils; checkpointer = orbax.checkpoint.PyTreeCheckpointer(); checkpointer.save('/ckpt/step_100', nnx.state(model)) — agent model checkpoints with Orbax; restore with checkpointer.restore('/ckpt/step_100'); version-controlled agent model weights",
+    "Agent transformer architecture — class FlaxAttention(nnx.Module): def __call__(self, x): return nnx.MultiHeadAttention(num_heads=8, qkv_features=512)(x, x) — Flax built-in MultiHeadAttention; agent transformer models leverage HuggingFace Flax pretrained weights directly",
+    "Agent batch normalization — class AgentBN(nnx.Module): self.bn = nnx.BatchNorm(32, use_running_average=False); model.eval() sets use_running_average=True — Flax NNX handles mutable BN running stats; agent inference mode vs training mode toggled with model.eval()/model.train()"
+  ],
+  "not_for": [
+    "Non-JAX backends — Flax is JAX-only; for PyTorch neural networks use PyTorch nn.Module; for TensorFlow use Keras",
+    "Production serving — Flax is for research training; for inference serving export to ONNX Runtime or JAX's jax.export",
+    "Beginners without JAX knowledge — Flax requires understanding JAX transforms (jit, grad, vmap); start with PyTorch or Keras for learning"
+  ],
+  "best_when": "Building neural network architectures in JAX for ML research — Flax provides the neural network abstractions (layers, training state, checkpointing) that complement JAX's functional transforms for agent model training on GPU/TPU.",
+  "avoid_when": "You're not already using JAX, you need production serving infrastructure, or you're a beginner learning deep learning.",
+  "alternatives": ["torch-api", "keras-python-api", "jax-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — local ML library."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, Apache 2.0 licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Flax is Apache 2.0 licensed by Google. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 2,
+    "latency_p99_ms": 100,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Performance depends on JAX backend and hardware. JAX jit compilation on first call; subsequent calls use compiled XLA code. TPU performance 5-10x GPU for large transformer training.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 72,
+    "error_message_quality": 68,
+    "error_message_notes": "Linen vs NNX API confusion causes AttributeError. JAX tracing errors surface through Flax with cryptic stack traces. Parameter shape mismatches raise ValueError during model.init(). BatchNorm errors if use_running_average not set for inference.",
+    "idempotency_support": "full",
+    "idempotency_notes": "NNX model forward pass is deterministic for same inputs and parameters. Training steps with explicit PRNG keys are reproducible. Orbax checkpoints exactly restore model state.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Linen vs NNX APIs are incompatible — Flax 0.7+ introduced NNX (stateful OOP) alongside legacy Linen (functional); mixing nnx.Module and linen.Module in same agent model raises AttributeError; HuggingFace Flax models use Linen; new agent code should use NNX; don't mix APIs",
+      "NNX parameters are mutable — unlike Linen which returns immutable param pytrees, NNX model.linear.kernel is directly mutable; agent code accidentally assigning model.linear.kernel = new_weights mutates in place; this bypasses optimizer state; always update via nnx.update() with computed parameter updates",
+      "Linen model.init() returns {'params': ...} pytree — linen_model.init(key, x)['params'] extracts parameter dict; agent code forgetting ['params'] key passes full init dict to apply() and gets wrong behavior; NNX avoids this pattern but Linen code in HuggingFace models requires explicit params extraction",
+      "BatchNorm requires separate train/eval state — flax.linen.BatchNorm has mutable state (running mean/var) distinct from parameters; agent training must pass mutable=['batch_stats'] to model.apply(); forgetting batch_stats in eval mode gives wrong normalized activations",
+      "Flax scan (nn.scan) has different semantics than PyTorch RNN — flax.linen.scan wraps module to process sequence with carry; axis_size must match sequence length; agent recurrent models using scan get complex module signatures different from PyTorch LSTM; prefer attention-based agent models unless RNN specifically needed",
+      "Checkpoint format changed across versions — Orbax replaces legacy flax.training.checkpoints in Flax 0.7+; agent checkpoints saved with legacy API require migration to Orbax format; pin Flax version in agent training containers or implement checkpoint migration on version upgrade"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 72,
+    "error_handling_score": 65,
+    "auth_complexity_score": 98,
+    "rate_limit_clarity_score": 98
+  },
+  "security_score_components": {
+    "tls_enforcement": 92,
+    "auth_strength": 92,
+    "scope_granularity": 88,
+    "dependency_hygiene": 85,
+    "secret_handling": 92,
+    "security_notes": "Local ML library — no network access. Checkpoint files contain model weights — validate source before loading agent checkpoints from untrusted sources. HuggingFace Flax weights downloaded via HuggingFace Hub with standard safety practices."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 70,
+    "version_stability": 65,
+    "breaking_changes_history": 60,
+    "error_recovery": 72
+  }
+}
