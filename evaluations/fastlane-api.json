@@ -1,0 +1,106 @@
+{
+  "id": "fastlane-api",
+  "name": "Fastlane",
+  "version_evaluated": "2.x",
+  "homepage": "https://fastlane.tools/",
+  "repo_url": "https://github.com/fastlane/fastlane",
+  "category": "developer-tools",
+  "subcategories": ["ios", "android", "ci-cd", "deployment", "automation"],
+  "tags": ["ios", "android", "fastlane", "automation", "deployment", "appstore", "google-play", "certificates"],
+  "what_it_does": "Mobile app deployment automation tool — automates iOS App Store and Android Google Play submission, code signing, screenshot generation, and beta distribution. Fastlane features: Fastfile with lane definitions, actions for each step (build_app, upload_to_app_store, upload_to_play_store, match for code signing, gym for building, pilot for TestFlight, deliver for App Store metadata, supply for Play Store, cert/sigh for certificate management, screenshot/frameit for App Store screenshots). `fastlane ios release` triggers full build-sign-upload pipeline. Works in CI/CD (GitHub Actions, Bitrise, CircleCI). Reduces iOS/Android deployment from hours of manual clicks to one command for agent mobile apps.",
+  "use_cases": [
+    "Agent iOS release automation — lane(:release) { build_app(scheme: 'AgentApp'); upload_to_app_store(username: ENV['APPLE_ID'], app_identifier: 'com.example.agent') } deploys agent iOS app to App Store with one command from CI",
+    "Agent Android release — lane(:deploy) { gradle(task: 'bundle', build_type: 'Release'); upload_to_play_store(package_name: 'com.example.agent', json_key: ENV['GOOGLE_PLAY_JSON_KEY']) } deploys signed AAB to Google Play",
+    "match for agent team code signing — fastlane match development/appstore stores certificates and provisioning profiles in git repo or S3; agent team members run fastlane match to get signing certificates without Apple Developer portal access",
+    "Agent beta distribution — lane(:beta) { build_app; pilot(app_identifier: 'com.example.agent', groups: ['beta-testers']) } uploads agent app to TestFlight and adds beta testers in one command",
+    "Agent screenshot automation — fastlane snapshot generates screenshots in all device sizes from UI tests; frameit adds device frames; deliver uploads screenshots to App Store; agent onboarding screenshots stay current without manual Simulator captures"
+  ],
+  "not_for": [
+    "Web application deployment — Fastlane is mobile-specific; for agent web deployments use Capistrano, GitHub Actions, or Kamal",
+    "App performance monitoring — Fastlane handles deployment automation; for agent app analytics and crash reporting use Firebase Crashlytics or Sentry",
+    "Code review and testing — Fastlane orchestrates deployment; use Xcode/Gradle directly for agent unit tests; Fastlane's scan action can run tests but adds overhead vs direct test invocation"
+  ],
+  "best_when": "Your team ships an iOS or Android agent app and spends hours on manual App Store submission, certificate management, and screenshot updates — Fastlane automates the entire mobile release pipeline.",
+  "avoid_when": "You need web deployment automation, or you have a simple mobile app with infrequent releases where setup cost outweighs benefit.",
+  "alternatives": ["bitrise-api", "appcenter-api", "github-actions-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["ruby"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["api_key", "bearer_token"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "App Store Connect API key (JSON) for iOS; Google Play Service Account JSON key for Android. Match requires git repo access or S3 credentials for certificate storage. Store all secrets in CI environment variables, never in Fastfile."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Fastlane is MIT licensed, maintained by Google. Free for all use. App Store and Google Play developer accounts have their own fees ($99/year Apple, $25 one-time Google)."
+  },
+  "performance": {
+    "latency_p50_ms": 0,
+    "latency_p99_ms": 0,
+    "uptime_sla_percent": null,
+    "rate_limits": "No Fastlane rate limits. App Store Connect API has rate limits (varies by endpoint). Build time depends on agent app size and CI machine specs. iOS builds typically 5-20 minutes; Android 2-10 minutes.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 82,
+    "error_message_quality": 80,
+    "error_message_notes": "Fastlane outputs colored lanes and action progress. Build failures show Xcode/Gradle error output inline. App Store Connect API errors show HTTP status and message. match errors show certificate/profile mismatch details. fastlane --verbose shows full action output for agent deployment debugging.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Build and upload actions are idempotent — re-uploading same binary version may fail with 'duplicate build' error. match certificate actions are idempotent — existing certificates not regenerated unless --force. Upload actions require incrementing version/build numbers for repeated runs.",
+    "pagination_style": "none",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "App Store Connect API key required (no password auth) — Apple deprecated Apple ID/password auth in 2021; fastlane must use App Store Connect API key (JSON file with key_id, issuer_id, key); agent CI using old FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD auth fails; generate API key in App Store Connect under Users and Access > Keys",
+      "match passphrase must be shared across team — match encrypts certificates with MATCH_PASSWORD environment variable; all team members and CI must use same passphrase; different passphrase causes OpenSSL::Cipher::CipherError decryption failure; store MATCH_PASSWORD in team secrets manager, not .env files",
+      "Fastfile lanes are Ruby — Fastfile is Ruby code; syntax errors cause 'Could not load Fastfile' with cryptic Ruby parse error; agent team members unfamiliar with Ruby struggle to maintain complex Fastfiles; keep Fastfile lanes focused and use actions not raw Ruby for agent deployment steps",
+      "Google Play requires published app before supply works — supply upload_to_play_store requires app already created in Google Play Console; first agent app submission must be done manually through Play Console; subsequent releases can use Fastlane; new agent apps can't be created via Fastlane supply",
+      "Xcode version mismatch causes build failures — gym uses system Xcode; CI machine Xcode version must match agent app's minimum deployment target and Swift version; xcode-select --switch for specific version or use xcode-install action; agent iOS builds failing on CI but passing locally usually indicate Xcode version mismatch",
+      "match storage migration is manual — moving from git to S3 or Google Cloud Storage requires manual certificate re-import; match storage_mode change doesn't migrate existing certificates; agent teams changing CI infrastructure must plan match storage migration with certificate re-generation to avoid deployment downtime"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 82,
+    "error_handling_score": 80,
+    "auth_complexity_score": 72,
+    "rate_limit_clarity_score": 82
+  },
+  "security_score_components": {
+    "tls_enforcement": 85,
+    "auth_strength": 78,
+    "scope_granularity": 75,
+    "dependency_hygiene": 82,
+    "secret_handling": 78,
+    "security_notes": "App Store Connect API key and Google Play JSON key are high-privilege credentials — store in CI secrets, never commit to agent repo. match stores signing certificates in git repo (encrypted); use private repo with strong access controls. MATCH_PASSWORD compromise allows certificate decryption; rotate on team member departure."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 82,
+    "version_stability": 78,
+    "breaking_changes_history": 75,
+    "error_recovery": 78
+  }
+}

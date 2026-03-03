@@ -1,0 +1,106 @@
+{
+  "id": "active-storage-rails-api",
+  "name": "Active Storage",
+  "version_evaluated": "7.x",
+  "homepage": "https://guides.rubyonrails.org/active_storage_overview.html",
+  "repo_url": "https://github.com/rails/rails",
+  "category": "developer-tools",
+  "subcategories": ["file-upload", "ruby", "rails", "storage", "s3"],
+  "tags": ["ruby", "rails", "active-storage", "file-upload", "s3", "blob", "attachments"],
+  "what_it_does": "Built-in Rails file attachment system — attaches files to ActiveRecord models and stores them in cloud storage (S3, GCS, Azure Blob) or local disk. Active Storage features: has_one_attached :avatar / has_many_attached :documents in models, form with file_field, direct upload to S3 (bypasses Rails server), image transformation via Vips/ImageMagick (variant), file validation via custom validators or active_storage_validations gem, service configuration in config/storage.yml, background job for variant processing, mirroring between services, and CDN URL generation. Included in Rails since 6.0 with no additional gems required for basic usage.",
+  "use_cases": [
+    "Agent document upload — class Agent < ApplicationRecord { has_many_attached :documents } stores agent knowledge base files to S3; form with file_field(:documents, multiple: true) uploads multiple agent documents; agent.documents.each { |doc| process_document(doc) } accesses attachments",
+    "Agent avatar with image variants — has_one_attached :avatar; agent.avatar.variant(resize_to_limit: [200, 200]).processed generates agent profile thumbnail; <%= image_tag agent.avatar.variant(resize_to_limit: [200, 200]) %> in view with automatic S3 URL",
+    "Direct upload for large agent files — direct_upload: true in file_field bypasses Rails server; large agent training documents upload directly to S3 from browser; reduces Rails server memory usage and upload timeout issues",
+    "Agent file URL generation — agent.document.url(expires_in: 1.hour) generates presigned S3 URL; agent.document.url with public service generates permanent CDN URL; rails_blob_path(agent.document, disposition: 'attachment') generates download link through Rails",
+    "Agent file validation — validates :document, blob: { content_type: ['application/pdf', 'text/plain'], size_range: 1.byte..10.megabytes } with active_storage_validations gem validates agent uploads before storage"
+  ],
+  "not_for": [
+    "Streaming large files — Active Storage serves files through Rails by default (memory buffering); for streaming large agent video files use direct S3/CloudFront URLs or streaming-capable proxy",
+    "Complex file processing pipelines — Active Storage does basic image transforms; for agent document parsing, OCR, or multi-step processing use Sidekiq jobs with specialized libraries",
+    "Non-Rails Ruby projects — Active Storage is Rails-only; for non-Rails file storage use AWS SDK directly or Shrine gem"
+  ],
+  "best_when": "Your Rails agent app needs file attachments stored in S3 or GCS — Active Storage provides zero-configuration file management with direct upload, variants, and built-in Rails integration.",
+  "avoid_when": "You need complex file processing pipelines beyond image variants, you're building a non-Rails app, or you need fine-grained control over storage metadata (Shrine is more powerful).",
+  "alternatives": ["shrine-ruby-api", "carrierwave-api", "paperclip-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["ruby"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["api_key"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Cloud storage credentials via config/storage.yml (S3 access_key_id/secret_access_key, GCS credentials JSON). Use IAM roles in production instead of static keys. Presigned URLs provide time-limited access to private agent files."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Active Storage is free (part of Rails). Storage backend (S3, GCS) costs depend on usage.",
+    "paid_tiers": "None for Active Storage itself",
+    "requires_credit_card": false,
+    "notes": "Active Storage is MIT licensed as part of Rails. S3/GCS/Azure storage backend costs are cloud provider pricing."
+  },
+  "performance": {
+    "latency_p50_ms": 100,
+    "latency_p99_ms": 1000,
+    "uptime_sla_percent": null,
+    "rate_limits": "No Active Storage rate limits. File serving through Rails (redirect mode) proxies to S3 with redirect; proxy mode serves through Rails memory. Direct upload bypasses Rails for upload performance. S3 download bandwidth is primary cost.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 80,
+    "error_message_notes": "ActiveStorage::InvariableError when variant called on non-image file. ActiveStorage::UnrepresentableVariationError for unsupported transform. S3 credentials errors surface as Aws::S3::Errors. Blob not found raises ActiveRecord::RecordNotFound. Direct upload CORS errors appear in browser console, not Rails logs.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "File upload creates new blob each time — re-uploading same file creates duplicate blob; Active Storage does not deduplicate. attach() is idempotent if same blob re-attached. Variant processing is idempotent — same variant parameters produce same result and are cached.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "rails active_storage:install must be run — Active Storage requires 3 database tables (active_storage_blobs, active_storage_attachments, active_storage_variant_records); missing migration causes undefined table error; new Rails agent apps need rails active_storage:install && rails db:migrate before using attachments",
+      "Direct upload requires CORS configuration on S3 — direct_upload: true in form sends browser request directly to S3; S3 bucket must allow CORS from agent app origin; missing CORS config causes 'Access to XMLHttpRequest blocked' in browser; configure S3 CORS policy to allow PUT from agent app domain",
+      "Variant processing requires libvips or ImageMagick — image variant transform requires vips (faster, recommended) or mini_magick; missing system dependency causes ActiveStorage::InvariableError; Docker agent images must install libvips-dev or imagemagick; Rails 7+ defaults to vips, older docs show ImageMagick",
+      "Attaching inside transaction can cause orphaned blobs — agent code that creates attachments inside a transaction where the record save fails leaves orphaned blobs in S3; Active Storage blob is persisted before ActiveRecord record; implement cleanup job or use after_commit hook for agent attachment post-processing",
+      "Service URL expiry affects caching — agent.document.url generates presigned URL valid for 5 minutes by default; caching these URLs in Redis or client-side causes expired link errors; generate URLs on-demand rather than storing; configure expires_in: 1.week for agent download links with less sensitive content",
+      "has_many_attached purge deletes all attachments — agent.documents.purge deletes ALL attached documents permanently from storage; has_one_attached.attach replaces previous attachment and schedules old blob for deletion; agent code purging attachments must implement soft-delete or backup strategy for recoverable agent documents"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 78,
+    "auth_complexity_score": 80,
+    "rate_limit_clarity_score": 88
+  },
+  "security_score_components": {
+    "tls_enforcement": 88,
+    "auth_strength": 82,
+    "scope_granularity": 78,
+    "dependency_hygiene": 88,
+    "secret_handling": 80,
+    "security_notes": "Active Storage does not validate file content by default — uploaded files are stored as-is; add content_type validation to prevent agent apps from storing malware; never serve uploaded agent files from same domain as app (XSS via HTML upload). Use private S3 buckets with presigned URLs for sensitive agent documents. Virus scanning via ClamAV before processing agent uploads recommended."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 85,
+    "breaking_changes_history": 80,
+    "error_recovery": 82
+  }
+}
