@@ -1,0 +1,106 @@
+{
+  "id": "spicedb-api",
+  "name": "SpiceDB",
+  "version_evaluated": "1.34+",
+  "homepage": "https://authzed.com/spicedb",
+  "repo_url": "https://github.com/authzed/spicedb",
+  "category": "developer-tools",
+  "subcategories": ["authorization", "permissions", "security", "google-zanzibar"],
+  "tags": ["authorization", "permissions", "zanzibar", "rbac", "abac", "fine-grained", "open-source", "graph"],
+  "what_it_does": "Open-source, Google Zanzibar-inspired fine-grained authorization system. SpiceDB stores permission relationships in a schema and evaluates permission checks by traversing relationship graphs. Implements consistent, scalable permissions checks at the tuple level — enabling permissions like 'user:alice can view document:doc123 because she's in group:engineering which has viewer access to project:backend'. Built by AuthZed.",
+  "use_cases": [
+    "Implement fine-grained resource-level permissions for agent systems (user X can access agent Y's outputs for document Z)",
+    "Build Google Drive-like sharing models for agent workspace resources with inheritance and groups",
+    "Centralize authorization for multi-agent architectures where different agents have different resource permissions",
+    "Implement RBAC with resource-level granularity — role doesn't give blanket access, each resource is explicitly permissioned",
+    "Audit all permission decisions and relationship changes in agent systems with SpiceDB's write-ahead log"
+  ],
+  "not_for": [
+    "Simple RBAC without resource-level granularity — OPA or Casbin are simpler for basic role checks",
+    "Applications that can't accept eventual consistency in permission checks — SpiceDB has zedtokens for consistency control but adds complexity",
+    "Teams without resources to run another database service — SpiceDB requires its own PostgreSQL/CockroachDB backend"
+  ],
+  "best_when": "You need Google Zanzibar-style fine-grained authorization where users have different permissions on different resources in your agent platform.",
+  "avoid_when": "Simple role-based access is sufficient — SpiceDB's relationship model is powerful but adds significant complexity.",
+  "alternatives": ["openfga-api", "opa-api", "cerbos-api", "casbin-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": true,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["go", "python", "node", "java", "ruby"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["api_key", "bearer_token"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Preshared token (API key) for client authentication. gRPC and HTTP APIs both support token auth. AuthZed Cloud adds OAuth."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Self-hosted SpiceDB is free (Apache 2.0). AuthZed Cloud has free tier.",
+    "paid_tiers": "AuthZed Cloud from $299/month; Enterprise custom",
+    "requires_credit_card": false,
+    "notes": "SpiceDB core is open source. AuthZed (the company) offers managed SpiceDB cloud with SLA."
+  },
+  "performance": {
+    "latency_p50_ms": 5,
+    "latency_p99_ms": 50,
+    "uptime_sla_percent": 99.95,
+    "rate_limits": "Rate limits vary by plan; self-hosted limited by infrastructure",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted", "US", "EU"],
+    "compliance": ["SOC2"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 85,
+    "error_message_notes": "gRPC status codes with detailed error messages. Schema validation errors include line/column. Permission check errors distinguish denied vs error. Structured response for consistency tokens.",
+    "idempotency_support": "full",
+    "idempotency_notes": "WriteRelationships is idempotent for TOUCH operations. CheckPermission is read-only and idempotent. Zedtokens enable consistent reads.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "SpiceDB uses Zanzibar's consistency model — default checks may not see the most recent writes; use zedtokens from write operations for consistent reads",
+      "Schema changes require migration — adding new permission types requires schema update with zed CLI; live schema changes must be backward compatible",
+      "Relationship tuples are the source of truth — forgot to write a relationship when creating a resource is a common bug that causes silent permission denials",
+      "Wildcard permissions (*) in SpiceDB grant access to all objects of a type — use carefully in agent systems to avoid unintended access grants",
+      "LookupResources and LookupSubjects are powerful but expensive — listing all resources a user can access involves graph traversal; use carefully at scale",
+      "SpiceDB requires a backing database (PostgreSQL or CockroachDB) — deploying SpiceDB means running two database systems with their own operational overhead"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 85,
+    "auth_complexity_score": 82,
+    "rate_limit_clarity_score": 82
+  },
+  "security_score_components": {
+    "tls_enforcement": 98,
+    "auth_strength": 90,
+    "scope_granularity": 95,
+    "dependency_hygiene": 90,
+    "secret_handling": 88,
+    "security_notes": "Designed as a security boundary — all permission decisions are auditable. TLS strongly recommended. Pre-shared tokens must use strong random values. SOC2 certified for AuthZed Cloud."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 92,
+    "version_stability": 85,
+    "breaking_changes_history": 82,
+    "error_recovery": 88
+  }
+}
