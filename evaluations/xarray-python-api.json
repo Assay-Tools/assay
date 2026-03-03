@@ -1,0 +1,106 @@
+{
+  "id": "xarray-python-api",
+  "name": "xarray",
+  "version_evaluated": "2024.x",
+  "homepage": "https://xarray.dev/",
+  "repo_url": "https://github.com/pydata/xarray",
+  "category": "ai-ml",
+  "subcategories": ["scientific-computing", "python", "arrays", "geospatial", "time-series"],
+  "tags": ["python", "xarray", "labeled-arrays", "netcdf", "time-series", "geospatial", "pandas", "climate"],
+  "what_it_does": "Labeled N-dimensional array library for Python — pandas for N-D arrays with dimension names and coordinates. xarray features: DataArray (labeled N-D array) and Dataset (dict of DataArrays), dimension-aware operations (mean(dim='time')), coordinate alignment, label-based indexing (ds.sel(lat=40.7)), broadcasting by dimension name, groupby with dimensions (ds.groupby('time.month')), rolling windows, resample for time series, NetCDF4/Zarr/HDF5 I/O (open_dataset), Dask integration for out-of-core computation, CF conventions support, and rich plotting via matplotlib. Standard library for climate data, geospatial analysis, and any multi-dimensional labeled array work.",
+  "use_cases": [
+    "Agent time-series analysis — ds = xr.open_dataset('climate.nc'); monthly_mean = ds['temperature'].groupby('time.month').mean(dim='time') — agent analyzes time-indexed climate data by month; label-based groupby without manual index management; dimension-aware mean computation",
+    "Agent geospatial data processing — ds = xr.open_dataset('weather.nc'); region = ds.sel(lat=slice(30, 50), lon=slice(-100, -70)) — agent extracts geographic region by coordinate values; label-based selection vs numpy integer indices; coordinate alignment handles non-uniform grids",
+    "Agent multi-sensor fusion — ds = xr.Dataset({'temp': temp_da, 'humidity': humid_da}, coords={'time': timestamps, 'station': stations}); aligned = xr.align(ds1, ds2, join='inner') — agent aligns multi-sensor datasets on shared coordinates; automatic broadcasting without manual reshape",
+    "Agent lazy Dask computation — ds = xr.open_mfdataset('data/*.nc', parallel=True, engine='netcdf4'); result = ds['temperature'].mean(dim='time').compute() — open 1000 NetCDF files as lazy Dask-backed Dataset; agent processes TB of climate data with out-of-core Dask execution",
+    "Agent Zarr I/O — ds.to_zarr('output.zarr') / ds = xr.open_zarr('s3://bucket/data.zarr') — xarray writes and reads Zarr format natively; agent stores labeled N-D arrays to S3 in cloud-optimized Zarr format; chunking preserves dimension alignment"
+  ],
+  "not_for": [
+    "Tabular relational data — use pandas; xarray is for N-D arrays with dimension names, not tables with heterogeneous columns",
+    "Simple 1D time series without coordinates — pandas is sufficient; xarray adds overhead not worth it for simple tabular time series",
+    "Image processing — use OpenCV or Pillow; xarray adds labeled overhead for pixel-level image operations where dimension names don't add value"
+  ],
+  "best_when": "Working with multi-dimensional scientific data where dimension names and coordinate alignment matter — sensor grids, climate data, remote sensing, oceanography, or any agent pipeline handling NetCDF/HDF5 files with spatial/temporal coordinates.",
+  "avoid_when": "Your data is tabular (use pandas), you need database queries (use SQL), or array dimensions have no meaningful labels.",
+  "alternatives": ["numpy-api", "pandas-api", "dask-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — local computation library. Cloud storage backends (S3, GCS) use fsspec credentials."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, Apache 2.0 licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "xarray is Apache 2.0 licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 5,
+    "latency_p99_ms": 100,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. In-memory operations depend on NumPy/Dask backend. Dask integration enables out-of-core processing of datasets larger than RAM. open_mfdataset with parallel=True uses multiple threads for file opening.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 82,
+    "error_message_quality": 78,
+    "error_message_notes": "MergeError when coordinate alignment fails in merge(). ValueError for dimension mismatch in arithmetic. KeyError for missing variable in Dataset. InvalidIndexError for duplicate coordinates in sel(). Dask errors propagate on compute() not on graph construction.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Operations on DataArray/Dataset are idempotent for same inputs. Lazy Dask operations computed identically each time. to_zarr/to_netcdf with mode='w' overwrites idempotently. File reads are read-only and idempotent.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "open_dataset loads entire file into memory — xr.open_dataset('file.nc') reads all variables into memory; agent code processing large NetCDF files must use chunks={'time': 100} to create Dask-backed lazy Dataset; without chunks, opening 10GB NetCDF fails with MemoryError",
+      "sel() vs isel() — ds.sel(time='2024-01') selects by coordinate label; ds.isel(time=0) selects by integer index; agent code mixing label and integer selection raises IndexError; use sel() for coordinate-based and isel() for position-based access consistently",
+      "Coordinate alignment in arithmetic can silently drop data — da1 + da2 where da1 and da2 have different coordinate values returns NaN for non-matching coords; agent code doing sensor fusion with misaligned timestamps gets NaN results without error; use xr.align(da1, da2, join='inner') explicitly before arithmetic",
+      "Dask chunks must be set at open time — xr.open_dataset('file.nc', chunks={'time': 100}) creates Dask-backed array; calling .chunk({'time': 100}) after open_dataset works but is less efficient; agent pipelines must decide chunking strategy before opening data, not after loading",
+      "copy() needed before in-place-like operations — xarray DataArrays are immutable-like but .values returns mutable NumPy array; modifying da.values in place modifies underlying array; agent code must use da.copy() or da.assign_coords() to create modified versions without mutating originals",
+      "open_mfdataset requires compatible coordinate schemas — xr.open_mfdataset(['f1.nc', 'f2.nc']) fails if files have different variables or coordinate names; agent pipelines combining sensor data from different sources must preprocess files to consistent schema before open_mfdataset"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 82,
+    "error_handling_score": 75,
+    "auth_complexity_score": 95,
+    "rate_limit_clarity_score": 98
+  },
+  "security_score_components": {
+    "tls_enforcement": 90,
+    "auth_strength": 88,
+    "scope_granularity": 85,
+    "dependency_hygiene": 85,
+    "secret_handling": 88,
+    "security_notes": "Local computation library — no network access for computation. Cloud I/O uses fsspec provider credentials. NetCDF/HDF5 files can contain arbitrary data — validate before loading in security-sensitive agent contexts."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 82,
+    "version_stability": 80,
+    "breaking_changes_history": 78,
+    "error_recovery": 80
+  }
+}

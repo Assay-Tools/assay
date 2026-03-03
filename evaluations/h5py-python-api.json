@@ -1,0 +1,106 @@
+{
+  "id": "h5py-python-api",
+  "name": "h5py",
+  "version_evaluated": "3.x",
+  "homepage": "https://www.h5py.org/",
+  "repo_url": "https://github.com/h5py/h5py",
+  "category": "developer-tools",
+  "subcategories": ["data-storage", "python", "hdf5", "scientific-computing", "arrays"],
+  "tags": ["python", "h5py", "hdf5", "scientific-computing", "arrays", "datasets", "checkpoints"],
+  "what_it_does": "Python interface to HDF5 — read/write hierarchical datasets in the HDF5 binary format. h5py features: File context manager (h5py.File), Group hierarchy (file['/group/subgroup']), Dataset creation (file.create_dataset), NumPy-compatible array access, chunked datasets, compression (gzip, lzf, szip), dataset attributes, virtual datasets, partial I/O (fancy indexing), memory-mapped access, parallel HDF5 with MPI, SWMR (single-writer multiple-reader), and h5py.special_dtype for variable-length strings. HDF5 is the standard format for scientific datasets, PyTorch model checkpoints, Keras weights (.h5), and TensorFlow SavedModel. Primary Python API for reading/writing HDF5 files used across ML, genomics, and physics.",
+  "use_cases": [
+    "Agent model checkpoint storage — with h5py.File('agent_model.h5', 'w') as f: f.create_dataset('weights', data=model_weights, compression='gzip') — store agent model weights in compressed HDF5; checkpoints load faster than pickle; human-inspectable structure with h5ls",
+    "Agent large dataset I/O — with h5py.File('training_data.h5', 'r') as f: batch = f['features'][1000:2000, :] — read only needed slice of 100M row dataset; HDF5 supports partial I/O without loading full file; agent training loops read batches directly from HDF5",
+    "Agent genomics data — with h5py.File('genome.h5', 'r') as f: sequences = f['chr1/sequences'][start:end] — read genomic sequence data stored in HDF5 hierarchy; agent bioinformatics pipelines read standard H5 format from GATK, DeepVariant, and other genomics tools",
+    "Agent attribute metadata — with h5py.File('agent_data.h5', 'a') as f: f['results'].attrs['model_version'] = '1.2.3'; f['results'].attrs['timestamp'] = str(datetime.now()) — store metadata alongside agent data arrays; attributes inspectable without reading full dataset",
+    "Agent SWMR streaming — with h5py.File('live_data.h5', 'r', swmr=True) as f: while True: ds = f['sensor_data']; ds.id.refresh(); latest = ds[-1] — read HDF5 being written by another process; agent monitoring pipeline reads sensor data as writer appends; SWMR allows concurrent read/write"
+  ],
+  "not_for": [
+    "Relational queries — use SQLite or PostgreSQL; HDF5 is hierarchical array storage not a relational database",
+    "Concurrent multi-writer access — HDF5 allows single writer at a time (SWMR allows one writer, many readers); for multi-writer use Zarr or database",
+    "Small datasets — HDF5 file overhead (metadata, chunking) adds complexity for small datasets; use .npy or pickle for simple small arrays"
+  ],
+  "best_when": "Reading/writing large scientific datasets, ML model checkpoints, or genomics/physics data in the standard HDF5 format — h5py is the Python standard for HDF5 access with NumPy-compatible partial I/O.",
+  "avoid_when": "You need cloud-native array storage (use Zarr), relational data (use SQL), or concurrent multi-writer access.",
+  "alternatives": ["zarr-python-api", "numpy-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — local file I/O library."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, BSD licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "h5py is BSD licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 1,
+    "latency_p99_ms": 50,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Partial I/O reads only requested slice. Chunked datasets with appropriate chunk size match typical access patterns. Compressed datasets trade CPU time for reduced I/O. Memory mapping enables near-zero-copy access for in-memory portions.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 80,
+    "error_message_quality": 78,
+    "error_message_notes": "OSError when file not found or permission denied. RuntimeError if file already open in write mode by another process. KeyError for missing dataset path. ValueError for shape mismatch on write. h5py.FileNotFoundError with useful path info.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Reads are idempotent. Writes to existing dataset raise ValueError unless overwrite. h5py.File mode='w' truncates on open. create_dataset with same name raises ValueError unless data=dataset['key'][...] reload pattern used.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "h5py.File must be used as context manager — f = h5py.File('data.h5', 'r'); data = f['key'][:]; f.close() is safe but forgetting f.close() leaks file handle; agent code in loops must use with h5py.File(...) as f: or file handles accumulate and process hits OS limit",
+      "Dataset returned is lazy not array — f['data'] returns h5py.Dataset object, not NumPy array; f['data'].shape works but f['data'][0] + f['data'][1] triggers two I/O reads; agent code processing dataset elements should load needed slice once: arr = f['data'][start:end]; then work with arr",
+      "Mode 'a' vs 'r+' vs 'w' differ critically — mode='a' creates file if missing or opens for append; mode='r+' requires file exists; mode='w' truncates existing file; agent code using mode='a' to append to existing file accidentally creates empty file if path wrong",
+      "Variable-length strings require special dtype — h5py.string_dtype() required for variable-length string datasets in h5py 3.x; fixed-length h5py.special_dtype(vlen=str) was h5py 2.x API; agent code from h5py 2.x examples using special_dtype raises deprecation warning in h5py 3.x",
+      "Fancy indexing returns copy not view — f['data'][[0, 5, 10]] (fancy indexing) reads and returns copy; f['data'][0:10] (slice) may return view into mmap; agent code expecting view semantics from fancy indexing gets full copy; avoid fancy indexing for large datasets in agent memory-constrained environments",
+      "Parallel HDF5 requires MPI build — h5py with parallel=True requires HDF5 built with MPI support and mpi4py; standard pip install h5py is serial only; agent distributed training code using h5py for multi-GPU data loading must install h5py[mpi] or use Zarr which supports concurrent reads natively"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 80,
+    "error_handling_score": 78,
+    "auth_complexity_score": 98,
+    "rate_limit_clarity_score": 98
+  },
+  "security_score_components": {
+    "tls_enforcement": 92,
+    "auth_strength": 92,
+    "scope_granularity": 88,
+    "dependency_hygiene": 85,
+    "secret_handling": 90,
+    "security_notes": "Local file I/O — no network access. HDF5 files are binary format — do not load untrusted HDF5 files as malformed files can trigger libhdf5 vulnerabilities. Keras .h5 weight files from untrusted sources should be verified before loading into agent models."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 85,
+    "version_stability": 82,
+    "breaking_changes_history": 78,
+    "error_recovery": 82
+  }
+}

@@ -1,0 +1,106 @@
+{
+  "id": "zarr-python-api",
+  "name": "Zarr",
+  "version_evaluated": "2.x",
+  "homepage": "https://zarr.readthedocs.io/",
+  "repo_url": "https://github.com/zarr-developers/zarr-python",
+  "category": "developer-tools",
+  "subcategories": ["data-storage", "python", "arrays", "scientific-computing", "chunked"],
+  "tags": ["python", "zarr", "chunked-arrays", "n-dimensional", "cloud-storage", "hdf5-alternative", "scientific"],
+  "what_it_does": "Chunked, compressed N-dimensional array storage for Python — cloud-native alternative to HDF5. Zarr features: zarr.open() for local/cloud arrays, zarr.zeros/ones/empty for creation, chunk-based storage (chunk=(100, 100)), compression (Blosc, Zstd, Zlib, LZ4), multiple backends (local filesystem, S3, GCS, Azure Blob via fsspec), consolidated metadata, zarr.Group hierarchy, append-friendly arrays, zarr.convenience.copy_all for HDF5 migration, thread-safe reads, and parallel writes with synchronization. Cloud-native format — arrays stored as directories of chunk files readable from S3 without full download. Used with Dask for out-of-core processing of TB-scale datasets.",
+  "use_cases": [
+    "Agent cloud array storage — store = zarr.open_group('s3://agent-data/embeddings', mode='w', storage_options={'anon': False}); store['vectors'] = embeddings_array — agent stores large embedding arrays directly to S3; chunks downloaded on demand during agent retrieval; 1TB array stored as millions of 1MB chunk files",
+    "Agent out-of-core computation — z = zarr.open('large_dataset.zarr', mode='r'); chunk = z[1000:2000, :] — read only needed chunk without loading full array; agent processes 100GB dataset chunk by chunk without exceeding RAM; lazy loading via Dask integration",
+    "Agent compressed array cache — z = zarr.open('cache.zarr', mode='w', shape=(100000, 768), chunks=(1000, 768), dtype='float32', compressor=zarr.Blosc(cname='lz4')); agent embedding cache compressed 4-10x vs raw float32; LZ4 compressor decompresses at memory bandwidth speed",
+    "Agent append-only logging — z = zarr.open('agent_log.zarr', mode='a'); z.append(new_entries) — agent execution logs stored as appendable arrays; chunk-based storage allows efficient append without rewriting full dataset; timestamps and vectors stored in parallel arrays",
+    "Agent S3 dataset sharing — zarr.consolidate_metadata('s3://shared/dataset.zarr') — consolidates chunk metadata into single .zmetadata file; agent reads dataset metadata in one S3 request vs thousands; consolidated metadata required for fast multi-agent dataset access from S3"
+  ],
+  "not_for": [
+    "Relational or structured data — use PostgreSQL or SQLite; Zarr is for numerical N-dimensional arrays not tabular relational data",
+    "Single small arrays — overhead of chunking and compression isn't worth it for small (< 1MB) arrays; use NumPy .npy directly",
+    "Transactional updates — Zarr has no transactions or ACID guarantees; concurrent writes to same chunk without synchronization causes corruption"
+  ],
+  "best_when": "Storing and accessing large N-dimensional arrays (embeddings, time-series, imagery) in cloud storage for agent pipelines — Zarr's chunk-based storage enables efficient partial reads, cloud-native access, and compression without loading full arrays into memory.",
+  "avoid_when": "You need relational data, ACID transactions, or SQL queries — Zarr is for numerical arrays not structured data.",
+  "alternatives": ["h5py-api", "numpy-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth for local storage. Cloud backends use fsspec credentials (AWS credentials, GCS service account, Azure storage key)."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Zarr is MIT licensed. Cloud storage costs are from S3/GCS/Azure provider separately."
+  },
+  "performance": {
+    "latency_p50_ms": 1,
+    "latency_p99_ms": 100,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits for local storage. Cloud storage limited by network bandwidth and provider rate limits. Blosc LZ4 compression/decompression at memory bandwidth speed. Chunk size tuning critical for performance — too small = many requests, too large = unnecessary data transfer.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted", "aws", "gcp", "azure"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 80,
+    "error_message_quality": 75,
+    "error_message_notes": "KeyError when accessing non-existent group key. ValueError for shape mismatch during write. ContainsGroupError when creating array where group exists. fsspec errors for cloud access (PermissionError, NoCredentialsError). Chunk corruption raises zarr.errors.BadCompressorError.",
+    "idempotency_support": "full",
+    "idempotency_notes": "zarr.open in write mode truncates and recreates. Append is additive. Read is fully idempotent. Chunk writes with same data are idempotent. Thread-safe reads; writes require synchronizer for concurrent access.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Chunk size dramatically affects performance — zarr.open(shape=(1000000, 768), chunks=(1000, 768)) creates 1000 chunks; too-small chunks create millions of files and millions of S3 requests; too-large chunks download unnecessary data for point reads; agent chunk size should match access pattern (row-slices vs column-slices vs random access)",
+      "Parallel writes require synchronizer — zarr.open(synchronizer=zarr.ThreadSynchronizer()) for thread safety; without synchronizer, concurrent agent writes to same chunk cause data corruption silently; zarr.ProcessSynchronizer for multiprocessing; default has no synchronization",
+      "S3 requires s3fs and explicit credentials — zarr.open('s3://bucket/array.zarr') requires s3fs installed; boto3 credentials in environment (AWS_ACCESS_KEY_ID, etc.); agent S3 access in Docker containers must pass AWS credentials via environment variables or IAM role",
+      "zarr v2 and v3 format incompatible — zarr-python 3.x reads zarr format v3 by default; zarr-python 2.x writes v2 format; agent code mixing zarr versions gets zarr.errors.GroupNotFoundError; pin zarr version across all agent components or explicitly specify zarr_format=2",
+      "consolidated_metadata must be regenerated after writes — zarr.consolidate_metadata() snapshot is not auto-updated; agent code writing to S3 zarr store must call consolidate_metadata() after writes or readers get stale metadata; batch writes then consolidate once vs consolidate after every write",
+      "zarr.open vs zarr.open_group vs zarr.open_array semantics differ — zarr.open() returns Group or Array depending on store contents; zarr.open_array() raises if root is Group; agent code must know whether storing single array or group hierarchy; use zarr.open_group() consistently for hierarchical agent data"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 80,
+    "error_handling_score": 72,
+    "auth_complexity_score": 88,
+    "rate_limit_clarity_score": 90
+  },
+  "security_score_components": {
+    "tls_enforcement": 88,
+    "auth_strength": 82,
+    "scope_granularity": 80,
+    "dependency_hygiene": 85,
+    "secret_handling": 82,
+    "security_notes": "Cloud storage credentials managed by fsspec/boto3/google-cloud-storage — use IAM roles not hardcoded keys. Zarr stores are directories of files — bucket-level ACLs control access. No built-in encryption — use S3 server-side encryption for sensitive agent arrays."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 80,
+    "version_stability": 75,
+    "breaking_changes_history": 68,
+    "error_recovery": 78
+  }
+}
