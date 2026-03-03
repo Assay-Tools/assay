@@ -1,0 +1,106 @@
+{
+  "id": "capybara-ruby-api",
+  "name": "Capybara",
+  "version_evaluated": "3.x",
+  "homepage": "https://github.com/teamcapybara/capybara",
+  "repo_url": "https://github.com/teamcapybara/capybara",
+  "category": "developer-tools",
+  "subcategories": ["testing", "ruby", "rails", "browser-testing", "integration-testing"],
+  "tags": ["ruby", "rails", "capybara", "browser-testing", "selenium", "playwright", "rspec", "minitest", "acceptance-testing"],
+  "what_it_does": "Browser automation testing library for Ruby web apps — provides high-level DSL for writing browser-based integration tests. Capybara features: visit, click_link, click_button, fill_in, find, has_content?, select, check, within, driver backends (Rack::Test for headless, Selenium for browser, Playwright via capybara-playwright-driver), automatic wait/retry for async content (has_text? waits by default), screenshots on failure, sessions for multi-user testing, and Rails system tests integration (ActionDispatch::SystemTestCase). Works with RSpec and Minitest.",
+  "use_cases": [
+    "Agent web UI system tests — visit '/agent/dashboard'; fill_in 'Task input', with: 'search web for Ruby news'; click_button 'Run Agent'; expect(page).to have_content('Task completed', wait: 30) — tests full agent workflow through browser",
+    "Agent authentication flow — visit '/login'; fill_in 'Email', with: 'agent@example.com'; fill_in 'Password', with: 'password'; click_button 'Sign in'; expect(page).to have_content('Agent Dashboard'); validates agent auth UI works end-to-end",
+    "JavaScript-driven agent UI — using_driver(:selenium_chrome_headless) { visit '/agent'; find('[data-controller=agent]').click; expect(page).to have_css('.agent-status', text: 'Running') } — tests Stimulus/Hotwire agent UI interactions",
+    "Multi-session agent collaboration test — session1 = Capybara::Session.new(:selenium); session2 = Capybara::Session.new(:selenium); session1.visit '/agent/session/1'; session2.visit '/agent/session/1'; session1.fill_in 'message', with: 'Hello'; session2.has_content?('Hello') — tests real-time agent collaboration",
+    "Rails system test with screenshots — class AgentSystemTest < ApplicationSystemTestCase; driven_by :selenium, using: :headless_chrome; test 'agent completes task' do; visit agent_path; ... take_screenshot; end; end — screenshot captured on failure for agent UI debugging"
+  ],
+  "not_for": [
+    "API testing — Capybara tests browser UI; for agent REST API testing use RSpec request specs or Minitest IntegrationTest",
+    "High-speed test suites — browser tests are slow (1-10 seconds each); for agent unit logic use RSpec/Minitest without browser; Capybara for critical user journeys only",
+    "Mobile app testing — Capybara tests web browsers; for iOS/Android agent app testing use XCTest/Espresso"
+  ],
+  "best_when": "Testing critical agent web UI workflows end-to-end — login flows, form submissions, JavaScript interactions, real-time updates — where unit tests can't catch integration failures.",
+  "avoid_when": "You need fast test suites, API testing, or are testing mobile apps — Capybara's browser overhead makes it unsuitable for comprehensive test coverage.",
+  "alternatives": ["playwright-api", "selenium-api", "webdriverio-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["ruby"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth on Capybara itself — tests authenticate against the Rails app under test. Selenium/chromedriver needs browser installed on CI machine."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Capybara is MIT licensed. Selenium requires chromedriver (free). Playwright backend via capybara-playwright-driver (free)."
+  },
+  "performance": {
+    "latency_p50_ms": 2000,
+    "latency_p99_ms": 15000,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Browser test per-test overhead: 1-10 seconds including browser startup. Rack::Test (headless) is 10x faster than Selenium for non-JS tests. Parallel system tests with parallel_tests gem reduces total suite time.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 80,
+    "error_message_notes": "Capybara::ElementNotFound shows which selector wasn't found. Capybara::Ambiguous shows when multiple elements match. Timeout waiting shows the element being waited for and current page HTML excerpt. Screenshot on failure (with selenium) shows visual state at test failure. Rails system tests save screenshots to tmp/screenshots/.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Capybara tests are idempotent when database is reset between tests (DatabaseCleaner or transaction rollback). Capybara::Session is reset between tests automatically in Rails system tests. Browser state (cookies, localStorage) reset per test.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Rack::Test driver doesn't execute JavaScript — default :rack_test driver is fast but doesn't run JS; agent Stimulus controllers, Turbo Streams, and async UI don't work with rack_test; switch to :selenium_chrome_headless for JS-dependent agent UI tests; many agent test failures caused by wrong driver selection",
+      "Selenium requires chromedriver version matching Chrome — chromedriver and Chrome must be same major version; CI machines running outdated Chrome cause 'ChromeDriver only supports Chrome version X' errors; use webdrivers gem or chromedriver-helper for automatic version management; agent CI Docker images should pin both Chrome and chromedriver versions",
+      "Database transactions not shared between app and test — Selenium runs app in separate thread; database_cleaner transactions don't span thread boundary; agent system tests with Selenium must use DatabaseCleaner truncation strategy (not transaction); truncation is slower — use transaction for rack_test, truncation for selenium tests",
+      "has_content? waits but raises on timeout — expect(page).to have_content('Agent completed') waits up to Capybara.default_max_wait_time (default 2s); agent tasks taking >2s cause false failures; increase wait: expect(page).to have_content('done', wait: 30) for slow agent operations",
+      "within scoping doesn't affect new Capybara::Session — within '.agent-panel' { find('button').click } scopes to element; but Capybara.using_session(:other) { } creates unscoped second session; agent multi-user tests need explicit scoping in each session block; forgetting within in multi-session tests causes wrong element interactions",
+      "CI headless browser needs display server — Selenium non-headless requires X11 display; CI without Xvfb causes 'cannot open display' errors; use :selenium_chrome_headless or :selenium_headless_chrome driver; add headless: true to Chrome options; agent CI using Docker needs FROM selenium/standalone-chrome or chromedriver with --headless flag"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 80,
+    "auth_complexity_score": 92,
+    "rate_limit_clarity_score": 95
+  },
+  "security_score_components": {
+    "tls_enforcement": 88,
+    "auth_strength": 85,
+    "scope_granularity": 82,
+    "dependency_hygiene": 85,
+    "secret_handling": 90,
+    "security_notes": "Test credentials hardcoded in test files — use Rails credentials or ENV for agent test accounts; never use production credentials in Capybara tests. Screenshots saved to tmp/ may contain sensitive agent UI data — add tmp/screenshots/ to .gitignore. CI test artifacts with screenshots should have limited retention."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 85,
+    "version_stability": 88,
+    "breaking_changes_history": 82,
+    "error_recovery": 80
+  }
+}
