@@ -1,0 +1,106 @@
+{
+  "id": "hikaricp-api",
+  "name": "HikariCP",
+  "version_evaluated": "5.x",
+  "homepage": "https://github.com/brettwooldridge/HikariCP",
+  "repo_url": "https://github.com/brettwooldridge/HikariCP",
+  "category": "developer-tools",
+  "subcategories": ["database", "java", "connection-pool", "performance"],
+  "tags": ["java", "kotlin", "jdbc", "connection-pool", "database", "performance", "postgresql", "mysql", "spring-boot"],
+  "what_it_does": "The fastest JDBC connection pool for Java/Kotlin — Spring Boot's default since 2.x and Quarkus/Micronaut standard choice. HikariCP is designed for one thing: minimal overhead, minimal latency, and rock-solid JDBC connection pooling. Key features: pool configuration via HikariConfig or HikariDataSource, connection validation (isValid), connection leak detection, maximum pool size management, idle connection cleanup, and comprehensive metrics via Micrometer/Dropwizard. Benchmarks consistently show HikariCP 2-3x faster than c3p0, DBCP, and BoneCP. Micro-optimizations via bytecode manipulation and lock-free design.",
+  "use_cases": [
+    "Manage database connections for Java/Kotlin agent backends — HikariCP's pool reuse dramatically reduces JDBC connection overhead in high-throughput agent APIs",
+    "Configure connection pooling for Spring Boot agent services — Spring Boot auto-configures HikariCP from spring.datasource.hikari.* properties; tune maximumPoolSize for agent concurrency requirements",
+    "Monitor agent database connection pool health using HikariCP's Micrometer integration — track pool size, pending connections, and connection timeout rates",
+    "Detect agent service database connection leaks using HikariCP's leak detection threshold — log warning when connection is held longer than configured milliseconds",
+    "Configure read replica connection pools for agent query separation — separate HikariCP pools for write master and read replicas in multi-database agent architectures"
+  ],
+  "not_for": [
+    "Reactive/non-blocking database access — HikariCP is JDBC (blocking); use R2DBC connection pools for reactive Spring WebFlux or Mutiny-based Quarkus agent backends",
+    "Non-JVM stacks — use pgBouncer (PostgreSQL), PgPool (PostgreSQL), or pg connection pool (Node.js) for non-Java connection pooling",
+    "Direct application development — HikariCP is a JDBC layer; you interact with JDBC, JPA, Spring Data, or Slick on top; you rarely configure HikariCP directly outside of application properties"
+  ],
+  "best_when": "You're running a JVM application with JDBC database access — HikariCP is the default choice for Spring Boot, Quarkus, and Micronaut; its performance and reliability make it the standard.",
+  "avoid_when": "You need reactive/non-blocking database access (use R2DBC), you're not on JVM, or you're using a higher-level ORM that manages its own pool (though most JVM ORMs use HikariCP internally).",
+  "alternatives": ["r2dbc-pool-api", "pgbouncer-api", "vibur-dbcp-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["java", "kotlin"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Connection pool — database credentials passed via HikariConfig.setUsername/Password or spring.datasource.username/password. HikariCP manages credentials for JDBC connections."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, Apache 2.0 licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "HikariCP is Apache 2.0 licensed, maintained by Brett Wooldridge. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 0,
+    "latency_p99_ms": 1,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — local connection pool. Connection acquisition from pool is ~microseconds. Pool size governance prevents database connection exhaustion.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 90,
+    "error_message_quality": 88,
+    "error_message_notes": "HikariCP logs connection pool timeouts with context: 'Connection is not available, request timed out after X ms'. Pool exhaustion shows pending thread count. Connection leak detection logs the stack trace of the connection acquisition that leaked.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Connection pool is transparent to application code — JDBC operations are idempotent based on SQL semantics. Pool management itself is fully idempotent.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "maximumPoolSize sizing is critical — default 10 connections may be too few for high-concurrency agent services; too many connections exhausts database connection limits; rule: set to (cores * 2 + effective_spindle_count) per HikariCP docs",
+      "connectionTimeout vs idleTimeout vs maxLifetime — connectionTimeout is how long to wait for a pool connection (default 30s); idleTimeout removes idle connections; maxLifetime prevents stale connections to database; all three must be tuned for production",
+      "Connection validation on borrow — HikariCP validates connections via connectionTestQuery or isValid; slow validation adds latency to every borrow; use keepaliveTime instead of aggressive connectionTestQuery for PostgreSQL",
+      "JDBC driver version matters — HikariCP's performance depends on JDBC driver efficiency; outdated PostgreSQL JDBC driver causes performance degradation; always use latest compatible driver",
+      "Leak detection threshold — leakDetectionThreshold logs but doesn't close leaking connections; it's diagnostic only; actual connection leak (code forgets to close ResultSet/Connection) still exhausts pool over time",
+      "Spring Boot auto-configuration overrides — spring.datasource.hikari.* properties merge with but can conflict with programmatic HikariConfig; avoid mixing both configuration styles; prefer application.properties for Spring Boot apps"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 90,
+    "error_handling_score": 88,
+    "auth_complexity_score": 92,
+    "rate_limit_clarity_score": 92
+  },
+  "security_score_components": {
+    "tls_enforcement": 92,
+    "auth_strength": 88,
+    "scope_granularity": 82,
+    "dependency_hygiene": 92,
+    "secret_handling": 85,
+    "security_notes": "JDBC URL supports SSL/TLS for database connections. Credentials managed in application config — use environment variables or Vault, not hardcoded. No network exposure from pool itself. Connection validation prevents stale connections."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 92,
+    "version_stability": 92,
+    "breaking_changes_history": 90,
+    "error_recovery": 92
+  }
+}
