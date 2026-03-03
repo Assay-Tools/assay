@@ -1,0 +1,106 @@
+{
+  "id": "peft-huggingface-api",
+  "name": "PEFT (HuggingFace)",
+  "version_evaluated": "0.1x",
+  "homepage": "https://huggingface.co/docs/peft/",
+  "repo_url": "https://github.com/huggingface/peft",
+  "category": "ai-ml",
+  "subcategories": ["machine-learning", "python", "fine-tuning", "lora", "llm"],
+  "tags": ["python", "huggingface", "peft", "lora", "fine-tuning", "llm", "parameter-efficient", "qlora", "adapters"],
+  "what_it_does": "Parameter-Efficient Fine-Tuning library — adapts large language models with minimal trainable parameters. PEFT features: LoRA (Low-Rank Adaptation) for attention weight modification, QLoRA (quantized LoRA with bitsandbytes), IA3, Prefix Tuning, Prompt Tuning, AdaLoRA, LoftQ, LoHa, get_peft_model() wrapper, PeftModel.from_pretrained() for loading adapters, merge_and_unload() for full model merging, and model.print_trainable_parameters() for inspection. Enables fine-tuning 7B-70B LLMs on consumer GPUs by training only 0.1-1% of parameters for agent specialization.",
+  "use_cases": [
+    "Agent LoRA fine-tuning — lora_config = LoraConfig(r=16, lora_alpha=32, target_modules=['q_proj', 'v_proj'], task_type='CAUSAL_LM'); model = get_peft_model(base_model, lora_config); model.print_trainable_parameters() shows ~0.5% trained; agent specialization on 7B model with 16GB GPU",
+    "Agent QLoRA on consumer GPU — model = AutoModelForCausalLM.from_pretrained('llama-3.1-8B', load_in_4bit=True); peft_model = get_peft_model(model, lora_config) — 4-bit quantization + LoRA fine-tunes 8B agent model on 10GB GPU; accessible agent specialization on RTX 3080/4080",
+    "Agent adapter loading — model = PeftModel.from_pretrained(base_model, 'myorg/agent-lora-adapter'); model.merge_and_unload() merges LoRA weights into base for inference without PEFT overhead; agent specialized models served efficiently",
+    "Multiple agent adapters — model = PeftModel.from_pretrained(base, adapter1); model.load_adapter(adapter2, 'second'); model.set_adapter('second') — switch between agent personality/skill adapters at inference time without reloading base model",
+    "Agent continual learning — train domain-specific LoRA adapter for each agent tool set; load task-specific adapter at runtime; base model shared across all agent variants; efficient multi-task agent deployment"
+  ],
+  "not_for": [
+    "Full fine-tuning — PEFT is for parameter-efficient adaptation; for full fine-tuning of smaller models use standard PyTorch training",
+    "Inference-only deployment — PEFT adds adapter overhead during inference; merge_and_unload() before production agent deployment for full speed",
+    "Non-transformer architectures — PEFT LoRA targets attention/linear layers; for CNN or other architectures effectiveness varies; primarily optimized for transformer LLMs"
+  ],
+  "best_when": "Fine-tuning large language models (7B-70B) for agent specialization on limited GPU resources — LoRA/QLoRA reduces trainable parameters to <1% enabling agent fine-tuning on consumer or cloud GPUs at fraction of full fine-tuning cost.",
+  "avoid_when": "You have unlimited GPU compute and want full fine-tuning for maximum adaptation, or you're deploying and want pure inference speed without adapter overhead.",
+  "alternatives": ["accelerate-huggingface-api", "unsloth-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["api_key"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "HF_TOKEN for loading gated base models (LLaMA, Mistral) and pushing adapters to Hub. Public adapters: no auth."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, Apache 2.0 licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "PEFT is Apache 2.0 licensed, maintained by HuggingFace. Free for all use. GPU compute and Hub storage costs separate."
+  },
+  "performance": {
+    "latency_p50_ms": 0,
+    "latency_p99_ms": 0,
+    "uptime_sla_percent": null,
+    "rate_limits": "No PEFT rate limits. Training speed: LoRA 1.5-2x faster than full fine-tuning. QLoRA 3-4x slower than FP16 LoRA (quantization overhead). Inference with unmerged adapter: ~5% overhead. merge_and_unload() eliminates inference overhead.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted", "cloud"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 80,
+    "error_message_quality": 75,
+    "error_message_notes": "ValueError for invalid target_modules names (not matching model architecture). CUDA OOM if rank (r) too large for available GPU memory. Shape mismatch errors when loading adapter trained on different base model version. print_trainable_parameters() shows which layers are being trained for debugging.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "get_peft_model() is idempotent — same config on same model produces same PEFT model. Training is not idempotent (stochastic). PeftModel.from_pretrained() idempotent for loading saved adapters. merge_and_unload() is irreversible.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "target_modules must match actual model layer names — LoraConfig(target_modules=['q_proj', 'v_proj']) must match exact layer names in model architecture; LLaMA uses q_proj, GPT-2 uses c_attn, BERT uses query/key/value; wrong target_modules silently applies LoRA to no layers (0 trainable params); always print model architecture and verify names",
+      "QLoRA requires bitsandbytes — load_in_4bit=True needs bitsandbytes>=0.41.0; bitsandbytes has platform limitations (Linux/CUDA required; no macOS GPU support); agent QLoRA on macOS M-series falls back to CPU (very slow); use cloud GPU (Colab, RunPod) for agent QLoRA fine-tuning",
+      "Adapter not merged adds inference overhead — PeftModel with unmerged LoRA adapter is ~5% slower than base model; agent production serving should call model.merge_and_unload() before deployment; merged model behaves identically but faster; keep unmerged adapter for continued training or multi-adapter switching",
+      "rank (r) and alpha must be tuned per task — LoRA rank r=4 (minimal) vs r=64 (expressive); lora_alpha typically 2x rank; too low rank under-fits agent task; too high rank approaches full fine-tuning cost; start with r=16, lora_alpha=32 for agent fine-tuning; tune based on eval loss",
+      "PEFT version must match training version for loading — PeftModel.from_pretrained() may fail if PEFT version differs between training and loading environments; adapter_config.json records PEFT version; agent model deployment must pin same PEFT version used for training; version mismatch causes AttributeError on config fields",
+      "Gradient checkpointing incompatibility — gradient checkpointing (model.gradient_checkpointing_enable()) with PEFT requires model.enable_input_require_grads(); forgetting enable_input_require_grads() with gradient checkpointing causes all gradients to be None; agent fine-tuning on limited VRAM needing gradient checkpointing must call both methods"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 78,
+    "error_handling_score": 72,
+    "auth_complexity_score": 80,
+    "rate_limit_clarity_score": 85
+  },
+  "security_score_components": {
+    "tls_enforcement": 85,
+    "auth_strength": 80,
+    "scope_granularity": 75,
+    "dependency_hygiene": 82,
+    "secret_handling": 80,
+    "security_notes": "Agent fine-tuned adapters are lightweight (10-100MB) — protect as proprietary IP. HF_TOKEN as environment secret. Agent training data may contain PII — ensure data governance before fine-tuning. bitsandbytes dependency has known security issues in older versions — keep updated."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 75,
+    "version_stability": 72,
+    "breaking_changes_history": 68,
+    "error_recovery": 72
+  }
+}

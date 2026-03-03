@@ -1,0 +1,106 @@
+{
+  "id": "tokenizers-huggingface-api",
+  "name": "HuggingFace Tokenizers",
+  "version_evaluated": "0.2x",
+  "homepage": "https://huggingface.co/docs/tokenizers/",
+  "repo_url": "https://github.com/huggingface/tokenizers",
+  "category": "ai-ml",
+  "subcategories": ["nlp", "python", "tokenization", "machine-learning", "preprocessing"],
+  "tags": ["python", "huggingface", "tokenizers", "tokenization", "bpe", "wordpiece", "nlp", "fast-tokenizer"],
+  "what_it_does": "Fast tokenization library for NLP — Rust-backed tokenizer with Python bindings for training and using tokenizers. HuggingFace Tokenizers features: AutoTokenizer (loads pretrained tokenizer from Hub), encode/decode for single texts, batch encoding, special tokens ([CLS], [SEP], [PAD]), truncation and padding, fast tokenization (10-100x faster than slow tokenizers), offset mapping for token-to-character alignment, custom BPE/WordPiece/Unigram tokenizer training, and integration with HuggingFace Transformers. Used for preparing agent text for LLM inference and fine-tuning.",
+  "use_cases": [
+    "Agent token counting — tokenizer = AutoTokenizer.from_pretrained('gpt2'); tokens = tokenizer.encode(agent_prompt); len(tokens) returns exact token count for agent context window management; prevent context overflow before LLM API call",
+    "Agent batch tokenization for fine-tuning — tokenizer = AutoTokenizer.from_pretrained('meta-llama/Llama-3.2-1B'); batch = tokenizer(agent_conversations, max_length=2048, truncation=True, padding=True, return_tensors='pt') — prepare agent training data for transformer training",
+    "Agent prompt token budgeting — tokenizer.encode(system_prompt) + tokenizer.encode(user_message); if len > MAX_TOKENS: truncate_message() — exact token counting for agent multi-turn conversation management within model limits",
+    "Agent tokenizer training — from tokenizers import Tokenizer, models; trainer = BpeTrainer(vocab_size=30000, special_tokens=['[PAD]', '[UNK]']); tokenizer.train(files=['agent_corpus.txt'], trainer=trainer) — train domain-specific tokenizer for agent specialized vocabulary",
+    "Offset mapping for agent span extraction — encoding = tokenizer(text, return_offsets_mapping=True); offsets = encoding['offset_mapping'] — map token positions back to original character positions; agent information extraction with character-level spans"
+  ],
+  "not_for": [
+    "General text preprocessing — Tokenizers is for ML tokenization; for word counting, sentence splitting, or stopword removal use NLTK or spaCy",
+    "Non-transformer models — Tokenizers outputs token IDs for transformer models; for classical ML feature extraction use scikit-learn's CountVectorizer or TfidfVectorizer",
+    "Production text chunking — Tokenizers doesn't handle semantic chunking; for RAG document chunking use LangChain's RecursiveCharacterTextSplitter or semantic chunking"
+  ],
+  "best_when": "Preparing text for transformer model inference or fine-tuning — token counting, truncation, padding, and encoding for agent LLM workflows requiring exact token-level control.",
+  "avoid_when": "You just need word/sentence splitting, character counting, or semantic chunking for RAG.",
+  "alternatives": ["tiktoken-api", "sentence-transformers-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["api_key"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Public tokenizers: no auth. Gated models (LLaMA): HF_TOKEN environment variable required. AutoTokenizer.from_pretrained downloads tokenizer config from Hub."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, Apache 2.0 licensed. Public tokenizer downloads free.",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "HuggingFace Tokenizers is Apache 2.0 licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 1,
+    "latency_p99_ms": 10,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — local Rust-backed processing. Rust implementation is 10-100x faster than pure Python tokenizers. Batch encoding parallelizes across CPU cores automatically.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 82,
+    "error_message_notes": "TokenizerNotFoundError if Hub model doesn't have tokenizer. GatedRepoError if model requires license acceptance. RuntimeError for truncation/padding configuration conflicts. OSError if tokenizer files not found locally. Token sequence length warning when exceeding model max.",
+    "idempotency_support": "full",
+    "idempotency_notes": "tokenizer.encode() is deterministic — same text = same token IDs. Fully idempotent. AutoTokenizer.from_pretrained uses local cache after first download. Tokenizer config is immutable once loaded.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Token count varies significantly by model — 'Hello, World!' tokenizes to different IDs and counts per model (GPT-2: 4 tokens, LLaMA: 3 tokens, BERT: 4 tokens); agent context window management must use the specific model's tokenizer, not estimate from character count; 4 chars ≠ 1 token universally",
+      "Gated model tokenizers require license accept — LLaMA, Mistral tokenizers require HuggingFace account + license acceptance on model page; AutoTokenizer.from_pretrained('meta-llama/Llama-3.2-1B') raises GatedRepoError without HF_TOKEN + accepted license; agent code can't auto-accept — must be done in browser",
+      "padding=True without padding_side configuration — default padding is right-padding (pad tokens added after text); some models (GPT-family) require left-padding for batch inference; agent batch encoding for decoder-only models needs tokenizer.padding_side = 'left' to prevent attention on wrong side of padding",
+      "truncation=True truncates from end by default — long agent prompts truncated from end by default; for agent conversations where the latest message is most important, truncation_side='left' removes older context; wrong truncation direction causes agent to lose recent user message",
+      "Special tokens add to token count — tokenizer.encode(text) adds BOS/EOS/CLS/SEP tokens automatically depending on model; agent token counting must account for special tokens; tokenizer.encode(text, add_special_tokens=False) for raw token count without special tokens",
+      "Slow tokenizer fallback silently — transformers uses fast tokenizer (Rust) when available; some models fall back to slow Python tokenizer with warning; agent pipelines relying on fast tokenizer performance (10-100x) silently degrade when running slow tokenizer; verify use_fast=True and check tokenizer.is_fast attribute"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 80,
+    "auth_complexity_score": 80,
+    "rate_limit_clarity_score": 88
+  },
+  "security_score_components": {
+    "tls_enforcement": 88,
+    "auth_strength": 82,
+    "scope_granularity": 78,
+    "dependency_hygiene": 85,
+    "secret_handling": 82,
+    "security_notes": "Store HF_TOKEN as environment secret — never in code. Tokenizer downloads over HTTPS from HuggingFace Hub. No text sent to external service during tokenization (local Rust processing). Verify tokenizer integrity for security-sensitive agent deployments using model hash verification."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 82,
+    "version_stability": 82,
+    "breaking_changes_history": 78,
+    "error_recovery": 80
+  }
+}

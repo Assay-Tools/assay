@@ -1,0 +1,106 @@
+{
+  "id": "accelerate-huggingface-api",
+  "name": "HuggingFace Accelerate",
+  "version_evaluated": "1.x",
+  "homepage": "https://huggingface.co/docs/accelerate/",
+  "repo_url": "https://github.com/huggingface/accelerate",
+  "category": "ai-ml",
+  "subcategories": ["machine-learning", "python", "distributed-training", "gpu", "pytorch"],
+  "tags": ["python", "huggingface", "accelerate", "distributed-training", "gpu", "pytorch", "mixed-precision", "deepspeed"],
+  "what_it_does": "PyTorch distributed training abstraction — enables running the same training code on CPU, single GPU, multi-GPU, TPU, and distributed clusters without code changes. Accelerate features: Accelerator class wraps model/optimizer/dataloader, prepare() method handles device placement, automatic mixed precision (FP16/BF16), DeepSpeed integration, FSDP (Fully Sharded Data Parallel), gradient accumulation, accelerate launch CLI for distributed runs, accelerate config wizard, and experiment tracking integration. Used for agent LLM fine-tuning across varied compute environments.",
+  "use_cases": [
+    "Agent LLM fine-tuning across hardware — accelerator = Accelerator(); model, optimizer, train_loader = accelerator.prepare(model, optimizer, train_loader); for batch in train_loader: loss = model(**batch); accelerator.backward(loss); optimizer.step() — same code runs on 1 GPU, 8 GPU, or TPU for agent fine-tuning",
+    "Agent multi-GPU training — accelerate launch --num_processes=4 train_agent.py — distributes agent fine-tuning across 4 GPUs with data parallelism; accelerator.is_main_process gates logging/saving to one process",
+    "Mixed precision agent training — accelerator = Accelerator(mixed_precision='bf16') enables BF16 training; 2x faster with same accuracy for agent instruction tuning; no code changes from FP32 training; handles gradient scaling automatically",
+    "Agent gradient accumulation — accelerator = Accelerator(gradient_accumulation_steps=4); with accelerator.accumulate(model): loss.backward() — simulates large batch (4x) on GPU with limited VRAM for agent fine-tuning on consumer hardware",
+    "PEFT+Accelerate agent fine-tuning — model = get_peft_model(base_model, lora_config); model, optimizer, train_dl = accelerator.prepare(model, optimizer, train_dl) — LoRA fine-tuning on multiple GPUs; agent specialized models trained efficiently"
+  ],
+  "not_for": [
+    "Inference optimization — Accelerate is for training; for optimized agent inference use vLLM, TensorRT, or ONNX Runtime",
+    "Non-PyTorch frameworks — Accelerate wraps PyTorch; for TensorFlow or JAX distributed training use tf.distribute or JAX pmap",
+    "Hyperparameter search — Accelerate handles device placement not HPO; for agent hyperparameter optimization use Optuna or Ray Tune"
+  ],
+  "best_when": "Fine-tuning LLMs for agent specialization on varied compute environments (laptop GPU, cloud A100, multi-GPU cluster) — Accelerate writes once, trains everywhere without CUDA/distributed boilerplate.",
+  "avoid_when": "You need inference optimization, non-PyTorch training, or simple single-GPU training where native PyTorch is simpler.",
+  "alternatives": ["pytorch-lightning-api", "deepspeed-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No Accelerate auth. HF_TOKEN needed for push_to_hub integration. AWS/GCP credentials needed for cloud distributed training."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, Apache 2.0 licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "HuggingFace Accelerate is Apache 2.0 licensed. Free for all use. GPU compute costs are separate."
+  },
+  "performance": {
+    "latency_p50_ms": 0,
+    "latency_p99_ms": 0,
+    "uptime_sla_percent": null,
+    "rate_limits": "No Accelerate rate limits. Training performance depends on GPU hardware, batch size, and model size. Multi-GPU linear scaling efficiency: ~90% for data parallelism with 4 GPUs, ~80% with 8 GPUs.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted", "cloud"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 82,
+    "error_message_quality": 78,
+    "error_message_notes": "CUDA OOM errors shown with current allocation. Process group errors for distributed setup failures. AcceleratorState not initialized errors if Accelerator() not created before use. Mixed precision gradient overflow shown as loss=nan (handled automatically by GradScaler). NCCL errors for GPU communication failures in multi-GPU.",
+    "idempotency_support": "full",
+    "idempotency_notes": "accelerator.prepare() is idempotent per training run. Training steps are deterministic given same seed (set seed via set_seed()). Checkpoint saving via accelerator.save_state() is idempotent.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "accelerate config required before accelerate launch — accelerate launch without config uses CPU-only single process; must run accelerate config (interactive setup) or pass --config_file; agent CI/CD must generate accelerate config file or use environment variables (ACCELERATE_*) for distributed agent fine-tuning",
+      "accelerator.is_main_process guards required for side effects — print(), logging, model.save_pretrained(), push_to_hub() called from all N processes in distributed training; agent training with 8 GPUs prints 8x and saves 8 checkpoints without is_main_process guard; always check accelerator.is_main_process before logging or saving",
+      "Model not moved to device automatically — accelerator.prepare(model) returns model on correct device; but model checkpoints loaded after prepare() need manual .to(accelerator.device); agent code loading adapter weights after prepare() must move weights to device explicitly",
+      "Gradient accumulation requires accelerator.accumulate context — accelerator.backward(loss) without accelerator.accumulate(model) context doesn't sync gradients correctly in multi-GPU; agent training with gradient_accumulation_steps>1 must use: with accelerator.accumulate(model): — missing this causes wrong gradient steps",
+      "Mixed precision BF16 not supported on all GPUs — BF16 requires Ampere (A100, 3090) or newer; Accelerate with mixed_precision='bf16' on V100/P100 raises RuntimeError; agent training on older GPUs must use fp16 or fp32; check torch.cuda.is_bf16_supported() before setting BF16 for agent fine-tuning",
+      "FSDP requires specific model wrapping — Fully Sharded Data Parallel (FSDP) with Accelerate needs auto_wrap_policy; without auto_wrap_policy, entire agent model sharded as one unit (inefficient); configure fsdp_config with transformer_layer_cls_to_wrap matching agent model's transformer block class name"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 82,
+    "error_handling_score": 75,
+    "auth_complexity_score": 88,
+    "rate_limit_clarity_score": 90
+  },
+  "security_score_components": {
+    "tls_enforcement": 85,
+    "auth_strength": 80,
+    "scope_granularity": 75,
+    "dependency_hygiene": 85,
+    "secret_handling": 82,
+    "security_notes": "Training code runs locally — no data sent externally. HF_TOKEN for model pushing should be stored as environment secret. Multi-GPU distributed training uses NCCL over high-speed interconnects — ensure network security for multi-node training clusters. Agent model weights are sensitive IP — secure model checkpoint storage."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 80,
+    "version_stability": 78,
+    "breaking_changes_history": 72,
+    "error_recovery": 75
+  }
+}
