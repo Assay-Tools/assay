@@ -1,0 +1,106 @@
+{
+  "id": "bitsandbytes-api",
+  "name": "bitsandbytes",
+  "version_evaluated": "0.4x",
+  "homepage": "https://huggingface.co/docs/bitsandbytes/",
+  "repo_url": "https://github.com/bitsandbytes-foundation/bitsandbytes",
+  "category": "ai-ml",
+  "subcategories": ["machine-learning", "python", "quantization", "gpu", "llm"],
+  "tags": ["python", "bitsandbytes", "quantization", "4bit", "8bit", "qlora", "llm", "gpu", "memory"],
+  "what_it_does": "GPU quantization library for LLMs — enables loading and running large language models in 4-bit or 8-bit quantization, dramatically reducing GPU memory requirements. bitsandbytes features: load_in_8bit and load_in_4bit via HuggingFace Transformers, BitsAndBytesConfig for quantization settings (bnb_4bit_compute_dtype, bnb_4bit_quant_type nf4/fp4, bnb_4bit_use_double_quant), Int8 linear layers for inference, 8-bit Adam optimizer (50% memory reduction during training), and QLoRA integration. Enables running 7B agents on 6GB GPUs and 70B agents on 24GB GPUs.",
+  "use_cases": [
+    "Agent 4-bit LLM loading — bnb_config = BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_compute_dtype=torch.bfloat16, bnb_4bit_quant_type='nf4'); model = AutoModelForCausalLM.from_pretrained('meta-llama/Llama-3.1-8B', quantization_config=bnb_config) — 8B agent model fits on 6GB GPU",
+    "Agent QLoRA fine-tuning — 4-bit base model + LoRA adapters via PEFT; QLoRA enables fine-tuning 7B agent on single RTX 3080 10GB; most accessible agent specialization method for consumer hardware",
+    "Agent 8-bit optimizer — from bitsandbytes.optim import Adam8bit; optimizer = Adam8bit(model.parameters(), lr=1e-4) — 8-bit Adam uses 50% less GPU memory for optimizer states; agent fine-tuning with larger batch sizes on same GPU",
+    "Agent model quantization comparison — NF4 (normalized float 4) gives better quality than FP4 for agent text tasks; bnb_4bit_use_double_quant=True double-quantizes quantization constants saving additional 0.4 bits/param; agent model selection between quality and memory tradeoffs",
+    "Agent inference on consumer GPU — 70B agent model normally requires 8x A100 (640GB); with 4-bit quantization: 35GB fits on 2x RTX 3090 (48GB); bitsandbytes makes large agent models accessible without cloud GPU clusters"
+  ],
+  "not_for": [
+    "CPU inference — bitsandbytes requires CUDA; for CPU quantization use llama.cpp (GGUF) or ONNX Runtime with CPU quantization",
+    "Production serving at scale — quantized models are slower than FP16 for throughput; for production agent serving use vLLM with AWQ/GPTQ or TensorRT",
+    "Maximum accuracy — 4-bit quantization degrades model quality ~1-5% on benchmarks; for accuracy-critical agent tasks use FP16 or BF16"
+  ],
+  "best_when": "Running large LLMs (7B-70B) for agent inference or QLoRA fine-tuning on consumer or limited cloud GPUs — bitsandbytes reduces VRAM requirements by 4x, making large agent models accessible without expensive hardware.",
+  "avoid_when": "You need CPU inference, production-scale serving, or maximum model accuracy without quality loss.",
+  "alternatives": ["peft-huggingface-api", "vllm-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No bitsandbytes auth. HF_TOKEN needed for gated model access when loading quantized models from Hub."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "bitsandbytes is MIT licensed, maintained by HuggingFace/Tim Dettmers. Free for all use. CUDA GPU required."
+  },
+  "performance": {
+    "latency_p50_ms": 100,
+    "latency_p99_ms": 500,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — local GPU inference. 4-bit inference is ~1.5-2x slower than FP16 for throughput; latency similar. 8-bit inference ~20% slower than FP16. Memory savings: 4-bit reduces 7B model from 14GB to 4GB VRAM.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 75,
+    "error_message_quality": 70,
+    "error_message_notes": "CUDA device not found errors if no GPU available. RuntimeError for CUDA version mismatch (bitsandbytes requires CUDA 11.4+). AttributeError if loading quantized model without quantization_config parameter. OOM errors if model still too large after quantization. Warnings about double quantization compatibility.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Model loading with BitsAndBytesConfig is idempotent — same model + same config = same quantized model. NF4 quantization is deterministic. Inference is deterministic given same input and temperature=0.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "CUDA version compatibility is strict — bitsandbytes requires CUDA 11.4+ and specific libcuda version; bitsandbytes 0.41+ requires CUDA 12+; agent Docker containers with old CUDA images get ImportError; pin bitsandbytes version to tested CUDA version in requirements.txt; use FROM nvidia/cuda:12.1.0 base image",
+      "Quantized models cannot be saved with save_pretrained — save_pretrained() on 4-bit quantized model fails or saves non-quantized weights; quantized model must be loaded fresh each time; for agent deployment, save base model + LoRA adapter separately and quantize at load time; no 'save quantized' workflow",
+      "merge_and_unload() not supported for 4-bit models — LoRA adapters cannot be merged into 4-bit quantized base model; agent serving requires loading base + adapter separately at runtime; cannot produce single merged model file from QLoRA training; affects agent deployment pipeline",
+      "Double quantization saves memory but slows loading — bnb_4bit_use_double_quant=True saves 0.4 bits/param extra; adds 1-3 minutes to model loading for 7B agent model; agent cold start time increases; balance startup latency vs VRAM savings based on agent deployment pattern",
+      "macOS not supported — bitsandbytes CUDA quantization requires NVIDIA GPU; macOS M-series has no CUDA; Apple MPS backend has partial bitsandbytes support in recent versions but not production-ready; agent development on macOS uses CPU-only (very slow) or remote GPU for bitsandbytes workflows",
+      "Quantization degrades instruction following — NF4 4-bit quantization introduces ~2-5% quality degradation on benchmarks; agent instruction following fidelity reduced; QLoRA fine-tuning partially compensates; test quantized agent vs FP16 on your specific agent task before committing to quantized deployment"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 72,
+    "error_handling_score": 65,
+    "auth_complexity_score": 85,
+    "rate_limit_clarity_score": 90
+  },
+  "security_score_components": {
+    "tls_enforcement": 85,
+    "auth_strength": 80,
+    "scope_granularity": 75,
+    "dependency_hygiene": 72,
+    "secret_handling": 80,
+    "security_notes": "Local GPU quantization — no data sent externally. bitsandbytes has had past security advisories — pin to verified versions. Agent model weights stored locally — protect with filesystem permissions. Quantized agent models are slightly easier to reconstruct than FP16 — consider implications for proprietary agent models."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 68,
+    "version_stability": 65,
+    "breaking_changes_history": 62,
+    "error_recovery": 65
+  }
+}

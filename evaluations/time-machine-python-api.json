@@ -1,0 +1,106 @@
+{
+  "id": "time-machine-python-api",
+  "name": "time-machine",
+  "version_evaluated": "2.x",
+  "homepage": "https://github.com/adamchainz/time-machine",
+  "repo_url": "https://github.com/adamchainz/time-machine",
+  "category": "developer-tools",
+  "subcategories": ["testing", "python", "datetime", "mocking", "pytest"],
+  "tags": ["python", "time-machine", "datetime", "time-mocking", "testing", "pytest", "freezegun-alternative"],
+  "what_it_does": "Fast time mocking library for Python — freezes or moves datetime.datetime.now(), datetime.date.today(), time.time(), and time.localtime() to controlled values during tests. time-machine features: @time_machine.travel() decorator, time_machine.travel() context manager, dest parameter (datetime, string, Unix timestamp), tick=True for advancing time naturally, tz_offset for timezone, pytest fixture support via travel_to(), and C-extension implementation (10-100x faster than freezegun). Used for testing agent time-dependent logic like scheduling, token expiry, rate limit windows, and cron jobs.",
+  "use_cases": [
+    "Agent scheduled task testing — @time_machine.travel('2026-01-15 09:00:00'); def test_monday_report(): agent.run_scheduled_tasks(); assert report_sent() — test agent Monday 9am report without waiting; deterministic scheduled task tests",
+    "Agent token expiry testing — with time_machine.travel(datetime.now() + timedelta(hours=2)): assert agent.token.is_expired() — advance time to after token expiry; test agent token refresh logic without sleeping 2 hours",
+    "Agent rate limit window testing — with time_machine.travel('2026-01-01 00:00:01'): agent.make_api_calls(100); with time_machine.travel('2026-01-01 01:00:01'): assert agent.api_quota.reset == True — test agent rate limit window reset at hour boundary",
+    "Agent audit log timestamp testing — with time_machine.travel('2026-03-15 14:30:00 UTC'): agent.complete_task(task); log = AuditLog.last(); assert log.timestamp == datetime(2026, 3, 15, 14, 30, tzinfo=UTC) — verify agent audit logs exact timestamps",
+    "Agent cache expiry testing — with time_machine.travel(datetime.now() + timedelta(minutes=61)): assert not agent.cache.has('result') — test agent cache TTL expiry after 60 minutes; time-machine advances clock without Thread.sleep(3600)"
+  ],
+  "not_for": [
+    "Non-datetime mocking — time-machine only mocks time; for general object mocking use unittest.mock or pytest-mock",
+    "Production time control — time-machine is test-only; never use in production agent code",
+    "Third-party datetime libraries — time-machine mocks stdlib datetime; Arrow, Pendulum, dateutil may not be fully intercepted depending on version"
+  ],
+  "best_when": "Testing Python agent logic that depends on current time — scheduled tasks, token expiry, cache TTL, rate limit windows — where freezegun's speed is insufficient or you need faster test execution.",
+  "avoid_when": "You need to mock third-party datetime libraries or need production time control.",
+  "alternatives": ["freezegun-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — local test library."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "time-machine is MIT licensed, maintained by Adam Johnson. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 0,
+    "latency_p99_ms": 0,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. C-extension implementation is 10-100x faster than freezegun. Negligible overhead per test. No performance concern for typical agent test suites.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 82,
+    "error_message_notes": "OSError if C extension not compiled for platform. ValueError for invalid dest datetime format. time_machine.travel raises immediately on invalid arguments. Timezone-naive vs aware datetime mismatches surface as standard Python TypeError.",
+    "idempotency_support": "full",
+    "idempotency_notes": "time_machine.travel is idempotent — same dest = same frozen time. Time returns to real time after context/decorator exits. Nested travel calls use innermost time. Safe to use in parallel pytest-xdist tests.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "time-machine doesn't mock Arrow or Pendulum by default — time_machine.travel freezes datetime.datetime.now() and time.time(); Arrow.now() reads system time differently and may not be frozen; agent code using Arrow for time must use datetime.datetime.now() internally for time-machine to intercept, or patch Arrow explicitly",
+      "tick=True advances time from destination — time_machine.travel('2026-01-01', tick=True) starts clock at 2026-01-01 and advances; tick=False (default) freezes at exactly that moment; agent tests checking elapsed time need tick=True; tests checking absolute time need tick=False",
+      "Thread safety for async tests — time-machine uses C-level time interception which is global; async agent tests with concurrent coroutines all see the same frozen time; works correctly for asyncio tests; for agent tests needing different times in concurrent coroutines use separate test cases",
+      "Timezone-naive vs timezone-aware destination — time_machine.travel('2026-01-01') freezes as UTC naive; datetime.now(tz=timezone.utc) in agent code returns wrong type if expecting aware datetime; use time_machine.travel(datetime(2026, 1, 1, tzinfo=timezone.utc)) for timezone-aware freezing in agent tests",
+      "Windows not supported without wheel — time-machine requires C extension; Windows builds need pre-built wheel; agent CI on Windows installs time-machine but may get ImportError if wheel not available for Python version; use freezegun for cross-platform compatibility if targeting Windows CI",
+      "time.sleep() not intercepted — time_machine.travel doesn't make time.sleep() return instantly; agent code with time.sleep(3600) in test still blocks 1 hour; mock time.sleep separately with unittest.mock.patch('time.sleep') alongside time-machine for complete time control in agent tests"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 80,
+    "auth_complexity_score": 98,
+    "rate_limit_clarity_score": 98
+  },
+  "security_score_components": {
+    "tls_enforcement": 95,
+    "auth_strength": 95,
+    "scope_granularity": 92,
+    "dependency_hygiene": 90,
+    "secret_handling": 95,
+    "security_notes": "Test-only library — no security concerns. Ensure time-machine is not imported in production agent code (should be in test-only dev dependencies)."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 85,
+    "version_stability": 88,
+    "breaking_changes_history": 85,
+    "error_recovery": 88
+  }
+}
