@@ -1,0 +1,106 @@
+{
+  "id": "annoy-python-api",
+  "name": "Annoy",
+  "version_evaluated": "1.17.x",
+  "homepage": "https://github.com/spotify/annoy",
+  "repo_url": "https://github.com/spotify/annoy",
+  "category": "ai-ml",
+  "subcategories": ["vector-search", "approximate-nearest-neighbor", "python", "embeddings"],
+  "tags": ["python", "annoy", "spotify", "ann", "vector-search", "embeddings", "approximate-nearest-neighbor", "memory-mapped"],
+  "what_it_does": "Approximate Nearest Neighbor (ANN) search library by Spotify — disk-based random projection tree index for fast similarity search. Annoy features: AnnoyIndex.build() for index construction, get_nns_by_vector()/get_nns_by_item() for queries, save()/load() for memory-mapped file indexes, n_trees parameter for accuracy/build-time trade-off, search_k for query-time recall control, on_disk_build() for large indexes that don't fit in RAM, angular/euclidean/manhattan/hamming/dot distance metrics, and read-only memory-mapped access (multiple processes share one index file). Designed for memory-efficient read-only serving of pre-built indexes.",
+  "use_cases": [
+    "Agent similarity search with disk index — from annoy import AnnoyIndex; f = 128; t = AnnoyIndex(f, 'angular'); t.on_disk_build('index.ann'); [t.add_item(i, vec) for i, vec in enumerate(embeddings)]; t.build(50); t.load('index.ann'); nns, dists = t.get_nns_by_vector(query, 10, include_distances=True) — build and serve large index from disk without loading to RAM; agent serves 10M+ vector index on low-memory machine",
+    "Agent music/content recommendation — t = AnnoyIndex(64, 'angular'); t.load('tracks.ann'); similar_tracks = t.get_nns_by_item(track_id, 20) — find 20 most similar tracks by item ID without query vector; agent recommendation system uses pre-built Annoy index loaded at startup for sub-millisecond lookups",
+    "Agent multi-process index sharing — t.load('shared.ann', prefault=False) — memory-mapped index shared between worker processes without copying; agent scales to multiple parallel workers reading same index file; no inter-process coordination needed for read-only queries",
+    "Agent incremental index building — t.on_disk_build('large.ann'); for batch in batches: [t.add_item(i, v) for i, v in batch]; t.build(10) — build large index that exceeds RAM by writing directly to disk during construction; agent builds billion-vector index on 16GB RAM machine",
+    "Agent offline index precomputation — t = AnnoyIndex(384, 'angular'); t.add_items(all_embeddings); t.build(n_trees=100); t.save('production.ann') — offline build with high n_trees for maximum recall; agent deploys pre-built index file to production; load() is instant (memory-mapped)"
+  ],
+  "not_for": [
+    "Dynamic updates — Annoy indexes are immutable once built; adding items requires rebuilding entire index; use hnswlib for dynamic insertions",
+    "High-dimensional vectors (>500 dims) — random projection trees degrade at very high dimensions; use FAISS for high-dimensional vectors",
+    "GPU acceleration — Annoy is CPU-only; for GPU vector search use FAISS with GPU support"
+  ],
+  "best_when": "Serving pre-built read-only vector indexes from disk across multiple processes — Annoy's memory-mapped files enable instant index loading and multi-process sharing without copying, ideal for production recommendation systems with static embeddings.",
+  "avoid_when": "You need dynamic insertions (use hnswlib), very high dimensions, or GPU acceleration (use FAISS).",
+  "alternatives": ["hnswlib-python-api", "faiss-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "cpp"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — local file-based index library."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, Apache 2.0 licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Annoy is Apache 2.0 licensed by Spotify. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 1,
+    "latency_p99_ms": 5,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Query latency: <1ms for most indexes after prefault. Build time: ~10 min for 1M 128-dim vectors with 50 trees. Memory-mapped load is instant. Higher n_trees = better recall but slower build and larger file.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 78,
+    "error_message_quality": 68,
+    "error_message_notes": "Exception: Item cannot be added to a loaded index — on attempted mutation of loaded index. ValueError for wrong dimension. File not found for missing index. Error messages are short and cryptic — minimal context about which dimension or item caused failure.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Loaded index queries are fully deterministic. Same query vector returns same results. Memory-mapped indexes are read-only. Index build with same data and n_trees is deterministic.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Index is immutable after build — t.build(50) freezes the index; t.add_item() after build raises Exception; agent code must add ALL items before calling build(); if items need to be added dynamically, use hnswlib instead; Annoy is build-once-serve-many",
+      "on_disk_build vs add_items memory difference — AnnoyIndex(f, 'angular') with add_items loads all vectors in RAM during build; use t.on_disk_build('file.ann') BEFORE add_item() calls to write directly to disk; agent building indexes exceeding available RAM must call on_disk_build() first",
+      "load() is zero-copy memory-mapped — t.load('index.ann') returns instantly but doesn't read into RAM; first query triggers actual disk reads; agent benchmark showing fast load but slow first queries should call t.load('index.ann', prefault=True) to pre-load into page cache on warm-up",
+      "get_nns_by_vector dimensions must match exactly — query vector must have exactly f dimensions (set at AnnoyIndex(f, ...)); wrong dimension raises ValueError with no detail about expected vs actual; agent code must verify len(query_vector) == f before calling get_nns_by_vector()",
+      "search_k controls recall-speed trade-off at query time — t.get_nns_by_vector(query, 10) uses default search_k=-1 (n_trees * k); set search_k explicitly: t.get_nns_by_vector(query, 10, search_k=5000) for higher recall at cost of speed; agent must tune search_k for production recall requirements",
+      "Angular distance is cosine not dot product — AnnoyIndex(f, 'angular') computes angular distance (based on cosine similarity) not inner product; agent code comparing Annoy distances to raw dot products will see different values; pre-normalize vectors for true cosine similarity comparison"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 75,
+    "error_handling_score": 65,
+    "auth_complexity_score": 98,
+    "rate_limit_clarity_score": 98
+  },
+  "security_score_components": {
+    "tls_enforcement": 92,
+    "auth_strength": 92,
+    "scope_granularity": 90,
+    "dependency_hygiene": 85,
+    "secret_handling": 92,
+    "security_notes": "Local disk-based library — no network calls. Index files on disk may contain sensitive embeddings — apply filesystem permissions. Memory-mapped files visible to all processes running as same user."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 82,
+    "version_stability": 85,
+    "breaking_changes_history": 85,
+    "error_recovery": 72
+  }
+}

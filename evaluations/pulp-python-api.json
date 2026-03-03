@@ -1,0 +1,106 @@
+{
+  "id": "pulp-python-api",
+  "name": "PuLP",
+  "version_evaluated": "2.7.x",
+  "homepage": "https://coin-or.github.io/pulp/",
+  "repo_url": "https://github.com/coin-or/pulp",
+  "category": "developer-tools",
+  "subcategories": ["optimization", "python", "linear-programming", "mathematical-programming"],
+  "tags": ["python", "pulp", "linear-programming", "integer-programming", "mip", "optimization", "operations-research", "coin-or"],
+  "what_it_does": "Linear and Integer Programming modeling library for Python — formulate and solve LP/MIP problems with a simple Python API. PuLP features: LpProblem() for problem creation, LpVariable() for decision variables (continuous, integer, binary), lpSum() for objective/constraint expressions, status checking (LpStatus), solver integration (CBC default, GLPK, CPLEX, Gurobi, SCIP), LpMinimize/LpMaximize sense, variable bounds, constraint naming, results via .varValue, and JSON/MPS/LP file export. More accessible than OR-Tools for pure LP/MIP problems. Used for scheduling, routing, cutting stock, and resource allocation optimization.",
+  "use_cases": [
+    "Agent resource scheduling — prob = LpProblem('schedule', LpMinimize); x = LpVariable.dicts('assign', [(i,j) for i in workers for j in shifts], cat='Binary'); prob += lpSum(cost[i][j]*x[i,j] for i in workers for j in shifts); prob += lpSum(x[i][j] for i in workers) == 1 for j in shifts; prob.solve() — binary integer programming for shift assignment; agent workforce scheduler minimizes cost subject to coverage constraints",
+    "Agent production planning — prob = LpProblem('production', LpMaximize); x = {p: LpVariable(f'produce_{p}', 0) for p in products}; prob += lpSum(profit[p]*x[p] for p in products); prob += lpSum(resource[p]*x[p] for p in products) <= capacity; prob.solve(); plan = {p: x[p].varValue for p in products} — linear production planning; agent optimizes production mix given resource constraints",
+    "Agent portfolio LP — prob = LpProblem('portfolio', LpMaximize); w = LpVariable.dicts('weight', assets, 0, 1); prob += lpSum(returns[a]*w[a] for a in assets); prob += lpSum(w[a] for a in assets) == 1; for a in assets: prob += w[a] >= min_weight; prob.solve() — linear portfolio optimization with weight constraints; agent allocation tool for agent portfolios with budget and minimum position constraints",
+    "Agent cutting stock — prob = LpProblem('cutting', LpMinimize); x = LpVariable.dicts('pattern', patterns, 0, None, LpInteger); prob += lpSum(x[p] for p in patterns); for w, demand in demands.items(): prob += lpSum(pattern[p][w]*x[p] for p in patterns) >= demand; prob.solve() — integer cutting stock to minimize waste; agent manufacturing optimizer selects cutting patterns to meet demand with minimum material waste",
+    "Agent network flow — prob = LpProblem('flow', LpMinimize); f = LpVariable.dicts('flow', edges, 0); prob += lpSum(cost[e]*f[e] for e in edges); for node in nodes: prob += lpSum(f[e] for e in out_edges[node]) - lpSum(f[e] for e in in_edges[node]) == supply[node]; prob.solve() — minimum cost flow on network graph; agent logistics optimizer routes shipments through network at minimum cost"
+  ],
+  "not_for": [
+    "Non-linear optimization — PuLP handles only linear objectives and constraints; for non-linear use CVXPY or scipy.optimize",
+    "Convex quadratic programming — PuLP is LP/MIP only; for QP use CVXPY with quadratic objective",
+    "Large-scale MIP at commercial scale — CBC (default solver) slower than CPLEX/Gurobi for large MIP; commercial solver licenses needed for production-scale integer programs"
+  ],
+  "best_when": "Linear programming and mixed-integer programming problems (scheduling, routing, assignment, production planning) — PuLP's simple Python API is more accessible than OR-Tools for pure LP/MIP without constraint programming needs.",
+  "avoid_when": "You need non-linear optimization (use CVXPY), constraint programming (use OR-Tools), or large-scale commercial MIP (use Gurobi directly).",
+  "alternatives": ["ortools-api", "cvxpy-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — local optimization library. Commercial solvers (CPLEX, Gurobi) require their own license keys."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free with CBC solver included",
+    "paid_tiers": "Commercial solver integrations (CPLEX, Gurobi) have separate licensing costs",
+    "requires_credit_card": false,
+    "notes": "PuLP is MIT licensed with bundled CBC solver. Free for all use. Commercial solvers provide better performance for large problems."
+  },
+  "performance": {
+    "latency_p50_ms": 100,
+    "latency_p99_ms": 30000,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. CBC handles LP in milliseconds for small problems; MIP can take minutes for large problems. Commercial solvers (Gurobi, CPLEX) 10-100x faster for MIP. Problem formulation time proportional to variable count.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 80,
+    "error_message_quality": 75,
+    "error_message_notes": "prob.status returns 'Infeasible', 'Unbounded', 'Optimal', 'Not Solved'. PulpError for invalid problem formulation. Solver error messages vary by backend. CBC output redirected to stdout by default — suppress with msg=False.",
+    "idempotency_support": "full",
+    "idempotency_notes": "LP problems are deterministic — same problem formulation always gives same optimal solution. MIP solutions are deterministic for same solver seed. prob.solve() can be called multiple times safely.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Check prob.status after solve — prob.solve() returns -1 (Infeasible), 0 (Not Solved), 1 (Optimal); agent code doing value = var.varValue without checking status gets None for infeasible problems; always: prob.solve(); if prob.status != 1: raise ValueError(f'Problem {LpStatus[prob.status]}')",
+      "lpSum is required for lists — sum([x[i] for i in items]) creates Python sum not LP expression; agent code must use pulp.lpSum([x[i] for i in items]) for objective and constraints; Python sum works by accident for small cases but fails for empty lists and causes wrong types",
+      "Variable bounds at creation not constraints — LpVariable('x', 0, 1) sets bounds [0,1]; adding constraint x >= 0 separately is redundant but valid; agent code should specify bounds in LpVariable() for cleaner formulation; CBC ignores unbounded variables causing non-optimal solutions for maximization",
+      "solver output floods stdout — prob.solve() with CBC prints solver log to stdout; agent pipelines must suppress with prob.solve(PULP_CBC_CMD(msg=False)) or solver = PULP_CBC_CMD(msg=False); print suppression critical for agent systems where stdout is captured for other purposes",
+      "LpVariable.dicts creates flat dict not nested — LpVariable.dicts('x', [(i,j) for i in A for j in B]) creates {(i,j): var} not nested dict; agent code doing x[i][j] fails; must use x[(i,j)] for tuple keys; or create nested dict manually: {i: {j: LpVariable(...)} for i in A for j in B}",
+      "Integer variables slow solver exponentially — every LpInteger variable makes problem NP-hard; 20+ binary variables can run for hours with CBC; agent scheduling problems with many binary variables should: add time limit prob.solve(PULP_CBC_CMD(timeLimit=60)), accept sub-optimal solution, or switch to Gurobi"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 78,
+    "error_handling_score": 72,
+    "auth_complexity_score": 98,
+    "rate_limit_clarity_score": 98
+  },
+  "security_score_components": {
+    "tls_enforcement": 90,
+    "auth_strength": 90,
+    "scope_granularity": 88,
+    "dependency_hygiene": 85,
+    "secret_handling": 90,
+    "security_notes": "Local computation — no network calls. Commercial solver license keys should be in environment variables. No data exfiltration risk for local LP solving."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 80,
+    "version_stability": 82,
+    "breaking_changes_history": 80,
+    "error_recovery": 78
+  }
+}

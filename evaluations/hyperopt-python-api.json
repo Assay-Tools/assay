@@ -1,0 +1,106 @@
+{
+  "id": "hyperopt-python-api",
+  "name": "Hyperopt",
+  "version_evaluated": "0.2.x",
+  "homepage": "http://hyperopt.github.io/hyperopt/",
+  "repo_url": "https://github.com/hyperopt/hyperopt",
+  "category": "ai-ml",
+  "subcategories": ["hyperparameter-optimization", "python", "bayesian-optimization", "ml-ops"],
+  "tags": ["python", "hyperopt", "hyperparameter", "bayesian", "optimization", "tpe", "random-search", "mlops"],
+  "what_it_does": "Bayesian hyperparameter optimization library for Python — optimizes any function over complex search spaces using TPE (Tree of Parzen Estimators). Hyperopt features: hp.choice(), hp.uniform(), hp.loguniform(), hp.quniform() for search space definition, fmin() for optimization loop, Trials() for experiment tracking, SparkTrials for distributed optimization, STATUS_OK/STATUS_FAIL return protocol, hp.sample() for visualization, mongoexp for MongoDB-backed distributed optimization, and pyll graph for lazy evaluation. Used with XGBoost, sklearn, and neural networks for automated hyperparameter tuning. Predecessor of Optuna with similar TPE algorithm.",
+  "use_cases": [
+    "Agent XGBoost tuning — from hyperopt import fmin, tpe, hp, Trials; space = {'max_depth': hp.quniform('max_depth', 3, 15, 1), 'learning_rate': hp.loguniform('lr', np.log(0.01), np.log(0.3))}; best = fmin(objective, space, algo=tpe.suggest, max_evals=100, trials=Trials()) — Bayesian hyperparameter tuning for XGBoost; agent MLOps pipeline automatically finds best hyperparameters",
+    "Agent sklearn pipeline tuning — space = {'clf__C': hp.loguniform('C', -3, 3), 'clf__kernel': hp.choice('kernel', ['rbf', 'linear'])}; trials = Trials(); best = fmin(score_pipeline, space, algo=tpe.suggest, max_evals=50, trials=trials); print(best) — tune sklearn pipeline hyperparameters; agent selects best kernel and regularization automatically",
+    "Agent experiment tracking — trials = Trials(); fmin(objective, space, algo=tpe.suggest, max_evals=100, trials=trials); df = pd.DataFrame(trials.results) — Trials() records all evaluations with parameters and losses; agent experiment tracker reviews trial history to understand hyperparameter importance",
+    "Agent distributed tuning with Spark — from hyperopt import SparkTrials; spark_trials = SparkTrials(parallelism=8); fmin(objective, space, algo=tpe.suggest, max_evals=200, trials=spark_trials) — parallel evaluation across Spark workers; agent hyperparameter search scales to 8 parallel evaluations on Databricks/Spark cluster",
+    "Agent conditional hyperparameter spaces — space = hp.choice('model', [{'type': 'svm', 'C': hp.loguniform('svm_C', -3, 3)}, {'type': 'rf', 'n_estimators': hp.quniform('rf_n', 10, 500, 10)}]) — nested hp.choice for conditional search spaces; agent selects model type and its specific hyperparameters jointly"
+  ],
+  "not_for": [
+    "Modern hyperparameter optimization — Optuna has superseded Hyperopt with better API, pruning, and visualization; prefer Optuna for new projects",
+    "Multi-objective optimization — Hyperopt minimizes single scalar; for Pareto-front multi-objective use Optuna with multi-objective or DEAP",
+    "Neural architecture search — Hyperopt search space too limited for NAS; use specialized NAS frameworks like NNI or AutoKeras"
+  ],
+  "best_when": "Hyperparameter tuning for sklearn, XGBoost, or custom ML models with a well-defined search space — Hyperopt's TPE algorithm converges faster than random search. Consider Optuna for new projects as it has better API and pruning support.",
+  "avoid_when": "Starting new projects (use Optuna instead), need multi-objective optimization, or need trial pruning for neural network training.",
+  "alternatives": ["optuna-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — local optimization library. MongoDB-based distributed mode requires MongoDB connection."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, BSD licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Hyperopt is BSD licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 100,
+    "latency_p99_ms": 10000,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Optimization speed depends entirely on objective function evaluation time. TPE algorithm overhead per trial is <10ms. SparkTrials enables parallelism. max_evals controls total budget.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 75,
+    "error_message_quality": 70,
+    "error_message_notes": "Exceptions from objective function propagate as-is. fmin() raises if all trials fail STATUS_FAIL. Trials object has verbose failed trial info. Minimal hyperopt-specific error messages — most errors come from objective function.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "TPE is stochastic — same search space gives different results each run without random seed. Pass rstate=np.random.default_rng(42) to fmin() for reproducible results. Trials object preserves full history.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Objective function must return dict with 'loss' key — def objective(params): return {'loss': score, 'status': STATUS_OK} is required; returning a bare float or missing 'loss' key raises Exception: invalid value for loss; agent objective functions must always return dict with 'loss' (minimized) and 'status' keys",
+      "hp.quniform returns float not int — hp.quniform('depth', 3, 15, 1) returns float like 7.0 not integer 7; agent code passing hyperparameters to sklearn/XGBoost must cast: int(params['depth']); apply int() to all q-uniform integer hyperparameters before passing to model",
+      "hp.choice returns index not value — best from fmin contains index for hp.choice: best['model'] = 0 means first choice; use hyperopt.space_eval(space, best) to convert best dict to actual hyperparameter values; agent code doing params['kernel'] = best['kernel'] gets integer not 'rbf'",
+      "No trial pruning — Hyperopt evaluates each trial to completion; long-running objective functions (neural network training) waste time on clearly bad hyperparameters; Optuna supports pruning via callbacks; agent neural network HPO should use Optuna not Hyperopt for pruning support",
+      "Trials object not thread-safe — Trials() for sequential optimization; parallel execution with multiple workers requires SparkTrials or mongoexp; agent code using Python multiprocessing with shared Trials() causes corruption; use SparkTrials(parallelism=n) for agent parallel tuning",
+      "max_evals budget includes all trials — fmin(max_evals=100) runs exactly 100 trials total including failed ones; agent objective that fails 20% of the time effectively gets 80 useful evaluations from 100 budget; add try/except in objective returning {'loss': float('inf'), 'status': STATUS_FAIL} for failed evaluations"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 72,
+    "error_handling_score": 68,
+    "auth_complexity_score": 95,
+    "rate_limit_clarity_score": 95
+  },
+  "security_score_components": {
+    "tls_enforcement": 88,
+    "auth_strength": 88,
+    "scope_granularity": 85,
+    "dependency_hygiene": 80,
+    "secret_handling": 88,
+    "security_notes": "Local optimization library — no network calls except MongoDB distributed mode. MongoDB credentials for mongoexp should use environment variables. No data exfiltration risk for local use."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 75,
+    "version_stability": 72,
+    "breaking_changes_history": 75,
+    "error_recovery": 72
+  }
+}
