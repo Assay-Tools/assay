@@ -1,28 +1,28 @@
 {
   "id": "kafkajs-api",
   "name": "KafkaJS",
-  "version_evaluated": "2.2+",
+  "version_evaluated": "2.x",
   "homepage": "https://kafka.js.org/",
   "repo_url": "https://github.com/tulios/kafkajs",
-  "category": "developer-tools",
-  "subcategories": ["messaging", "kafka", "streaming", "node.js"],
-  "tags": ["node.js", "kafka", "streaming", "messaging", "consumer", "producer", "typescript", "event-streaming"],
-  "what_it_does": "Modern Apache Kafka client for Node.js. KafkaJS provides a clean async API for producing and consuming Kafka messages in Node.js/TypeScript applications. Supports all Kafka features: consumer groups, transactions, exactly-once semantics, admin operations, and schema registry integration. The standard Kafka client for agent systems built on Node.js.",
+  "category": "messaging",
+  "subcategories": ["event-streaming", "kafka", "node.js", "distributed"],
+  "tags": ["kafka", "node.js", "event-streaming", "messaging", "pub-sub", "consumer-groups", "producers", "typescript"],
+  "what_it_does": "Modern Apache Kafka client for Node.js written from scratch in JavaScript (no librdkafka dependency). Supports producer/consumer groups, transactions, schema registry integration, admin client for topic management, and TypeScript types. The most popular Kafka client for Node.js agent event streaming pipelines.",
   "use_cases": [
-    "Build event-driven agent architectures with Kafka as the message backbone for agent task distribution",
-    "Consume Kafka events in Node.js agent consumers with consumer group coordination and offset management",
-    "Produce agent output events to Kafka topics for downstream processing in agent event pipelines",
-    "Implement exactly-once agent workflows using Kafka transactions for financial and critical data processing",
-    "Connect agent services to Kafka-based data platforms (Confluent, MSK, Redpanda) for real-time data processing"
+    "Consume Kafka topics in Node.js agent pipelines for real-time event-driven processing of user actions or system events",
+    "Produce structured event records from agent services to Kafka topics for downstream consumption and analytics",
+    "Implement exactly-once processing in agent event pipelines using Kafka transactions and idempotent producers",
+    "Build event-sourced agent architectures with Kafka as the durable event log and source of truth",
+    "Coordinate distributed agent workflows using Kafka consumer groups for load-balanced event processing"
   ],
   "not_for": [
-    "RabbitMQ or Redis queues — use aio-pika or ioredis for those brokers",
-    "Simple job queuing without Kafka infrastructure — use BullMQ or arq for simpler use cases",
-    "Python or Go Kafka clients — use confluent-kafka-python or sarama for those languages"
+    "Low-latency request-response messaging — Kafka's batching model adds latency; use NATS or Redis Streams for <10ms messaging",
+    "Simple job queues — BullMQ or Celery are easier for background job processing without Kafka infrastructure",
+    "Teams without Kafka infrastructure — running Kafka requires operational expertise; use managed services (Confluent, MSK, Upstash) to reduce burden"
   ],
-  "best_when": "You're building Node.js agent services that consume from or produce to Apache Kafka (or compatible: Confluent, MSK, Redpanda).",
-  "avoid_when": "You don't have Kafka infrastructure — Kafka's operational complexity is significant; use simpler queue solutions when possible.",
-  "alternatives": ["aio-pika-api", "celery-api", "confluentcloud-api"],
+  "best_when": "You have Kafka infrastructure and need a reliable, TypeScript-friendly Node.js client for high-throughput event streaming in agent pipelines.",
+  "avoid_when": "You don't have Kafka infrastructure and need a simple message queue — use BullMQ or Redis Streams; Kafka's operational complexity isn't worth it for simple queuing.",
+  "alternatives": ["bullmq-api", "nats-node-api", "node-rdkafka-api"],
   "interface": {
     "has_rest_api": false,
     "has_graphql": false,
@@ -35,72 +35,72 @@
     "webhooks": false
   },
   "auth": {
-    "methods": ["none"],
+    "methods": ["api_key", "sasl"],
     "oauth": false,
     "scopes": false,
-    "notes": "Kafka authentication via SASL (PLAIN, SCRAM, OAUTHBEARER) or SSL/mTLS configured in Kafka client constructor."
+    "notes": "SASL/PLAIN, SASL/SCRAM, SASL/OAUTHBEARER for Kafka cluster auth. TLS for transport encryption. Managed Kafka services (Confluent, MSK) use API key/SASL combinations."
   },
   "pricing": {
     "model": "open_source",
     "free_tier_exists": true,
-    "free_tier_limits": "Completely free, MIT licensed",
-    "paid_tiers": "none",
+    "free_tier_limits": "MIT licensed, completely free",
+    "paid_tiers": "None (Kafka cluster costs are separate)",
     "requires_credit_card": false,
-    "notes": "KafkaJS is free. Kafka infrastructure (Confluent Cloud, MSK, Redpanda) has its own pricing."
+    "notes": "MIT license. Kafka cluster costs: Confluent Cloud, Amazon MSK, or Upstash Kafka from ~$0.10/GB throughput."
   },
   "performance": {
     "latency_p50_ms": 5,
     "latency_p99_ms": 50,
     "uptime_sla_percent": null,
-    "rate_limits": "Limited by Kafka broker capacity and partition count",
+    "rate_limits": "No rate limits in client. Producer throughput: 100K-1M messages/sec. Kafka cluster limits apply.",
     "data_source": "llm_estimated"
   },
   "requirements": {
     "requires_signup": false,
     "requires_credit_card": false,
     "domain_verification": false,
-    "data_residency": ["self-hosted"],
+    "data_residency": ["self-hosted", "US", "EU"],
     "compliance": [],
     "min_contract": "none"
   },
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
-    "documentation_accuracy": 88,
-    "error_message_quality": 85,
-    "error_message_notes": "KafkaJSError hierarchy with specific error types (KafkaJSConnectionError, KafkaJSOffsetOutOfRange, etc.). Consumer crash errors include topic/partition/offset context.",
+    "documentation_accuracy": 85,
+    "error_message_quality": 80,
+    "error_message_notes": "Connection errors include broker addresses and retry attempts. Consumer group rebalance events are surfaced as callbacks. Producer errors include topic and partition context.",
     "idempotency_support": "full",
-    "idempotency_notes": "Kafka transactions enable exactly-once semantics. Consumer groups track offsets for at-least-once delivery. Manual offset management for idempotent processing.",
-    "pagination_style": "cursor",
+    "idempotency_notes": "Idempotent producer mode prevents duplicates on retry. Transactions enable exactly-once semantics for producer+consumer workflows.",
+    "pagination_style": "none",
     "retry_guidance_documented": true,
     "known_agent_gotchas": [
-      "Consumer group rebalances pause consumption — agents must handle rebalance pause gracefully and not process messages during coordinator transitions",
-      "eachMessage vs eachBatch: eachMessage processes one message at a time, eachBatch provides batch for parallel processing; choose based on throughput requirements",
-      "Kafka offsets are committed manually or auto — with autoCommit=true, messages are committed before processing completes; use manual commit for exactly-once semantics",
-      "KafkaJS 2.x requires Node.js 14+ — older versions may fail with cryptic errors",
-      "Transactional producers require transaction.id configured — transactions add latency; only use for exactly-once guarantees when required",
-      "Schema Registry integration (Confluent Avro/Protobuf) requires additional @kafkajs/confluent-schema-registry package — not built into KafkaJS core"
+      "Consumer group offset commit must be explicit — consumer.commitOffsets() or eachBatchAutoResolve handles autocommit, but agent code must ensure offsets are committed after processing to prevent reprocessing",
+      "Consumer group rebalancing pauses consumption — agents must handle rebalance events and resume cleanly; long processing times before offset commit trigger rebalance timeouts",
+      "KafkaJS does not use librdkafka — it's pure JS which sacrifices some performance for portability; for maximum throughput use node-rdkafka which wraps the native library",
+      "Topic auto-creation must be enabled on the Kafka broker — agents that produce to non-existent topics fail unless auto.create.topics.enable is set or topics are pre-created",
+      "Message size limit defaults to 1MB on Kafka brokers — agent messages exceeding this limit are rejected; configure message.max.bytes on broker and max.request.size on producer",
+      "Consumer disconnect without unsubscribing causes consumer group rebalance — always call consumer.disconnect() on graceful shutdown; uncaught exceptions that kill the process require Kafka session timeout to reclaim partitions"
     ]
   },
   "af_score_components": {
     "mcp_score": 0,
-    "api_doc_score": 88,
-    "error_handling_score": 85,
-    "auth_complexity_score": 85,
+    "api_doc_score": 85,
+    "error_handling_score": 80,
+    "auth_complexity_score": 78,
     "rate_limit_clarity_score": 82
   },
   "security_score_components": {
-    "tls_enforcement": 98,
-    "auth_strength": 90,
-    "scope_granularity": 85,
+    "tls_enforcement": 92,
+    "auth_strength": 85,
+    "scope_granularity": 80,
     "dependency_hygiene": 88,
-    "secret_handling": 88,
-    "security_notes": "SASL/SSL supported for Kafka authentication. Credentials must use environment variables. TLS enforced for Confluent Cloud and AWS MSK connections."
+    "secret_handling": 85,
+    "security_notes": "TLS required for production Kafka. SASL auth supports multiple mechanisms. Message content is unencrypted at rest (unless broker encryption enabled). ACLs on Kafka broker control topic access."
   },
   "reliability_score_components": {
-    "uptime_documented": 90,
-    "version_stability": 88,
-    "breaking_changes_history": 85,
+    "uptime_documented": 88,
+    "version_stability": 85,
+    "breaking_changes_history": 82,
     "error_recovery": 88
   }
 }

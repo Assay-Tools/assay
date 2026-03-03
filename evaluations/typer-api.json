@@ -1,28 +1,28 @@
 {
   "id": "typer-api",
   "name": "Typer",
-  "version_evaluated": "current",
+  "version_evaluated": "0.12+",
   "homepage": "https://typer.tiangolo.com/",
-  "repo_url": "https://github.com/fastapi/typer",
+  "repo_url": "https://github.com/tiangolo/typer",
   "category": "developer-tools",
-  "subcategories": ["cli-framework"],
-  "tags": ["python", "library", "cli", "command-line", "type-hints", "argparse-replacement", "click-wrapper"],
-  "what_it_does": "Python CLI building library that uses type hints to automatically generate argument parsers, help text, and shell completion, built on top of Click.",
+  "subcategories": ["cli", "python", "argument-parsing", "type-hints"],
+  "tags": ["python", "cli", "type-hints", "click", "fastapi", "argument-parsing", "auto-completion", "documentation"],
+  "what_it_does": "Python CLI framework built on Click. Uses Python type annotations to define CLI arguments and options — no decorators needed for simple cases. Auto-generates help text from type hints and docstrings. Supports auto-completion, Rich integration for beautiful output, and subcommands. Created by FastAPI's author as the CLI equivalent of FastAPI.",
   "use_cases": [
-    "Building agent CLI tools with typed parameters and auto-generated --help documentation with zero boilerplate",
-    "Creating multi-command CLI wrappers around agent workflows (e.g., run, evaluate, export) with subcommand routing",
-    "Exposing agent configuration via typed CLI arguments with validation, defaults, and environment variable overrides",
-    "Building operator tooling for managing agent deployments where type safety prevents misconfiguration at invocation time",
-    "Generating shell completion scripts for agent CLI tools to improve developer experience in bash/zsh environments"
+    "Build Python agent CLI tools with type-safe argument parsing using standard Python annotations",
+    "Create multi-subcommand agent CLIs (agent run, agent configure, agent deploy) with minimal boilerplate",
+    "Auto-generate shell completions and documentation for agent CLI tools from type annotations",
+    "Integrate Rich terminal output in Python agent CLIs using Typer's built-in Rich support",
+    "Build agent scripts that work both as library functions and CLI commands with the same Python code"
   ],
   "not_for": [
-    "Interactive TUI applications with menus, forms, or real-time terminal UI — use Textual or Prompt Toolkit instead",
-    "Simple one-command scripts where argparse or plain sys.argv is sufficient and adding a dependency is overhead",
-    "Projects requiring Click features not yet exposed by Typer's abstraction layer where direct Click usage is cleaner"
+    "Complex CLI customization requiring Click internals — Typer abstracts Click but exposes escape hatches; heavy Click customization may be easier with Click directly",
+    "Non-Python CLI tools — Typer is Python-only",
+    "Performance-critical startup — Typer's import overhead (Click + Rich) may be notable for sub-10ms startup scripts"
   ],
-  "best_when": "You are building Python CLI tools or agent operator interfaces and want type-safe argument parsing with minimal boilerplate using Python type hints.",
-  "avoid_when": "You need fine-grained control over Click internals or are building complex interactive prompts that Typer's abstraction does not expose cleanly.",
-  "alternatives": ["click-api", "argparse", "fire"],
+  "best_when": "You're building a Python CLI agent and want type-safe argument parsing with minimal boilerplate, using Python type annotations you already know from FastAPI/Pydantic.",
+  "avoid_when": "You need very simple one-command CLIs — argparse from stdlib or Click directly may be sufficient; or you need advanced Click features that Typer's abstraction doesn't expose cleanly.",
+  "alternatives": ["click-api", "argparse-api", "fire-python-api"],
   "interface": {
     "has_rest_api": false,
     "has_graphql": false,
@@ -38,68 +38,69 @@
     "methods": ["none"],
     "oauth": false,
     "scopes": false,
-    "notes": "Local Python library, no auth required"
+    "notes": "CLI framework — no authentication required."
   },
   "pricing": {
     "model": "open_source",
     "free_tier_exists": true,
-    "free_tier_limits": "Unlimited",
-    "paid_tiers": "none",
+    "free_tier_limits": "MIT licensed, completely free",
+    "paid_tiers": "None",
     "requires_credit_card": false,
-    "notes": "MIT license"
+    "notes": "MIT license. Maintained by Sebastián Ramírez (FastAPI author)."
   },
   "performance": {
     "latency_p50_ms": null,
     "latency_p99_ms": null,
     "uptime_sla_percent": null,
-    "rate_limits": "None — local library",
-    "data_source": "self_hosted"
+    "rate_limits": "No rate limits — startup-time argument parsing only.",
+    "data_source": "llm_estimated"
   },
   "requirements": {
     "requires_signup": false,
     "requires_credit_card": false,
     "domain_verification": false,
-    "data_residency": ["self_hosted"],
+    "data_residency": ["local"],
     "compliance": [],
     "min_contract": "none"
   },
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
-    "documentation_accuracy": 92,
+    "documentation_accuracy": 90,
     "error_message_quality": 88,
-    "error_message_notes": "Type validation errors are clear and user-friendly; missing required arguments produce readable messages; internal Click errors can surface with less context",
+    "error_message_notes": "Type mismatch errors include expected type and received value. Missing required argument errors name the argument. Help text is auto-generated from type hints and docstrings.",
     "idempotency_support": "full",
-    "idempotency_notes": "CLI parsing is deterministic and stateless; idempotency of the invoked command depends on the application logic",
+    "idempotency_notes": "CLI argument parsing — deterministic, no side effects from framework.",
     "pagination_style": "none",
     "retry_guidance_documented": false,
     "known_agent_gotchas": [
-      "Typer converts Optional[str] to a required argument unless a default=None is explicitly provided — type annotations alone are not enough to make arguments optional",
-      "Boolean flags require Annotated[bool, typer.Option('--flag/--no-flag')] syntax; bare bool type hints do not produce toggle flags automatically",
-      "Subcommand apps composed with app.add_typer() do not inherit callback context — each subapp must redeclare shared options or use a shared state object",
-      "Typer wraps Click under the hood so Click-specific behaviors (like multiple=True for list arguments) require typer.Option with List[str] type annotation to work correctly",
-      "Testing Typer CLIs requires typer.testing.CliRunner which behaves differently from Click's runner for exception propagation and exit code handling"
+      "Typer uses Python type annotations for argument types — Optional[str] creates an optional argument, while str creates a required one; be precise about Optional vs. required",
+      "Default values in function signatures become CLI defaults — None default makes an argument optional; a non-None default makes it an option with a default value",
+      "Typer subcommands use separate functions decorated with @app.command() — calling one subcommand from another requires using typer.run() or restructuring as library functions",
+      "Boolean flags use --flag/--no-flag convention by default — bare bool type creates a required bool argument, not a flag; use bool = typer.Option(False) for flag-style options",
+      "typer.Argument vs typer.Option: Arguments are positional (no --name prefix), Options use -- prefix — the distinction is important for user-facing CLI design",
+      "Typer 0.9+ changed the callback behavior for app-level callbacks — global options (--verbose, --config) using callbacks must use is_eager=True to run before subcommand parsing"
     ]
   },
   "af_score_components": {
     "mcp_score": 0,
-    "api_doc_score": 92,
+    "api_doc_score": 90,
     "error_handling_score": 88,
     "auth_complexity_score": 100,
     "rate_limit_clarity_score": 100
   },
   "security_score_components": {
-    "tls_enforcement": 95,
-    "auth_strength": 95,
-    "scope_granularity": 90,
-    "dependency_hygiene": 88,
-    "secret_handling": 88,
-    "security_notes": "No network layer; secure by default. Avoid passing secrets as CLI arguments — they appear in process lists and shell history; prefer environment variables."
+    "tls_enforcement": 100,
+    "auth_strength": 100,
+    "scope_granularity": 100,
+    "dependency_hygiene": 90,
+    "secret_handling": 85,
+    "security_notes": "CLI framework. Sensitive values passed as CLI args appear in process lists and shell history — prefer environment variables for secrets. Use typer.Option(envvar='SECRET') for env var sourcing."
   },
   "reliability_score_components": {
-    "uptime_documented": 85,
-    "version_stability": 88,
-    "breaking_changes_history": 86,
-    "error_recovery": 88
+    "uptime_documented": 95,
+    "version_stability": 82,
+    "breaking_changes_history": 78,
+    "error_recovery": 95
   }
 }
