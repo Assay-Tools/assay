@@ -5,24 +5,24 @@
   "homepage": "https://helmetjs.github.io/",
   "repo_url": "https://github.com/helmetjs/helmet",
   "category": "developer-tools",
-  "subcategories": ["security", "express", "middleware", "node.js"],
-  "tags": ["node.js", "security", "http-headers", "express", "middleware", "csp", "hsts", "xss"],
-  "what_it_does": "Express.js middleware that sets security-related HTTP response headers. Helmet configures Content-Security-Policy, HSTS, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, and a dozen other security headers with sensible defaults. Prevents common web security vulnerabilities (clickjacking, MIME sniffing, XSS) with minimal configuration for Express-based agent backends.",
+  "subcategories": ["security", "http-headers", "middleware", "express"],
+  "tags": ["security", "http-headers", "express", "node.js", "csp", "hsts", "xss", "clickjacking", "middleware"],
+  "what_it_does": "Express.js middleware that sets security-related HTTP headers automatically. Configures Content-Security-Policy, X-Frame-Options, HSTS, X-Content-Type-Options, Referrer-Policy, and 11 other security headers with safe defaults. A one-line app.use(helmet()) adds a significant security baseline to any Express/Node.js HTTP API or web app.",
   "use_cases": [
-    "Secure Express.js agent API backends by adding security headers that prevent common web attacks",
-    "Implement Content Security Policy for agent web applications to prevent XSS attacks",
-    "Enable HSTS (Strict Transport Security) for agent HTTPS endpoints to prevent SSL stripping",
-    "Prevent clickjacking attacks on agent admin dashboards by setting X-Frame-Options",
-    "Disable browser features that can be exploited in agent web UIs with Permissions-Policy header"
+    "Add HTTP security headers to Express-based agent HTTP APIs with a single middleware line",
+    "Prevent clickjacking, XSS, and MIME-type sniffing attacks on agent web UIs with Helmet defaults",
+    "Configure Content Security Policy for agent web applications to control which resources can load",
+    "Enable HSTS for agent HTTPS APIs to enforce secure connections for all future requests",
+    "Pass security audits (OWASP ZAP, Qualys SSL) for agent web services by adding missing security headers"
   ],
   "not_for": [
-    "Non-Express frameworks — Helmet is Express-specific; use similar libraries for Fastify (fastify-helmet) or other frameworks",
-    "API-only services without browser clients — most Helmet headers are browser-specific",
-    "Full application security — Helmet handles HTTP headers only; not a complete security solution"
+    "Frameworks other than Express — Helmet is Express middleware; Fastify has its own @fastify/helmet plugin",
+    "Frontend-only SPAs — Helmet runs server-side; use meta tags or server-side rendering for CSP in pure SPAs",
+    "APIs serving machine-to-machine clients only — some Helmet headers are browser-specific; choose relevant headers for pure API services"
   ],
-  "best_when": "You're building an Express.js agent web application and want security headers configured with one line of code.",
-  "avoid_when": "You're using Fastify (use @fastify/helmet), or your agent serves only API clients (not browser UIs) where most headers have no effect.",
-  "alternatives": ["fastify-helmet-api", "csurf-api"],
+  "best_when": "You're building any Express.js HTTP server or agent API and want to immediately add a baseline of security headers with minimal configuration.",
+  "avoid_when": "You're not using Express — use @fastify/helmet for Fastify, NestJS's helmet() for NestJS, or set headers manually for other frameworks.",
+  "alternatives": ["express-api", "fastify-helmet-api", "cors-npm-api"],
   "interface": {
     "has_rest_api": false,
     "has_graphql": false,
@@ -38,28 +38,28 @@
     "methods": ["none"],
     "oauth": false,
     "scopes": false,
-    "notes": "Security middleware — sets HTTP security headers. Not an auth library."
+    "notes": "HTTP header middleware — no authentication required."
   },
   "pricing": {
     "model": "open_source",
     "free_tier_exists": true,
-    "free_tier_limits": "Completely free, MIT licensed",
-    "paid_tiers": "none",
+    "free_tier_limits": "MIT licensed, completely free",
+    "paid_tiers": "None",
     "requires_credit_card": false,
-    "notes": "Completely free and open source."
+    "notes": "MIT license. Community-maintained, widely used."
   },
   "performance": {
     "latency_p50_ms": null,
     "latency_p99_ms": null,
     "uptime_sla_percent": null,
-    "rate_limits": "No rate limits — local middleware",
+    "rate_limits": "No rate limits — synchronous header-setting middleware with negligible overhead.",
     "data_source": "llm_estimated"
   },
   "requirements": {
     "requires_signup": false,
     "requires_credit_card": false,
     "domain_verification": false,
-    "data_residency": ["self-hosted"],
+    "data_residency": ["local"],
     "compliance": [],
     "min_contract": "none"
   },
@@ -67,40 +67,40 @@
     "mcp_server_quality": null,
     "mcp_security_score": null,
     "documentation_accuracy": 90,
-    "error_message_quality": 85,
-    "error_message_notes": "Configuration errors are thrown at startup time with clear messages. Header value errors include which header and why the value is invalid.",
+    "error_message_quality": 80,
+    "error_message_notes": "CSP directive errors surface as browser console warnings (not server errors). Helmet configuration errors throw at startup. CSP violation reports can be directed to a report-uri endpoint.",
     "idempotency_support": "full",
-    "idempotency_notes": "Middleware runs deterministically on each request.",
+    "idempotency_notes": "Header middleware — deterministic, stateless.",
     "pagination_style": "none",
     "retry_guidance_documented": false,
     "known_agent_gotchas": [
-      "Default CSP blocks inline scripts and eval — agent UIs using inline JavaScript or script injection will break immediately after adding Helmet",
-      "Helmet 5+ changed default behavior — upgrading from Helmet 4.x to 5.x requires reviewing changed CSP defaults",
-      "HSTS preloading is permanent — once set and submitted to browser preload lists, removing HSTS can cause site access issues for months",
-      "frame-ancestors in CSP conflicts with X-Frame-Options — when both are set, browser uses CSP; Helmet sets both by default",
-      "agent APIs serving both browsers and API clients should use different CSP policies — browser clients need stricter CSP than API-only endpoints",
-      "Helmet middleware position matters — placing Helmet after other middleware that sets headers may cause conflicts; add app.use(helmet()) early"
+      "Helmet 7.x defaults are stricter than earlier versions — CSP default-src 'self' blocks inline scripts and external resources; test thoroughly after upgrading or enabling Helmet for the first time",
+      "CSP configuration for agents with React/Vue/Angular requires adding nonces or hashes for inline scripts — eval() and inline event handlers are blocked by default-src 'self'",
+      "HSTS once sent cannot be easily reversed by the browser — only enable HSTS (includeSubdomains, preload) when you're committed to HTTPS for all subdomains",
+      "Helmet's Content-Security-Policy blocks CDN resources — add trusted CDN hostnames to scriptSrc, styleSrc, and imgSrc directives or agents serving external resources will break",
+      "Helmet v7 changed the API from an object with nested directives to contentSecurityPolicy.directives — update configuration code when migrating from v6",
+      "Some Helmet headers conflict with CORS headers (access-control-allow-origin and X-Frame-Options) — configure CORS separately with cors npm package and ensure Helmet and CORS middleware don't conflict"
     ]
   },
   "af_score_components": {
     "mcp_score": 0,
     "api_doc_score": 90,
-    "error_handling_score": 85,
+    "error_handling_score": 80,
     "auth_complexity_score": 100,
     "rate_limit_clarity_score": 100
   },
   "security_score_components": {
     "tls_enforcement": 100,
-    "auth_strength": 95,
-    "scope_granularity": 90,
+    "auth_strength": 100,
+    "scope_granularity": 95,
     "dependency_hygiene": 92,
     "secret_handling": 100,
-    "security_notes": "Security-focused library that improves OWASP security posture. Core security protection — should be on every Express app. No credentials or external calls."
+    "security_notes": "Purpose-built for HTTP security. Adds OWASP-recommended security headers. CSP prevents XSS, HSTS enforces HTTPS, X-Frame-Options prevents clickjacking. Essential for any production Express agent service."
   },
   "reliability_score_components": {
     "uptime_documented": 100,
     "version_stability": 88,
-    "breaking_changes_history": 82,
-    "error_recovery": 90
+    "breaking_changes_history": 78,
+    "error_recovery": 95
   }
 }

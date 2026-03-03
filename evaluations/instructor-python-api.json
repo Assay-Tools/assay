@@ -1,0 +1,106 @@
+{
+  "id": "instructor-python-api",
+  "name": "Instructor",
+  "version_evaluated": "1.x",
+  "homepage": "https://python.useinstructor.com/",
+  "repo_url": "https://github.com/jxnl/instructor",
+  "category": "ai-ml",
+  "subcategories": ["llm", "structured-output", "python", "validation"],
+  "tags": ["python", "llm", "structured-output", "pydantic", "openai", "anthropic", "validation", "retry", "function-calling"],
+  "what_it_does": "Python library that makes it trivially easy to get structured Pydantic objects from LLMs. Patches the OpenAI client to add response_model parameter — specify a Pydantic class and Instructor handles function calling/JSON mode, validation, and automatic retry on validation failure. Supports OpenAI, Anthropic, Gemini, Mistral, and local models via LiteLLM.",
+  "use_cases": [
+    "Extract structured data from LLM outputs into Pydantic models with automatic validation and retry in agent pipelines",
+    "Parse unstructured text (emails, documents, chat logs) into typed Python objects for agent data extraction tasks",
+    "Build agent tool call interfaces where LLMs return typed function arguments validated against Pydantic schemas",
+    "Implement multi-step agent data extraction with Instructor's automatic retry on Pydantic validation failure",
+    "Generate structured agent configurations, plans, and outputs from LLM completions with type safety"
+  ],
+  "not_for": [
+    "Non-Python codebases — Instructor is Python-only; use structured output APIs directly for other languages",
+    "Models without function calling — Instructor works best with models supporting function calling/JSON mode; JSON parsing from non-JSON models is fragile",
+    "High-throughput scenarios where retry overhead matters — validation failures cause additional LLM API calls; design schemas that minimize validation failures"
+  ],
+  "best_when": "You want the simplest possible way to get typed, validated Pydantic objects from LLMs in Python without manually handling function calling schemas and parsing.",
+  "avoid_when": "You need non-Python support or are working with models that don't support function calling well — use raw JSON mode with manual Pydantic parsing for more control.",
+  "alternatives": ["marvin-python-api", "outlines-python-api", "langchain-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["api_key"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Uses underlying LLM provider auth (OpenAI API key, Anthropic API key, etc.). Instructor itself has no auth layer."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "MIT licensed, completely free",
+    "paid_tiers": "None (LLM provider costs are separate)",
+    "requires_credit_card": false,
+    "notes": "MIT license. Created by Jason Liu. LLM API costs from providers are the primary cost."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits in Instructor itself. LLM provider rate limits apply. Automatic retries on validation failure add latency.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["local"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 88,
+    "error_message_quality": 82,
+    "error_message_notes": "ValidationError from Pydantic includes field-level errors sent back to LLM for retry. InstructorRetryException raised after max retries. Hooks for monitoring validation attempts available.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "LLM responses are non-deterministic — same prompt may produce different structured outputs. Instructor's retry logic is designed to converge on valid outputs but is not guaranteed idempotent.",
+    "pagination_style": "none",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Validation failure triggers retry with error context sent to LLM — complex Pydantic validators that are hard for LLMs to satisfy cause multiple expensive API calls; design schemas LLMs can satisfy",
+      "max_retries parameter controls retry count for validation failures only — network/API errors use separate retry logic from the underlying client",
+      "Instructor patches the OpenAI client in-place (client.chat.completions.create becomes extended) — the patch is client-instance specific; patch the correct client instance in your agent",
+      "response_model must be a Pydantic BaseModel subclass — plain dataclasses, TypedDict, and Python primitives don't work directly; wrap in a Pydantic model",
+      "Streaming mode with response_model requires special handling (instructor.patch with mode=instructor.Mode.TOOLS) — standard streaming doesn't support structured output auto-validation",
+      "Field descriptions in Pydantic model docstrings and Field(description=...) are included in the JSON schema sent to the LLM — write clear descriptions to guide LLM output quality"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 88,
+    "error_handling_score": 82,
+    "auth_complexity_score": 88,
+    "rate_limit_clarity_score": 80
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 90,
+    "scope_granularity": 85,
+    "dependency_hygiene": 88,
+    "secret_handling": 88,
+    "security_notes": "Uses underlying LLM provider security. Validation error messages are sent back to LLM — avoid including sensitive data in error context. LLM responses may contain injected content — validate and sanitize outputs."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 80,
+    "breaking_changes_history": 75,
+    "error_recovery": 85
+  }
+}
