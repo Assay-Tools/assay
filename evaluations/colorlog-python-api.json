@@ -1,0 +1,106 @@
+{
+  "id": "colorlog-python-api",
+  "name": "colorlog",
+  "version_evaluated": "6.x",
+  "homepage": "https://github.com/borntyping/python-colorlog",
+  "repo_url": "https://github.com/borntyping/python-colorlog",
+  "category": "developer-tools",
+  "subcategories": ["logging", "python", "terminal", "utilities"],
+  "tags": ["python", "colorlog", "logging", "color", "terminal", "ansi", "formatter"],
+  "what_it_does": "Colored log output for Python's logging module — adds ANSI color codes to log levels without changing logging configuration patterns. colorlog features: ColoredFormatter drop-in for logging.Formatter, log_colors dict for per-level color config, %(log_color)s format specifier, %(reset)s to stop color, secondary_log_colors for additional format fields, LevelFormatter for per-level format strings, StreamHandler convenience wrapper, colorlog.getLogger() drop-in for logging.getLogger(), TTY detection (disables color when not a terminal), and reset= parameter. Zero-config upgrade to colored logging.",
+  "use_cases": [
+    "Agent colored logging setup — import colorlog; handler = colorlog.StreamHandler(); handler.setFormatter(colorlog.ColoredFormatter('%(log_color)s%(levelname)s%(reset)s:%(name)s:%(message)s')); logger = colorlog.getLogger(__name__); logger.addHandler(handler) — colored logs; agent gets red ERROR, yellow WARNING, green INFO output in terminal",
+    "Agent custom color scheme — formatter = colorlog.ColoredFormatter('%(log_color)s%(levelname)-8s%(reset)s %(blue)s%(name)s%(reset)s: %(message)s', log_colors={'DEBUG': 'cyan', 'INFO': 'green', 'WARNING': 'yellow,bold', 'ERROR': 'red,bold', 'CRITICAL': 'red,bg_white'}) — custom colors; agent configures precise color scheme per level",
+    "Agent basicConfig replacement — colorlog.basicConfig(level=logging.DEBUG, format='%(log_color)s%(levelname)s%(reset)s - %(message)s') — drop-in; agent replaces logging.basicConfig with colorlog.basicConfig for immediate colored output; minimal code change",
+    "Agent file + console split — console = colorlog.StreamHandler(); console.setFormatter(colorlog.ColoredFormatter()); file_handler = logging.FileHandler('app.log'); file_handler.setFormatter(logging.Formatter('%(levelname)s: %(message)s')); logger.addHandler(console); logger.addHandler(file_handler) — dual handlers; agent logs colors to terminal and plain text to file simultaneously",
+    "Agent secondary colors — formatter = colorlog.ColoredFormatter('%(log_color)s%(levelname)s%(reset)s %(message_log_color)s%(message)s', secondary_log_colors={'message': {'ERROR': 'red', 'CRITICAL': 'red,bold'}}) — secondary colors; agent colors the message field separately from level field for ERROR/CRITICAL messages"
+  ],
+  "not_for": [
+    "Structured/JSON logging — colorlog is for human-readable terminal output; for machine-readable structured logs use python-json-logger or structlog",
+    "Log aggregation systems — ANSI codes corrupt log aggregators (Splunk, ELK); strip colors before shipping logs",
+    "File-only logging — color codes in file logs are noise; use plain logging.Formatter for file handlers"
+  ],
+  "best_when": "Adding color to Python logging for development and debugging — colorlog is the minimal-change solution for colored log output without changing logging patterns.",
+  "avoid_when": "Structured/JSON logs (use structlog), log shipping to aggregators, file-only logging, or when ANSI support is unreliable.",
+  "alternatives": [],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — logging formatter library."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "colorlog is MIT licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Performance: negligible overhead over standard logging.Formatter — only adds string prefix/suffix. TTY detection on first format call. No measurable impact on logging throughput.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 88,
+    "error_message_quality": 85,
+    "error_message_notes": "Standard Python logging exceptions. KeyError if undefined log_color name used in format string. ValueError for invalid color specifications. Error messages from Python's logging module — colorlog adds minimal additional error surface.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Formatters are stateless — same log record always produces same colored output. TTY detection is cached after first call. Thread-safe (no mutable state in formatter).",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "ANSI codes appear as raw text in non-TTY — colorlog 6.x auto-detects TTY and disables colors when output is not a terminal (piped/redirected); but some environments (Docker containers, CI systems) need FORCE_COLOR=1 env var or formatter(force_color=True) parameter; agent code in CI needing colors: set FORCE_COLOR=1",
+      "%(log_color)s must have matching %(reset)s — forgetting %(reset)s at end of colored section leaves terminal in colored state; subsequent non-colorlog output appears colored; agent format strings should always end with %(reset)s; pattern: '%(log_color)s%(levelname)s%(reset)s: %(message)s'",
+      "bold/bg_white color combinations use comma notation — colorlog.ColoredFormatter(log_colors={'ERROR': 'red,bold'}) combines color+style; colorlog.ColoredFormatter(log_colors={'CRITICAL': 'red,bold,bg_white'}) triple combination; agent code: look at colorlog.escape_codes for available codes; invalid code raises KeyError silently (uses empty string)",
+      "colorlog.getLogger() returns same instance as logging.getLogger() — they share the same logger registry; agent code calling colorlog.getLogger('app') and logging.getLogger('app') gets same logger; adding handler via colorlog.getLogger() affects same logger as logging configuration; not separate logging system",
+      "Multiple addHandler() calls create duplicate log lines — logger.addHandler(handler) is additive; calling setup code twice adds handler twice; agent code: check logger.handlers before adding; or use logging.config.dictConfig for declarative configuration; check: if not logger.handlers: logger.addHandler(handler)",
+      "propagate=True sends to root logger too — child loggers propagate to root logger by default; if root logger has a handler AND child logger has a handler, each log message appears twice; agent code: set propagate=False on named loggers with own handlers: logger.propagate = False"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 88,
+    "error_handling_score": 85,
+    "auth_complexity_score": 99,
+    "rate_limit_clarity_score": 99
+  },
+  "security_score_components": {
+    "tls_enforcement": 92,
+    "auth_strength": 92,
+    "scope_granularity": 90,
+    "dependency_hygiene": 95,
+    "secret_handling": 92,
+    "security_notes": "Pure logging formatter with no network calls. No security concerns. ANSI codes in log output are benign. Avoid logging sensitive data (secrets, PII) regardless of formatter used."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 88,
+    "breaking_changes_history": 90,
+    "error_recovery": 90
+  }
+}

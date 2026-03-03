@@ -1,0 +1,106 @@
+{
+  "id": "diskcache-python-api",
+  "name": "diskcache",
+  "version_evaluated": "5.x",
+  "homepage": "https://grantjenks.com/docs/diskcache/",
+  "repo_url": "https://github.com/grantjenks/python-diskcache",
+  "category": "developer-tools",
+  "subcategories": ["caching", "python", "persistence", "utilities"],
+  "tags": ["python", "diskcache", "cache", "disk", "sqlite", "persistent", "queue", "memoize"],
+  "what_it_does": "Disk and file backed cache library for Python — SQLite + filesystem storage providing persistent cache that survives process restarts. diskcache features: Cache (primary get/set/delete with SQLite+filesystem), Deque (persistent FIFO deque), Index (persistent sorted dict), FanoutCache (sharded for concurrent performance), DjangoCache integration, @memoize decorator, Cache.memoize() context manager, size-limited caching (disk quota), eviction policies (LRU/LFU), statistics, expire/clear/cull, and atomic transactions. Significantly faster than Redis for single-machine use cases.",
+  "use_cases": [
+    "Agent persistent memoization — from diskcache import Cache; cache = Cache('/tmp/agent_cache'); @cache.memoize(expire=3600); def expensive_computation(key): return compute(key) — persistent memoize; agent computation results persist across restarts; @memoize with expire= sets TTL; cache survives process crash",
+    "Agent result caching — from diskcache import Cache; with Cache('/tmp/cache') as cache: cache.set('result', data, expire=86400, tag='daily'); result = cache.get('result') — persistent cache; agent stores large computation results on disk; expire= in seconds; tag= for grouped invalidation; cache.evict('daily') removes all tagged entries",
+    "Agent concurrent cache — from diskcache import FanoutCache; cache = FanoutCache('/tmp/fanout', shards=8); cache.set('key', value) — sharded cache; agent with multiple threads uses FanoutCache for better concurrent performance; 8 SQLite shards reduce lock contention; same API as Cache",
+    "Agent size-limited cache — cache = Cache('/tmp/cache', size_limit=2**30) — 1GB limit; cache stores up to 1GB of data then evicts oldest entries; agent caches large files/models with automatic disk space management; disk_min_file_size controls inline vs filesystem storage",
+    "Agent persistent task deque — from diskcache import Deque; tasks = Deque(directory='/tmp/tasks'); tasks.appendleft({'job': 'process', 'data': url}); task = tasks.pop() — persistent deque; agent uses persistent FIFO queue that survives restarts; Deque is atomic and thread-safe; supports appendleft/append/pop/popleft"
+  ],
+  "not_for": [
+    "Distributed caching — diskcache is single-machine; for multi-node use Redis via cachelib",
+    "Sub-millisecond latency — disk access is slower than memory; for in-process speed use cachetools LRUCache",
+    "Network-accessible cache — diskcache is local filesystem only; for shared network cache use Redis/Memcached"
+  ],
+  "best_when": "Single-machine persistent caching that survives process restarts — diskcache outperforms Redis for single-machine workloads while providing persistence that in-memory caches lack.",
+  "avoid_when": "Multi-machine distributed caching (use Redis), sub-millisecond access (use cachetools), or when cache must be network-accessible.",
+  "alternatives": ["cachetools-python-api", "cachelib-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — local filesystem cache. Filesystem permissions control access."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, Apache 2.0 licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "diskcache is Apache 2.0 licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Performance: get: ~0.1-1ms (SQLite lookup). set: ~1-5ms (SQLite + optional file write). Large values (>disk_min_file_size=32KB) stored as files, small values inline in SQLite. FanoutCache: 8 shards reduces lock contention 8x. SSD recommended for best performance.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 90,
+    "error_message_quality": 85,
+    "error_message_notes": "Timeout for operation timeouts (SQLite lock contention). OSError for filesystem issues. cache.get() returns default (None by default) on miss — not exception. cache[key] raises KeyError on miss. Consistent with dict interface.",
+    "idempotency_support": "full",
+    "idempotency_notes": "cache.set() is idempotent. @memoize is idempotent for same arguments. cache.delete() idempotent (no error on missing key). All operations are atomic via SQLite transactions.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Cache directory is created and must be consistent — Cache('/path') creates SQLite + files in /path; changing the path creates a new empty cache; agent code upgrading must migrate data or use same path; cache directory contains multiple files (cache.db, cache.db-shm, cache.db-wal, value files) — do not manually delete individual files",
+      "cache.get() returns None for miss, cache[key] raises KeyError — two access patterns for cache miss handling; agent code: use cache.get(key) for optional lookup returning None; use cache[key] in try/except KeyError for guaranteed-exist access; @memoize decorator handles misses automatically",
+      "Pickle is default serializer — diskcache pickles values by default; agent code storing user-controlled objects: arbitrary code execution if cache is accessed by different process; use diskcache with disk=DjangoDisk or custom disk class for JSON serialization; or validate cached objects on retrieval",
+      "Size limit eviction happens asynchronously — cache = Cache('/path', size_limit=1e9) enforces 1GB; eviction triggered after set() if over limit; not guaranteed before next operation; agent code needing precise size control: call cache.cull() explicitly after writes; or use cache.volume() to check current size",
+      "Tag-based eviction requires tag at set time — cache.set(key, value, tag='group1'); cache.evict('group1') removes all tagged entries atomically; tag must be specified at set time not evict time; agent code invalidating groups of related cache entries must use consistent tags; cache.evict() with unknown tag is no-op",
+      "Context manager closes cache on exit — with Cache('/path') as cache: ... closes SQLite connection on exit; agent code using cache across function boundaries should not use context manager — create Cache() at module level and close() explicitly; or use single-function cache via @cache.memoize() decorator which handles lifecycle"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 90,
+    "error_handling_score": 85,
+    "auth_complexity_score": 99,
+    "rate_limit_clarity_score": 99
+  },
+  "security_score_components": {
+    "tls_enforcement": 90,
+    "auth_strength": 90,
+    "scope_granularity": 88,
+    "dependency_hygiene": 90,
+    "secret_handling": 82,
+    "security_notes": "Local filesystem cache. Pickle deserialization risk — only access cache from trusted code. Cache directory ACLs control multi-process access. Do not cache secrets without encryption. Value files in cache directory are raw bytes — protect directory permissions. SQLite WAL files persist until checkpoint — account for disk space."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 88,
+    "breaking_changes_history": 88,
+    "error_recovery": 88
+  }
+}

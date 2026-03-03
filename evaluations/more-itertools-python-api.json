@@ -1,0 +1,106 @@
+{
+  "id": "more-itertools-python-api",
+  "name": "more-itertools",
+  "version_evaluated": "10.x",
+  "homepage": "https://more-itertools.readthedocs.io/",
+  "repo_url": "https://github.com/more-itertools/more-itertools",
+  "category": "developer-tools",
+  "subcategories": ["utilities", "python", "itertools", "functional-programming"],
+  "tags": ["python", "more-itertools", "itertools", "iterables", "sequences", "batched", "windowed"],
+  "what_it_does": "Extends Python's itertools with 60+ additional iterator building blocks — provides windowed, chunked, batched, flatten, one, peekable, side_effect, distribute, roundrobin, and many more. more-itertools features: windowed/sliding window over iterables, chunked/batched for fixed-size groups, peekable for look-ahead, one/first/last/only for safe single-item extraction, side_effect for debugging iterators, flatten/collapse for nested iterables, zip_offset for shifted zipping, intersperse for separators, ilen for iterator length, partition for predicate splitting, spy for non-consuming peek, and 40+ more. All return lazy iterators.",
+  "use_cases": [
+    "Agent batch processing — from more_itertools import chunked; data = range(10000); for batch in chunked(data, 100): process_batch(list(batch)) — fixed-size batches; agent processes large datasets in chunks without loading all into memory; chunked returns iterator of lists; last chunk may be smaller than chunk_size",
+    "Agent sliding window — from more_itertools import windowed; prices = [100, 102, 98, 105, 103]; for window in windowed(prices, n=3): moving_avg = sum(w for w in window if w) / 3 — sliding window; agent computes rolling statistics over time series; windowed(seq, n) yields n-tuples with None padding at end",
+    "Agent safe single extraction — from more_itertools import one, first, last; result = one(filtered_items) — raises ValueError if not exactly one; first_match = first(items, default=None) — safe single extraction; agent validates exactly one match or safely gets first/last; one() raises if 0 or >1 items",
+    "Agent peekable iterator — from more_itertools import peekable; it = peekable(stream); if it.peek(None) is not None: process(next(it)) — look-ahead; agent inspects next item without consuming; peekable.peek(default) returns next without advancing; useful for parsers and state machines",
+    "Agent interleaving streams — from more_itertools import roundrobin; a = [1, 3, 5]; b = [2, 4, 6]; interleaved = list(roundrobin(a, b)) — [1, 2, 3, 4, 5, 6]; agent merges multiple ordered streams; roundrobin distributes equally from each iterable in turn"
+  ],
+  "not_for": [
+    "NumPy array operations — more-itertools works with Python iterables not arrays; for array windowing use numpy.lib.stride_tricks",
+    "Async iterables — more-itertools is synchronous; for async itertools use aioitertools or asyncio-specific utilities",
+    "Parallel processing — more-itertools is sequential; for parallel iteration use concurrent.futures with chunks"
+  ],
+  "best_when": "Complex iterator manipulation and lazy data pipeline construction — more-itertools fills the gap between itertools and needing custom iterator code for windowing, batching, and safe extraction.",
+  "avoid_when": "NumPy array operations, async iterables, or when itertools + list comprehensions already solve the problem.",
+  "alternatives": ["funcy-python-api", "boltons-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — pure Python iterator library."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "more-itertools is MIT licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Performance: all functions return lazy iterators — O(1) memory until consumed. Calling list() on iterator materializes. windowed uses deque internally for O(1) sliding. chunked/batched use islice for O(chunk_size) memory per batch. Pure Python — no C extension.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 92,
+    "error_message_quality": 88,
+    "error_message_notes": "ValueError from one() with count of items found — 'Expected exactly one item in iterable, but got zero/two or more'. StopIteration from first()/last() on empty without default. Standard Python exceptions — well-described error messages.",
+    "idempotency_support": "full",
+    "idempotency_notes": "All functions are pure — same iterable input always produces same output. Lazy iterators consume source once. peekable is stateful (consumes source) but deterministic.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Iterators are consumed once — more_itertools functions return lazy iterators; calling list() twice on same iterator returns empty list second time; agent code: materialize with list() if multiple passes needed; chunked(data, 100) — each call to chunked creates new iterator; but underlying data= must be re-iterable",
+      "windowed() pads end with None by default — windowed([1,2,3], 4) yields (1,2,3,None); filter None: windowed(seq, n, fillvalue=None); agent code summing windows must handle None: sum(x for x in window if x is not None); or use windowed_complete() for only complete windows",
+      "one() error message is informative — one(iter([1,2])) raises ValueError: 'Expected exactly one item in iterable, but got two or more'; one(iter([])) raises ValueError: 'Expected exactly one item... but got zero'; agent code using one() for validation: catch ValueError for graceful handling; error messages distinguish 0 vs 2+ items",
+      "chunked() last chunk may be smaller — chunked([1,2,3,4,5], 2) yields [1,2], [3,4], [5]; last chunk [5] has 1 item not 2; agent code expecting uniform chunk size: use chunked_even() or pad last chunk; or filter: (chunk for chunk in chunked(data, n) if len(chunk) == n)",
+      "import more_itertools not more-itertools — pip install more-itertools; import more_itertools (underscore not hyphen); from more_itertools import chunked, windowed; agent requirements.txt: more-itertools>=10.0; import uses underscore",
+      "peekable consumes from source — peekable wraps an iterator; once created, the original iterator should not be used directly; agent code: it = peekable(original); do not also iterate original separately; peekable.prepend(item) inserts item to be yielded next — useful for parser lookahead that needs to 'unget'"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 92,
+    "error_handling_score": 88,
+    "auth_complexity_score": 99,
+    "rate_limit_clarity_score": 99
+  },
+  "security_score_components": {
+    "tls_enforcement": 92,
+    "auth_strength": 92,
+    "scope_granularity": 90,
+    "dependency_hygiene": 95,
+    "secret_handling": 92,
+    "security_notes": "Pure Python iterator library with no network calls and minimal dependencies. No security concerns. side_effect() executes arbitrary function per item — validate side effect functions in agent code."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 92,
+    "version_stability": 90,
+    "breaking_changes_history": 90,
+    "error_recovery": 92
+  }
+}
