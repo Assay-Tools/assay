@@ -1,0 +1,106 @@
+{
+  "id": "slf4j-logback-api",
+  "name": "SLF4J + Logback",
+  "version_evaluated": "SLF4J 2.x + Logback 1.5+",
+  "homepage": "https://www.slf4j.org/",
+  "repo_url": "https://github.com/qos-ch/logback",
+  "category": "developer-tools",
+  "subcategories": ["logging", "java", "kotlin", "observability"],
+  "tags": ["logging", "java", "kotlin", "slf4j", "logback", "structured-logging", "appenders", "jvm"],
+  "what_it_does": "The de facto JVM logging standard: SLF4J (Simple Logging Facade for Java) provides a vendor-neutral logging API; Logback is the native implementation (successor to Log4j). SLF4J's Logger interface lets library code log without binding to a specific implementation — the application chooses the backend (Logback, Log4j2, java.util.logging). Logback provides file rolling, JSON formatting, async appenders, and conditional logging.",
+  "use_cases": [
+    "Add structured logging to agent services using SLF4J's parameterized messages (logger.info('Processing {} tasks', count)) for zero-cost message formatting when disabled",
+    "Configure Logback for JSON output (logstash-logback-encoder) in containerized agent services for log aggregation with ELK or Splunk",
+    "Use Logback's async appender for high-throughput agent services where synchronous file logging would become a bottleneck",
+    "Use MDC (Mapped Diagnostic Context) to inject agent request IDs, user IDs, and trace IDs into all log statements for distributed tracing correlation",
+    "Configure environment-specific log levels in logback.xml/logback-spring.xml for development (DEBUG) vs production (WARN) agent deployments"
+  ],
+  "not_for": [
+    "Log4j2's async logging performance requirements — Log4j2 with LMAX Disruptor provides higher throughput than Logback for extreme logging rates",
+    "Kotlin Multiplatform logging — use kotlin-logging or Napier for KMP; SLF4J is JVM-only",
+    "Structured logging-first workflows — OpenTelemetry Java logging API or Flogger may be more ergonomic for structured log-native approaches"
+  ],
+  "best_when": "You're building a JVM/Spring Boot application and want the industry-standard logging facade that all Java libraries interoperate with.",
+  "avoid_when": "You need maximum async logging throughput (Log4j2 beats Logback) or you're writing Kotlin Multiplatform code.",
+  "alternatives": ["log4j2-api", "java-util-logging-api", "kotlin-logging-api", "opentelemetry-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["java", "kotlin"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Logging library — no authentication. Log destinations (remote syslog, Splunk) may require auth in appender configuration."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Both SLF4J and Logback are fully free.",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "SLF4J and Logback are open source under MIT/EPL license. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Logback sync appenders: ~1M log events/sec. Async appender: higher throughput with bounded queue.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 88,
+    "error_message_quality": 82,
+    "error_message_notes": "Logback configuration errors reported on startup with clear XML syntax and element name errors. Appender failures logged to status log. MDC access in wrong thread context is silent (returns null) without error.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Logging is a side effect — not idempotent by nature. Each log call writes to appenders. Appenders buffer independently.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "SLF4J requires exactly one implementation on the classpath — multiple SLF4J implementations (Logback + Log4j2 both present) cause 'Multiple SLF4J bindings' warning and unpredictable behavior",
+      "MDC values are thread-local — MDC data set on the main thread is NOT inherited by spawned threads or coroutines without explicit MDC copy; use MDC.getCopyOfContextMap() to propagate",
+      "Logback's default configuration includes a status listener that prints warnings to System.out — in tests this produces noise; suppress with StatusListenerConfigHelper or logback-test.xml",
+      "Log levels below the configured threshold generate NO objects — logger.debug('Value: {}', expensiveCall()) still calls expensiveCall() even if DEBUG is disabled; use isDebugEnabled() guard or suppliers",
+      "Async appender has a queue with default capacity 256 — under log burst, the queue fills and callers block (or events are dropped if includeCallerData=false with discardingThreshold)",
+      "Spring Boot includes logback-spring.xml with Spring Profile support — using logback.xml (not logback-spring.xml) loses Spring-specific features like <springProfile> element"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 88,
+    "error_handling_score": 82,
+    "auth_complexity_score": 95,
+    "rate_limit_clarity_score": 95
+  },
+  "security_score_components": {
+    "tls_enforcement": 90,
+    "auth_strength": 85,
+    "scope_granularity": 82,
+    "dependency_hygiene": 88,
+    "secret_handling": 80,
+    "security_notes": "Logging sensitive data is a security risk — filter sensitive fields in Logback's PatternLayout. Log4Shell (CVE-2021-44228) affected Log4j NOT Logback — Logback was unaffected. Regular security updates."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 92,
+    "version_stability": 90,
+    "breaking_changes_history": 88,
+    "error_recovery": 88
+  }
+}
