@@ -1,0 +1,106 @@
+{
+  "id": "line-profiler-python-api",
+  "name": "line_profiler",
+  "version_evaluated": "4.x",
+  "homepage": "https://github.com/pyutils/line_profiler",
+  "repo_url": "https://github.com/pyutils/line_profiler",
+  "category": "developer-tools",
+  "subcategories": ["profiling", "python", "performance", "debugging"],
+  "tags": ["python", "line-profiler", "kernprof", "line-by-line", "performance", "profiling"],
+  "what_it_does": "Line-by-line Python code profiler — measures execution time and call count for each line of decorated functions. line_profiler features: @profile decorator (added by kernprof), kernprof -l script.py for CLI profiling, LineProfiler class for programmatic use, add_function() to profile multiple functions, print_stats() for text output, dump_stats() to file, lprof binary format, line-by-line timing breakdown showing % time, total time, per-hit time, and hit count. Shows exactly which line is slow, unlike function-level profilers.",
+  "use_cases": [
+    "Agent line-level bottleneck — # kernprof -l -v agent.py; @profile; def process_response(response): text = response.text  # 1% time; tokens = tokenize(text)  # 45% time; filtered = filter_tokens(tokens)  # 2% time; embedding = embed(filtered)  # 50% time — line-by-line timing; agent developer sees tokenize() and embed() are bottlenecks; function profilers only show process_response() is slow",
+    "Agent programmatic profiling — from line_profiler import LineProfiler; profiler = LineProfiler(); profiler.add_function(slow_function); profiler.enable_by_count(); result = slow_function(data); profiler.disable_by_count(); profiler.print_stats() — programmatic profiling without @profile decorator; agent profiling in Jupyter notebook or test without kernprof CLI",
+    "Agent loop optimization — @profile; def batch_process(items): results = []; for item in items:  # hit 10000 times; parsed = parse(item)  # 30% time; validated = validate(parsed)  # 65% time; results.append(validated)  # 5% time — identifies validate() in loop; agent optimizes inner loop by caching or vectorizing validation",
+    "Agent multiple function profiling — from line_profiler import LineProfiler; lp = LineProfiler(fn1, fn2, fn3); lp_wrapper = lp(main_fn); lp_wrapper(); lp.print_stats() — profile multiple functions simultaneously; agent discovers which of several candidate slow functions is the bottleneck; comprehensive view of entire call chain",
+    "Agent stats file output — profiler.dump_stats('profile.lprof'); # Later: python -m line_profiler profile.lprof — save profile for later analysis; agent CI saves profile artifact; review line-by-line timing without rerunning code"
+  ],
+  "not_for": [
+    "Production profiling — line_profiler adds per-line overhead (2-10x slowdown); use py-spy for low-overhead production sampling",
+    "Memory profiling — line_profiler is time only; use memray for memory allocation per line",
+    "Async code — line_profiler does not profile asyncio coroutines correctly; use pyinstrument with async_mode for async code"
+  ],
+  "best_when": "Pinpointing slow lines within a known slow function — when pyinstrument shows function X is slow, line_profiler reveals which specific line within X needs optimization.",
+  "avoid_when": "You don't know which function is slow yet (use pyinstrument first), need production profiling (use py-spy), memory profiling (use memray), or async profiling (use pyinstrument).",
+  "alternatives": ["pyinstrument-python-api", "py-spy-python-api", "scalene-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — local profiling tool."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, BSD licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "line_profiler is BSD licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Profiling overhead: 2-10x slowdown per decorated function (per-line instrumentation). C extensions not profiled — only Python lines. Overhead proportional to line count and call frequency.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 82,
+    "error_message_quality": 80,
+    "error_message_notes": "NameError: name 'profile' is not defined when running without kernprof; @profile decorator only defined when running via kernprof or explicitly importing LineProfiler. File not found for .lprof output files. Error messages are standard Python exceptions.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Line profiling is deterministic for same code execution. Multiple runs accumulate timing in same LineProfiler instance. dump_stats() is idempotent (overwrites file). print_stats() from same data is deterministic.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "@profile decorator only exists with kernprof — running python agent.py with @profile decorator raises NameError: profile; must run: kernprof -l agent.py or import profile manually: from line_profiler import profile; or add: try: profile; except NameError: profile = lambda f: f; at top of file to make @profile conditional on kernprof",
+      "C extension lines show 0 time — numpy operations (arr.mean(), arr.sort()) are C extensions; @profile shows Python dispatch overhead not C computation time; agent code with 50% numpy shows misleadingly fast lines; scalene shows C vs Python time; line_profiler only profiles Python bytecode, not C calls",
+      "kernprof -l creates .lprof file not stdout — kernprof -l script.py creates script.py.lprof binary file; adding -v flag prints stats to stdout: kernprof -lv script.py; agent developers expecting stdout profiling must use -v; .lprof files require python -m line_profiler script.py.lprof for later viewing",
+      "Profiling changes execution timing — line_profiler overhead can change which code path is faster; branch prediction, cache effects, and GIL behavior change under profiling; agent code optimized based on profiled timing may show different performance without profiling; verify optimization with real benchmarks not profiled timings",
+      "add_function() vs @profile for library code — LineProfiler(target_fn) profiles function; to profile function in library without modifying source: lp = LineProfiler(); lp.add_function(library_module.slow_fn); lp_wrapper = lp(calling_fn); lp_wrapper(); lp.print_stats() — wraps caller and profiles callee; agent profiling library code without modifying it",
+      "Cumulative time vs per-call time distinction — % Time column shows percentage of total profiled time; Time column shows total time all calls combined; Hits column shows call count; Per Hit = Time/Hits; agent inner loop with line called 10000x: high total Time but low Per Hit is normal; focus on Per Hit to find per-iteration bottleneck vs total Time for overall impact"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 82,
+    "error_handling_score": 78,
+    "auth_complexity_score": 99,
+    "rate_limit_clarity_score": 99
+  },
+  "security_score_components": {
+    "tls_enforcement": 92,
+    "auth_strength": 92,
+    "scope_granularity": 90,
+    "dependency_hygiene": 88,
+    "secret_handling": 85,
+    "security_notes": "Local profiling tool with no network calls. .lprof files contain function source code and timing — treat as internal documentation. @profile decorator must be removed before production deployment. No other security concerns."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 82,
+    "version_stability": 80,
+    "breaking_changes_history": 80,
+    "error_recovery": 82
+  }
+}

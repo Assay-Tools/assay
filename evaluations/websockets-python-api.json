@@ -1,0 +1,106 @@
+{
+  "id": "websockets-python-api",
+  "name": "websockets",
+  "version_evaluated": "12.x",
+  "homepage": "https://websockets.readthedocs.io/",
+  "repo_url": "https://github.com/python-websockets/websockets",
+  "category": "developer-tools",
+  "subcategories": ["websocket", "python", "async", "networking", "real-time"],
+  "tags": ["python", "websockets", "websocket", "async", "asyncio", "real-time", "streaming", "server"],
+  "what_it_does": "WebSocket client and server library for Python asyncio — implements RFC 6455 with clean async API. websockets features: websockets.connect() for client, websockets.serve() for server, send()/recv() for messages, async for message in websocket iteration, ping()/pong() for keepalive, close() with status codes, connection.open/closed state, ssl= for WSS, extra_headers for custom headers, max_size for message size limit, open_timeout, ping_interval/timeout, per_message_deflate compression, and websockets.exceptions for error handling. Used for real-time agent communication, LLM streaming, and live data feeds.",
+  "use_cases": [
+    "Agent WebSocket client — import websockets; async with websockets.connect('wss://api.example.com/ws') as ws: await ws.send(json.dumps({'action': 'subscribe', 'topic': 'agent_events'})); async for message in ws: event = json.loads(message); process(event) — streaming connection; agent receives real-time events; async for loops until connection closes",
+    "Agent LLM streaming — async with websockets.connect('wss://llm-api/stream', extra_headers={'Authorization': f'Bearer {token}'}) as ws: await ws.send(json.dumps(prompt)); async for chunk in ws: token = json.loads(chunk)['text']; yield token — stream LLM tokens as generated; agent displays partial responses incrementally",
+    "Agent WebSocket server — async def handler(websocket): async for message in websocket: result = await process_agent_request(message); await websocket.send(result); async with websockets.serve(handler, 'localhost', 8765): await asyncio.Future() — WebSocket server for agent API; multiple clients connect concurrently; each client gets independent handler coroutine",
+    "Agent broadcast server — connected = set(); async def handler(ws): connected.add(ws); try: async for msg in ws: await asyncio.gather(*[c.send(msg) for c in connected - {ws}]); finally: connected.remove(ws) — broadcast to all connected clients; agent multi-client scenario shares events; set() for O(1) add/remove",
+    "Agent connection with reconnect — async def connect_with_retry(url): while True: try: async with websockets.connect(url, ping_interval=20, ping_timeout=10) as ws: await handle_connection(ws); except (websockets.ConnectionClosed, OSError): await asyncio.sleep(1) — reconnect loop; agent persistent connections recover from server restarts; ping_interval keeps connection alive"
+  ],
+  "not_for": [
+    "HTTP requests — websockets is WebSocket only; for HTTP use httpx or aiohttp",
+    "Sync Python code — websockets requires asyncio; for sync WebSocket use websocket-client library",
+    "High-throughput binary data — websockets adds Python overhead; for ultra-high performance WebSocket use Rust-based solutions or native C extensions"
+  ],
+  "best_when": "Real-time bidirectional communication between Python async agents — websockets provides clean RFC 6455-compliant WebSocket with minimal overhead for LLM streaming, live event feeds, and agent-to-agent messaging.",
+  "avoid_when": "You need HTTP (use httpx), sync code (use websocket-client), or ultra-high throughput binary streaming.",
+  "alternatives": ["aiohttp-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none", "token", "tls"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "WSS (WebSocket Secure) via ssl=True or ssl=context. Bearer token via extra_headers. Basic auth via URI: wss://user:pass@host. No built-in OAuth — implement via headers."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, BSD licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "websockets is BSD licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 1,
+    "latency_p99_ms": 10,
+    "uptime_sla_percent": null,
+    "rate_limits": "No client rate limits. WebSocket message latency: <1ms local, network-limited remote. Server handles thousands of concurrent connections with asyncio. Large messages (>10MB) may hit default max_size limit. Compression via per_message_deflate reduces bandwidth 3-10x.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted", "cloud"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 90,
+    "error_message_quality": 88,
+    "error_message_notes": "websockets.ConnectionClosed with .code and .reason on close. websockets.ConnectionClosedOK (normal) vs ConnectionClosedError (error). websockets.InvalidURI for bad WebSocket URL. websockets.InvalidHandshake for failed upgrade. websockets.PayloadTooBig for messages exceeding max_size. Clear exception hierarchy with specific error classes.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "WebSocket connections are stateful — not idempotent. Individual send() calls are idempotent (same bytes sent). recv() is stateful — consuming messages changes connection state. Reconnection creates new session without previous message history.",
+    "pagination_style": "none",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "ConnectionClosed raised inside async for — async for message in ws: raises ConnectionClosed when server closes; agent code must wrap: try: async for msg in ws: process(msg); except websockets.ConnectionClosed: handle_disconnect(); closing inside the loop body causes exception on next recv(); catching ConnectionClosed outside the for loop is the correct pattern",
+      "send() raises ConnectionClosed after disconnect — awaiting ws.send() on closed connection raises ConnectionClosed; agent code sending after server disconnect must check ws.open: if ws.open: await ws.send(data); else: reconnect(); or wrap in try/except ConnectionClosed; send() does not buffer — if connection is closed, message is lost",
+      "max_size=None required for large messages — websockets default max_size=2**20 (1MB); agent receiving large messages (images, embeddings, large JSON) gets PayloadTooBig exception; must set: websockets.connect(url, max_size=None) or max_size=10*1024*1024 for 10MB; server must also configure max_size",
+      "Ping/pong keepalive by default — websockets sends ping every 20s and expects pong within 20s; if server doesn't respond to ping (firewalls blocking PING frames, buggy servers), connection closed with TimeoutError; disable with ping_interval=None; or increase timeout: websockets.connect(url, ping_timeout=60)",
+      "Binary vs text messages — ws.send(bytes_data) sends binary frame; ws.send(str_data) sends text frame; ws.recv() returns str for text, bytes for binary; agent code expecting text but receiving binary raises AttributeError on str operations; check type: msg = await ws.recv(); if isinstance(msg, bytes): decode; or use recv_bytes=False to force text",
+      "Server handler must not raise exceptions — uncaught exception in websockets server handler closes connection with 1011 Internal Error; agent server must: async def handler(ws): try: async for msg in ws: await process(msg); except Exception as e: logger.error(e); closing without exception sends normal close frame; let exceptions propagate for debugging but catch in production"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 90,
+    "error_handling_score": 88,
+    "auth_complexity_score": 88,
+    "rate_limit_clarity_score": 95
+  },
+  "security_score_components": {
+    "tls_enforcement": 88,
+    "auth_strength": 82,
+    "scope_granularity": 80,
+    "dependency_hygiene": 88,
+    "secret_handling": 82,
+    "security_notes": "Always use WSS (WebSocket Secure) in production — ws:// transmits plaintext including auth headers. Validate origin header in server to prevent CSRF. Implement authentication before allowing WebSocket upgrade — websockets has no built-in auth. Limit max_size to prevent memory exhaustion from large messages. Rate-limit connections per IP to prevent DoS."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 85,
+    "breaking_changes_history": 82,
+    "error_recovery": 85
+  }
+}
