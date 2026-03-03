@@ -1,0 +1,106 @@
+{
+  "id": "ksp-api",
+  "name": "Kotlin Symbol Processing (KSP)",
+  "version_evaluated": "1.9.x",
+  "homepage": "https://kotlinlang.org/docs/ksp-overview.html",
+  "repo_url": "https://github.com/google/ksp",
+  "category": "developer-tools",
+  "subcategories": ["kotlin", "annotation-processing", "code-generation", "build-tools", "compiler"],
+  "tags": ["kotlin", "annotation-processing", "code-generation", "ksp", "kapt", "compiler-plugin", "room", "hilt", "moshi"],
+  "what_it_does": "Kotlin Symbol Processing is the modern Kotlin-first annotation processor framework — replacement for KAPT (Kotlin Annotation Processing Tool). KSP processes Kotlin source symbols (classes, functions, properties, annotations) at compile time to generate code. 2x faster than KAPT because it doesn't compile Kotlin to Java stubs first. KSP supports Kotlin Multiplatform (KAPT does not). Popular libraries using KSP: Room database (entity → DAO code gen), Hilt (dependency injection), Moshi (JSON codegen), auto-service, and custom code generators. KSP API is Kotlin-native — processors receive KSDeclaration, KSClassDeclaration, KSFunctionDeclaration instead of Java Mirror types.",
+  "use_cases": [
+    "Migrate Room annotation processing from KAPT to KSP in agent Android apps — ksp('androidx.room:room-compiler') instead of kapt; 2x faster incremental builds for agent database layer changes",
+    "Migrate Hilt dependency injection from KAPT to KSP in Kotlin agent services — KSP Hilt processor generates DI code without Java stub generation overhead",
+    "Build custom KSP processor for agent domain code generation — generate TypeScript API client types from Kotlin data class annotations, or generate agent event schema validators at compile time",
+    "Use KSP with Kotlin Multiplatform agent libraries — KSP supports KMP targets (JVM, Android, iOS, JS, Native); KAPT is JVM/Android only; KSP enables shared code generation across agent platforms",
+    "Generate boilerplate-free agent DTOs with KSP-powered Moshi codegen — @JsonClass(generateAdapter = true) triggers KSP Moshi processor to generate type-safe JSON adapters without reflection"
+  ],
+  "not_for": [
+    "Java-only annotation processing — KSP processes Kotlin symbols; for Java-only codegen, use standard Java Annotation Processing (APT) or Google's AutoValue/Javapoet",
+    "Runtime code generation — KSP is compile-time only; for runtime bytecode manipulation, use ByteBuddy, ASM, or Kotlin Reflect",
+    "Projects still requiring Java interop in annotation processing — KAPT processes both Kotlin and Java sources; KSP cannot inspect Java source files directly (though it can see Java types from compiled dependencies)"
+  ],
+  "best_when": "You're using Room, Hilt, or Moshi in a Kotlin-first Android/JVM project and want 2x faster incremental builds — migrating from KAPT to KSP is a drop-in improvement.",
+  "avoid_when": "You need to process Java source annotations alongside Kotlin, you're building a library that must support KAPT consumers (KSP and KAPT can coexist but add complexity), or you're on a legacy Android project not yet on Kotlin.",
+  "alternatives": ["kapt-api", "apt-java-api", "kotlinpoet-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["kotlin"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Build-time code generation tool — no auth concepts. Runs in Gradle build pipeline without external network access."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, Apache 2.0 licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "KSP is Apache 2.0 licensed, developed by Google and JetBrains. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — compile-time build tool. KSP is ~2x faster than KAPT for incremental builds. Initial build with KSP may be similar; incremental compilation benefits grow with codebase size.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["local"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 82,
+    "error_message_quality": 78,
+    "error_message_notes": "KSP processor errors surface as Kotlin compiler errors with line numbers from generated or source files. Error messages from library processors (Room, Hilt) are generally clear. Custom processor errors require explicit logging via KSPLogger. Incremental processing errors can be unclear about which source triggered regeneration.",
+    "idempotency_support": "full",
+    "idempotency_notes": "KSP processing is deterministic — same source files produce same generated output. Incremental processing tracks dirty symbols; clean builds are always safe. Generated files are stable across runs for same input.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "KSP and KAPT cannot process same annotation in same module — if Room uses KAPT and Hilt uses KSP in same module, there's no conflict; but if same annotation is processed by both, duplicate code is generated; migrate all processors together",
+      "KSP version must match Kotlin version — KSP releases are tied to specific Kotlin versions (ksp '1.9.22-1.0.17'); using mismatched versions causes 'KSP and Kotlin versions mismatch' build error; check compatibility table",
+      "Incremental processing requires processor to declare inputs — custom KSP processors must implement SymbolProcessor correctly with proper dirty tracking; incorrect input declarations cause excessive regeneration or missed updates",
+      "Generated sources in build/generated/ksp — KSP outputs to build/generated/ksp/[variant]/kotlin; IDE indexing of generated files requires Gradle sync; missing Gradle sync after adding KSP dependency causes 'unresolved reference' in IDE despite clean build",
+      "KSP doesn't support Java source processing — KSP cannot read Java .java files as first-class symbols; Java classes from compiled dependencies are visible as JavaClass but Java source files in mixed projects require KAPT for Java annotation processing",
+      "Multiple round processing limitation — KSP processes all symbols in one or two rounds; KAPT supports unlimited rounds; complex multi-round code generation (generate code that references other generated code) requires restructuring for KSP"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 82,
+    "error_handling_score": 78,
+    "auth_complexity_score": 100,
+    "rate_limit_clarity_score": 100
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 100,
+    "scope_granularity": 95,
+    "dependency_hygiene": 90,
+    "secret_handling": 95,
+    "security_notes": "Compile-time only — no network exposure. Generated code quality depends on processor implementation; review generated code for security patterns. Custom KSP processors that generate code handling agent credentials must be carefully reviewed."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 85,
+    "version_stability": 80,
+    "breaking_changes_history": 75,
+    "error_recovery": 85
+  }
+}

@@ -1,0 +1,106 @@
+{
+  "id": "micrometer-api",
+  "name": "Micrometer",
+  "version_evaluated": "1.12.x",
+  "homepage": "https://micrometer.io/",
+  "repo_url": "https://github.com/micrometer-metrics/micrometer",
+  "category": "developer-tools",
+  "subcategories": ["monitoring", "metrics", "java", "observability", "spring"],
+  "tags": ["java", "kotlin", "metrics", "prometheus", "grafana", "spring-boot", "observability", "counter", "timer", "gauge"],
+  "what_it_does": "Vendor-neutral metrics facade for JVM applications — analogous to SLF4J for logging but for metrics. Micrometer provides a unified API for recording metrics (Counter, Timer, Gauge, DistributionSummary, LongTaskTimer) and exports to 20+ monitoring backends: Prometheus, Datadog, InfluxDB, CloudWatch, New Relic, Dynatrace, Graphite, and more. Spring Boot Actuator uses Micrometer for all built-in metrics (/actuator/metrics). Micrometer Tracing (formerly Spring Cloud Sleuth) provides distributed tracing alongside metrics. Key concept: meters are tagged for dimensional metrics that Prometheus/Grafana can slice and filter.",
+  "use_cases": [
+    "Instrument agent service latency and throughput with Micrometer Timer — record agent request duration with tags for agent_type, status, model to enable Grafana dashboards with dimensional filtering",
+    "Track agent invocation counts using Micrometer Counter — count successful vs failed agent calls, tool invocations, and LLM API requests with custom tags for alerting thresholds",
+    "Monitor agent queue depth with Micrometer Gauge — expose live agent task queue size as a Prometheus gauge for autoscaling triggers and capacity planning",
+    "Export agent service metrics to Prometheus with micrometer-registry-prometheus — Spring Boot Actuator auto-configures /actuator/prometheus endpoint for Prometheus scraping",
+    "Measure agent data pipeline throughput with DistributionSummary — record bytes processed, items transformed, and agent batch sizes with percentile histograms in Prometheus"
+  ],
+  "not_for": [
+    "Distributed tracing — Micrometer Tracing handles traces but OpenTelemetry is the emerging standard; use OpenTelemetry Java SDK for unified traces + metrics if starting fresh",
+    "Non-JVM applications — Micrometer is JVM-only; use Prometheus client libraries directly, statsd, or OpenTelemetry SDKs for non-JVM agent services",
+    "Log aggregation — Micrometer is metrics-only; use SLF4J/Logback for structured logging and ELK/Loki for log aggregation"
+  ],
+  "best_when": "You're building a Spring Boot or JVM agent service and need production-grade metrics exported to Prometheus/Datadog/InfluxDB — Micrometer is already included in Spring Boot Actuator and requires minimal setup.",
+  "avoid_when": "You're not on the JVM, you want unified traces+metrics via OpenTelemetry from the start, or your monitoring backend isn't supported (check micrometer.io for registry list).",
+  "alternatives": ["opentelemetry-api", "prometheus-java-api", "dropwizard-metrics-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["java", "kotlin"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["api_key", "none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Micrometer itself needs no auth. Remote registry exports (Datadog, InfluxDB) require API keys configured in application.properties. Prometheus scrapes /actuator/prometheus — secure with Spring Security if exposed externally."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, Apache 2.0 licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Micrometer is Apache 2.0 licensed, maintained by Broadcom/VMware. Free for all use. Backend monitoring services (Datadog, New Relic) have their own pricing."
+  },
+  "performance": {
+    "latency_p50_ms": 0,
+    "latency_p99_ms": 1,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — local instrumentation. Micrometer adds <1µs overhead per meter recording. High-cardinality tags (user IDs as tag values) can cause memory explosion in Prometheus.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["local", "self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 88,
+    "error_message_quality": 80,
+    "error_message_notes": "Micrometer errors surface as IllegalArgumentException for invalid meter names/tags and MeterRegistrationException for duplicate meters with different types. Tag cardinality issues cause memory warnings in logs. Spring Boot Actuator provides /actuator/metrics endpoint for runtime meter inspection.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Meter registration is idempotent — calling registry.counter('name', tags) returns existing meter if already registered. Timer.record() and Counter.increment() are atomic and thread-safe.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "High-cardinality tags cause memory explosion — using agent_user_id, session_id, or request_id as tag values creates one time series per unique value; Prometheus keeps all in memory; limit tags to low-cardinality dimensions (agent_type, status, environment)",
+      "Timer.record() vs Timer.start/stop — Timer.record(duration) records a completed duration; Timer.Sample sample = Timer.start(registry) followed by sample.stop(timer) measures elapsed wall clock time; using record() with System.currentTimeMillis() is error-prone due to clock choice",
+      "Percentile histograms require explicit opt-in — by default Micrometer only records count/sum/max; percentile histograms (p50/p95/p99) require .publishPercentileHistogram() on Timer.Builder; adds significant metric cardinality",
+      "MeterRegistry must be injected, not instantiated — auto-configured Spring Boot registry has all reporters wired; manually creating new MeterRegistry bypasses auto-export; always inject MeterRegistry or use static Metrics.globalRegistry with caution",
+      "Meter names are dot-separated, not underscore — Micrometer uses dot notation (agent.request.duration); registry adapters transform to backend convention (Prometheus: agent_request_duration_seconds); mixing conventions causes duplicate metrics",
+      "Gauge requires strong reference to object — Gauge.builder(name, ref, fn) holds weak reference to measured object; if object is garbage collected, gauge reports NaN; ensure gauged objects have application-scoped lifecycle, not request-scoped"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 88,
+    "error_handling_score": 80,
+    "auth_complexity_score": 90,
+    "rate_limit_clarity_score": 95
+  },
+  "security_score_components": {
+    "tls_enforcement": 88,
+    "auth_strength": 80,
+    "scope_granularity": 78,
+    "dependency_hygiene": 90,
+    "secret_handling": 85,
+    "security_notes": "Prometheus endpoint (/actuator/prometheus) must be secured in production — exposes internal metrics. API keys for remote registries (Datadog, InfluxDB) via environment variables. Avoid exposing agent business data via metric tags (PII in tag values)."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 92,
+    "version_stability": 90,
+    "breaking_changes_history": 85,
+    "error_recovery": 90
+  }
+}

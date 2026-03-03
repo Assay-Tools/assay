@@ -1,0 +1,106 @@
+{
+  "id": "testcontainers-java-api",
+  "name": "Testcontainers (Java)",
+  "version_evaluated": "1.19.x",
+  "homepage": "https://java.testcontainers.org/",
+  "repo_url": "https://github.com/testcontainers/testcontainers-java",
+  "category": "developer-tools",
+  "subcategories": ["testing", "java", "docker", "integration-testing", "database"],
+  "tags": ["java", "kotlin", "testing", "docker", "integration-testing", "postgresql", "redis", "kafka", "junit"],
+  "what_it_does": "Java library for integration tests that spin up real Docker containers — databases (PostgreSQL, MySQL, MongoDB), message brokers (Kafka, RabbitMQ), caches (Redis, Memcached), and any Docker image. Testcontainers starts containers before tests, provides connection URLs, and stops containers after. Integrates with JUnit 5 (@Testcontainers, @Container), Spring Boot Test (auto-configured via @ServiceConnection), and TestNG. Solves the 'works on my machine' problem for integration tests by using actual services instead of mocks or H2 in-memory databases. Container lifecycle: per-test (fresh state), per-class (shared), or singleton (shared across JVM).",
+  "use_cases": [
+    "Test agent service database layer against real PostgreSQL — Testcontainers PostgreSQLContainer starts actual Postgres, Spring Boot auto-configures datasource via @ServiceConnection annotation",
+    "Integration test agent Kafka event publishing against real Kafka broker — KafkaContainer with embedded ZooKeeper enables testing agent event publishing and consuming without mock Kafka",
+    "Test agent Redis caching logic against real Redis — RedisContainer provides actual Redis for testing agent session caching, rate limiting counters, and pub/sub messaging",
+    "Spin up agent API dependencies for end-to-end tests — GenericContainer with any Docker image for third-party agent tool dependencies in CI integration tests",
+    "Verify agent database migrations with real database — test Flyway/Liquibase migrations against PostgreSQLContainer to catch migration failures before production deployment"
+  ],
+  "not_for": [
+    "Unit tests — Testcontainers is for integration tests; use Mockito/MockK for unit tests where Docker overhead is unjustified",
+    "Environments without Docker — Testcontainers requires Docker daemon; CI environments without Docker (some restricted corporate CIs) can't run Testcontainers tests",
+    "Performance/load tests — container startup adds 5-30 seconds overhead; not suitable for performance-sensitive test suites; use in-memory stubs for performance baselines"
+  ],
+  "best_when": "You need integration tests against real databases, message brokers, or external services — Testcontainers gives you production-identical services in CI without managing shared test infrastructure.",
+  "avoid_when": "Your CI doesn't have Docker, you need fast unit test feedback cycles, or you're writing performance/load tests where startup time matters.",
+  "alternatives": ["h2-database-api", "embedded-kafka-api", "mockserver-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["java", "kotlin"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Testing library — no auth for Testcontainers itself. Docker Hub pull rate limits apply to container images; configure registry auth for private images via DockerClientConfig."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "Testcontainers Cloud (paid managed service for CI without Docker). Library itself always free.",
+    "requires_credit_card": false,
+    "notes": "Testcontainers Java library is MIT licensed, maintained by AtomicJar (acquired by Docker). Free. Testcontainers Cloud is a paid service for running containers in managed cloud CI."
+  },
+  "performance": {
+    "latency_p50_ms": 5000,
+    "latency_p99_ms": 30000,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — local Docker. Container startup: PostgreSQL 3-10s, Kafka 10-30s. Use singleton containers (Ryuk) to share containers across test classes and reduce total CI time.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["local"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 92,
+    "error_message_quality": 88,
+    "error_message_quality_notes": "Testcontainers logs container startup output for debugging. ContainerLaunchException includes last container logs on startup failure. Port mapping failures show clear 'container did not start' messages. Spring Boot @ServiceConnection auto-wires connection properties with health checks.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Containers start fresh for each test (default) or are shared via @Container static field. Database state between tests is test responsibility — use @Transactional rollback or explicit cleanup in @AfterEach.",
+    "pagination_style": "none",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "@Container must be static for @Testcontainers class-level reuse — non-static @Container creates new container per test method; static @Container creates one per test class; for agent integration tests with expensive setup, always use static containers",
+      "Docker Hub rate limits affect CI — anonymous Docker Hub pulls are rate-limited (100/6hr per IP); CI runners sharing IP exhaust limits; configure registry mirrors or use Testcontainers Cloud; DockerHub auth in DOCKER_AUTH_CONFIG env var",
+      "Ryuk resource reaper cleanup — Testcontainers starts a Ryuk container that removes test containers after JVM exit; in CI with container isolation, disable Ryuk with TESTCONTAINERS_RYUK_DISABLED=true; without Ryuk, containers may leak on abnormal JVM exit",
+      "@ServiceConnection requires Spring Boot 3.1+ — older Spring Boot apps need manual datasource configuration using container.getJdbcUrl(), getUsername(), getPassword(); upgrading to 3.1+ enables auto-wiring via @DynamicPropertySource",
+      "Singleton container pattern for CI speed — use static final containers with @BeforeAll and manually manage lifecycle for sharing across @Testcontainers test classes in same JVM; reduces Kafka/PostgreSQL startup from N times to 1 time per test run",
+      "Network isolation for multi-container tests — containers communicate via Network.newNetwork(); using localhost aliases between containers fails; agent tests with multiple service dependencies need explicit Network with aliases (container.withNetwork(network).withNetworkAliases('postgres'))"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 92,
+    "error_handling_score": 88,
+    "auth_complexity_score": 95,
+    "rate_limit_clarity_score": 90
+  },
+  "security_score_components": {
+    "tls_enforcement": 95,
+    "auth_strength": 88,
+    "scope_granularity": 85,
+    "dependency_hygiene": 90,
+    "secret_handling": 88,
+    "security_notes": "Test containers use default credentials — never use Testcontainers setup in production. Docker socket access is required; in Kubernetes CI, use DinD or Testcontainers Cloud. Container images should be pinned to specific versions, not 'latest' tags, for reproducible agent tests."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 92,
+    "version_stability": 90,
+    "breaking_changes_history": 88,
+    "error_recovery": 90
+  }
+}
