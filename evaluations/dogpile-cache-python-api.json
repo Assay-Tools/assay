@@ -1,0 +1,106 @@
+{
+  "id": "dogpile-cache-python-api",
+  "name": "dogpile.cache",
+  "version_evaluated": "1.x",
+  "homepage": "https://dogpilecache.sqlalchemy.org/",
+  "repo_url": "https://github.com/sqlalchemy/dogpile.cache",
+  "category": "developer-tools",
+  "subcategories": ["caching", "python", "utilities", "sqlalchemy"],
+  "tags": ["python", "dogpile", "cache", "redis", "memcached", "stampede", "backend", "sqlalchemy"],
+  "what_it_does": "Advanced caching library for Python that prevents cache stampede — provides a region-based caching system with dogpile lock to prevent multiple threads from regenerating the same expired cache entry simultaneously. dogpile.cache features: CacheRegion with make_region() factory, @cache_region.cache_on_arguments() decorator, mutex-based stampede prevention (one thread regenerates while others serve stale data), Redis/Memcached/file/memory backends, key mangling, expiration with grace period (serve stale while refreshing), async cache refresh support, invalidation, and integration with SQLAlchemy ORM. From the SQLAlchemy project.",
+  "use_cases": [
+    "Agent stampede-safe cache — from dogpile.cache import make_region; region = make_region().configure('dogpile.cache.redis', expiration_time=300, arguments={'host': 'localhost', 'port': 6379}); @region.cache_on_arguments(); def get_report(report_id): return compute_expensive_report(report_id) — stampede prevention; agent prevents cache stampede on popular keys; only one thread regenerates expired cache entry",
+    "Agent region-based caching — from dogpile.cache import make_region; short = make_region().configure('dogpile.cache.memory', expiration_time=60); long = make_region().configure('dogpile.cache.redis', expiration_time=3600); @short.cache_on_arguments(); def hot_data(key): ...; @long.cache_on_arguments(); def cold_data(key): ... — multiple regions; agent uses different TTLs for different data types",
+    "Agent manual cache population — region.set('key', value); cached = region.get('key'); region.delete('key') — manual ops; agent manually manages cache entries; region.get() returns NO_VALUE sentinel on miss; check: if cached is NO_VALUE: compute and store",
+    "Agent ORM caching — from dogpile.cache.region import make_region; query_region = make_region().configure('dogpile.cache.redis'); @query_region.cache_on_arguments(expiration_time=60); def get_user(user_id): return session.query(User).get(user_id) — SQLAlchemy integration; agent caches database query results; invalidate on write: query_region.delete('get_user|123')",
+    "Agent filesystem caching — region = make_region().configure('dogpile.cache.dbm', arguments={'filename': '/tmp/cache.dbm'}, expiration_time=86400); @region.cache_on_arguments(); def expensive_analysis(data_path): return analyze(data_path) — file-backed; agent persists cache to disk between process restarts using DBM file backend"
+  ],
+  "not_for": [
+    "Simple in-memory caching — dogpile.cache has significant setup overhead; for simple memoization use functools.lru_cache or cachetools",
+    "Real-time requirements — stampede prevention adds mutex overhead; for sub-millisecond cache access use simpler in-memory dict",
+    "Non-Python stacks — dogpile.cache is Python-only; for polyglot caching use Redis directly"
+  ],
+  "best_when": "High-traffic caching where cache stampede (thundering herd) is a problem — dogpile.cache's mutex-based regeneration prevents expensive recomputation storms when popular cache entries expire.",
+  "avoid_when": "Simple single-threaded scripts (use functools.lru_cache), low-traffic applications where stampede isn't an issue, or when cachetools/cachelib provides sufficient features.",
+  "alternatives": ["cachetools-python-api", "cachelib-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none", "password"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Auth via backend arguments: Redis password in arguments dict. No auth for memory/file backends."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "dogpile.cache is MIT licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Performance: memory backend: <1ms. Redis backend: 1-5ms. Stampede prevention adds ~1-2ms mutex overhead on cache miss. Stale-while-revalidate: threads serve stale data immediately while one thread regenerates. Net effect: dramatically reduces latency spikes on cache expiry.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 75,
+    "error_message_quality": 72,
+    "error_message_notes": "NO_VALUE sentinel for cache miss (not None, not exception). CacheBackendError for backend connection issues. RegionAlreadyConfigured if configure() called twice. DogpileLock errors for mutex failures. Error messages can be sparse — documentation is the primary reference.",
+    "idempotency_support": "full",
+    "idempotency_notes": "region.set() is idempotent. @cache_on_arguments is idempotent for same arguments. Stampede prevention is idempotent — concurrent misses produce one regeneration. region.delete() is idempotent.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "region.get() returns NO_VALUE not None on cache miss — from dogpile.cache.api import NO_VALUE; cached = region.get('key'); if cached is NO_VALUE: compute; agent code checking: if cached is None fails because dogpile returns NO_VALUE sentinel; always check: cached is NO_VALUE not cached is None for miss detection",
+      "make_region().configure() returns the region — region = make_region() creates unconfigured region; region.configure(...) configures it and returns the same region object; agent code must call configure() before first cache operation; calling get()/set() on unconfigured region raises RegionAlreadyConfigured or AttributeError",
+      "@cache_on_arguments creates cache key from function name + arguments — key includes module path + function name + str(args); functions with same name in different modules share cache keys if not careful; agent code: use expiration_time parameter per-decorator not just region-wide; use region.key_mangler to customize key format",
+      "dogpile lock is per-key not per-region — stampede prevention uses one lock per unique cache key; if 1000 unique keys expire simultaneously, 1000 locks created; agent code with many unique key patterns under high load: monitor lock count; dogpile is designed for popular keys not massive unique key spaces",
+      "Invalidation requires knowing the exact key — region.delete(key) requires the mangled key string; for function caches: region.delete(function_key_creator(func, *args)); dogpile has no 'delete by prefix' for Redis; agent code invalidating function cache: call region.cache_on_arguments().get(func).invalidate(*args) helper",
+      "configure() cannot be called twice on same region — production pattern: create regions at module level; test code that reconfigures regions gets RegionAlreadyConfigured; agent test code: create fresh region per test or use mock region; in-process region reconfiguration not supported"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 75,
+    "error_handling_score": 72,
+    "auth_complexity_score": 90,
+    "rate_limit_clarity_score": 95
+  },
+  "security_score_components": {
+    "tls_enforcement": 85,
+    "auth_strength": 82,
+    "scope_granularity": 80,
+    "dependency_hygiene": 88,
+    "secret_handling": 80,
+    "security_notes": "Use Redis TLS via arguments={'host': 'localhost', 'ssl': True}. Cache key mangling should not expose sensitive data. No plaintext passwords — use environment variables for Redis password. Pickle is default serializer for some backends — only cache trusted data."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 75,
+    "version_stability": 82,
+    "breaking_changes_history": 80,
+    "error_recovery": 78
+  }
+}

@@ -1,0 +1,106 @@
+{
+  "id": "regex-python-api",
+  "name": "regex",
+  "version_evaluated": "2024.x",
+  "homepage": "https://pypi.org/project/regex/",
+  "repo_url": "https://github.com/mrabarnett/mrab-regex",
+  "category": "developer-tools",
+  "subcategories": ["text-processing", "python", "regex", "utilities"],
+  "tags": ["python", "regex", "regular-expressions", "unicode", "fuzzy", "named-groups", "atomic"],
+  "what_it_does": "Enhanced regular expression library for Python — drop-in replacement for the re module with additional features. regex features: fuzzy matching (BESTMATCH/ENHANCEMATCH flags for approximate matching), variable-length lookbehind, atomic groups for backtracking control, possessive quantifiers, (*SKIP)(*FAIL) verbs, branch reset groups, Unicode properties (\\p{Letter}), named character classes, set operations on character classes, full Python re API compatibility, scoped inline flags, \\K (keep) operator, and fixed bugs in re module. Compatible with re.compile() interface while adding ~30 new features.",
+  "use_cases": [
+    "Agent fuzzy matching — import regex; pattern = regex.compile(r'(?:hello){e<=1}', regex.BESTMATCH); m = pattern.search('helo world') — fuzzy match; agent finds approximate matches allowing 1 edit error (insertion/deletion/substitution); BESTMATCH finds fewest errors; useful for typo-tolerant search",
+    "Agent Unicode property matching — import regex; pattern = regex.compile(r'\\p{Letter}+'); words = pattern.findall('Hello 世界 мир') — Unicode; agent extracts words across all scripts using Unicode property classes; \\p{Letter} matches letters in any Unicode block; more powerful than \\w for multilingual text",
+    "Agent variable-length lookbehind — import regex; pattern = regex.compile(r'(?<=\\w{2,10})@'); matches = pattern.findall(text) — variable lookbehind; agent uses variable-length lookbehind assertions; re module requires fixed-length lookbehind; regex allows patterns like (?<=\\d{1,5}) for flexible lookbehind",
+    "Agent atomic group backtracking — import regex; pattern = regex.compile(r'(?>\\d+)px'); m = pattern.match('12345px') — atomic group; agent uses atomic groups to prevent catastrophic backtracking; (?>...) prevents backtracking into group; critical for ReDoS prevention in user-controlled input patterns",
+    "Agent drop-in re replacement — import regex as re; pattern = re.compile(r'(\\w+)', re.UNICODE | re.VERSION1); for m in pattern.finditer(text): process(m.group(1)) — drop-in; agent replaces import re with import regex as re; existing code works unchanged with additional features available; regex.VERSION1 enables new features"
+  ],
+  "not_for": [
+    "Simple patterns — for basic regex without advanced features, Python's built-in re module is sufficient and requires no extra dependency",
+    "Structured parsing — for grammar-based parsing use pyparsing or lark; complex regex patterns become unmaintainable",
+    "Performance-critical hot loops — regex C extension is fast but adds import overhead; for the highest performance use re with simple patterns"
+  ],
+  "best_when": "Complex regex patterns requiring Unicode properties, fuzzy matching, variable lookbehind, or atomic groups — regex provides what re lacks while maintaining full API compatibility.",
+  "avoid_when": "Simple patterns (use stdlib re), grammar-based parsing (use lark/pyparsing), or when the extra dependency isn't justified by the features needed.",
+  "alternatives": [],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — pure Python/C extension library."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, Apache 2.0 licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "regex is Apache 2.0 licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Performance: C extension — similar to re module for simple patterns. Fuzzy matching adds overhead proportional to edit distance tolerance. Atomic groups improve performance by preventing backtracking. Compile patterns once with regex.compile() and reuse.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 80,
+    "error_message_quality": 82,
+    "error_message_notes": "regex.error for invalid pattern syntax — same as re.error. Error messages include pattern position and description of the problem. Fuzzy matching errors include edit distance constraint description. Compatible with re module exception hierarchy.",
+    "idempotency_support": "full",
+    "idempotency_notes": "regex operations are pure functions — same pattern and input always produce same result. Compiled pattern objects are thread-safe and reusable. Fuzzy matching is deterministic for given BESTMATCH/ENHANCEMATCH flags.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "VERSION1 vs VERSION0 differences — regex.VERSION0 is backward-compatible with re module; regex.VERSION1 enables new features like set operations, atomic groups, and possessive quantifiers; some VERSION0 patterns behave differently in VERSION1; agent code mixing features should use explicit regex.VERSION1 flag; default may differ by regex version",
+      "Fuzzy matching {e<=1} syntax requires understanding of edit types — {e<=1} allows 1 error of any type (insert/delete/substitute); {s<=1,i<=1,d<=1} allows specific error types; BESTMATCH flag finds fewest errors; ENHANCEMATCH prefers fewest errors at best position; agent code needing spell-check style matching must understand error type parameters",
+      "\\p{} Unicode properties require regex not re — \\p{Letter}, \\p{Digit}, \\p{Script=Latin} only work with regex module; re module raises re.error for \\p; agent code switching from re to regex for Unicode: import regex as re at module level; regex is drop-in replacement but import statement must change",
+      "Possessive quantifiers prevent backtracking entirely — pattern \\d++ (possessive) never releases captured digits; unlike atomic group, possessive works at quantifier level; agent code using possessive quantifiers for performance must verify the pattern still matches intended input — possessive can cause no-match where non-possessive succeeds",
+      "Timeout parameter not available like in re.timeout workarounds — regex module doesn't have native timeout; for ReDoS-safe patterns with user input: use atomic groups and possessive quantifiers to prevent catastrophic backtracking; or run in separate process with timeout; agent code processing untrusted patterns should validate pattern complexity",
+      "Compiled patterns with VERSION1 not compatible with re — regex.compile(pattern, regex.VERSION1) returns regex Pattern not re.Pattern; isinstance(p, re.Pattern) is False; agent code passing compiled patterns to third-party libraries expecting re.Pattern must use re.compile or VERSION0; check library compatibility before switching"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 80,
+    "error_handling_score": 82,
+    "auth_complexity_score": 99,
+    "rate_limit_clarity_score": 99
+  },
+  "security_score_components": {
+    "tls_enforcement": 92,
+    "auth_strength": 92,
+    "scope_granularity": 90,
+    "dependency_hygiene": 90,
+    "secret_handling": 92,
+    "security_notes": "Regex library. User-controlled patterns: even with atomic groups, malicious patterns can be slow — validate or sandbox user-supplied patterns. Fuzzy matching with high error tolerance is quadratic — limit {e<=} values for untrusted input. No network calls."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 80,
+    "version_stability": 82,
+    "breaking_changes_history": 80,
+    "error_recovery": 85
+  }
+}

@@ -1,0 +1,106 @@
+{
+  "id": "expiringdict-python-api",
+  "name": "expiringdict",
+  "version_evaluated": "1.2.x",
+  "homepage": "https://github.com/mailchimp/expiringdict",
+  "repo_url": "https://github.com/mailchimp/expiringdict",
+  "category": "developer-tools",
+  "subcategories": ["caching", "python", "data-structures", "utilities"],
+  "tags": ["python", "expiringdict", "cache", "ttl", "dict", "expiry", "mailchimp"],
+  "what_it_does": "Thread-safe dictionary with auto-expiring keys — provides a dict subclass where entries automatically expire after a TTL. expiringdict features: ExpiringDict(max_len, max_age_seconds) constructor, standard dict interface (get/set/del/in/items/values), thread-safe via RLock, max_len for LRU-style eviction, max_age_seconds for TTL expiry, expired keys invisible on access (lazy expiry), copy() creates snapshot, and len() excludes expired entries. Simpler than cachetools TTLCache with fewer features but easier API.",
+  "use_cases": [
+    "Agent rate limiting tracker — from expiringdict import ExpiringDict; rate_tracker = ExpiringDict(max_len=10000, max_age_seconds=60); def check_rate(user_id): count = rate_tracker.get(user_id, 0); if count >= 100: raise RateLimitError(); rate_tracker[user_id] = count + 1 — rate limiting; agent tracks per-user request counts that reset after 60s automatically",
+    "Agent session token store — tokens = ExpiringDict(max_len=1000, max_age_seconds=3600); tokens[session_id] = user_data; user = tokens.get(session_id) — returns None if expired — session store; agent stores short-lived session tokens; expired tokens automatically invisible; no cleanup thread needed",
+    "Agent deduplication window — seen = ExpiringDict(max_len=50000, max_age_seconds=300); def is_duplicate(msg_id): if msg_id in seen: return True; seen[msg_id] = True; return False — dedup; agent deduplicates messages within 5-minute window; old IDs expire automatically; memory bounded by max_len",
+    "Agent cache with TTL — results = ExpiringDict(max_len=500, max_age_seconds=600); def get_result(key): cached = results.get(key); if cached is not None: return cached; result = expensive_compute(key); results[key] = result; return result — simple TTL cache; agent caches computation results for 10 minutes; simpler than cachetools for basic TTL",
+    "Agent connection pool health — health = ExpiringDict(max_len=100, max_age_seconds=30); health[endpoint] = True; if endpoint not in health: check_and_add() — freshness tracking; agent marks endpoints as healthy; entry expires after 30s forcing recheck; simpler than background health check threads"
+  ],
+  "not_for": [
+    "Complex eviction policies — expiringdict only does TTL+maxlen; for LRU, LFU, sized eviction use cachetools",
+    "High-performance caching — expiringdict is pure Python with per-access lock overhead; for high-throughput use cachetools or functools.lru_cache",
+    "Persistent caching — expiringdict is in-memory only; for persistence use cachelib or diskcache"
+  ],
+  "best_when": "Simple TTL-expiring dict for rate limiting, deduplication windows, and short-lived session storage — expiringdict provides the simplest possible API for auto-expiring keys.",
+  "avoid_when": "Complex eviction policies (use cachetools), high-throughput (use functools.lru_cache), or disk persistence (use cachelib).",
+  "alternatives": ["cachetools-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — in-memory data structure library."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, Apache 2.0 licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "expiringdict is Apache 2.0 licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Performance: O(1) get/set with RLock overhead. RLock acquisition dominates for high-concurrency. Pure Python — not suitable for >10K ops/s in multi-threaded agents. Lazy expiry: no background thread, expiry checked on access. Expired entries cleaned lazily.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 80,
+    "error_message_quality": 78,
+    "error_message_notes": "Standard Python dict exceptions (KeyError for missing). No custom exceptions. ValueError for invalid max_len or max_age_seconds. Very simple API with minimal error surface.",
+    "idempotency_support": "full",
+    "idempotency_notes": "dict[key] = value is idempotent (overwrites). dict.get() is read-only. Expiry is deterministic based on insertion time. len() excludes expired entries but expired entries may still exist internally until next access.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "get() returns None for both missing AND expired — cannot distinguish expired from never-set; agent code: use cache.get(key) is None as cache miss indicator; do NOT store None as a valid value in expiringdict — ambiguous with cache miss; if None is needed as a value, use a sentinel: MISSING = object(); if cache.get(key, MISSING) is MISSING: compute",
+      "items() and values() include only non-expired at call time — expiringdict.items() filters expired entries; but entries can expire between items() call and iteration; agent code iterating items() should be aware of this race condition; for atomic snapshot: dict(expiringdict.items()) creates copy but still races",
+      "max_len eviction is approximate and FIFO-like — when max_len exceeded, oldest entries evicted (insertion order); not LRU; agent code assuming LRU behavior (most-used entries stay) will be surprised; expiringdict evicts oldest regardless of access frequency; for LRU behavior use cachetools.LRUCache instead",
+      "No bulk expiry or cleanup API — expiringdict has no expire_all() or cleanup() method; expired entries removed lazily on access; agent code needing immediate cleanup of all expired entries must iterate: [k for k in cache.keys()] to trigger lazy cleanup; or recreate the ExpiringDict",
+      "Thread safety via RLock not asyncio-safe — expiringdict uses threading.RLock; not safe for concurrent asyncio tasks in same event loop without additional sync; agent async code: use asyncio.Lock wrapping expiringdict access; or use per-task instances without sharing; RLock only protects threading.Thread concurrency",
+      "ExpiringDict is not a defaultdict — cache.get(key, default) returns default but does NOT store default in cache; agent code expecting cache population on get() miss must: value = cache.get(key); if value is None: value = compute(); cache[key] = value; returning default without storing is intentional but differs from defaultdict behavior"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 80,
+    "error_handling_score": 78,
+    "auth_complexity_score": 99,
+    "rate_limit_clarity_score": 99
+  },
+  "security_score_components": {
+    "tls_enforcement": 92,
+    "auth_strength": 92,
+    "scope_granularity": 90,
+    "dependency_hygiene": 92,
+    "secret_handling": 85,
+    "security_notes": "Pure Python in-memory dict with no network calls. Do not cache secrets beyond their required lifespan — set max_age_seconds to match secret TTL. Thread-safe via RLock. Expired entries still in memory until lazily cleaned — sensitive data may persist beyond TTL until accessed."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 78,
+    "version_stability": 80,
+    "breaking_changes_history": 82,
+    "error_recovery": 82
+  }
+}
