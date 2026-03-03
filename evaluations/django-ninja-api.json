@@ -1,0 +1,106 @@
+{
+  "id": "django-ninja-api",
+  "name": "Django Ninja",
+  "version_evaluated": "1.x",
+  "homepage": "https://django-ninja.dev/",
+  "repo_url": "https://github.com/vitalik/django-ninja",
+  "category": "developer-tools",
+  "subcategories": ["api", "python", "django", "rest", "async"],
+  "tags": ["python", "django", "fastapi-inspired", "pydantic", "async", "openapi", "type-hints", "api"],
+  "what_it_does": "FastAPI-inspired REST API framework for Django — uses Python type hints and Pydantic schemas for request/response validation, auto-generates OpenAPI docs (Swagger UI + ReDoc), supports async views natively (Django 4.1+), and provides clean decorator-based routing. Django Ninja is an alternative to Django REST Framework with a FastAPI-like developer experience while keeping Django's ORM, auth, and admin. Key features: @api.get/post/put/delete decorators, Schema classes (Pydantic models for request/response), automatic OpenAPI 3.0 generation, and built-in auth (HTTP bearer, API key, Django auth). Much cleaner than DRF for typed async agent APIs.",
+  "use_cases": [
+    "Build async Django agent API with FastAPI-style syntax — @api.get('/agents/', response=List[AgentSchema]) with async def list_agents(request) for non-blocking agent list endpoints",
+    "Type-safe agent API with Pydantic schemas — AgentCreateSchema(BaseModel) validates and serializes agent creation requests with automatic OpenAPI documentation generation",
+    "Auto-documented agent API — Django Ninja generates /api/docs Swagger UI from type hints with no additional configuration for agent API exploration",
+    "Authentication with Django Ninja HttpBearer — implement HttpBearer.authenticate(request, token) to validate agent API tokens using Django's user model",
+    "Router-based agent API organization — separate NinjaAPI routers for agent management, tool management, and analytics, mounted on main API for modular agent service structure"
+  ],
+  "not_for": [
+    "Teams heavily invested in DRF — Django Ninja's Pydantic schemas and DRF serializers are not interchangeable; migration from DRF requires rewriting serializers; evaluate only for new agent services or full rewrites",
+    "Browsable API requirement — Django Ninja's Swagger UI is not as customizable as DRF's browsable API; for agent APIs that need DRF's interactive browse-and-test UI, DRF is more mature",
+    "Django < 3.1 compatibility — Django Ninja requires Django 3.1+ for async support; older agent Django services need DRF"
+  ],
+  "best_when": "You're building a new Django API and want FastAPI-style developer experience (type hints, Pydantic, auto-docs, async) with Django's ORM and ecosystem — Django Ninja provides the best of both worlds.",
+  "avoid_when": "You're migrating an existing DRF-based agent service (rewrite cost), you need DRF's rich ecosystem of third-party packages, or you're on Django < 3.1.",
+  "alternatives": ["django-rest-framework-api", "fastapi-api", "flask-smorest-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["bearer_token", "api_key", "session"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Django Ninja auth: HttpBearer for JWT/token, HttpBasicAuth, APIKeyHeader/APIKeyQuery for API key, Django auth for session. Custom auth via implementing BaseAuth class."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Django Ninja is MIT licensed, maintained by Vitalik Semenchuk. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 8,
+    "latency_p99_ms": 80,
+    "uptime_sla_percent": null,
+    "rate_limits": "No built-in throttling. Use django-ratelimit or slowapi-equivalent for agent API rate limiting. Async views improve throughput for I/O-bound agent operations.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 88,
+    "error_message_quality": 90,
+    "error_message_notes": "Django Ninja returns Pydantic ValidationError details as 422 responses with field-level error paths. Authentication failures return 401 with detail. Schema validation errors include field path and error type. Auto-generated OpenAPI spec documents all agent endpoint errors.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "REST semantics — developer responsibility. Pydantic schema validation is deterministic. Use unique constraints and handle IntegrityError for idempotent agent resource creation patterns.",
+    "pagination_style": "offset",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Django ORM is sync — async Django Ninja views must use sync_to_async or Django 4.1+ async ORM methods; calling Agent.objects.all() directly in async def view blocks event loop; use await Agent.objects.aall() (Django 4.1+) or sync_to_async(Agent.objects.all)()",
+      "Schema vs Django model are separate — Django Ninja Schema (Pydantic) is not the Django model; create separate CreateSchema, ResponseSchema, UpdateSchema for agent resources; DRF's ModelSerializer auto-generates from model, Ninja requires explicit Schema fields",
+      "Router registration order matters for URL matching — Django Ninja routes are matched in registration order; overlapping patterns (GET /agents/{id} before GET /agents/active) cause wrong handler to match; register specific routes before parameterized routes",
+      "Response schema type determines status code — @api.post('/agents/', response=AgentSchema) returns 200 by default; for 201 Created, use response={201: AgentSchema}; missing status code in response dict silently uses 200 for agent resource creation",
+      "Auth is per-router or per-endpoint — django_ninja NinjaAPI(auth=HttpBearer()) applies auth globally; @api.get('/public', auth=None) overrides for public agent endpoints; forgetting auth=None on public endpoints enforces auth where not intended",
+      "Exception handlers replace default Pydantic errors — registering @api.exception_handler(Exception) overrides ALL exception handling including Pydantic ValidationError 422 responses; agent exception handlers must explicitly handle ValidationError or 422 responses disappear"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 90,
+    "error_handling_score": 90,
+    "auth_complexity_score": 85,
+    "rate_limit_clarity_score": 88
+  },
+  "security_score_components": {
+    "tls_enforcement": 88,
+    "auth_strength": 85,
+    "scope_granularity": 82,
+    "dependency_hygiene": 88,
+    "secret_handling": 85,
+    "security_notes": "Django Ninja inherits Django's security (CSRF middleware, XSS protection). API key and Bearer token auth implementations require secure token storage and rotation strategy. Auto-generated OpenAPI docs expose agent API structure — secure /api/docs in production. Pydantic validation prevents some injection attacks through type coercion."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 85,
+    "version_stability": 82,
+    "breaking_changes_history": 80,
+    "error_recovery": 88
+  }
+}

@@ -1,0 +1,106 @@
+{
+  "id": "django-channels-api",
+  "name": "Django Channels",
+  "version_evaluated": "4.x",
+  "homepage": "https://channels.readthedocs.io/",
+  "repo_url": "https://github.com/django/channels",
+  "category": "developer-tools",
+  "subcategories": ["websocket", "python", "django", "realtime", "async"],
+  "tags": ["python", "django", "websocket", "real-time", "async", "channel-layer", "redis", "consumer"],
+  "what_it_does": "Extends Django to handle WebSockets, long-polling, background tasks, and other async protocols alongside standard HTTP. Django Channels replaces Django's WSGI server with ASGI (via Daphne or Uvicorn), adds channel layers (Redis-backed pub/sub for cross-process communication), and provides WebSocket Consumers (async or sync class-based handlers). Key concepts: Consumer (handles WebSocket connection lifecycle), Channel Layer (Redis pub/sub for broadcasting to groups), Channel Groups (broadcast to all connections in a group). Used for real-time agent status updates, live agent chat interfaces, streaming agent responses to browser, and collaborative agent workspaces.",
+  "use_cases": [
+    "Stream agent responses to browser in real-time — WebSocket consumer sends partial agent LLM responses as they're generated, replacing polling with push for agent chat UI",
+    "Broadcast agent task status to multiple viewers — channel group 'agent_task_{id}' with async_to_sync(channel_layer.group_send) notifies all browser tabs watching an agent task",
+    "Live agent collaboration workspace — Django Channels WebSocket enables multiple operators to view and interact with same agent session in real-time",
+    "Agent system notifications — authenticated WebSocket connection to user channel receives push notifications when agent completes background tasks, eliminating notification polling",
+    "Real-time agent dashboard updates — channel layer broadcasts agent metrics and status changes from background tasks to connected dashboard WebSocket consumers"
+  ],
+  "not_for": [
+    "High-throughput message brokers — Django Channels is for Django-coupled real-time features; use Kafka or RabbitMQ for high-volume agent event streaming between microservices",
+    "Non-Django Python web frameworks — Django Channels is Django-specific; use FastAPI WebSockets or Starlette WebSockets for non-Django async agent WebSocket backends",
+    "Simple notification polling — if agent UI polls every 30 seconds and real-time isn't critical, skip WebSocket complexity; use Server-Sent Events (simpler, one-way) for agent status updates if bidirectionality isn't needed"
+  ],
+  "best_when": "You have a Django agent web application that needs real-time bidirectional communication (WebSockets) for live agent interaction — Django Channels extends Django's familiar patterns to WebSocket without rewriting the backend.",
+  "avoid_when": "You're building a microservice (use FastAPI WebSockets), you need one-way updates only (use SSE), or your team doesn't need real-time features (don't add the complexity).",
+  "alternatives": ["fastapi-websockets-api", "socket-io-api", "server-sent-events-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["session", "bearer_token"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Django Channels WebSocket connections authenticated via Django session middleware (for browser) or custom token middleware (for API clients). scope['user'] provides authenticated user in consumer."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, BSD licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Django Channels is BSD licensed, maintained by Django Software Foundation. Free for all use. Redis (for channel layer) is separate infrastructure cost."
+  },
+  "performance": {
+    "latency_p50_ms": 10,
+    "latency_p99_ms": 50,
+    "uptime_sla_percent": null,
+    "rate_limits": "No built-in rate limits. WebSocket connection counts limited by server capacity. Redis channel layer throughput: 10k-100k messages/second depending on Redis configuration.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 80,
+    "error_message_notes": "Django Channels WebSocket errors surface in consumer disconnect handler. Channel layer connection errors raise ChannelFull or Redis connection errors. Authentication failures in middleware return 403 and close WebSocket. Consumer exceptions log to Django logging with connection scope context.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "WebSocket message delivery is best-effort — channel layer doesn't guarantee delivery on consumer reconnect. Implement message acknowledgment in agent WebSocket protocol for reliable delivery. Group sends to disconnected consumers are silently dropped.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Redis channel layer required for multi-process deployment — default InMemoryChannelLayer is per-process; with multiple Daphne/Uvicorn workers, messages sent to one process don't reach consumers in other processes; always use channels_redis.core.RedisChannelLayer in production agent deployments",
+      "Django ORM sync calls block async consumers — AsyncWebsocketConsumer can't call Django ORM synchronously; use database_sync_to_async decorator or sync_to_async() wrapper; blocking the event loop in async consumer causes all WebSocket connections to stall",
+      "Group names must be valid channel name strings — group names must be ASCII strings without spaces, colons, or special characters; agent_task_{uuid} with UUID hyphens works; agent task {name with spaces} causes channel layer errors; sanitize agent-generated group names",
+      "WebSocket auth requires custom middleware — Django session auth works for browser WebSockets (cookie sent with handshake); token auth for agent clients requires custom ASGI middleware to extract Bearer token from query params or headers during handshake, before consumers run",
+      "Consumer disconnect not always called — network interruptions may skip disconnect(); always use on_disconnect to clean up agent channel group membership and mark agent user as offline; don't assume disconnect cleanup always fires",
+      "CHANNEL_LAYERS config must use async Redis client — channels_redis 4.x requires aioredis-compatible config; channels_redis 3.x used different config format; channels_redis version must match channels version; version mismatch causes cryptic async Redis connection errors in agent WebSocket production"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 80,
+    "auth_complexity_score": 80,
+    "rate_limit_clarity_score": 85
+  },
+  "security_score_components": {
+    "tls_enforcement": 88,
+    "auth_strength": 80,
+    "scope_granularity": 78,
+    "dependency_hygiene": 85,
+    "secret_handling": 82,
+    "security_notes": "WebSocket connections require same security as HTTP — authenticate on connect, validate all messages. Django Channels doesn't auto-apply CSRF to WebSocket. Validate agent message content before processing. Limit group membership to authorized users only. Redis channel layer data is unencrypted in transit without TLS."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 85,
+    "version_stability": 82,
+    "breaking_changes_history": 78,
+    "error_recovery": 82
+  }
+}
