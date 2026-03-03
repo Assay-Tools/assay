@@ -1,0 +1,106 @@
+{
+  "id": "openfeign-api",
+  "name": "OpenFeign (Spring Cloud OpenFeign)",
+  "version_evaluated": "4.x",
+  "homepage": "https://spring.io/projects/spring-cloud-openfeign",
+  "repo_url": "https://github.com/spring-cloud/spring-cloud-openfeign",
+  "category": "developer-tools",
+  "subcategories": ["http-client", "java", "spring", "microservices", "declarative"],
+  "tags": ["java", "kotlin", "spring", "http-client", "declarative", "feign", "rest-client", "microservices", "circuit-breaker"],
+  "what_it_does": "Declarative REST client for Spring Boot — define Java interfaces with @FeignClient and Spring MVC annotations (@GetMapping, @PostMapping, @RequestParam), and Spring Cloud generates the HTTP client implementation at runtime. Eliminates RestTemplate/WebClient boilerplate for inter-service calls. Integrates with Spring Cloud LoadBalancer (client-side load balancing across service instances), Spring Cloud Circuit Breaker (Resilience4j/Hystrix), Micrometer metrics, and Sleuth tracing. Feign interfaces support: custom error decoders, request/response interceptors (add auth headers), logging, and custom encoders/decoders. Replaced Netflix Feign as the Spring Cloud maintained fork.",
+  "use_cases": [
+    "Call external agent LLM APIs with declarative Feign client — @FeignClient(name='openai', url='${openai.url}') with @PostMapping('/v1/chat/completions') generates typed HTTP client without RestTemplate boilerplate",
+    "Inter-service agent API calls with service discovery — @FeignClient(name='agent-service') with Spring Cloud LoadBalancer resolves 'agent-service' to running instances via Kubernetes service or Eureka",
+    "Add auth headers to agent API Feign clients via RequestInterceptor — implement RequestInterceptor to add Authorization: Bearer token to all Feign calls for agent-to-agent service authentication",
+    "Circuit break agent service dependencies with Feign + Resilience4j — @FeignClient with fallback class returns cached or default agent response when downstream agent service is unavailable",
+    "Test agent Feign clients with WireMock — @WireMockTest with FeignClient pointing to WireMock server for integration testing agent HTTP client behavior without live agent API"
+  ],
+  "not_for": [
+    "Reactive Spring WebFlux services — OpenFeign is blocking; use Spring's WebClient or Spring Cloud's Feign Reactive for agent services on WebFlux event loop",
+    "Non-Spring Java applications — Feign standalone works but Spring Cloud OpenFeign is tightly coupled to Spring ecosystem; use OkHttp, Retrofit, or plain Feign for non-Spring agent services",
+    "Complex HTTP scenarios — Feign is optimized for simple REST calls; for streaming responses, multipart uploads, or complex agent API interactions, use WebClient or OkHttp directly"
+  ],
+  "best_when": "You're building Spring Boot microservices that call other REST services or external APIs — Feign eliminates HTTP client boilerplate and integrates automatically with Spring Cloud infrastructure (load balancing, circuit breaking, tracing).",
+  "avoid_when": "Your service is Spring WebFlux reactive (use WebClient), you need streaming HTTP responses, or you need low-level HTTP control beyond what Feign's interface model provides.",
+  "alternatives": ["spring-webflux-webclient-api", "retrofit-api", "okhttp-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["java", "kotlin"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["bearer_token", "api_key", "basic"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Feign client auth implemented via RequestInterceptor — add Authorization header, API key header, or basic auth to all requests. OAuth2 token refresh via OAuthFeignInterceptor or custom interceptor."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, Apache 2.0 licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Spring Cloud OpenFeign is Apache 2.0 licensed, maintained by Broadcom/VMware. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 0,
+    "latency_p99_ms": 2,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits on client library. Network latency depends on target API. Connection pooling via underlying HTTP client (OkHttp, Apache HttpClient, or Java 11 HttpClient).",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 82,
+    "error_message_notes": "Feign throws FeignException with status code and response body for HTTP errors. Custom ErrorDecoder maps HTTP status to domain-specific agent exceptions. FeignException.errorStatus() for 4xx, RetryableException for network errors. Response body in FeignException.content() for parsing agent error messages.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Feign doesn't enforce idempotency — implementation depends on target API. Feign Retryer retries GET requests on network errors by default; POST retry requires custom Retryer with idempotency key for agent API calls.",
+    "pagination_style": "custom",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Feign is blocking — @FeignClient methods return T, not Mono<T>/Future<T>; calling Feign client in WebFlux handler blocks event loop thread; use Feign client in @Async methods or with Schedulers.boundedElastic() when needed in reactive agent services",
+      "@FeignClient URL vs service discovery — @FeignClient(name='agent-svc', url='${agent.url}') uses fixed URL; @FeignClient(name='agent-svc') without url uses service discovery; accidentally omitting url in production uses service discovery which requires Eureka/Kubernetes; always set url for external agent APIs",
+      "Error decoder must be registered as bean — custom ErrorDecoder bean must be registered; without @Bean declaration, Feign uses default error decoder which throws FeignException for all non-2xx; agent-specific exception mapping requires explicit bean registration",
+      "Feign logging requires DEBUG log level — Feign logging (REQUEST/RESPONSE headers/body) requires setting logging.level.com.example.FeignClient=DEBUG; INFO level shows nothing; production log levels must be set appropriately to avoid logging agent request bodies",
+      "Feign interface methods cannot have @Transactional — Feign generates HTTP client proxy; Spring @Transactional on Feign interface has no effect; transactional logic must be in calling service, not Feign client interface",
+      "Spring Cloud LoadBalancer requires discovery — @FeignClient(name='agent-service') with LoadBalancer fails with 'No instances available' if no service discovery or if service is not registered; always handle LoadBalancerFeignClient failure in agent circuit breaker fallback"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 82,
+    "auth_complexity_score": 85,
+    "rate_limit_clarity_score": 90
+  },
+  "security_score_components": {
+    "tls_enforcement": 88,
+    "auth_strength": 82,
+    "scope_granularity": 80,
+    "dependency_hygiene": 88,
+    "secret_handling": 85,
+    "security_notes": "TLS via underlying HTTP client (OkHttp/Apache) — configure SSL context for mutual TLS with agent services. API keys via RequestInterceptor should read from Spring properties, not hardcoded. Feign logging at FULL level logs request bodies — avoid in production for agent calls with sensitive data."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 85,
+    "breaking_changes_history": 82,
+    "error_recovery": 85
+  }
+}

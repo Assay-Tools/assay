@@ -1,0 +1,106 @@
+{
+  "id": "ehcache-api",
+  "name": "Ehcache",
+  "version_evaluated": "3.x",
+  "homepage": "https://www.ehcache.org/",
+  "repo_url": "https://github.com/ehcache/ehcache3",
+  "category": "developer-tools",
+  "subcategories": ["caching", "java", "jsr107", "spring", "local-cache"],
+  "tags": ["java", "caching", "jsr107", "jcache", "spring", "hibernate", "second-level-cache", "off-heap", "disk"],
+  "what_it_does": "Java's most popular production caching library — implements JCache (JSR-107) standard with extensions. Ehcache 3 supports tiered storage: on-heap (fastest, JVM heap), off-heap (direct memory, avoids GC), and disk persistence (survives JVM restart). Used as Hibernate second-level cache, Spring @Cacheable backend, or standalone cache. Key features: programmatic or XML configuration, cache event listeners, cache loaders/writers, statistics, and JMX monitoring. Ehcache is embedded (no external server required) — single JVM use case. For distributed caching, pair with Terracotta or switch to Redis/Hazelcast.",
+  "use_cases": [
+    "Cache agent Hibernate query results as second-level cache — @Cache(usage=CacheConcurrencyStrategy.READ_WRITE) on agent entities uses Ehcache for L2 caching, reducing database load for frequently-read agent configurations",
+    "Spring @Cacheable with Ehcache backend — @Cacheable('agentProfiles') caches agent profile lookups in on-heap Ehcache with TTL for agent service methods",
+    "Off-heap caching for large agent result sets — Ehcache off-heap tier stores large agent response caches outside JVM heap, preventing GC pressure while keeping cache close to application",
+    "Disk-persistent agent session cache — Ehcache disk tier preserves agent session state across JVM restarts for agent services that need cache warm-up avoidance",
+    "Cache statistics for agent performance monitoring — Ehcache JMX statistics expose hit rate, miss rate, and eviction count for agent cache tuning via JConsole or Micrometer integration"
+  ],
+  "not_for": [
+    "Distributed multi-instance caching — Ehcache 3 open source is single-JVM; use Hazelcast, Redis, or Ehcache Terracotta for shared agent cache across multiple service instances",
+    "New agent projects — Caffeine Cache has better performance than Ehcache for on-heap caching with cleaner API; Ehcache advantage is JCache standard compliance, Hibernate L2 cache, and off-heap/disk tiers",
+    "Non-JVM applications — Ehcache is Java-only; use Redis or Memcached for polyglot agent service caching"
+  ],
+  "best_when": "You need Hibernate second-level cache, JSR-107 JCache compliance, off-heap memory usage, or disk-persistent agent caching in a single JVM — Ehcache is the reference JCache implementation with production-grade features.",
+  "avoid_when": "You need distributed agent cache (use Hazelcast/Redis), you only need simple on-heap caching (use Caffeine), or your application isn't Java.",
+  "alternatives": ["caffeine-cache-api", "hazelcast-api", "redis-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["java"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Embedded caching library — no auth concepts. No external connections. JMX management requires JVM auth if JMX is exposed externally."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, Apache 2.0 licensed. Terracotta clustering requires commercial license.",
+    "paid_tiers": "Terracotta Enterprise for distributed Ehcache clustering",
+    "requires_credit_card": false,
+    "notes": "Ehcache 3 is Apache 2.0 licensed, maintained by Terracotta (acquired by Software AG). Open source for single-JVM use. Distributed clustering requires Terracotta commercial license."
+  },
+  "performance": {
+    "latency_p50_ms": 0,
+    "latency_p99_ms": 1,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — embedded local cache. On-heap: sub-microsecond. Off-heap: 1-5 microseconds. Disk tier: milliseconds. Size tiers managed automatically by Ehcache tiering engine.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["local"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 82,
+    "error_message_quality": 80,
+    "error_message_notes": "Ehcache errors include IllegalArgumentException for invalid config, IllegalStateException for accessing closed CacheManager. Cache class cast errors if key/value types don't match generic types. XML config errors show line numbers. Hibernate L2 cache misses are transparent (fall through to database).",
+    "idempotency_support": "full",
+    "idempotency_notes": "Cache.put() is idempotent — overwrites existing value. Cache.putIfAbsent() for conditional insert. Cache operations are atomic per entry. CacheManager lifecycle must be managed explicitly.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "CacheManager must be closed explicitly — Ehcache CacheManager holds off-heap and disk resources; not calling cacheManager.close() on shutdown leaks memory and disk files; use try-with-resources or @PreDestroy for agent service cleanup",
+      "Serialization required for off-heap and disk tiers — on-heap cache stores object references; off-heap and disk tiers require serialization; agent entity classes must implement Serializable or use Ehcache's custom serializer; adding non-serializable fields breaks tiered caching",
+      "Hibernate second-level cache requires query cache configuration — @Cache on entity enables entity cache; query results cache requires hibernate.cache.use_query_cache=true AND explicit query.setCacheable(true) per query; missing either means queries bypass L2 cache",
+      "Cache key must implement equals/hashCode — Ehcache uses key.equals() for lookup; agent entity IDs used as keys must have consistent equals implementation; using mutable objects as cache keys causes ghost entries that never match",
+      "Off-heap sizing affects JVM memory — off-heap memory is allocated outside JVM heap but within JVM process; setting large off-heap (e.g., 10GB) reduces OS memory available to other processes; size based on actual agent cache hit rate analysis",
+      "Spring Boot auto-configuration requires ehcache.xml — Spring Cache with Ehcache 3 requires spring.cache.jcache.config=classpath:ehcache.xml; without config file, auto-configuration creates default cache with no TTL or size limits causing unbounded agent cache growth"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 82,
+    "error_handling_score": 80,
+    "auth_complexity_score": 100,
+    "rate_limit_clarity_score": 100
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 95,
+    "scope_granularity": 90,
+    "dependency_hygiene": 85,
+    "secret_handling": 92,
+    "security_notes": "No network exposure for embedded Ehcache. Disk tier stores agent data unencrypted — encrypt disk store path if caching sensitive agent data. JMX endpoint should be secured if exposing cache statistics externally. Off-heap memory is not zeroed on eviction — avoid caching credentials in Ehcache."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 85,
+    "breaking_changes_history": 82,
+    "error_recovery": 88
+  }
+}

@@ -1,0 +1,106 @@
+{
+  "id": "spring-statemachine-api",
+  "name": "Spring State Machine",
+  "version_evaluated": "4.x",
+  "homepage": "https://spring.io/projects/spring-statemachine",
+  "repo_url": "https://github.com/spring-projects/spring-statemachine",
+  "category": "developer-tools",
+  "subcategories": ["state-machine", "java", "spring", "workflow", "orchestration"],
+  "tags": ["java", "kotlin", "spring", "state-machine", "workflow", "fsm", "orchestration", "agent-orchestration"],
+  "what_it_does": "Spring framework for implementing finite state machines in Java/Kotlin. Spring State Machine models: States (IDLE, RUNNING, FAILED, COMPLETED), Events (START, COMPLETE, FAIL, RESET), Transitions (IDLE → RUNNING on START event), Guards (conditional transitions), Actions (execute code on state entry/exit/transition), and hierarchical/orthogonal state machines. Supports persistence (JPA, Redis, MongoDB) for distributed stateful workflows. Spring Boot auto-configuration for stateMachineFactory bean. Used for modeling agent workflow states, order processing pipelines, document approval workflows, and any process with discrete states and transitions.",
+  "use_cases": [
+    "Model agent task lifecycle with Spring State Machine — states: QUEUED, PLANNING, EXECUTING, WAITING_TOOL, COMPLETED, FAILED; events: START, TOOL_CALLED, TOOL_RETURNED, COMPLETE, ERROR; guards prevent invalid transitions",
+    "Persist distributed agent workflow state — Spring State Machine with JPA/Redis persistence stores agent state machine state in database for multi-instance agent services with failure recovery",
+    "Implement agent approval workflow — document review state machine with states DRAFT, PENDING_REVIEW, APPROVED, REJECTED; transitions driven by agent review events with guard conditions on review completion",
+    "Orchestrate multi-step agent onboarding — stateful onboarding flow UNVERIFIED → EMAIL_SENT → EMAIL_CONFIRMED → PROFILE_COMPLETE → ACTIVE with event-driven transitions and entry actions that trigger agent onboarding tasks",
+    "Handle agent conversation states — GREETING, COLLECTING_INFO, PROCESSING, RESPONDING, WAITING_CLARIFICATION with transitions driven by NLU classification events for structured agent conversation management"
+  ],
+  "not_for": [
+    "Simple boolean flags — if your 'state machine' has 2-3 states with simple transitions, use enums and if/else; Spring State Machine complexity is justified only for non-trivial state models",
+    "Stream/batch processing — Spring State Machine is for stateful workflow orchestration; use Spring Batch for bulk data processing, Spring Cloud Stream for event stream processing",
+    "Teams unfamiliar with FSM concepts — state machine design requires upfront modeling; without understanding guards, actions, and transition semantics, Spring State Machine becomes a tangled mess; model the FSM on paper before coding"
+  ],
+  "best_when": "Your agent workflow has clearly defined states, events, and transition rules that need to be enforced — Spring State Machine makes implicit agent state explicit, persistent, and observable.",
+  "avoid_when": "Your process has fewer than 5 states (use enums), you don't need persistence or distributed state, or your team needs simpler workflow tooling (use Spring Batch or Temporal).",
+  "alternatives": ["temporal-api", "apache-camel-api", "activiti-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["java", "kotlin"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "State machine library — no auth concepts. Persistence backends (JPA, Redis) use application's auth configuration."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, Apache 2.0 licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Spring State Machine is Apache 2.0 licensed, maintained by Broadcom/VMware. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": 1,
+    "latency_p99_ms": 10,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits — local library. State transition latency is sub-millisecond in-memory. Persisted state machines add database roundtrip on each transition.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 78,
+    "error_message_quality": 75,
+    "error_message_notes": "Spring State Machine transition errors surface as StateMachineException. Guard failures log at DEBUG level and silently block transition (no exception by default). Action exceptions cause transition failure. State machine configuration errors (conflicting states, unreachable states) detected at context startup.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "State transitions are not idempotent — sending same event twice causes second transition attempt (may fail guard or transition to different state). Persisted state machines support optimistic locking for concurrent event processing. Use event deduplication layer for agent idempotent processing.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Guard failures are silent by default — when a guard returns false, the event is silently ignored and the state machine stays in current state; add StateMachineListener to detect and log declined agent transitions for debugging",
+      "StateMachine is not thread-safe — concurrent sendEvent() calls cause state corruption; use StateMachineFactory to create one state machine per agent conversation/request and don't share across threads",
+      "Persisted state machine requires synchronous context — JPA-persisted state machines need transaction context on each event; @Transactional on calling service; missing transaction causes LazyInitializationException when loading persisted agent state",
+      "Hierarchical states require careful initial state config — sub-states must define their own initial state; missing initial state in sub-state region causes NullPointerException on entry; always define initial state for every region in agent workflow hierarchical states",
+      "State machine factory vs singleton — @EnableStateMachine creates singleton state machine (single instance per context); @EnableStateMachineFactory creates per-call instances; agent workflows requiring isolated state per conversation must use factory, not singleton",
+      "Spring State Machine 3.x to 4.x migration removed UML support — if using Spring State Machine with UML diagram export in 3.x, 4.x removed this feature; agent workflow visualization requires alternative tooling or manual diagram maintenance"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 78,
+    "error_handling_score": 75,
+    "auth_complexity_score": 95,
+    "rate_limit_clarity_score": 98
+  },
+  "security_score_components": {
+    "tls_enforcement": 95,
+    "auth_strength": 90,
+    "scope_granularity": 85,
+    "dependency_hygiene": 85,
+    "secret_handling": 90,
+    "security_notes": "State machine library — no direct security concerns. Persisted state machine data may contain agent PII in state context; encrypt at persistence layer. Protect state machine event endpoints from unauthorized state transitions via Spring Security."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 80,
+    "version_stability": 75,
+    "breaking_changes_history": 72,
+    "error_recovery": 80
+  }
+}
