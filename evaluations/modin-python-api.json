@@ -1,0 +1,106 @@
+{
+  "id": "modin-python-api",
+  "name": "modin",
+  "version_evaluated": "0.26.x",
+  "homepage": "https://modin.readthedocs.io/",
+  "repo_url": "https://github.com/modin-project/modin",
+  "category": "developer-tools",
+  "subcategories": ["dataframes", "python", "performance", "parallel"],
+  "tags": ["python", "modin", "pandas", "parallel", "dataframe", "ray", "dask", "scalable"],
+  "what_it_does": "Drop-in pandas replacement that parallelizes operations across all CPU cores — scales pandas workflows to larger datasets without code changes. modin features: import modin.pandas as pd (identical API to pandas), automatic parallelization via Ray or Dask backend, multi-core utilization for read_csv/groupby/apply/merge, fallback to pandas for unsupported operations, OmniSci/HDK engine for GPU acceleration, modin.config for backend selection, and transparent operation — pandas code runs without modification. Designed for the 80% of pandas users who are CPU-bound on medium datasets (1-100GB).",
+  "use_cases": [
+    "Agent parallel CSV loading — import modin.pandas as pd; df = pd.read_csv('large.csv') — parallel read; agent replaces import pandas as pd with import modin.pandas as pd; read_csv uses all CPU cores automatically; 4-8x speedup on multi-core systems; no other code changes needed",
+    "Agent parallel groupby — import modin.pandas as pd; result = df.groupby('category')['value'].sum() — parallel aggregation; agent data processing uses all cores for groupby operations; modin partitions data and aggregates in parallel; transparent fallback to pandas for unsupported operations",
+    "Agent backend selection — import modin.config as cfg; cfg.Engine.put('dask') — backend switch; agent running in environment without Ray uses Dask backend; modin.config.Engine.put('ray') for Ray backend; import modin.pandas as pd then operates normally",
+    "Agent large merge operation — import modin.pandas as pd; merged = pd.merge(df1, df2, on='key', how='left') — parallel merge; agent joining large DataFrames gets parallel execution; modin partitions both DataFrames and merges partition-by-partition; same API as pandas merge",
+    "Agent apply parallelization — import modin.pandas as pd; df['result'] = df['col'].apply(expensive_function) — parallel apply; agent custom transformation functions run across all cores; modin distributes apply across partitions; significant speedup for CPU-bound apply functions"
+  ],
+  "not_for": [
+    "Truly large data (>RAM) — modin still requires data to fit in RAM; for out-of-core use vaex or dask directly",
+    "Operations with poor pandas coverage — modin falls back to single-core pandas for unsupported ops; check modin progress tracker for coverage",
+    "Production with strict dependency control — modin requires Ray or Dask; adds significant dependency weight; for simple scripts use pandas"
+  ],
+  "best_when": "CPU-bound pandas workflows on multi-core machines — modin parallelizes pandas operations transparently, making it the fastest path to scaling existing pandas code without rewriting.",
+  "avoid_when": "Data doesn't fit in RAM (use vaex/dask), simple scripts where overhead isn't worth it, or when pandas coverage gaps would cause silent fallbacks on critical operations.",
+  "alternatives": ["vaex-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — local dataframe library."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, Apache 2.0 licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "modin is Apache 2.0 licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Performance: 2-8x speedup over pandas on multi-core systems for read_csv, groupby, merge. Speedup depends on operation and data size — small DataFrames see overhead not speedup. Ray startup adds ~1s cold start. Best for operations taking >500ms in pandas.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 82,
+    "error_message_quality": 78,
+    "error_message_notes": "modin falls back to pandas silently for unsupported operations — no error raised. UserWarning sometimes emitted when falling back. Ray/Dask initialization errors surface as ImportError or connection errors. Partition errors may produce cryptic Ray object store errors.",
+    "idempotency_support": "full",
+    "idempotency_notes": "modin DataFrames are immutable in the same way as pandas — operations return new DataFrames. Deterministic for pure transformations. Ray backend introduces non-determinism in some parallel operations with floating point.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Silent fallback to pandas for unsupported operations — modin silently falls back to single-core pandas for operations not yet parallelized; agent code may not get expected speedup; check: import modin.config as cfg; cfg.NPartitions.get() > 1; use modin progress tracker to see coverage percentage per operation",
+      "Ray must be initialized before modin — import ray; ray.init() before heavy modin usage; modin initializes Ray automatically but with defaults; agent code needing specific Ray configuration (memory limits, num_cpus) must init Ray explicitly before first modin operation",
+      "import modin.pandas as pd not import modin as pd — the pandas-compatible module is modin.pandas; import modin just imports the package namespace; agent code: import modin.pandas as pd; from modin.pandas import DataFrame — same as pandas import pattern",
+      "Small DataFrames are slower than pandas — modin partitioning overhead dominates for small data; DataFrames under ~100K rows usually slower than pandas; agent code should check df size: if len(df) < 100_000: use pandas; modin shines on large operations not small ones",
+      "modin DataFrame is not pandas DataFrame for isinstance checks — isinstance(modin_df, pd.DataFrame) is True for modin.pandas but False for pandas.core.frame.DataFrame; agent code doing type checking against pandas.DataFrame must accept both; use hasattr(df, 'to_pandas') for modin detection",
+      "Dask backend requires explicit initialization — cfg.Engine.put('dask') must happen before any modin.pandas import; once Ray or Dask is initialized, cannot switch backends; agent code choosing backend must set it before any DataFrame creation; Ray is default; Dask requires: pip install modin[dask]"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 82,
+    "error_handling_score": 78,
+    "auth_complexity_score": 99,
+    "rate_limit_clarity_score": 99
+  },
+  "security_score_components": {
+    "tls_enforcement": 90,
+    "auth_strength": 90,
+    "scope_granularity": 88,
+    "dependency_hygiene": 82,
+    "secret_handling": 90,
+    "security_notes": "Local dataframe library. Ray backend opens local cluster ports — restrict firewall if needed. No remote data access. Ray object store uses shared memory — avoid storing sensitive data in long-lived Ray clusters."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 80,
+    "version_stability": 78,
+    "breaking_changes_history": 78,
+    "error_recovery": 78
+  }
+}

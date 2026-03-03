@@ -1,0 +1,106 @@
+{
+  "id": "vaex-python-api",
+  "name": "vaex",
+  "version_evaluated": "4.x",
+  "homepage": "https://vaex.io/",
+  "repo_url": "https://github.com/vaexio/vaex",
+  "category": "developer-tools",
+  "subcategories": ["dataframes", "python", "big-data", "performance", "visualization"],
+  "tags": ["python", "vaex", "dataframe", "big-data", "out-of-core", "lazy", "visualization", "hdf5"],
+  "what_it_does": "Out-of-core lazy dataframe library for Python — processes billion-row datasets without loading into RAM using memory-mapped files. vaex features: open() for memory-mapped HDF5/Arrow/CSV, lazy evaluation (computations deferred until needed), virtual columns (computed on-the-fly), df.mean/std/sum operations at billion rows/second, df.plot1d/plot2d for fast statistical plots, filtering with boolean expressions, df.apply() for UDFs, df.export_hdf5() for efficient storage, string operations, ML feature engineering, and JIT compilation via Numba/Pytables. Enables desktop analysis of datasets too large for pandas.",
+  "use_cases": [
+    "Agent large dataset analysis — import vaex; df = vaex.open('large_data.hdf5'); mean_score = df[df['status'] == 'success']['score'].mean() — lazy evaluation; agent analyzes billion-row event log without loading into RAM; operations execute on memory-mapped file; result computed only when accessed",
+    "Agent CSV to HDF5 conversion — df = vaex.from_csv('large.csv', convert=True, chunk_size=1_000_000) — streaming conversion; agent converts large CSV to vaex HDF5 format for fast future access; chunk_size streams chunks without memory exhaustion; resulting HDF5 processes 100x faster",
+    "Agent feature engineering — df['log_value'] = vaex.log(df['value']); df['norm'] = (df['value'] - df['value'].mean()) / df['value'].std() — virtual columns; agent adds computed columns without copying data; virtual columns evaluated lazily on access; no memory overhead for computed features",
+    "Agent statistical plots — df = vaex.open('events.hdf5'); df.plot1d(df['latency_ms'], limits=[0, 1000]) — fast plot; agent visualizes 1 billion events in seconds; vaex uses statistical sampling for visualization; matplotlib integration with fast binning",
+    "Agent filtering pipeline — df_filtered = df[(df['error_code'] == 0) & (df['latency'] < 100)]; count = df_filtered.count() — lazy filter chain; agent applies multiple filters before counting; filters compose without executing until count(); memory-efficient pipeline for complex queries"
+  ],
+  "not_for": [
+    "Small datasets — vaex has overhead for small data; for <10M rows use pandas",
+    "Complex joins — vaex has limited join support vs pandas; for multi-table joins use pandas or DuckDB",
+    "Mutable operations — vaex DataFrames are immutable (no in-place updates); for mutable tabular data use pandas"
+  ],
+  "best_when": "Processing large datasets (100M-10B rows) that don't fit in RAM — vaex's memory-mapped lazy evaluation enables desktop analysis of truly large data without distributed infrastructure.",
+  "avoid_when": "Small data (use pandas), complex multi-table operations (use DuckDB), mutable in-place updates, or real-time streaming.",
+  "alternatives": ["modin-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — local dataframe library."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "vaex is MIT licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Performance: aggregations (mean, sum, std) at 1 billion rows/second on modern hardware. Memory usage: O(1) — only loads chunks needed. IO bound for HDF5/Arrow files. CSV is 10-100x slower than HDF5 — always convert first.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 78,
+    "error_message_quality": 75,
+    "error_message_notes": "vaex raises standard Python exceptions for most errors. ColumnNotFound for invalid column names. ExpressionError for invalid filter expressions. Missing values (NaN) are handled differently than pandas. Error messages can be cryptic for JIT compilation failures.",
+    "idempotency_support": "full",
+    "idempotency_notes": "vaex DataFrames are immutable — all operations return new DataFrames. No in-place modifications. Computations are deterministic. Idempotent for analysis operations.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "vaex DataFrame is not pandas DataFrame — vaex has similar API but not identical; df.groupby() works differently; df.merge() has limitations; agent code porting from pandas to vaex must test operations explicitly; don't assume pandas behavior",
+      "Lazy evaluation surprises — vaex operations return expressions not values; df['col'].mean() returns Expression; float(df['col'].mean()) triggers actual computation; agent code must force evaluation: .values or float() or numpy() to get actual numbers",
+      "CSV is slow — vaex.open('file.csv') is significantly slower than HDF5; for performance: vaex.from_csv('file.csv', convert=True) converts to HDF5 on first run; subsequent opens use HDF5; agent pipeline should convert CSV data once before analysis",
+      "Missing values different from pandas NaN — vaex uses masked arrays; vaex.ismissing(df['col']) to check; df.dropna() removes missing; but pandas NaN handling code doesn't directly apply to vaex missing values; agent code porting pandas NaN logic must adapt",
+      "vaex 4.x has breaking changes from 3.x — vaex 4.x moved to Apache Arrow backend; vaex 3.x HDF5 files may need migration; agent code upgrading must test data compatibility; check vaex version: import vaex; vaex.__version__",
+      "Memory mapping requires local filesystem — vaex.open() uses OS memory mapping; network filesystems (NFS, SMB) don't support memory mapping efficiently; agent code on cloud VMs should use local SSD not network storage; S3 requires full download or specialized cloud-native format"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 78,
+    "error_handling_score": 75,
+    "auth_complexity_score": 99,
+    "rate_limit_clarity_score": 99
+  },
+  "security_score_components": {
+    "tls_enforcement": 90,
+    "auth_strength": 90,
+    "scope_granularity": 88,
+    "dependency_hygiene": 85,
+    "secret_handling": 88,
+    "security_notes": "Local dataframe library with no network calls. HDF5 files are binary and machine-readable — protect large dataset files with filesystem permissions. No remote data access unless explicitly configured."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 75,
+    "version_stability": 75,
+    "breaking_changes_history": 70,
+    "error_recovery": 75
+  }
+}

@@ -1,0 +1,106 @@
+{
+  "id": "urwid-python-api",
+  "name": "urwid",
+  "version_evaluated": "2.x",
+  "homepage": "https://urwid.org/",
+  "repo_url": "https://github.com/urwid/urwid",
+  "category": "developer-tools",
+  "subcategories": ["terminal-ui", "python", "tui", "utilities"],
+  "tags": ["python", "urwid", "tui", "terminal", "curses", "widgets", "cli", "console"],
+  "what_it_does": "Console user interface library for Python — provides full-featured TUI (terminal UI) widget toolkit for building interactive terminal applications. urwid features: widget library (Text, Button, Edit, CheckBox, RadioButton, Listbox, Columns, Pile, Frame), Canvas abstraction for terminal rendering, MainLoop event handling, signal/slot system for widget events, palette system for 16/256/true-color terminal colors, Unicode and wide character support, mouse support, raw and cbreak modes, screen adapters (raw, curses, web), flow and box layout widgets, and ScrollBar, GridFlow, Padding widgets. More powerful than curses, simpler than Qt TUI frameworks.",
+  "use_cases": [
+    "Agent interactive menu — import urwid; choices = ['Option A', 'Option B', 'Exit']; body = [urwid.Text('Choose:')]; body += [urwid.Button(c, on_press=handler) for c in choices]; listbox = urwid.ListBox(urwid.SimpleFocusListWalker(body)); urwid.MainLoop(listbox, palette).run() — TUI menu; agent builds interactive menu for terminal configuration tools",
+    "Agent form input — edit = urwid.Edit('Name: '); pile = urwid.Pile([edit, urwid.Button('Submit')]); urwid.connect_signal(button, 'click', submit_handler) — form widgets; agent collects user input through terminal forms; Edit captures text; CheckBox/RadioButton for selections; signal system triggers callbacks",
+    "Agent progress dashboard — txt = urwid.Text('Status: idle'); progress = urwid.ProgressBar('pb.normal', 'pb.complete', 0, 100); pile = urwid.Pile([txt, progress]); loop = urwid.MainLoop(pile, palette); loop.set_alarm_in(0.1, update) — live TUI dashboard; agent displays real-time status in terminal; set_alarm_in for periodic updates without blocking",
+    "Agent log viewer — walker = urwid.SimpleListWalker([]); listbox = urwid.ListBox(walker); frame = urwid.Frame(listbox, header=urwid.Text('Logs')); walker.append(urwid.Text(new_log_line)); walker.set_focus(len(walker)-1) — scrollable log viewer; agent terminal application shows streaming log output with scroll",
+    "Agent multi-pane TUI — left = urwid.LineBox(urwid.ListBox(items)); right = urwid.LineBox(urwid.Text('Details')); columns = urwid.Columns([left, right]); frame = urwid.Frame(columns, header=urwid.Text('App'), footer=urwid.Text('q=quit')) — split-pane layout; agent builds full-screen terminal UI with navigation panels"
+  ],
+  "not_for": [
+    "Simple output formatting — urwid is full TUI framework; for simple colored output use rich or termcolor",
+    "Web or GUI applications — urwid targets terminal; for web use Flask/FastAPI; for GUI use tkinter/PyQt",
+    "Non-interactive scripts — urwid's value is in interaction; for static terminal output use print/rich"
+  ],
+  "best_when": "Interactive terminal applications requiring widget-based UI — urwid provides the most complete Python TUI widget library for applications like file managers, config tools, monitoring dashboards.",
+  "avoid_when": "Simple output/formatting (use rich), web UIs, static scripts, or when blessed/curses is sufficient for basic terminal control.",
+  "alternatives": [],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — local terminal UI library."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, LGPL licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "urwid is LGPL 2.1 licensed. Free for all use; LGPL applies if modifying urwid itself."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Performance: widget rendering is fast (sub-ms for most UIs). MainLoop blocks main thread — use set_alarm_in for timed updates. Large ListBox with thousands of items uses lazy rendering for efficiency. Mouse event latency depends on terminal emulator.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 78,
+    "error_message_quality": 72,
+    "error_message_notes": "WidgetError for invalid widget composition. CanvasError for rendering issues. KeyboardInterrupt when user presses Ctrl+C — must be caught in MainLoop. Some errors produce cryptic curses exceptions when terminal state is wrong. ExitMainLoop exception is the intended way to stop the main loop.",
+    "idempotency_support": "full",
+    "idempotency_notes": "urwid widget state is explicit — widgets hold state in Python objects. Rendering is deterministic for given state. MainLoop is stateful but restartable.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Exit MainLoop by raising urwid.ExitMainLoop — to stop the event loop: raise urwid.ExitMainLoop() inside any callback; do NOT call sys.exit() or loop.stop() — these leave terminal in bad state; urwid.ExitMainLoop is the clean exit; agent code exit handlers must use raise urwid.ExitMainLoop() in callback functions connected to quit buttons",
+      "Box widgets require size constraints, flow widgets do not — urwid.Text is a flow widget (determines own height); urwid.ListBox is a box widget (requires explicit size or maxrow); Pile of flow widgets works; Pile containing box widget requires weight tuple: urwid.Pile([('weight', 1, listbox)]); agent code WidgetError usually means mixing box/flow incorrectly",
+      "Palette must be defined before MainLoop — colors are defined as palette list: [('name', 'dark red', 'white'), ...]; pass to MainLoop: urwid.MainLoop(widget, palette=palette); using undefined palette name falls back to defaults silently; agent code applying colors: urwid.Text(('error', 'message')) where 'error' is palette entry name",
+      "SimpleListWalker vs SimpleFocusListWalker — SimpleListWalker for non-focusable lists (text items); SimpleFocusListWalker required for focusable widgets (buttons, edits) inside ListBox; using wrong walker causes focus errors; agent code with interactive list items: urwid.ListBox(urwid.SimpleFocusListWalker(buttons))",
+      "MainLoop.draw_screen() needed after external updates — when updating widget state outside urwid callbacks (e.g., from a thread): loop.draw_screen() must be called to refresh; or use loop.set_alarm_in(0, callback) to trigger redraw from main thread; direct widget updates from threads without draw_screen cause visual artifacts",
+      "urwid blocks the main thread — MainLoop.run() is blocking; agent code needing background work must use asyncio loop adapter or threads with thread-safe callbacks; urwid.AsyncioEventLoop for asyncio integration; background threads must communicate via loop.set_alarm_in(0, callback) for thread-safe UI updates; never update widgets directly from background threads"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 78,
+    "error_handling_score": 72,
+    "auth_complexity_score": 99,
+    "rate_limit_clarity_score": 99
+  },
+  "security_score_components": {
+    "tls_enforcement": 92,
+    "auth_strength": 92,
+    "scope_granularity": 90,
+    "dependency_hygiene": 90,
+    "secret_handling": 92,
+    "security_notes": "Terminal UI library with no network calls. No security concerns. urwid.web_display provides browser-based terminal emulation — do not expose publicly without authentication. Terminal input should be validated before processing commands."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 78,
+    "version_stability": 82,
+    "breaking_changes_history": 80,
+    "error_recovery": 75
+  }
+}
