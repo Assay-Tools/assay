@@ -1,0 +1,106 @@
+{
+  "id": "responses-python-api",
+  "name": "responses",
+  "version_evaluated": "0.25.x",
+  "homepage": "https://github.com/getsentry/responses",
+  "repo_url": "https://github.com/getsentry/responses",
+  "category": "developer-tools",
+  "subcategories": ["testing", "python", "HTTP", "mocking"],
+  "tags": ["python", "responses", "mock", "HTTP", "requests", "testing", "intercept"],
+  "what_it_does": "Mock library for the requests Python library — intercepts HTTP calls and returns predefined responses. responses features: @responses.activate decorator, responses.add() for registering mock responses, match_querystring for URL query matching, json= parameter for JSON responses, body parameter for raw response, status= for HTTP status codes, headers= for response headers, responses.calls for inspecting made requests, stream=True for streaming responses, passthrough for selective real requests, callback support, regex URL matching, and pytest fixture via responses.fixture.",
+  "use_cases": [
+    "Agent mock HTTP — import responses; import requests; @responses.activate; def test_api_call(): responses.add(responses.GET, 'https://api.example.com/users', json=[{'id': 1, 'name': 'Alice'}], status=200); result = get_users(); assert len(result) == 1; assert result[0]['name'] == 'Alice' — mock; agent tests code using requests without real HTTP calls",
+    "Agent mock error response — @responses.activate; def test_api_error(): responses.add(responses.POST, 'https://api.example.com/data', json={'error': 'Not Found'}, status=404); with pytest.raises(HTTPError): api_client.create_item({'name': 'test'}) — error; agent tests error handling by returning HTTP error codes",
+    "Agent verify calls made — @responses.activate; def test_call_made(): responses.add(responses.GET, 'https://api.example.com/data', json={}); my_function(); assert len(responses.calls) == 1; assert responses.calls[0].request.url == 'https://api.example.com/data' — verify; agent asserts that specific HTTP calls were made with correct URLs",
+    "Agent mock with callback — def request_callback(request): payload = json.loads(request.body); return (200, {}, json.dumps({'echo': payload})); responses.add_callback(responses.POST, url, callback=request_callback) — dynamic; agent generates dynamic responses based on request content; callback receives PreparedRequest and returns (status, headers, body)",
+    "Agent regex URL matching — responses.add(responses.GET, re.compile(r'https://api\\.example\\.com/users/\\d+'), json={'id': 1}); requests.get('https://api.example.com/users/42') — matches; agent mocks URL patterns; useful for dynamic IDs in paths; re.compile() for regex patterns"
+  ],
+  "not_for": [
+    "Non-requests HTTP libraries — responses only intercepts requests library; for httpx use respx; for urllib use responses.passthrough or unittest.mock",
+    "Async requests — responses works with synchronous requests; for async httpx use respx",
+    "Full network recording/replay — for VCR-style record and replay use vcrpy"
+  ],
+  "best_when": "Testing code that uses the requests library — responses is the standard mock library for requests with minimal setup.",
+  "avoid_when": "httpx users (use respx), async code (use respx), VCR record/replay (use vcrpy), or when httpretty's global interception is needed.",
+  "alternatives": ["vcrpy-python-api", "respx-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — test mocking library."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, Apache 2.0 licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "responses is Apache 2.0 licensed. Created by Sentry team. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Performance: mock responses return instantly — no network latency. Useful for fast test suites that would be slow with real API calls.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 88,
+    "error_message_quality": 85,
+    "error_message_notes": "ConnectionError when URL not registered (requests would normally raise). responses.calls for inspecting what was called. Unmatched calls raise ConnectionError. pytest fixture provides clear setup/teardown.",
+    "idempotency_support": "full",
+    "idempotency_notes": "@responses.activate resets mocks between test calls. responses.add() is cumulative within a test. responses.reset() clears all registered mocks.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Unregistered URLs raise ConnectionError — with @responses.activate, any URL not added via responses.add() raises ConnectionError: 'Connection refused by Responses'; agent code: add all expected URLs before calling code under test; use assert_all_requests_are_fired=True to verify all mocks were called",
+      "@responses.activate intercepts requests only — code using httpx, urllib3, or aiohttp is NOT intercepted; agent code: ensure code under test uses requests library; for httpx code: use respx; for mixed: consider integration tests with real server",
+      "responses.add() order matters for same URL — multiple responses.add() for same URL are returned in order (queue); after all queued responses used, ConnectionError raised; agent code for repeated calls: add responses for each expected call; or use responses.add(... match_querystring=False) for catch-all",
+      "match_querystring defaults to False — responses.add(GET, 'http://api.com/data?page=1') with match_querystring=False (default) matches any URL with that path regardless of query string; agent code needing query string matching: use match=[matchers.query_param_matcher({'page': '1'})] — newer API; or match_querystring=True in older API",
+      "json= sets Content-Type automatically — responses.add(... json={'key': 'val'}) sets Content-Type: application/json and serializes dict; using body=json.dumps(data) does NOT set Content-Type automatically; agent code: use json= parameter for JSON responses; body= for raw string/bytes",
+      "responses.calls contains all calls — responses.calls is a list of Call objects; responses.calls[0].request is PreparedRequest; responses.calls[0].response is Response; agent code asserting call count: assert len(responses.calls) == 2; asserting body: assert json.loads(responses.calls[0].request.body) == expected_payload"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 88,
+    "error_handling_score": 85,
+    "auth_complexity_score": 99,
+    "rate_limit_clarity_score": 99
+  },
+  "security_score_components": {
+    "tls_enforcement": 92,
+    "auth_strength": 92,
+    "scope_granularity": 92,
+    "dependency_hygiene": 92,
+    "secret_handling": 90,
+    "security_notes": "Test-only library. No network calls in mocked context. Verify no real credentials are hardcoded in mock responses. passthrough_prefixes allows real calls to specific hosts — ensure test environment doesn't make unauthorized real API calls."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 88,
+    "breaking_changes_history": 85,
+    "error_recovery": 88
+  }
+}
