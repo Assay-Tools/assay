@@ -1,28 +1,28 @@
 {
   "id": "motor-python-api",
-  "name": "Motor",
+  "name": "motor",
   "version_evaluated": "3.x",
   "homepage": "https://motor.readthedocs.io/",
   "repo_url": "https://github.com/mongodb/motor",
   "category": "developer-tools",
-  "subcategories": ["database", "python", "mongodb", "async", "nosql"],
-  "tags": ["python", "mongodb", "async", "asyncio", "nosql", "driver", "motor", "fastapi", "aiohttp"],
-  "what_it_does": "Async Python driver for MongoDB — provides non-blocking MongoDB access using asyncio (and Tornado). Motor wraps PyMongo with coroutine-based async API: `await collection.insert_one(doc)`, `async for doc in collection.find({'status': 'active'})`, `await collection.find_one({'_id': id})`. Motor is the official async MongoDB driver from MongoDB Inc. Works with FastAPI, aiohttp, Starlette, and any asyncio-based Python framework. AsyncIOMotorClient for asyncio (most common); TornadoMotorClient for Tornado. Same API semantics as PyMongo but all I/O operations are async. Required for building non-blocking agent services with MongoDB backend.",
+  "subcategories": ["database", "nosql", "async", "mongodb"],
+  "tags": ["python", "motor", "mongodb", "async", "asyncio", "nosql", "document"],
+  "what_it_does": "Async Python driver for MongoDB — provides coroutine-based async API over pymongo for use with asyncio and Tornado. motor 3.x features: AsyncIOMotorClient for connection, AsyncIOMotorDatabase and AsyncIOMotorCollection for operations, same query API as pymongo (find/insert/update/delete/aggregate), async cursor with async for iteration, async change streams, async transactions, AsyncIOMotorGridFS, compatibility with FastAPI and Starlette, and motor.frameworks.tornado for Tornado framework.",
   "use_cases": [
-    "FastAPI agent service with async MongoDB — AsyncIOMotorClient for FastAPI agent endpoints; await db.agents.find_one({'id': agent_id}) in async def route handler; non-blocking MongoDB access prevents FastAPI event loop blocking for agent API",
-    "Async agent document streaming — async for doc in db.agents.find({'active': True}): process(doc) streams large agent collections without loading all into memory; motor async cursor handles backpressure for agent batch processing",
-    "Agent session storage in MongoDB — await db.sessions.insert_one({'agent_id': id, 'context': context, 'created_at': datetime.utcnow()}) stores agent conversation state asynchronously in MongoDB without blocking event loop",
-    "Concurrent agent MongoDB operations — asyncio.gather(db.agents.find_one(id1), db.agents.find_one(id2)) runs parallel MongoDB queries for multiple agents simultaneously; Motor async I/O enables agent data loading concurrency",
-    "Motor with Beanie ODM — AsyncIOMotorClient as Motor client for Beanie document models; Agent.find(Agent.active == True).to_list() combines Motor's async driver with Beanie's type-safe document interface for agent service"
+    "Agent async MongoDB — from motor.motor_asyncio import AsyncIOMotorClient; client = AsyncIOMotorClient('mongodb://localhost:27017'); db = client['mydb']; async def insert_doc(data): result = await db.documents.insert_one(data); return result.inserted_id — async insert; agent uses MongoDB in async FastAPI or asyncio application",
+    "Agent async query — async def get_active_users(): cursor = db.users.find({'status': 'active'}, projection={'name': 1, 'email': 1}).sort('name', 1).limit(100); return [doc async for doc in cursor] — async iteration; agent queries MongoDB with async for loop on cursor; cursor methods (sort, limit, skip) are synchronous; await on terminal operations",
+    "Agent async aggregation — async def aggregate_data(): pipeline = [{'$match': {'active': True}}, {'$group': {'_id': '$category', 'total': {'$sum': '$amount'}}}]; cursor = db.sales.aggregate(pipeline); return await cursor.to_list(length=None) — async aggregation; agent runs analytics; to_list(None) materializes all results",
+    "Agent FastAPI integration — from fastapi import FastAPI; from motor.motor_asyncio import AsyncIOMotorClient; app = FastAPI(); @app.on_event('startup'); async def startup(): app.mongodb_client = AsyncIOMotorClient(settings.MONGODB_URL); app.mongodb = app.mongodb_client[settings.DB_NAME]; @app.get('/items'); async def list_items(db=Depends(get_db)): return await db.items.find({}).to_list(100) — FastAPI; standard motor+FastAPI pattern",
+    "Agent async change streams — async def watch_changes(): async with db.documents.watch() as stream: async for change in stream: await handle_change(change) — async watch; agent monitors MongoDB collection for real-time changes with async iteration; requires replica set"
   ],
   "not_for": [
-    "Synchronous Python applications — Motor is async-only; for sync Flask or Django (non-async) agent apps, use PyMongo directly; Motor async functions cannot be called from sync context without event loop",
-    "Relational data with joins — MongoDB/Motor is document-oriented; for agent data requiring complex joins, transactions across multiple collections, or relational integrity, use PostgreSQL with asyncpg",
-    "Simple scripts — Motor requires running event loop; for one-off agent data scripts without async infrastructure, PyMongo is simpler"
+    "Synchronous code — use pymongo for synchronous applications; motor adds async overhead to sync code",
+    "Non-asyncio frameworks — motor supports asyncio and Tornado; for other async frameworks check compatibility",
+    "Simple scripts — pymongo is simpler for synchronous scripts; motor adds async boilerplate"
   ],
-  "best_when": "You're building async Python agent services (FastAPI, aiohttp) with MongoDB — Motor provides non-blocking MongoDB access that keeps async event loops responsive under concurrent agent load.",
-  "avoid_when": "Your Python framework is synchronous (Flask, Django without async views), you're writing scripts without event loops, or your data model is relational.",
-  "alternatives": ["beanie-api", "pymongo-api", "asyncpg-api"],
+  "best_when": "FastAPI, Starlette, or asyncio applications needing MongoDB — motor is the official async MongoDB driver with identical API to pymongo.",
+  "avoid_when": "Synchronous code (use pymongo), non-asyncio frameworks, or simple scripts.",
+  "alternatives": ["pymongo-python-api"],
   "interface": {
     "has_rest_api": false,
     "has_graphql": false,
@@ -35,24 +35,24 @@
     "webhooks": false
   },
   "auth": {
-    "methods": ["api_key"],
+    "methods": ["password", "x509", "aws_iam"],
     "oauth": false,
     "scopes": false,
-    "notes": "Motor auth via MongoDB connection string: mongodb+srv://user:password@cluster.mongodb.net or AsyncIOMotorClient(host, username=, password=, authSource=). Atlas uses connection string with credentials."
+    "notes": "Same auth as pymongo: SCRAM-SHA-256, X.509, AWS IAM, via connection URL."
   },
   "pricing": {
     "model": "open_source",
     "free_tier_exists": true,
-    "free_tier_limits": "Completely free, Apache 2.0 licensed. MongoDB Atlas hosting has separate pricing.",
-    "paid_tiers": "None for the driver",
+    "free_tier_limits": "Completely free, Apache 2.0 licensed",
+    "paid_tiers": "None",
     "requires_credit_card": false,
-    "notes": "Motor is Apache 2.0 licensed, maintained by MongoDB Inc. Free for all use."
+    "notes": "motor is Apache 2.0 licensed. Free for all use."
   },
   "performance": {
-    "latency_p50_ms": 5,
-    "latency_p99_ms": 50,
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
     "uptime_sla_percent": null,
-    "rate_limits": "No library rate limits. Motor uses connection pool (default 100 connections); configure maxPoolSize for high-concurrency agent services. MongoDB Atlas has rate limits based on cluster tier.",
+    "rate_limits": "No rate limits. Performance: comparable to pymongo with async overhead. Connection pooling managed per event loop. Concurrent async operations: efficient via event loop. to_list() materializes cursor — use streaming for large result sets.",
     "data_source": "llm_estimated"
   },
   "requirements": {
@@ -66,39 +66,39 @@
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
-    "documentation_accuracy": 85,
-    "error_message_quality": 82,
-    "error_message_notes": "Motor raises pymongo exceptions asynchronously: OperationFailure for MongoDB errors, ConnectionFailure for network issues, WriteError for insert/update failures. DuplicateKeyError for unique constraint violations. ServerSelectionTimeoutError when MongoDB is unreachable with timeout and hosts tried.",
+    "documentation_accuracy": 88,
+    "error_message_quality": 85,
+    "error_message_notes": "Same exceptions as pymongo (DuplicateKeyError, OperationFailure, etc.) but raised as async exceptions. pymongo.errors exceptions re-raised in async context. Error handling patterns identical to pymongo.",
     "idempotency_support": "partial",
-    "idempotency_notes": "find/find_one are idempotent. insert_one with custom _id is idempotent if DuplicateKeyError is caught. update_one with upsert=True provides idempotent upsert. replace_one is idempotent for same document. Design agent operations with idempotency using unique _id fields.",
+    "idempotency_notes": "Same as pymongo. find operations idempotent. insert_one not idempotent. update_one with $set idempotent. bulk_write with upsert for idempotent writes.",
     "pagination_style": "cursor",
-    "retry_guidance_documented": true,
+    "retry_guidance_documented": false,
     "known_agent_gotchas": [
-      "AsyncIOMotorClient must be created once and shared — creating AsyncIOMotorClient per request creates separate connection pools exhausting MongoDB connections; create client at application startup as singleton and share via FastAPI dependency injection for all agent route handlers",
-      "Async cursor must be explicitly closed or used as async context manager — async for doc in collection.find() automatically closes cursor; manual cursor operations require await cursor.close() or async with collection.find() as cursor; unclosed motor cursors cause resource leaks in long-running agent services",
-      "Motor does not support asyncio.run() with same event loop — AsyncIOMotorClient is bound to event loop it's created on; running Motor operations in different event loop (e.g., asyncio.run() in tests) from client creation raises RuntimeError; use pytest-asyncio or create new client per test for agent service testing",
-      "Bulk operations require motor.motor_asyncio not pymongo — PyMongo InsertMany cannot be awaited; must use AsyncIOMotorCollection.insert_many() not collection.bulk_write() with PyMongo operations; agent bulk data import must use Motor's async bulk API exclusively",
-      "Change streams require explicit resume token handling — db.agents.watch() returns async change stream iterator; network interruption causes StopAsyncIteration without resume token; persist resume_token and pass to watch(resume_after=token) to resume agent change stream monitoring without missing events",
-      "Connection string credentials must be URL-encoded — agent service MongoDB passwords with special characters (@, /, :, ?) must be urllib.parse.quote_plus encoded in connection string; unencoded special chars cause Motor to misparse connection string and fail to connect with cryptic URI parse error"
+      "AsyncIOMotorClient per event loop — motor client binds to the running event loop; in FastAPI: create client at startup event, not at module level; if event loop changes (testing), must recreate client; agent code: use app lifecycle events (startup/shutdown) to create and close client; store on app.state",
+      "cursor methods are synchronous, terminal operations async — cursor = db.col.find({}); cursor.sort('field', 1).limit(10) are synchronous modifier methods (no await); await cursor.to_list(100) or async for doc in cursor: are async terminal operations; agent code: chain sync modifiers before awaiting; next(cursor) is sync — use await cursor.next() or async for",
+      "to_list(length) requires explicit limit — cursor.to_list(length=None) fetches ALL documents (memory issue for large collections); cursor.to_list(length=100) fetches up to 100; agent code: always specify reasonable length; for large result sets: use async for doc in cursor: to stream; avoid to_list(None) without filter",
+      "Transactions require replica set — await session.start_transaction() requires MongoDB replica set or Atlas; local mongod single node: rs.initiate() first; agent code: test with MongoDB Atlas or local replica set; TransactionError if not replica set; sessions and transactions same API as pymongo",
+      "close() not awaitable in all versions — client.close() in motor 3.x is synchronous; call in shutdown handler without await; motor 2.x had different close behavior; agent FastAPI: @app.on_event('shutdown') def shutdown(): app.mongodb_client.close() — sync close",
+      "Collection names are attributes not methods — db['collection'] and db.collection both work; db.collection is attribute access; db['my-collection'] for hyphenated names (not valid Python identifier); agent code: use db['collection-name'] for names with hyphens or other special chars; db.users and db['users'] are identical"
     ]
   },
   "af_score_components": {
     "mcp_score": 0,
-    "api_doc_score": 85,
-    "error_handling_score": 82,
-    "auth_complexity_score": 85,
-    "rate_limit_clarity_score": 88
+    "api_doc_score": 88,
+    "error_handling_score": 85,
+    "auth_complexity_score": 88,
+    "rate_limit_clarity_score": 95
   },
   "security_score_components": {
     "tls_enforcement": 88,
-    "auth_strength": 85,
-    "scope_granularity": 82,
-    "dependency_hygiene": 88,
-    "secret_handling": 85,
-    "security_notes": "Never hardcode MongoDB credentials in agent code — use environment variables for connection string. Motor supports TLS/SSL (tls=True in connection string) — always use TLS for agent production MongoDB connections. MongoDB Atlas enforces TLS by default. Enable MongoDB authentication and create least-privilege roles for agent service database users."
+    "auth_strength": 88,
+    "scope_granularity": 85,
+    "dependency_hygiene": 90,
+    "secret_handling": 82,
+    "security_notes": "Async MongoDB driver. Same security considerations as pymongo. TLS: AsyncIOMotorClient(tls=True). NoSQL injection risk with user-controlled query filters. Store connection URL in environment variables. MongoDB ACL for collection-level permissions."
   },
   "reliability_score_components": {
-    "uptime_documented": 88,
+    "uptime_documented": 85,
     "version_stability": 85,
     "breaking_changes_history": 82,
     "error_recovery": 85

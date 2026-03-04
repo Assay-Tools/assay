@@ -1,0 +1,106 @@
+{
+  "id": "alembic-python-api",
+  "name": "alembic",
+  "version_evaluated": "1.13.x",
+  "homepage": "https://alembic.sqlalchemy.org/",
+  "repo_url": "https://github.com/sqlalchemy/alembic",
+  "category": "developer-tools",
+  "subcategories": ["database", "migrations", "python", "sqlalchemy"],
+  "tags": ["python", "alembic", "migrations", "database", "sqlalchemy", "schema", "versioning"],
+  "what_it_does": "Database migration tool for SQLAlchemy — provides versioned schema management with upgrade/downgrade scripts. alembic features: alembic init for project setup, alembic revision --autogenerate to detect schema changes, alembic upgrade head to apply migrations, alembic downgrade to revert, migration scripts with op.create_table/add_column/drop_column/create_index/etc., env.py configuration, programmatic MigrationContext for embedding, branch handling for merge conflicts, offline SQL generation (--sql flag), batch operations for SQLite ALTER TABLE limitations, and compare_type for column type changes.",
+  "use_cases": [
+    "Agent migration setup — alembic init alembic; # Edit alembic.ini: sqlalchemy.url = postgresql://user:pass@localhost/db; # Edit alembic/env.py: target_metadata = Base.metadata; alembic revision --autogenerate -m 'add users table'; alembic upgrade head — setup; agent initializes migration infrastructure for SQLAlchemy project",
+    "Agent programmatic migration — from alembic.config import Config; from alembic import command; alembic_cfg = Config('alembic.ini'); command.upgrade(alembic_cfg, 'head') — programmatic; agent runs migrations from Python code (e.g., at application startup); command.current() to show current version; command.history() to list revisions",
+    "Agent manual migration — from alembic import op; import sqlalchemy as sa; def upgrade(): op.add_column('users', sa.Column('last_login', sa.DateTime())); op.create_index('ix_users_email', 'users', ['email'], unique=True) — manual migration; agent writes custom migrations for complex changes that autogenerate cannot detect",
+    "Agent offline SQL generation — alembic upgrade head --sql > migrations.sql — SQL script; agent generates SQL migration script for review or manual application to production database; --sql flag outputs SQL without connecting to database",
+    "Agent downgrade — alembic downgrade -1 — single step back; alembic downgrade base — back to empty schema; agent reverts migrations for rollback; each revision has downgrade() function; agent code: generate downgrade before running risky migrations"
+  ],
+  "not_for": [
+    "Non-SQLAlchemy projects — alembic integrates tightly with SQLAlchemy; for Django use Django migrations; for other ORMs use dedicated migration tools",
+    "NoSQL databases — alembic is SQL-only",
+    "Auto-migration in production — autogenerate can miss changes; always review generated migration scripts before applying to production"
+  ],
+  "best_when": "SQLAlchemy-based projects needing versioned schema migrations — alembic is the standard migration tool for SQLAlchemy, maintained by the same team.",
+  "avoid_when": "Non-SQLAlchemy projects, NoSQL databases, Django (use Django migrations), or simple SQLite scripts without schema versioning needs.",
+  "alternatives": ["sqlalchemy-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — migration tool. Database credentials via alembic.ini or env.py."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Alembic is MIT licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Performance: migration speed depends on database operation (DDL). alembic_version table locks during migration. Large table migrations (adding column to millions of rows) can take minutes. Use batch migrations for gradual rollout.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 80,
+    "error_message_notes": "alembic.util.CommandError for configuration errors. sqlalchemy.exc errors for database operations. 'Target database is not up to date' when head not at current. Migration conflict errors for branch issues. Error messages indicate migration version and issue.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "alembic upgrade head is idempotent if already at head (no-op). upgrade to specific revision is idempotent. downgrade is reversible. alembic_version table tracks applied migrations.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "autogenerate cannot detect everything — alembic --autogenerate misses: server defaults, CHECK constraints, sequence changes, custom types, data migrations; agent code: always review generated migration files before committing; add missed changes manually; run alembic upgrade head on test database to verify",
+      "env.py must import all models — autogenerate compares target_metadata to database; target_metadata = Base.metadata requires ALL models imported; missing model import = missing table in metadata = autogenerate drops table; agent code: env.py must import all model modules; common pattern: from myapp.models import * or explicit imports",
+      "SQLite ALTER TABLE limitations — SQLite does not support DROP COLUMN or ALTER COLUMN; alembic batch operations work around this: with op.batch_alter_table('table_name') as batch_op: batch_op.add_column(...); batch_op.drop_column(...) — recreates table; agent code for SQLite: always use batch_alter_table for any column modification",
+      "Multiple heads cause errors — branched migration history creates multiple heads; alembic upgrade head fails; check: alembic heads; merge: alembic merge -m 'merge' head1 head2; creates merge revision; agent code in team environment: pull before generating revision to avoid branches; merge conflicts in migration files are common",
+      "Migration scripts are executed in order — revision IDs reference down_revision for ordering; changing order or deleting revisions breaks history; agent code: never delete or reorder migration files; squash with alembic merge for cleanup; alembic history shows ordered list; downgrade before deleting deployment",
+      "compare_type must be enabled for type changes — autogenerate by default ignores column type changes (length, precision); enable: context.configure(compare_type=True) in env.py; then column type changes appear in autogenerate; agent code: enable compare_type=True; still review for false positives (dialect-specific types)"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 80,
+    "auth_complexity_score": 95,
+    "rate_limit_clarity_score": 99
+  },
+  "security_score_components": {
+    "tls_enforcement": 88,
+    "auth_strength": 88,
+    "scope_granularity": 85,
+    "dependency_hygiene": 90,
+    "secret_handling": 80,
+    "security_notes": "Database migration tool. Store database credentials in environment variables not alembic.ini. Review migration scripts before applying — autogenerate can generate DROP TABLE statements. Run migrations in transaction where supported. Test downgrade scripts. Backup before production migrations."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 85,
+    "version_stability": 88,
+    "breaking_changes_history": 85,
+    "error_recovery": 85
+  }
+}

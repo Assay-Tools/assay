@@ -1,0 +1,106 @@
+{
+  "id": "celery-python-api",
+  "name": "celery",
+  "version_evaluated": "5.x",
+  "homepage": "https://docs.celeryq.dev/",
+  "repo_url": "https://github.com/celery/celery",
+  "category": "developer-tools",
+  "subcategories": ["task-queue", "async", "python", "distributed"],
+  "tags": ["python", "celery", "task-queue", "worker", "distributed", "redis", "rabbitmq", "background"],
+  "what_it_does": "Distributed task queue for Python — sends tasks to workers asynchronously via message brokers (Redis, RabbitMQ). celery 5.x features: @app.task decorator for task definition, .delay()/.apply_async() for dispatching, task.AsyncResult for result retrieval, periodic tasks via celery beat, task chaining/grouping/chord with canvas API, retry logic, task routing to specific queues, priority queues, result backends (Redis, database), task monitoring via Flower, soft/hard time limits, task ETA (eta= parameter), countdown=, rate_limit=, workflow primitives (chain, group, chord), and task signals.",
+  "use_cases": [
+    "Agent background task — from celery import Celery; app = Celery('tasks', broker='redis://localhost:6379/0', backend='redis://localhost:6379/1'); @app.task; def process_file(file_id): result = do_work(file_id); return result; result = process_file.delay(file_id); task_result = result.get(timeout=300) — basic; agent dispatches long-running work to background workers",
+    "Agent task with retry — @app.task(bind=True, max_retries=3, default_retry_delay=60); def fetch_data(self, url): try: return requests.get(url).json(); except RequestException as exc: self.retry(exc=exc, countdown=2**self.request.retries) — retry; agent retries failed tasks with exponential backoff; bind=True for self access",
+    "Agent task chaining — from celery import chain; workflow = chain(download.s(url), process.s(), store.s()); result = workflow.apply_async(); final = result.get() — chain; agent builds sequential workflow where output of each task feeds next; chain() creates lazy signature; .s() is shorthand for signature()",
+    "Agent periodic tasks — from celery.schedules import crontab; app.conf.beat_schedule = {'daily-report': {'task': 'tasks.generate_report', 'schedule': crontab(hour=8, minute=0), 'args': ('daily',)}}; — beat; agent schedules recurring tasks; requires celery beat process; crontab for cron syntax; timedelta for fixed interval",
+    "Agent task routing — @app.task(queue='high_priority'); def urgent_task(data): process(data); app.conf.task_routes = {'tasks.urgent_task': {'queue': 'high_priority'}}; urgent_task.apply_async(queue='high_priority') — routing; agent routes tasks to specific worker queues; run workers with celery -A app worker -Q high_priority"
+  ],
+  "not_for": [
+    "Simple async operations — for simple async use asyncio; celery adds broker infrastructure overhead",
+    "Real-time tasks — celery has startup latency; for real-time use asyncio/threading",
+    "Lightweight task queues — for simpler task queues use RQ (Redis Queue) or huey with less infrastructure"
+  ],
+  "best_when": "Distributed background task processing at scale — celery is the standard for Python background jobs with monitoring, retries, and complex workflows for production services.",
+  "avoid_when": "Simple async (use asyncio), real-time processing, lightweight needs (use RQ/huey), or when infrastructure overhead of broker+backend is not justified.",
+  "alternatives": ["rq-python-api", "dramatiq-python-api", "huey-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth in celery itself. Broker authentication via connection URL (Redis AUTH, RabbitMQ credentials)."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, BSD licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Celery is BSD 3-Clause licensed. Free for all use. Requires separate message broker (Redis/RabbitMQ)."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits (configurable via rate_limit=). Performance: task dispatch: ~1-5ms. Worker startup: 1-3s. Broker round-trip adds latency. Horizontal scaling: add more workers. Concurrency: prefork (default), eventlet, gevent, or solo modes.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 82,
+    "error_message_quality": 78,
+    "error_message_notes": "celery.exceptions.TimeoutError from result.get(timeout=N). celery.exceptions.Retry from self.retry(). TaskRevokedError when task revoked. WorkerLostError when worker crashes. Errors in task visible via result.traceback. Flower for visual monitoring.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Task dispatch is not idempotent — calling .delay() twice creates two tasks. Task body idempotency depends on implementation. task_id for deduplication. acks_late=True for at-least-once delivery. acks_on_failure_or_timeout for retry safety.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "result.get() blocks and can deadlock — calling result.get() inside a celery task (waiting for another task) can deadlock worker; agent code: never call result.get() synchronously inside a task; use chord/chain for dependent tasks; or use apply_async with link= callback; dedicated result-fetching process or API endpoint",
+      "Tasks must be importable by workers — worker process imports task module; if task uses local variables or closures that don't serialize: pickle error; agent code: define tasks in importable modules (not inside functions); task arguments must be serializable (JSON by default); use task_serializer='pickle' for complex objects (security risk)",
+      "Celery app must match between producer and worker — same Celery app name, same broker URL, same task module structure; agent code: share celery app configuration via shared module; worker command: celery -A myapp.celery worker; producer imports from same myapp.tasks; mismatch = tasks never consumed",
+      "beat requires separate process — celery beat for periodic tasks is NOT automatic with worker; must run: celery -A app beat; agent code: add beat to deployment (separate container/process); beat and worker can share host but beat is single-process (not distributed); beat stores schedule in database or local file",
+      "@app.task vs @shared_task — @app.task binds to specific Celery app instance; @shared_task creates task not bound to app (reusable in multiple apps); agent code for reusable library tasks: use @shared_task; for app-specific tasks: @app.task; @shared_task requires celery.current_app which resolves at runtime",
+      "Task serialization defaults to JSON — celery 4+ uses JSON by default (not pickle); JSON cannot serialize datetime, UUID, Decimal without custom encoder; agent code: use str(uuid) or uuid.hex before passing; datetime.isoformat() for dates; or configure: task_serializer='pickle', accept_content=['pickle'] (security risk with untrusted input)"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 82,
+    "error_handling_score": 78,
+    "auth_complexity_score": 92,
+    "rate_limit_clarity_score": 92
+  },
+  "security_score_components": {
+    "tls_enforcement": 82,
+    "auth_strength": 80,
+    "scope_granularity": 78,
+    "dependency_hygiene": 82,
+    "secret_handling": 78,
+    "security_notes": "Task queue. Never use pickle serializer with untrusted input — arbitrary code execution. Secure broker connection with credentials and TLS. Task arguments visible in broker queue — do not pass secrets as task args. Worker runs arbitrary Python — secure worker network access. Revoke tasks via revoke() for cancelled work."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 80,
+    "version_stability": 78,
+    "breaking_changes_history": 75,
+    "error_recovery": 82
+  }
+}
