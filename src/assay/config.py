@@ -21,7 +21,9 @@ class Settings(BaseSettings):
     # Paths
     base_dir: Path = Path(__file__).parent.parent.parent
 
-    model_config = {"env_file": (".env", ".secrets"), "env_file_encoding": "utf-8", "extra": "ignore"}
+    model_config = {
+        "env_file": (".env", ".secrets"), "env_file_encoding": "utf-8", "extra": "ignore",
+    }
 
 
 settings = Settings()

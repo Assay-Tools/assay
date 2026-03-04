@@ -60,7 +60,10 @@ class GitHubSource(DiscoverySource):
         per_page = min(100, limit)
 
         while len(self._results) < limit:
-            url = f"{self.GITHUB_API}?q={query}&sort=stars&order=desc&per_page={per_page}&page={page}"
+            url = (
+                f"{self.GITHUB_API}?q={query}&sort=stars"
+                f"&order=desc&per_page={per_page}&page={page}"
+            )
             print(f"  [github] Searching: q={query} page={page} ...")
 
             try:

@@ -6,21 +6,19 @@ import os
 os.environ["DATABASE_URL"] = "sqlite:///:memory:"
 
 import pytest
+from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
-from fastapi.testclient import TestClient
 
-from assay.database import Base, get_db
 from assay.api.app import app
+from assay.database import Base, get_db
 from assay.models.package import (
     Category,
     Package,
     PackageAgentReadiness,
     PackageAuth,
     PackageInterface,
-    PackagePerformance,
     PackagePricing,
-    PackageRequirements,
 )
 
 

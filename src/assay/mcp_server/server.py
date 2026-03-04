@@ -10,7 +10,6 @@ import json
 import mcp.types as types
 from mcp.server import Server
 from mcp.server.stdio import stdio_server
-from sqlalchemy import func
 from sqlalchemy.orm import joinedload
 
 from assay.database import SessionLocal, init_db

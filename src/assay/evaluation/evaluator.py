@@ -33,7 +33,6 @@ from assay.models.package import (
     PackageAgentReadiness,
     PackageAuth,
     PackageInterface,
-    PackagePerformance,
     PackagePricing,
     PackageRequirements,
 )
@@ -148,8 +147,12 @@ class PackageEvaluation(BaseModel):
     requirements: RequirementsEval = Field(default_factory=RequirementsEval)
     agent_readiness: AgentReadinessEval = Field(default_factory=AgentReadinessEval)
     af_score_components: AFScoreComponents = Field(default_factory=AFScoreComponents)
-    security_score_components: SecurityScoreComponents = Field(default_factory=SecurityScoreComponents)
-    reliability_score_components: ReliabilityScoreComponents = Field(default_factory=ReliabilityScoreComponents)
+    security_score_components: SecurityScoreComponents = Field(
+        default_factory=SecurityScoreComponents,
+    )
+    reliability_score_components: ReliabilityScoreComponents = Field(
+        default_factory=ReliabilityScoreComponents,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -318,19 +321,19 @@ no explanation text outside the JSON.
 - rate_limit_clarity_score (0-100): How clearly are rate limits documented? \
   0=not mentioned, 50=mentioned but vague, 80=clear docs, 100=clear docs + headers.
 
-## Security Score Components (is it safe for an agent to use this?)
-- tls_enforcement (0-100): 100=HTTPS required everywhere, 0=no TLS/allows HTTP.
-- auth_strength (0-100): 100=strong auth (API keys + scopes, OAuth2), 50=basic auth, 0=no auth.
-- scope_granularity (0-100): 100=fine-grained permission scopes, 50=coarse, 0=all-or-nothing.
-- dependency_hygiene (0-100): 100=clean deps, no known CVEs, 50=some issues, 0=severe vulnerabilities.
-- secret_handling (0-100): 100=secrets via env vars/vault, never logged, 0=secrets in code/URLs/logs.
-- security_notes: Brief text noting any specific security concerns or strengths.
+## Security Score Components (is it safe for an agent to use?)
+- tls_enforcement (0-100): 100=HTTPS required, 0=no TLS/allows HTTP.
+- auth_strength (0-100): 100=strong (API keys+scopes, OAuth2), 50=basic, 0=none.
+- scope_granularity (0-100): 100=fine-grained scopes, 50=coarse, 0=all-or-nothing.
+- dependency_hygiene (0-100): 100=clean deps no CVEs, 50=some issues, 0=severe.
+- secret_handling (0-100): 100=env vars/vault never logged, 0=secrets in code/logs.
+- security_notes: Brief text on specific security concerns or strengths.
 
 ## Reliability Score Components (does it work consistently?)
-- uptime_documented (0-100): 100=published SLA + status page, 50=mentioned, 0=no info.
-- version_stability (0-100): 100=stable releases, semver, long deprecation, 50=some stability, 0=unstable.
-- breaking_changes_history (0-100): 100=no breaking changes/good migration guides, 0=frequent breaking.
-- error_recovery (0-100): 100=retry guidance, idempotent operations, 50=partial, 0=no recovery support.
+- uptime_documented (0-100): 100=published SLA+status page, 50=mentioned, 0=none.
+- version_stability (0-100): 100=stable semver releases, 50=some stability, 0=unstable.
+- breaking_changes_history (0-100): 100=no breaking changes, 0=frequent breaking.
+- error_recovery (0-100): 100=retry guidance+idempotent ops, 50=partial, 0=none.
 
 For category_slug, choose from common categories like:
 email, payments, ai-ml, databases, auth, monitoring, storage, \
@@ -503,7 +506,8 @@ class EvaluationAgent:
             if not existing_cat:
                 cat = Category(
                     slug=evaluation.category_slug,
-                    name=evaluation.category_name or evaluation.category_slug.replace("-", " ").title(),
+                    name=evaluation.category_name
+                    or evaluation.category_slug.replace("-", " ").title(),
                 )
                 db.add(cat)
             package.category_slug = evaluation.category_slug

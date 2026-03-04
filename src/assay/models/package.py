@@ -3,7 +3,7 @@
 import json
 from datetime import datetime, timezone
 
-from sqlalchemy import Boolean, DateTime, Float, Integer, String, Text, ForeignKey
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from assay.database import Base
@@ -36,13 +36,16 @@ class Package(Base):
     reliability_score: Mapped[float | None] = mapped_column(Float)  # Reliability (0-100)
 
     # Discovery metadata
-    package_type: Mapped[str] = mapped_column(String(50), default="mcp_server")  # mcp_server, skill, api
-    discovery_source: Mapped[str | None] = mapped_column(String(100))  # github, mcp_registry, skills_sh, github_awesome, openclaw, community
+    # mcp_server, skill, api
+    package_type: Mapped[str] = mapped_column(String(50), default="mcp_server")
+    # github, mcp_registry, skills_sh, github_awesome, openclaw, community
+    discovery_source: Mapped[str | None] = mapped_column(String(100))
     priority: Mapped[str] = mapped_column(String(10), default="low")  # high, low
     stars: Mapped[int | None] = mapped_column(Integer)  # GitHub star count
 
     # Status
-    status: Mapped[str] = mapped_column(String(50), default="discovered")  # discovered, evaluated, published
+    # discovered, evaluated, published
+    status: Mapped[str] = mapped_column(String(50), default="discovered")
     version_evaluated: Mapped[str | None] = mapped_column(String(100))
     last_evaluated: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(
@@ -240,7 +243,8 @@ class PackagePricing(Base):
     package_id: Mapped[str] = mapped_column(
         String(255), ForeignKey("packages.id"), primary_key=True
     )
-    model: Mapped[str | None] = mapped_column(String(50))  # free, freemium, paid, usage_based, open_source
+    # free, freemium, paid, usage_based, open_source
+    model: Mapped[str | None] = mapped_column(String(50))
     free_tier_exists: Mapped[bool] = mapped_column(Boolean, default=False)
     free_tier_limits: Mapped[str | None] = mapped_column(Text)  # JSON object
     paid_tiers: Mapped[str | None] = mapped_column(Text)  # JSON array
@@ -254,7 +258,9 @@ class PackagePricing(Base):
         return {
             "model": self.model,
             "free_tier_exists": self.free_tier_exists,
-            "free_tier_limits": json.loads(self.free_tier_limits) if self.free_tier_limits else None,
+            "free_tier_limits": (
+                json.loads(self.free_tier_limits) if self.free_tier_limits else None
+            ),
             "paid_tiers": json.loads(self.paid_tiers) if self.paid_tiers else [],
             "requires_credit_card": self.requires_credit_card,
             "estimated_workload_costs": json.loads(self.estimated_workload_costs)
@@ -276,7 +282,8 @@ class PackagePerformance(Base):
     latency_p99_ms: Mapped[int | None] = mapped_column(Integer)
     uptime_sla_percent: Mapped[float | None] = mapped_column(Float)
     rate_limits: Mapped[str | None] = mapped_column(Text)  # JSON object
-    data_source: Mapped[str | None] = mapped_column(String(100))  # "synthetic_monitoring", "documented", "estimated"
+    # "synthetic_monitoring", "documented", "estimated"
+    data_source: Mapped[str | None] = mapped_column(String(100))
     measured_on: Mapped[str | None] = mapped_column(String(255))
 
     package: Mapped["Package"] = relationship(back_populates="performance")

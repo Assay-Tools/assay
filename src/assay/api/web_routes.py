@@ -304,7 +304,10 @@ def category_detail(request: Request, slug: str, db: Session = Depends(get_db)):
     if not category:
         return templates.TemplateResponse(
             "pages/category.html",
-            {"request": request, "category": None, "packages": [], "community_stats": _community_stats(db)},
+            {
+                "request": request, "category": None,
+                "packages": [], "community_stats": _community_stats(db),
+            },
             status_code=404,
         )
 
@@ -321,7 +324,10 @@ def category_detail(request: Request, slug: str, db: Session = Depends(get_db)):
 
     return templates.TemplateResponse(
         "pages/category.html",
-        {"request": request, "category": category, "packages": packages, "community_stats": _community_stats(db)},
+        {
+            "request": request, "category": category,
+            "packages": packages, "community_stats": _community_stats(db),
+        },
     )
 
 
@@ -442,8 +448,9 @@ def contribute(request: Request, db: Session = Depends(get_db)):
         incomplete_packages = (
             db.query(Package)
             .options(joinedload(Package.category))
-            .join(PackageAgentReadiness, Package.id == PackageAgentReadiness.package_id, isouter=True)
-            .filter(
+            .join(
+                PackageAgentReadiness, Package.id == PackageAgentReadiness.package_id, isouter=True,
+            ).filter(
                 Package.af_score.isnot(None),
                 or_(
                     PackageAgentReadiness.tls_enforcement.is_(None),
@@ -529,17 +536,17 @@ and SDKs across agent friendliness, security, and reliability — so agents and 
 developers can choose the right tools.
 
 Assay evaluates packages on three dimensions (each 0-100):
-- **Agent Friendliness (AF)** — MCP quality, docs, error messages, auth simplicity, rate limit clarity
+- **Agent Friendliness (AF)** — MCP quality, docs, error messages, auth simplicity, rate limits
 - **Security** — TLS, auth strength, scope granularity, dependency hygiene, secret handling
 - **Reliability** — uptime, version stability, breaking changes, error recovery
 
 ## API
 
-- [Package list](/api/v1/packages): Browse and filter evaluated packages. Supports category, type, score, MCP, and free-tier filters.
+- [Package list](/api/v1/packages): Browse and filter evaluated packages.
 - [Package detail](/api/v1/packages/{package_id}): Full evaluation data for a single package.
-- [Agent guide](/api/v1/packages/{package_id}/agent-guide): Condensed agent-optimized view with scores, gotchas, and auth info.
+- [Agent guide](/api/v1/packages/{id}/agent-guide): Agent-optimized view with scores.
 - [Categories](/api/v1/categories): List all categories with package counts.
-- [Category packages](/api/v1/categories/{slug}/packages): Packages in a category, ranked by AF score.
+- [Category packages](/api/v1/categories/{slug}/packages): Packages in a category, by AF score.
 - [Compare](/api/v1/compare?ids=a,b,c): Side-by-side comparison of up to 10 packages.
 - [Stats](/api/v1/stats): Sitewide statistics and score distribution.
 - [Evaluation queue](/api/v1/queue): Packages needing evaluation or re-evaluation.
@@ -557,7 +564,7 @@ Assay evaluates packages on three dimensions (each 0-100):
 ## Optional
 
 - [OpenAPI spec](/openapi.json): Full API schema in OpenAPI 3.1 format.
-- [MCP server](https://github.com/Assay-Tools/assay): Assay's own MCP server for native agent integration.
+- [MCP server](https://github.com/Assay-Tools/assay): Assay's MCP server for agent integration.
 """
 
 LLMS_FULL_TXT_EXTRA = """

@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import argparse
 import json
-from datetime import datetime, timezone
 
 from assay.database import SessionLocal, init_db
 from assay.models import Category, Package
@@ -120,7 +119,7 @@ CATEGORIES: dict[str, dict[str, str | list[str]]] = {
     },
     "agent-skills": {
         "name": "Agent Skills",
-        "description": "Claude Code skills, agent capabilities, prompt templates, workflow automations",
+        "description": "Claude Code skills, agent capabilities, prompt templates",
         "keywords": ["skill", "claude-code", "agent-skill", "openclaw", "prompt",
                      "workflow", "automation", "slash-command", "capability", "tool",
                      "extension", "plugin"],
@@ -302,7 +301,7 @@ class DiscoveryAgent:
 
     def run(self) -> None:
         """Full discovery pipeline: search all sources, deduplicate, insert."""
-        print(f"=== Assay Discovery Agent ===")
+        print("=== Assay Discovery Agent ===")
         print(f"Target: up to {self.limit} packages")
         print(f"Sources: {', '.join(s.source_name for s in self.sources)}")
         if self.package_type_filter:
@@ -319,17 +318,17 @@ class DiscoveryAgent:
             self.seed_categories(db)
 
             # 3. Discover from all sources
-            print(f"\n[3/4] Running discovery sources ...")
+            print("\n[3/4] Running discovery sources ...")
             packages = self.discover_all()
             print(f"\n  Total unique packages discovered: {len(packages)}")
 
             # 4. Insert packages
-            print(f"\n[4/4] Inserting package stubs ...")
+            print("\n[4/4] Inserting package stubs ...")
             inserted = self.insert_packages(packages, db)
 
             # Summary
             total = db.query(Package).count()
-            print(f"\n=== Done ===")
+            print("\n=== Done ===")
             print(f"  New packages inserted: {inserted}")
             print(f"  Total packages in DB:  {total}")
 
@@ -338,7 +337,9 @@ class DiscoveryAgent:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Assay Discovery Agent — find packages from multiple sources")
+    parser = argparse.ArgumentParser(
+        description="Assay Discovery Agent — find packages from multiple sources",
+    )
     parser.add_argument(
         "--limit",
         type=int,

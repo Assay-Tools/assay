@@ -62,7 +62,9 @@ def startup():
 def _run_migrations():
     """Add new columns if they don't exist. Safe to run repeatedly."""
     import logging
+
     from sqlalchemy import text
+
     from assay.database import engine
 
     logger = logging.getLogger("assay.migrations")

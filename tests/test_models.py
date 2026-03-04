@@ -1,8 +1,7 @@
 """Tests for Assay SQLAlchemy models."""
 
-import json
 
-from assay.models.package import Category, Package, PackageAgentReadiness
+from assay.models.package import Category
 
 
 class TestCategory:

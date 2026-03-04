@@ -23,18 +23,14 @@ from pathlib import Path
 
 from assay.database import SessionLocal, init_db
 from assay.evaluation.evaluator import (
-    AF_WEIGHTS,
     AFScoreComponents,
-    RELIABILITY_WEIGHTS,
     ReliabilityScoreComponents,
-    SECURITY_WEIGHTS,
     SecurityScoreComponents,
     compute_af_score,
     compute_reliability_score,
     compute_security_score,
 )
 from assay.models import (
-    Category,
     EvaluationRun,
     Package,
     PackageAgentReadiness,
@@ -125,10 +121,13 @@ def load_evaluation(data: dict, db) -> str:
             db.add(pricing)
         pricing.model = pricing_data.get("model")
         pricing.free_tier_exists = pricing_data.get("free_tier_exists", False)
-        pricing.free_tier_limits = json.dumps(pricing_data.get("free_tier_limits")) if pricing_data.get("free_tier_limits") else None
-        pricing.paid_tiers = json.dumps(pricing_data.get("paid_tiers")) if pricing_data.get("paid_tiers") else None
+        ftl = pricing_data.get("free_tier_limits")
+        pricing.free_tier_limits = json.dumps(ftl) if ftl else None
+        pt = pricing_data.get("paid_tiers")
+        pricing.paid_tiers = json.dumps(pt) if pt else None
         pricing.requires_credit_card = pricing_data.get("requires_credit_card", False)
-        pricing.estimated_workload_costs = json.dumps(pricing_data.get("estimated_workload_costs")) if pricing_data.get("estimated_workload_costs") else None
+        ewc = pricing_data.get("estimated_workload_costs")
+        pricing.estimated_workload_costs = json.dumps(ewc) if ewc else None
         pricing.notes = pricing_data.get("notes")
 
     # Performance
@@ -141,7 +140,8 @@ def load_evaluation(data: dict, db) -> str:
         perf.latency_p50_ms = perf_data.get("latency_p50_ms")
         perf.latency_p99_ms = perf_data.get("latency_p99_ms")
         perf.uptime_sla_percent = perf_data.get("uptime_sla_percent")
-        perf.rate_limits = json.dumps(perf_data.get("rate_limits")) if perf_data.get("rate_limits") else None
+        rl = perf_data.get("rate_limits")
+        perf.rate_limits = json.dumps(rl) if rl else None
         perf.data_source = perf_data.get("data_source", "llm_estimated")
         perf.measured_on = perf_data.get("measured_on")
 
@@ -276,7 +276,8 @@ def load_file(filepath: Path, db) -> tuple[int, int]:
     for item in items:
         try:
             pkg_id = load_evaluation(item, db)
-            print(f"  Loaded: {pkg_id} (AF: {item.get('agent_readiness', {}).get('af_score', 'n/a')})")
+            af = item.get('agent_readiness', {}).get('af_score', 'n/a')
+            print(f"  Loaded: {pkg_id} (AF: {af})")
             success += 1
         except Exception as e:
             pkg_id = item.get("id", "unknown")

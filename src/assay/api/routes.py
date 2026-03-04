@@ -3,15 +3,22 @@
 from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
-from starlette.responses import Response
 from sqlalchemy import func, or_
 from sqlalchemy.orm import Session, joinedload
+from starlette.responses import Response
 
 from assay.database import get_db
-from assay.models import Category, Package, PackageAgentReadiness, PackageInterface, PackagePricing, PackageRequirements
+from assay.models import (
+    Category,
+    Package,
+    PackageAgentReadiness,
+    PackageInterface,
+    PackagePricing,
+    PackageRequirements,
+)
 
+from .rate_limit import API_RATE_LIMIT, limiter
 from .schemas import (
-    AgentGuideResponse,
     CategoryItem,
     CategoryListResponse,
     CategoryPackagesResponse,
@@ -21,8 +28,6 @@ from .schemas import (
     ScoreDistribution,
     StatsResponse,
 )
-
-from .rate_limit import API_RATE_LIMIT, limiter
 
 router = APIRouter()
 
@@ -119,7 +124,9 @@ def list_packages(
 
 @router.get("/v1/packages/{package_id}", tags=["packages"])
 @limiter.limit(API_RATE_LIMIT)
-def get_package(request: Request, response: Response, package_id: str, db: Session = Depends(get_db)):
+def get_package(
+    request: Request, response: Response, package_id: str, db: Session = Depends(get_db),
+):
     q = db.query(Package).filter(Package.id == package_id)
     q = _apply_eager(q)
     pkg = q.first()
@@ -130,7 +137,9 @@ def get_package(request: Request, response: Response, package_id: str, db: Sessi
 
 @router.get("/v1/packages/{package_id}/agent-guide", tags=["packages"])
 @limiter.limit(API_RATE_LIMIT)
-def get_agent_guide(request: Request, response: Response, package_id: str, db: Session = Depends(get_db)):
+def get_agent_guide(
+    request: Request, response: Response, package_id: str, db: Session = Depends(get_db),
+):
     q = db.query(Package).filter(Package.id == package_id)
     q = _apply_eager(q)
     pkg = q.first()
@@ -159,10 +168,17 @@ def list_categories(request: Request, response: Response, db: Session = Depends(
     )
 
 
-@router.get("/v1/categories/{slug}/packages", response_model=CategoryPackagesResponse, tags=["categories"])
+@router.get(
+    "/v1/categories/{slug}/packages", response_model=CategoryPackagesResponse, tags=["categories"],
+)
 @limiter.limit(API_RATE_LIMIT)
-def get_category_packages(request: Request, response: Response, slug: str, db: Session = Depends(get_db)):
-    cat = db.query(Category).options(joinedload(Category.packages)).filter(Category.slug == slug).first()
+def get_category_packages(
+    request: Request, response: Response, slug: str, db: Session = Depends(get_db),
+):
+    cat = (
+        db.query(Category).options(joinedload(Category.packages))
+        .filter(Category.slug == slug).first()
+    )
     if not cat:
         raise HTTPException(status_code=404, detail=f"Category '{slug}' not found")
 
@@ -222,7 +238,9 @@ def get_evaluation_queue(
     response: Response,
     limit: int = Query(50, ge=1, le=200),
     include_stale: bool = Query(True, description="Include packages needing re-evaluation"),
-    package_type: str | None = Query(None, description="Filter by package type (mcp_server, skill)"),
+    package_type: str | None = Query(
+        None, description="Filter by package type (mcp_server, skill)",
+    ),
     priority: str | None = Query(None, description="Filter by priority (high, low)"),
     db: Session = Depends(get_db),
 ):
@@ -266,7 +284,9 @@ def get_evaluation_queue(
         remaining = limit - len(results)
         iq = (
             db.query(Package)
-            .join(PackageAgentReadiness, Package.id == PackageAgentReadiness.package_id, isouter=True)
+            .join(
+                PackageAgentReadiness, Package.id == PackageAgentReadiness.package_id, isouter=True,
+            )
             .filter(
                 Package.af_score.isnot(None),
                 or_(
