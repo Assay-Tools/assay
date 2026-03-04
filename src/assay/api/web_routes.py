@@ -262,9 +262,26 @@ def package_detail(request: Request, package_id: str, db: Session = Depends(get_
             status_code=404,
         )
 
+    # Compute staleness for template
+    now = datetime.now(timezone.utc)
+    is_stale = False
+    days_since_eval = None
+    if package.last_evaluated:
+        last = package.last_evaluated
+        if last.tzinfo is None:
+            last = last.replace(tzinfo=timezone.utc)
+        days_since_eval = (now - last).days
+        is_stale = days_since_eval > 90
+
     return templates.TemplateResponse(
         "pages/package_detail.html",
-        {"request": request, "package": package, "community_stats": _community_stats(db)},
+        {
+            "request": request,
+            "package": package,
+            "is_stale": is_stale,
+            "days_since_eval": days_since_eval,
+            "community_stats": _community_stats(db),
+        },
     )
 
 

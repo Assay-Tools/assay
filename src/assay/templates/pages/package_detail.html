@@ -1,6 +1,10 @@
 {% extends "base.html" %}
 {% block title %}{{ package.name }}{% endblock %}
 
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+{% endblock %}
+
 {% block content %}
 <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
 
@@ -15,9 +19,29 @@
     {# ── Header ── #}
     <div class="mb-10">
         <div class="mb-4">
-            <h1 class="text-3xl font-bold text-white mb-1">{{ package.name }}</h1>
+            <div class="flex items-start gap-3 mb-1">
+                <h1 class="text-3xl font-bold text-white">{{ package.name }}</h1>
+                {% if is_stale %}
+                <span class="inline-flex items-center gap-1 bg-amber-900/30 border border-amber-700/50 text-amber-400 text-xs font-medium px-2.5 py-1 rounded-full mt-1">
+                    &#9888; Stale — {{ days_since_eval }}d ago
+                </span>
+                {% endif %}
+            </div>
             {% if package.what_it_does %}
             <p class="text-gray-400 text-lg">{{ package.what_it_does }}</p>
+            {% endif %}
+
+            {# Evaluation date #}
+            {% if package.last_evaluated %}
+            <div class="mt-2 text-sm">
+                <span class="{% if is_stale %}text-amber-400{% elif days_since_eval is not none and days_since_eval > 60 %}text-yellow-500{% else %}text-gray-500{% endif %}">
+                    Evaluated {{ package.last_evaluated.strftime('%b %d, %Y') }}
+                    {% if days_since_eval is not none %}({{ days_since_eval }}d ago){% endif %}
+                </span>
+                {% if package.version_evaluated %}
+                <span class="text-gray-600 ml-2">v{{ package.version_evaluated }}</span>
+                {% endif %}
+            </div>
             {% endif %}
 
             {# Links & meta #}
@@ -133,6 +157,61 @@
             </div>
         </div>
     </section>
+    {% endif %}
+
+    {# ── Radar Chart ── #}
+    {% if package.af_score is not none or package.security_score is not none or package.reliability_score is not none %}
+    <section class="mb-10">
+        <div class="bg-surface-raised border border-gray-800 rounded-xl p-5 flex justify-center">
+            <div style="width: 280px; height: 280px;">
+                <canvas id="scoreRadar"></canvas>
+            </div>
+        </div>
+    </section>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        new Chart(document.getElementById('scoreRadar'), {
+            type: 'radar',
+            data: {
+                labels: ['Agent Friendliness', 'Security', 'Reliability'],
+                datasets: [{
+                    data: [
+                        {{ package.af_score if package.af_score is not none else 0 }},
+                        {{ package.security_score if package.security_score is not none else 0 }},
+                        {{ package.reliability_score if package.reliability_score is not none else 0 }}
+                    ],
+                    backgroundColor: 'rgba(99, 102, 241, 0.15)',
+                    borderColor: 'rgba(99, 102, 241, 0.8)',
+                    borderWidth: 2,
+                    pointBackgroundColor: 'rgba(99, 102, 241, 1)',
+                    pointRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: { legend: { display: false } },
+                scales: {
+                    r: {
+                        min: 0, max: 100,
+                        ticks: {
+                            stepSize: 20,
+                            color: '#6b7280',
+                            backdropColor: 'transparent',
+                            font: { size: 10 }
+                        },
+                        pointLabels: {
+                            color: '#9ca3af',
+                            font: { size: 11 }
+                        },
+                        grid: { color: 'rgba(75, 85, 99, 0.3)' },
+                        angleLines: { color: 'rgba(75, 85, 99, 0.3)' }
+                    }
+                }
+            }
+        });
+    });
+    </script>
     {% endif %}
 
     {# ── Best when / Avoid when ── #}
@@ -365,12 +444,6 @@
                class="text-accent hover:underline">API endpoint &nearr;</a>
             <a href="/api/v1/packages/{{ package.id }}/agent-guide"
                class="text-accent hover:underline">Agent guide &nearr;</a>
-            {% if package.version_evaluated %}
-            <span class="text-gray-600">Evaluated: v{{ package.version_evaluated }}</span>
-            {% endif %}
-            {% if package.last_evaluated %}
-            <span class="text-gray-600">Last evaluated: {{ package.last_evaluated.strftime('%Y-%m-%d') }}</span>
-            {% endif %}
         </div>
     </section>
 
