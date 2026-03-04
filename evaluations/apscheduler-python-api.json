@@ -1,27 +1,27 @@
 {
   "id": "apscheduler-python-api",
-  "name": "APScheduler",
+  "name": "apscheduler",
   "version_evaluated": "3.x",
   "homepage": "https://apscheduler.readthedocs.io/",
   "repo_url": "https://github.com/agronholm/apscheduler",
   "category": "developer-tools",
-  "subcategories": ["scheduling", "python", "cron", "automation", "background-tasks"],
-  "tags": ["python", "apscheduler", "scheduler", "cron", "interval", "background", "task-scheduling"],
-  "what_it_does": "In-process task scheduler for Python — schedule Python functions to run at specific times, intervals, or cron expressions. APScheduler features: BackgroundScheduler (runs in background thread), BlockingScheduler, AsyncIOScheduler, four trigger types (date, interval, cron, calendarinterval), job stores (memory, SQLAlchemy, MongoDB, Redis), executors (thread pool, process pool, asyncio, gevent), add_job()/remove_job()/pause_job(), misfire_grace_time for late execution, coalesce for missed jobs, scheduler.start()/shutdown(), and REST API for APScheduler 4.x. In-process alternative to cron for Python applications.",
+  "subcategories": ["scheduling", "python", "cron", "utilities"],
+  "tags": ["python", "apscheduler", "scheduler", "cron", "jobs", "interval", "periodic", "background"],
+  "what_it_does": "Advanced Python scheduler — runs jobs at specified times using cron expressions, fixed intervals, or one-time dates. APScheduler 3.x features: BackgroundScheduler (runs in background thread), BlockingScheduler (blocks main thread), AsyncIOScheduler (asyncio-based), cron trigger (CronTrigger), interval trigger (IntervalTrigger), date trigger (DateTrigger), job stores (in-memory, SQLAlchemy, MongoDB, Redis), executors (ThreadPoolExecutor, ProcessPoolExecutor, AsyncIOExecutor), job persistence across restarts, misfire handling, coalescing, max_instances, add_job()/remove_job()/get_jobs(), job events and listeners.",
   "use_cases": [
-    "Agent periodic task — from apscheduler.schedulers.background import BackgroundScheduler; scheduler = BackgroundScheduler(); scheduler.add_job(sync_agent_data, 'interval', minutes=5, id='data_sync'); scheduler.start() — run agent data sync every 5 minutes in background thread; no cron daemon needed; job runs inside Python process",
-    "Agent cron-based scheduling — scheduler.add_job(daily_report, 'cron', hour=8, minute=0, timezone='US/Eastern') — run daily report at 8 AM Eastern; agent scheduled reports with cron expression syntax; timezone-aware scheduling; cron trigger supports standard cron fields (second, minute, hour, day, month, day_of_week)",
-    "Agent one-time delayed execution — from datetime import datetime, timedelta; scheduler.add_job(send_followup, 'date', run_date=datetime.now() + timedelta(hours=24), args=[user_id]) — schedule callback 24 hours from now; agent follow-up reminders, delayed notifications; date trigger fires exactly once",
-    "Agent persistent job store — from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore; jobstores = {'default': SQLAlchemyJobStore(url='sqlite:///jobs.db')}; scheduler = BackgroundScheduler(jobstores=jobstores) — persist jobs across restarts; agent scheduled tasks survive process restart; SQLAlchemy store supports PostgreSQL, MySQL, SQLite",
-    "Agent async scheduling — from apscheduler.schedulers.asyncio import AsyncIOScheduler; scheduler = AsyncIOScheduler(); scheduler.add_job(async_agent_task, 'interval', seconds=30); scheduler.start() — async jobs run in existing asyncio event loop; agent FastAPI background tasks use AsyncIOScheduler; no separate thread pool needed for async jobs"
+    "Agent periodic task — from apscheduler.schedulers.background import BackgroundScheduler; scheduler = BackgroundScheduler(); scheduler.add_job(cleanup_expired, 'interval', hours=6); scheduler.add_job(generate_report, 'cron', hour=8, minute=0); scheduler.start() — background; agent runs cleanup every 6 hours and report at 8am; runs in background thread",
+    "Agent cron scheduling — from apscheduler.triggers.cron import CronTrigger; scheduler.add_job(send_digest, CronTrigger(day_of_week='mon-fri', hour=9, minute=0, timezone='US/Eastern')); scheduler.start() — cron; agent schedules task with cron expression and timezone; day_of_week, hour, minute, second, month, day parameters",
+    "Agent async scheduling — from apscheduler.schedulers.asyncio import AsyncIOScheduler; scheduler = AsyncIOScheduler(); @scheduler.scheduled_job('interval', seconds=30); async def async_task(): await fetch_and_process(); asyncio.get_event_loop().run_until_complete(main()) — async; agent schedules coroutines in asyncio event loop",
+    "Agent persistent jobs — from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore; jobstores = {'default': SQLAlchemyJobStore(url='sqlite:///jobs.db')}; scheduler = BackgroundScheduler(jobstores=jobstores); scheduler.add_job(fn, 'interval', minutes=30, id='my_job', replace_existing=True) — persistent; agent survives restarts with SQLite job store",
+    "Agent dynamic scheduling — job = scheduler.add_job(process_item, 'date', run_date=datetime.now() + timedelta(hours=1), args=[item_id]); scheduler.remove_job(job.id) if cancelled; scheduler.reschedule_job(job.id, trigger='interval', hours=2) — dynamic; agent schedules one-time or dynamic jobs programmatically"
   ],
   "not_for": [
-    "Distributed job scheduling — APScheduler is in-process; for distributed job queues across workers use Celery, RQ, or Dramatiq",
-    "High-volume job queues — APScheduler is for periodic/scheduled tasks not high-throughput job processing; for task queues use RQ or Celery",
-    "Production cron replacement — APScheduler requires Python process to be running; system cron (crontab) is more reliable for critical scheduled tasks"
+    "Distributed job scheduling — APScheduler is per-process; for distributed use Celery Beat or Airflow",
+    "High-frequency scheduling (sub-second) — APScheduler has overhead; for microsecond-level use asyncio.sleep loops",
+    "APScheduler 4.x breaking changes — APScheduler 4.x (beta) has completely new API; this evaluation covers stable 3.x"
   ],
-  "best_when": "Adding scheduled/periodic tasks to an existing Python application without external infrastructure — APScheduler runs inside your process and uses the same Python environment as your application.",
-  "avoid_when": "You need distributed scheduling across multiple workers (use Celery/RQ), high-throughput job queues, or critical tasks that must survive process restarts without external job store.",
+  "best_when": "In-process background scheduling for Python applications needing cron, interval, and one-time tasks without external infrastructure — APScheduler is the most complete in-process Python scheduler.",
+  "avoid_when": "Distributed scheduling (use Celery Beat), high-frequency sub-second tasks (use asyncio), or when external cron (system crontab) is simpler.",
   "alternatives": ["celery-python-api", "rq-python-api"],
   "interface": {
     "has_rest_api": false,
@@ -38,7 +38,7 @@
     "methods": ["none"],
     "oauth": false,
     "scopes": false,
-    "notes": "No auth for in-process scheduling. Job store backends (SQLAlchemy, Redis, MongoDB) use their own auth."
+    "notes": "No auth — in-process scheduler library."
   },
   "pricing": {
     "model": "open_source",
@@ -49,10 +49,10 @@
     "notes": "APScheduler is MIT licensed. Free for all use."
   },
   "performance": {
-    "latency_p50_ms": 10,
-    "latency_p99_ms": 100,
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
     "uptime_sla_percent": null,
-    "rate_limits": "No rate limits. Job firing latency: ~1-10ms. BackgroundScheduler uses thread pool — thread creation overhead for each job execution. AsyncIOScheduler has lower overhead for async jobs. Scheduler wakeup resolution: 1 second by default.",
+    "rate_limits": "No rate limits. Performance: minimal overhead for scheduling. Job execution: thread pool (default 10 threads). Cron/interval evaluation: O(1) per job per check. Memory: one thread per BackgroundScheduler. Persistent job store adds DB I/O.",
     "data_source": "llm_estimated"
   },
   "requirements": {
@@ -66,41 +66,41 @@
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
-    "documentation_accuracy": 80,
-    "error_message_quality": 75,
-    "error_message_notes": "SchedulerNotRunningError when adding jobs before scheduler.start(). ConflictingIdError when adding duplicate job ID. JobLookupError for missing job ID. Job exceptions logged but not propagated to caller by default. JobExecutionEvent.exception contains job exception if any. Error messages are clear for scheduler state issues.",
+    "documentation_accuracy": 85,
+    "error_message_quality": 80,
+    "error_message_notes": "apscheduler.jobstores.base.JobLookupError for missing job ID. ConflictingIdError for duplicate job ID without replace_existing. apscheduler.events for job execution events (EVENT_JOB_EXECUTED, EVENT_JOB_ERROR). Exceptions in jobs logged but do not crash scheduler.",
     "idempotency_support": "partial",
-    "idempotency_notes": "add_job() is not idempotent — calling twice creates duplicate jobs unless replace_existing=True. Job execution is as idempotent as the underlying function. Job stores persist jobs — adding same job after restart requires replace_existing=True.",
+    "idempotency_notes": "add_job() with id= and replace_existing=True is idempotent. Interval/cron triggers are stateless (next run computed from schedule). Persistent job stores survive restarts. misfire_grace_time controls late execution.",
     "pagination_style": "none",
     "retry_guidance_documented": false,
     "known_agent_gotchas": [
-      "Scheduler must be started before adding jobs with some stores — BackgroundScheduler() followed by add_job() then scheduler.start() works; some job store configurations require start() first; agent initialization order: create scheduler, start scheduler, add jobs; or use scheduler.add_job() with jobstore configured before start",
-      "Job exceptions are swallowed silently by default — if job function raises exception, APScheduler logs it but does not propagate; agent code needs explicit error handling: scheduler.add_listener(on_job_error, EVENT_JOB_ERROR) where on_job_error checks event.exception; otherwise agent jobs fail silently without alerting",
-      "coalesce=True loses missed executions — if scheduler misses 5 firings (process was down), coalesce=True runs job once on resume; coalesce=False runs it 5 times; agent daily reports: coalesce=True (run once when back); agent data sync: coalesce=False might be desired; default is coalesce=True — understand the behavior for your use case",
-      "AsyncIOScheduler must run in existing event loop — AsyncIOScheduler().start() must be called from running asyncio event loop; agent FastAPI startup: @app.on_event('startup') async def startup(): scheduler.start(); adding scheduler.start() outside async context raises RuntimeError; BlockingScheduler and BackgroundScheduler do not have this constraint",
-      "replace_existing=False is default — scheduler.add_job(fn, id='my_job') called twice raises ConflictingIdError; agent restart code must use: scheduler.add_job(fn, id='my_job', replace_existing=True); or check scheduler.get_job('my_job') before adding; persisted job stores from previous run conflict with new add_job calls on startup",
-      "BackgroundScheduler thread dies silently on exception in scheduler thread — if APScheduler internal thread raises unhandled exception, background scheduling stops silently; agent must add: scheduler.add_listener(on_scheduler_error, EVENT_SCHEDULER_STARTED | EVENT_SCHEDULER_SHUTDOWN) to detect scheduler thread death; production agents need health check that verifies scheduler is still firing"
+      "Scheduler must be started and shutdown — scheduler.start() launches background thread; scheduler.shutdown() cleans up; missing shutdown: daemon thread may prevent clean exit; agent code: use try/finally or atexit: import atexit; atexit.register(lambda: scheduler.shutdown()); or use as context manager (APScheduler 4.x only)",
+      "Job exceptions don't crash scheduler — if job function raises, APScheduler logs the exception but continues running; agent code: add event listener to detect failures: scheduler.add_listener(job_error_handler, EVENT_JOB_ERROR); job_error_handler receives JobExecutionEvent with exception; use for alerting or retry logic",
+      "max_instances prevents concurrent runs — add_job(fn, 'interval', minutes=5, max_instances=1) prevents overlap if job takes >5 min; default max_instances=1; increasing allows concurrent runs; agent code: set max_instances=1 for jobs that should not overlap; coalesce=True collapses missed runs into one",
+      "Timezone handling critical for cron — scheduler = BackgroundScheduler(timezone='US/Eastern') or per-job; without timezone: uses local machine timezone; CronTrigger without timezone: ambiguous on DST transitions; agent code: always specify timezone explicitly for cron jobs: CronTrigger(hour=9, timezone='UTC'); use UTC for predictability",
+      "In-memory job store loses jobs on restart — default MemoryJobStore loses all jobs if process restarts; agent code needing persistence: use SQLAlchemyJobStore('sqlite:///jobs.db') or RedisJobStore; replace_existing=True with explicit job IDs for idempotent job registration at startup",
+      "BackgroundScheduler vs AsyncIOScheduler — BackgroundScheduler: thread-based, works anywhere, can run sync functions; AsyncIOScheduler: coroutine-based, must be in asyncio event loop, for async functions; agent FastAPI: use AsyncIOScheduler and start in lifespan startup; agent scripts: use BackgroundScheduler; mixing async jobs in BackgroundScheduler requires AsyncIOExecutor"
     ]
   },
   "af_score_components": {
     "mcp_score": 0,
-    "api_doc_score": 78,
-    "error_handling_score": 72,
-    "auth_complexity_score": 95,
-    "rate_limit_clarity_score": 98
+    "api_doc_score": 85,
+    "error_handling_score": 80,
+    "auth_complexity_score": 99,
+    "rate_limit_clarity_score": 99
   },
   "security_score_components": {
-    "tls_enforcement": 85,
-    "auth_strength": 82,
-    "scope_granularity": 80,
-    "dependency_hygiene": 82,
-    "secret_handling": 85,
-    "security_notes": "In-process scheduler with no auth. Job functions execute with process permissions — privilege escalation via scheduled job is a concern if job functions are user-configurable. Job stores (SQLAlchemy, Redis) should use encrypted connections and proper auth. Job arguments stored in job store — avoid storing secrets in job args; use environment variables or secret manager references instead."
+    "tls_enforcement": 90,
+    "auth_strength": 90,
+    "scope_granularity": 88,
+    "dependency_hygiene": 88,
+    "secret_handling": 88,
+    "security_notes": "In-process scheduler. Jobs run with process privileges — validate job function inputs. Persistent job store (SQL/Redis) for job definitions — secure access. Dynamic job scheduling from user input: validate job parameters to prevent resource abuse. Log job exceptions for security anomaly detection."
   },
   "reliability_score_components": {
-    "uptime_documented": 78,
-    "version_stability": 78,
-    "breaking_changes_history": 72,
-    "error_recovery": 75
+    "uptime_documented": 82,
+    "version_stability": 80,
+    "breaking_changes_history": 75,
+    "error_recovery": 82
   }
 }

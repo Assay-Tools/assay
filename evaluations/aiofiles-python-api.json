@@ -1,0 +1,106 @@
+{
+  "id": "aiofiles-python-api",
+  "name": "aiofiles",
+  "version_evaluated": "23.x",
+  "homepage": "https://github.com/Tinche/aiofiles",
+  "repo_url": "https://github.com/Tinche/aiofiles",
+  "category": "developer-tools",
+  "subcategories": ["async", "file-io", "python", "utilities"],
+  "tags": ["python", "aiofiles", "async", "file", "io", "asyncio", "read", "write"],
+  "what_it_does": "Async file operations for asyncio Python — provides async equivalents of open(), read(), write(), readline() that run file I/O in a thread pool without blocking the event loop. aiofiles features: aiofiles.open() async context manager with same interface as builtin open(), async read()/write()/readline()/readlines(), async iteration (async for line in file:), text and binary modes, tempfile support via aiofiles.tempfile, and os module equivalents (aiofiles.os.rename/remove/mkdir/stat/listdir).",
+  "use_cases": [
+    "Agent async file read — import aiofiles; async def load_config(): async with aiofiles.open('config.json', 'r') as f: content = await f.read(); return json.loads(content) — async read; agent reads file without blocking asyncio event loop; critical in FastAPI/asyncio context where blocking I/O stalls all requests",
+    "Agent async file write — async def save_result(data, path): async with aiofiles.open(path, 'w') as f: await f.write(json.dumps(data, indent=2)) — async write; agent writes results to file asynchronously; file flush/close handled by context manager exit",
+    "Agent line-by-line processing — async with aiofiles.open('large.csv', 'r') as f: async for line in f: await process_line(line.strip()) — streaming; agent processes large files line by line without memory accumulation; async for on aiofiles file object; same interface as sync iteration",
+    "Agent binary file handling — async with aiofiles.open('image.png', 'rb') as f: image_bytes = await f.read(); await upload(image_bytes); async with aiofiles.open('output.pdf', 'wb') as f: await f.write(pdf_bytes) — binary; agent reads/writes binary files in async context",
+    "Agent async os operations — import aiofiles.os; await aiofiles.os.rename('temp.txt', 'final.txt'); await aiofiles.os.makedirs('output/subdir', exist_ok=True); stat = await aiofiles.os.stat('file.txt'); files = await aiofiles.os.listdir('.') — async os; agent performs file system operations without blocking event loop"
+  ],
+  "not_for": [
+    "Synchronous code — aiofiles requires async/await; for sync file I/O use builtin open()",
+    "High-performance file I/O — aiofiles uses thread pool delegation; for true async file I/O use io_uring (Linux) via dedicated library",
+    "Network file systems — aiofiles thread pool works but NFS/SMB latency still blocks threads; set appropriate thread pool size"
+  ],
+  "best_when": "FastAPI, Starlette, or asyncio applications needing file I/O without blocking the event loop — aiofiles is the standard solution for async file operations in Python.",
+  "avoid_when": "Synchronous code (use builtin open()), high-performance file I/O needing true async kernel support, or when file operations are truly negligible.",
+  "alternatives": [],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — file I/O library."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, Apache 2.0 licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "aiofiles is Apache 2.0 licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Performance: thread pool delegation adds ~0.1-0.5ms overhead vs sync. Does not block event loop — critical benefit. Thread pool: asyncio default thread pool (ThreadPoolExecutor). High-frequency small reads: batching recommended.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 80,
+    "error_message_notes": "Same exceptions as builtin open(): FileNotFoundError, PermissionError, IsADirectoryError. Exceptions raised as async exceptions (await raises). No aiofiles-specific exceptions — transparent wrapper.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Read operations are idempotent. Write operations depend on mode ('w' overwrites, 'a' appends). aiofiles.os operations follow same semantics as os module.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Must await all file operations — async with aiofiles.open('f', 'r') as f: content = f.read() — WRONG missing await; must be: content = await f.read(); all file operations (read, write, readline, flush, seek) must be awaited; forgetting await returns coroutine object not data",
+      "Context manager required for proper close — async with aiofiles.open('file', 'w') as f: await f.write(data) — context manager handles close on exit; without context manager: f = await aiofiles.open(...); try: ... finally: await f.close() — explicit close required; unclosed file: ResourceWarning",
+      "seek() and tell() are available but less common — await f.seek(0) to reset position; await f.tell() for current position; used for reading file multiple times or random access; agent code reading entire file: use read() without seek; for streaming: sequential reads without seek",
+      "async for line in file works — async with aiofiles.open('f', 'r') as f: async for line in f: process(line) — async iteration works; line includes trailing newline; use line.rstrip('\\n') or line.strip(); readlines() returns list; readline() returns one line including newline",
+      "aiofiles.os vs os — aiofiles.os.rename() returns coroutine (must await); os.rename() is synchronous (do not call from async context without thread pool); agent code: replace os.* calls with await aiofiles.os.* in async functions; not all os functions have async equivalents — check docs; stat/remove/rename/makedirs/listdir available",
+      "Thread pool size limits concurrent file ops — aiofiles uses asyncio thread pool (default: min(32, os.cpu_count()+4) threads); many concurrent file operations may exhaust thread pool; agent code with many parallel file ops: limit concurrency: asyncio.Semaphore(10) for max 10 concurrent opens; or increase thread pool via loop.set_default_executor()"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 80,
+    "auth_complexity_score": 99,
+    "rate_limit_clarity_score": 99
+  },
+  "security_score_components": {
+    "tls_enforcement": 90,
+    "auth_strength": 90,
+    "scope_granularity": 88,
+    "dependency_hygiene": 92,
+    "secret_handling": 88,
+    "security_notes": "File I/O library. Validate file paths to prevent directory traversal: Path(base_dir) / user_path; resolve() + is_relative_to(base_dir). File permissions: same as builtin open(). Do not write secrets to unprotected files."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 85,
+    "version_stability": 88,
+    "breaking_changes_history": 85,
+    "error_recovery": 85
+  }
+}
