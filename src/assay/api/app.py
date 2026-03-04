@@ -6,9 +6,12 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 
 from assay.database import init_db
 
+from .rate_limit import limiter
 from .routes import router
 from .web_routes import router as web_router
 
@@ -17,6 +20,10 @@ app = FastAPI(
     description="The quality layer for agentic software — package agent-friendliness ratings",
     version="0.1.0",
 )
+
+# Attach rate limiter to app state (required by slowapi)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # CORS — allow all origins for MVP
 app.add_middleware(

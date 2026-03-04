@@ -6,7 +6,7 @@ from pathlib import Path
 from urllib.parse import urlencode
 
 from fastapi import APIRouter, Depends, Query, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, PlainTextResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import func, or_
 from sqlalchemy.orm import Session, joinedload
@@ -517,3 +517,120 @@ def about(request: Request, db: Session = Depends(get_db)):
         "pages/about.html",
         {"request": request, "stats": stats, "community_stats": _community_stats(db)},
     )
+
+
+# ── llms.txt ───────────────────────────────────────────────────────────────
+
+LLMS_TXT = """\
+# Assay
+
+> Assay is the quality layer for agentic software. It rates MCP servers, APIs, \
+and SDKs across agent friendliness, security, and reliability — so agents and \
+developers can choose the right tools.
+
+Assay evaluates packages on three dimensions (each 0-100):
+- **Agent Friendliness (AF)** — MCP quality, docs, error messages, auth simplicity, rate limit clarity
+- **Security** — TLS, auth strength, scope granularity, dependency hygiene, secret handling
+- **Reliability** — uptime, version stability, breaking changes, error recovery
+
+## API
+
+- [Package list](/api/v1/packages): Browse and filter evaluated packages. Supports category, type, score, MCP, and free-tier filters.
+- [Package detail](/api/v1/packages/{package_id}): Full evaluation data for a single package.
+- [Agent guide](/api/v1/packages/{package_id}/agent-guide): Condensed agent-optimized view with scores, gotchas, and auth info.
+- [Categories](/api/v1/categories): List all categories with package counts.
+- [Category packages](/api/v1/categories/{slug}/packages): Packages in a category, ranked by AF score.
+- [Compare](/api/v1/compare?ids=a,b,c): Side-by-side comparison of up to 10 packages.
+- [Stats](/api/v1/stats): Sitewide statistics and score distribution.
+- [Evaluation queue](/api/v1/queue): Packages needing evaluation or re-evaluation.
+- [Health](/api/v1/health): Health check endpoint.
+
+## Website
+
+- [Homepage](https://assay.tools/): Browse top-rated packages and categories.
+- [All packages](https://assay.tools/packages): Search and filter the full directory.
+- [Categories](https://assay.tools/categories): Browse by category.
+- [Compare](https://assay.tools/compare): Side-by-side package comparison.
+- [Contribute](https://assay.tools/contribute): See the evaluation queue and help rate packages.
+- [About](https://assay.tools/about): Scoring methodology and coverage stats.
+
+## Optional
+
+- [OpenAPI spec](/openapi.json): Full API schema in OpenAPI 3.1 format.
+- [MCP server](https://github.com/Assay-Tools/assay): Assay's own MCP server for native agent integration.
+"""
+
+LLMS_FULL_TXT_EXTRA = """
+## Scoring Details
+
+### Agent Friendliness (AF) Sub-Components
+| Component | Weight | What It Measures |
+|-----------|--------|-----------------|
+| MCP Server Quality | 25% | Existence, maturity, documentation of MCP server |
+| Documentation Accuracy | 30% | API docs quality, examples, completeness |
+| Error Message Quality | 15% | Structured errors with codes and recovery guidance |
+| Auth Complexity | 15% | How easy to authenticate programmatically (100 = simple) |
+| Rate Limit Clarity | 15% | Clear docs + response headers for rate limits |
+
+### Security Sub-Components
+| Component | Weight | What It Measures |
+|-----------|--------|-----------------|
+| TLS Enforcement | 25% | HTTPS required for all communication |
+| Auth Strength | 25% | Mechanism strength (API keys, OAuth2, etc.) |
+| Scope Granularity | 20% | Fine-grained permission controls |
+| Dependency Hygiene | 15% | Clean dependencies, no known CVEs |
+| Secret Handling | 15% | Credentials via env vars/vault, never in logs |
+
+### Reliability Sub-Components
+| Component | Weight | What It Measures |
+|-----------|--------|-----------------|
+| Uptime (Documented) | 30% | Published SLA, status page, uptime history |
+| Version Stability | 25% | Stable releases, semver adherence |
+| Breaking Changes | 25% | History of breaking changes, migration guides |
+| Error Recovery | 20% | Retry guidance, idempotent operations |
+
+### Score Thresholds
+- 80+ Excellent (green)
+- 60-79 Good (yellow)
+- Below 60 Needs Work (red)
+
+## API Usage Examples
+
+Search for MCP servers with high AF scores:
+```
+GET /api/v1/packages?has_mcp=true&min_af_score=70&sort=af_score:desc
+```
+
+Get agent-optimized guide for a package:
+```
+GET /api/v1/packages/stripe/agent-guide
+```
+
+Compare alternatives:
+```
+GET /api/v1/compare?ids=resend,sendgrid,postmark
+```
+
+Filter by category:
+```
+GET /api/v1/packages?category=ai-ml&sort=af_score:desc
+```
+
+## Categories
+
+The directory covers 16 categories: developer-tools, databases, ai-ml, communication, \
+file-management, cloud-infrastructure, search, monitoring, productivity, security, \
+finance, content-management, data-processing, social-media, agent-skills, and other.
+"""
+
+
+@router.get("/llms.txt", response_class=PlainTextResponse)
+def llms_txt():
+    """Machine-readable site description for LLMs (llms.txt spec)."""
+    return LLMS_TXT
+
+
+@router.get("/llms-full.txt", response_class=PlainTextResponse)
+def llms_full_txt():
+    """Extended llms.txt with scoring methodology and API usage examples."""
+    return LLMS_TXT + LLMS_FULL_TXT_EXTRA

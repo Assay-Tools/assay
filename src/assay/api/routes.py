@@ -2,7 +2,8 @@
 
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from starlette.responses import Response
 from sqlalchemy import func, or_
 from sqlalchemy.orm import Session, joinedload
 
@@ -20,6 +21,8 @@ from .schemas import (
     ScoreDistribution,
     StatsResponse,
 )
+
+from .rate_limit import API_RATE_LIMIT, limiter
 
 router = APIRouter()
 
@@ -55,7 +58,10 @@ def health():
 
 
 @router.get("/v1/packages", response_model=PackageListResponse, tags=["packages"])
+@limiter.limit(API_RATE_LIMIT)
 def list_packages(
+    request: Request,
+    response: Response,
     category: str | None = Query(None, description="Filter by category slug"),
     has_mcp: bool | None = Query(None, description="Filter packages with MCP server"),
     free_tier: bool | None = Query(None, description="Filter packages with a free tier"),
@@ -112,7 +118,8 @@ def list_packages(
 
 
 @router.get("/v1/packages/{package_id}", tags=["packages"])
-def get_package(package_id: str, db: Session = Depends(get_db)):
+@limiter.limit(API_RATE_LIMIT)
+def get_package(request: Request, response: Response, package_id: str, db: Session = Depends(get_db)):
     q = db.query(Package).filter(Package.id == package_id)
     q = _apply_eager(q)
     pkg = q.first()
@@ -122,7 +129,8 @@ def get_package(package_id: str, db: Session = Depends(get_db)):
 
 
 @router.get("/v1/packages/{package_id}/agent-guide", tags=["packages"])
-def get_agent_guide(package_id: str, db: Session = Depends(get_db)):
+@limiter.limit(API_RATE_LIMIT)
+def get_agent_guide(request: Request, response: Response, package_id: str, db: Session = Depends(get_db)):
     q = db.query(Package).filter(Package.id == package_id)
     q = _apply_eager(q)
     pkg = q.first()
@@ -135,7 +143,8 @@ def get_agent_guide(package_id: str, db: Session = Depends(get_db)):
 
 
 @router.get("/v1/categories", response_model=CategoryListResponse, tags=["categories"])
-def list_categories(db: Session = Depends(get_db)):
+@limiter.limit(API_RATE_LIMIT)
+def list_categories(request: Request, response: Response, db: Session = Depends(get_db)):
     cats = db.query(Category).options(joinedload(Category.packages)).all()
     return CategoryListResponse(
         categories=[
@@ -151,7 +160,8 @@ def list_categories(db: Session = Depends(get_db)):
 
 
 @router.get("/v1/categories/{slug}/packages", response_model=CategoryPackagesResponse, tags=["categories"])
-def get_category_packages(slug: str, db: Session = Depends(get_db)):
+@limiter.limit(API_RATE_LIMIT)
+def get_category_packages(request: Request, response: Response, slug: str, db: Session = Depends(get_db)):
     cat = db.query(Category).options(joinedload(Category.packages)).filter(Category.slug == slug).first()
     if not cat:
         raise HTTPException(status_code=404, detail=f"Category '{slug}' not found")
@@ -176,7 +186,10 @@ def get_category_packages(slug: str, db: Session = Depends(get_db)):
 
 
 @router.get("/v1/compare", response_model=CompareResponse, tags=["compare"])
+@limiter.limit(API_RATE_LIMIT)
 def compare_packages(
+    request: Request,
+    response: Response,
     ids: str = Query(..., description="Comma-separated package IDs"),
     db: Session = Depends(get_db),
 ):
@@ -203,7 +216,10 @@ def compare_packages(
 
 
 @router.get("/v1/queue", tags=["contribute"])
+@limiter.limit(API_RATE_LIMIT)
 def get_evaluation_queue(
+    request: Request,
+    response: Response,
     limit: int = Query(50, ge=1, le=200),
     include_stale: bool = Query(True, description="Include packages needing re-evaluation"),
     package_type: str | None = Query(None, description="Filter by package type (mcp_server, skill)"),
@@ -328,7 +344,8 @@ def get_evaluation_queue(
 
 
 @router.get("/v1/stats", response_model=StatsResponse, tags=["stats"])
-def get_stats(db: Session = Depends(get_db)):
+@limiter.limit(API_RATE_LIMIT)
+def get_stats(request: Request, response: Response, db: Session = Depends(get_db)):
     total_packages = db.query(func.count(Package.id)).scalar() or 0
     total_evaluated = (
         db.query(func.count(Package.id))
