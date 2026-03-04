@@ -1,0 +1,106 @@
+{
+  "id": "flask-python-api",
+  "name": "flask",
+  "version_evaluated": "3.x",
+  "homepage": "https://flask.palletsprojects.com/",
+  "repo_url": "https://github.com/pallets/flask",
+  "category": "developer-tools",
+  "subcategories": ["web-framework", "python", "api", "wsgi"],
+  "tags": ["python", "flask", "web", "wsgi", "api", "microframework", "jinja2", "blueprints"],
+  "what_it_does": "Lightweight WSGI web framework for Python — micro-framework with minimal dependencies, Jinja2 templates, and extensible plugin ecosystem. Flask 3.x features: @app.route() decorators, request/response objects, Blueprint for modularity, application factory pattern (create_app()), g for request context, session for cookies, before_request/after_request hooks, error handlers (@app.errorhandler), url_for() for URL building, jsonify() for JSON responses, Flask-SQLAlchemy/Flask-Login/Flask-WTF extensions ecosystem, flask.testing.Client for testing, and config management. WSGI-based (synchronous by default).",
+  "use_cases": [
+    "Agent web API — from flask import Flask, jsonify, request; app = Flask(__name__); @app.route('/api/items', methods=['GET']); def list_items(): items = db.get_items(); return jsonify({'items': items}); @app.route('/api/items', methods=['POST']); def create_item(): data = request.get_json(); return jsonify(db.create(data)), 201 — REST API; agent builds REST API with Flask",
+    "Agent HTML web app — from flask import Flask, render_template, request, redirect, url_for; app = Flask(__name__); @app.route('/'); def index(): return render_template('index.html', items=get_items()); @app.route('/submit', methods=['POST']); def submit(): process(request.form); return redirect(url_for('index')) — HTML app; agent builds server-rendered web app with Jinja2",
+    "Agent application factory — def create_app(config=None): app = Flask(__name__); app.config.from_object(config or Config); db.init_app(app); login.init_app(app); from .routes import api_bp; app.register_blueprint(api_bp, url_prefix='/api'); return app — factory pattern; agent creates testable, configurable Flask apps",
+    "Agent webhook receiver — @app.route('/webhook', methods=['POST']); def webhook(): payload = request.get_json(); signature = request.headers.get('X-Signature'); verify_signature(payload, signature, secret); process_webhook(payload); return '', 200 — webhook; agent receives and validates incoming webhooks with HMAC verification",
+    "Agent testing — with app.test_client() as client: resp = client.post('/api/items', json={'name': 'test'}); assert resp.status_code == 201; data = resp.get_json(); assert data['name'] == 'test' — testing; agent tests Flask routes with built-in test client"
+  ],
+  "not_for": [
+    "High-performance async APIs — Flask is WSGI (sync); for async use FastAPI or Flask 2.x async routes with async server",
+    "Large data validation — Flask has no built-in validation; use marshmallow or pydantic integration; FastAPI has this built-in",
+    "Real-time features — Flask has no WebSocket support; use flask-socketio extension or switch to FastAPI/Starlette"
+  ],
+  "best_when": "Traditional web apps with server-side rendering, simple REST APIs, and when the Flask ecosystem (Flask-Login, Flask-Admin, etc.) is needed — Flask's simplicity and extension ecosystem are unmatched.",
+  "avoid_when": "High-performance async APIs (use FastAPI), complex type validation (use FastAPI), WebSockets (use FastAPI/Starlette), or when batteries-included (use Django).",
+  "alternatives": ["fastapi-python-api", "django-python-api", "starlette-python-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No built-in auth. Flask-Login for session-based auth. Flask-JWT-Extended for JWT. Flask-OAuthlib for OAuth."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, BSD licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Flask is BSD 3-Clause licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits (application framework). Performance: WSGI synchronous — each request blocks thread. Gunicorn workers for concurrency: 4-16 workers typical. Do not use Flask dev server (app.run()) in production. Use gunicorn -w 4 myapp:app. Async routes (Flask 2.x with asyncio): requires ASGI mode.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted", "cloud"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 92,
+    "error_message_quality": 85,
+    "error_message_notes": "HTTPException with code and description. abort(404) raises HTTPException. @app.errorhandler(404) for custom error pages. request.get_json(force=True, silent=True) for safe JSON parsing. Returns HTTP 500 with traceback in debug mode.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "GET routes should be idempotent. POST/PUT idempotency depends on implementation. Flask is stateless per request (session via cookies). g object is request-scoped.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Never run Flask dev server in production — app.run() starts single-threaded dev server with debug=True by default; production: gunicorn -w 4 -b 0.0.0.0:8080 myapp:create_app(); or uWSGI; agent Dockerfile: CMD gunicorn myapp:create_app() --workers 4 --bind 0.0.0.0:8080; app.run(debug=True) is ONLY for development",
+      "Application context required outside requests — Flask g, current_app, request only available in request context; running background tasks or CLI commands: use app.app_context(): with app.app_context(): db.session.query(...); agent code outside request: push app context manually or use Flask-Script/Click CLI integration",
+      "request.get_json() returns None on bad JSON — request.get_json() returns None if Content-Type is not application/json or JSON invalid; agent code: data = request.get_json(); if data is None: abort(400, 'Invalid JSON'); or: request.get_json(force=True, silent=True) to ignore content-type and swallow errors",
+      "Blueprint prefix applied to all routes — app.register_blueprint(bp, url_prefix='/api/v1') prepends to all Blueprint routes; @bp.route('/items') becomes /api/v1/items; agent code: use url_for('blueprint_name.endpoint_name') for URL building with blueprints; url_for('items.list') not url_for('list')",
+      "SECRET_KEY required for sessions — Flask sessions are cookie-based signed with SECRET_KEY; without SECRET_KEY: RuntimeError; agent code: app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', os.urandom(32)); never hardcode SECRET_KEY; rotate SECRET_KEY = invalidates all existing sessions",
+      "CSRF protection not built-in — Flask has no CSRF protection by default; add Flask-WTF: from flask_wtf.csrf import CSRFProtect; csrf = CSRFProtect(app); agent code for forms: use Flask-WTF; for REST APIs (JWT auth): CSRF less relevant but still protect sensitive endpoints; validate Origin header"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 92,
+    "error_handling_score": 85,
+    "auth_complexity_score": 85,
+    "rate_limit_clarity_score": 92
+  },
+  "security_score_components": {
+    "tls_enforcement": 85,
+    "auth_strength": 80,
+    "scope_granularity": 80,
+    "dependency_hygiene": 88,
+    "secret_handling": 82,
+    "security_notes": "Web framework. HTTPS via reverse proxy. SECRET_KEY in environment variables. Add Flask-Talisman for security headers (HSTS, CSP). CSRF protection via Flask-WTF. SQL injection via ORM or parameterized queries. Sanitize all user input. Debug mode exposes sensitive info — disable in production."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 90,
+    "version_stability": 88,
+    "breaking_changes_history": 85,
+    "error_recovery": 85
+  }
+}
