@@ -46,7 +46,7 @@ Items ready to be claimed. Roughly priority-ordered.
 
 ### Testing & Quality
 - [x] ~~**Test suite** — moved to Completed~~
-- [ ] **CI/CD pipeline** — GitHub Actions for lint + test on push
+- [x] ~~**CI/CD pipeline** — moved to Completed~~
 - [ ] **Linting pass** — Run ruff, fix violations
 
 ### Website Polish
@@ -63,7 +63,7 @@ Items ready to be claimed. Roughly priority-ordered.
 
 *Check `.claude/active/` for details on each.*
 
-(none currently)
+- **CI/CD pipeline** — pending push (needs `gh auth refresh -s workflow`)
 
 ---
 
@@ -76,3 +76,4 @@ Items ready to be claimed. Roughly priority-ordered.
 - [x] **SSL fix** — Railway cert provisioning via Cloudflare TXT record (2026-03-04)
 - [x] **llms.txt + rate limiting** — `/llms.txt`, `/llms-full.txt` routes + slowapi 100/day on all `/v1/*` endpoints (2026-03-04)
 - [x] **Test suite** — 49 pytest tests covering models, API routes (packages, categories, compare, stats, queue) (2026-03-04)
+- [x] **CI/CD pipeline** — GitHub Actions lint (ruff) + test (pytest) on push/PR, CI badge in README (2026-03-04)

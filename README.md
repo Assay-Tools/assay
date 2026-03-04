@@ -1,5 +1,7 @@
 # Assay
 
+[![CI](https://github.com/Assay-Tools/assay/actions/workflows/ci.yml/badge.svg)](https://github.com/Assay-Tools/assay/actions/workflows/ci.yml)
+
 **The quality layer for agentic software.**
 
 Independent agent-friendliness ratings for MCP servers, APIs, and SDKs. Assay scores packages on documentation accuracy, error quality, security posture, and more — so agents (and developers) can pick the right tool for the job.
