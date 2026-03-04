@@ -1,28 +1,28 @@
 {
   "id": "tenacity-python-api",
-  "name": "Tenacity",
+  "name": "tenacity",
   "version_evaluated": "8.x",
-  "homepage": "https://tenacity.readthedocs.io",
+  "homepage": "https://tenacity.readthedocs.io/",
   "repo_url": "https://github.com/jd/tenacity",
   "category": "developer-tools",
-  "subcategories": ["reliability", "retry", "python"],
-  "tags": ["python", "retry", "backoff", "resilience", "decorator", "async", "open-source"],
-  "what_it_does": "Python retry library with a simple decorator API. Tenacity provides @retry decorator with configurable retry conditions, stop strategies (max attempts, time limit), wait strategies (fixed, exponential backoff, random jitter), and callbacks (before, after, retry). Works with both sync and async functions. The standard retry library for Python — successor to retrying package.",
+  "subcategories": ["utilities", "python", "retry", "resilience"],
+  "tags": ["python", "tenacity", "retry", "backoff", "resilience", "decorators", "async"],
+  "what_it_does": "Retrying library for Python — provides @retry decorator and Retrying context manager with configurable retry strategies, wait policies, stop conditions, and async support. tenacity features: @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=1, max=60), retry=retry_if_exception_type(RequestException)), stop strategies (stop_after_attempt, stop_after_delay, stop_never), wait strategies (wait_fixed, wait_exponential, wait_random, wait_chain, wait_none), retry conditions (retry_if_exception_type, retry_if_result, retry_if_not_result), before/after/before_sleep callbacks, reraise=True option, AsyncRetrying for async, and statistics tracking.",
   "use_cases": [
-    "Add exponential backoff retry logic to API calls that may fail transiently (rate limits, network errors)",
-    "Retry database operations on connection failures with configurable max attempts and backoff",
-    "Use retry_if_exception_type to only retry on specific exception types (not programming errors)",
-    "Add before/after retry callbacks for logging and monitoring retry attempts",
-    "Use with async functions and asyncio with @retry decorator that handles coroutines"
+    "Agent API retry — from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type; @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=30), retry=retry_if_exception_type(requests.RequestException)); def fetch_api(url): return requests.get(url).json() — exponential backoff; agent retries transient failures with backoff",
+    "Agent retry with logging — @retry(stop=stop_after_attempt(5), wait=wait_exponential(min=1, max=10), before_sleep=before_sleep_log(logger, logging.WARNING)); def call_service(): return service.call() — callback; agent logs each retry attempt; before_sleep= called before sleeping; after= called after each attempt; statistics tracked in function.retry.statistics",
+    "Agent async retry — from tenacity import AsyncRetrying, stop_after_attempt, wait_fixed; async with AsyncRetrying(stop=stop_after_attempt(3), wait=wait_fixed(2)) as r: async for attempt in r: with attempt: result = await async_operation() — async context; agent retries async operations; AsyncRetrying context manager for fine-grained control",
+    "Agent retry on result — @retry(retry=retry_if_result(lambda r: r.get('status') == 'pending'), stop=stop_after_attempt(10), wait=wait_fixed(5)); def poll_job(job_id): return api.get_job_status(job_id) — result-based retry; agent polls until operation completes or max retries exceeded; retry_if_result checks return value",
+    "Agent conditional retry — @retry(stop=stop_after_attempt(3), retry=retry_if_exception_type((ConnectionError, TimeoutError)), reraise=True); def connect(): return create_connection() — selective retry; agent retries only specific exception types; reraise=True re-raises last exception after all retries exhausted (instead of tenacity.RetryError)"
   ],
   "not_for": [
-    "Distributed circuit breaking — use circuit breaker patterns (tenacity has some but not full circuit breaker)",
-    "Retry with complex state (retry different endpoints, fallback logic) — build custom retry logic for complex cases",
-    "Batch/queue-based retry — use Celery's retry mechanism for task-based retry patterns"
+    "Circuit breaker pattern — tenacity is retry-only; for circuit breaker (stop retrying after sustained failures) use pybreaker or custom logic",
+    "Rate limiting — tenacity retries on failure; for rate limit compliance use ratelimit or per-request delay",
+    "Async retry with complex flow — for complex async retry with cancel support use anyio or custom async retry logic"
   ],
-  "best_when": "You need simple, configurable retry logic for API calls or unreliable operations with exponential backoff in Python.",
-  "avoid_when": "You need full circuit breaking, fallback URLs, or complex multi-step retry orchestration.",
-  "alternatives": [],
+  "best_when": "Retrying transient failures in API calls, database operations, and network requests — tenacity is the most feature-complete retry library with excellent async support and composable strategies.",
+  "avoid_when": "Circuit breaker patterns (use pybreaker), rate limiting compliance (use ratelimit), or when backoff library's simpler API suffices.",
+  "alternatives": ["backoff-python-api"],
   "interface": {
     "has_rest_api": false,
     "has_graphql": false,
@@ -38,21 +38,21 @@
     "methods": ["none"],
     "oauth": false,
     "scopes": false,
-    "notes": "Library with no auth requirement."
+    "notes": "No auth — retry utility library."
   },
   "pricing": {
     "model": "open_source",
     "free_tier_exists": true,
-    "free_tier_limits": "Apache 2.0 licensed, completely free",
+    "free_tier_limits": "Completely free, Apache 2.0 licensed",
     "paid_tiers": "None",
     "requires_credit_card": false,
-    "notes": "Free and open source."
+    "notes": "tenacity is Apache 2.0 licensed. Free for all use."
   },
   "performance": {
     "latency_p50_ms": null,
     "latency_p99_ms": null,
     "uptime_sla_percent": null,
-    "rate_limits": "No rate limits — local library",
+    "rate_limits": "No rate limits. Performance: decorator overhead: negligible (<0.1ms). Wait time is the bottleneck (intentional backoff). Statistics tracking adds minimal overhead. AsyncRetrying compatible with any asyncio event loop.",
     "data_source": "llm_estimated"
   },
   "requirements": {
@@ -66,36 +66,36 @@
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
-    "documentation_accuracy": 85,
-    "error_message_quality": 82,
-    "error_message_notes": "Tenacity raises RetryError after max attempts, wrapping the last exception. before_sleep callbacks provide attempt number and exception details for logging. Statistics available via retry.statistics.",
+    "documentation_accuracy": 88,
+    "error_message_quality": 85,
+    "error_message_notes": "tenacity.RetryError when all retries exhausted (wraps original exception). reraise=True re-raises original exception. RetryError.last_attempt.result() to get last exception. Statistics in fn.retry.statistics dict (attempt_number, start_time, idle_for).",
     "idempotency_support": "partial",
-    "idempotency_notes": "Retry assumes the wrapped function is idempotent — retrying non-idempotent operations (POST without idempotency key) may cause duplicate effects.",
+    "idempotency_notes": "Retry decorator is idempotent on idempotent functions. Non-idempotent functions (POST requests) may cause duplicate effects on retry. retry_if_exception_type ensures only failed attempts retry.",
     "pagination_style": "none",
-    "retry_guidance_documented": true,
+    "retry_guidance_documented": false,
     "known_agent_gotchas": [
-      "Tenacity retries on ANY exception by default — use retry=retry_if_exception_type(SomeError) to limit retries to expected transient errors; retrying ValueError or KeyError masks bugs",
-      "RetryError wraps the last exception — catch RetryError to handle exhausted retries, then access RetryError.__cause__ for the underlying exception",
-      "wait_exponential requires multiplier, min, and max parameters — without max, exponential backoff grows unboundedly; always set max wait time",
-      "Async support requires wrapping async functions — @retry decorator works on async def coroutines but the decorated function must be awaited; calling without await returns a coroutine object, not the result",
-      "The retry decorator is applied at import time — if retry configuration uses non-serializable objects (like lambda functions), it can cause issues with multiprocessing or celery",
-      "after=after_log(logger, logging.INFO) logs after every attempt including the first failure — use before_sleep for logging only retries, not the first attempt"
+      "reraise=False by default — @retry without reraise=True raises tenacity.RetryError after all attempts; original exception wrapped inside RetryError.last_attempt.exception(); agent code: use reraise=True to get original exception type in except clause; or catch tenacity.RetryError and inspect .last_attempt",
+      "wait_exponential defaults can be surprising — wait_exponential() default: multiplier=1, min=0, max=inf; first retry: 0-1s; grows unbounded; agent code: always specify max: wait_exponential(multiplier=1, min=1, max=60); add wait_random_min/max for jitter: wait_exponential() + wait_random(min=0, max=2)",
+      "@retry on class methods requires self — @retry cannot be applied as class method decorator directly when it accesses instance state; tenacity.retry wraps function not method; agent code: @retry works fine on class methods for pure retry logic; for instance-level retry configuration: use tenacity.Retrying context manager inside method body",
+      "stop_after_delay measures wall clock time — stop_after_delay(30) stops after 30 seconds total including all wait times; if wait=wait_fixed(10) and stop_after_delay(30): maximum 3 attempts; agent code: combine stop strategies: stop=(stop_after_attempt(5) | stop_after_delay(60)); | operator means 'stop if either condition met'",
+      "Async functions need async retry — @retry on regular function works; @retry on async function with tenacity 8.x does work (tenacity detects async); AsyncRetrying context manager for manual control: async with AsyncRetrying(...) as r: async for attempt in r: with attempt: result = await coro(); for explicit async control",
+      "Statistics tracking requires accessing after call — fn.retry.statistics returns dict only after function called; agent code: call fn(); then log fn.retry.statistics['attempt_number']; or use after= callback: after=after_log(logger, logging.DEBUG); statistics reset on each top-level call; shared across concurrent calls"
     ]
   },
   "af_score_components": {
     "mcp_score": 0,
-    "api_doc_score": 85,
-    "error_handling_score": 82,
-    "auth_complexity_score": 100,
-    "rate_limit_clarity_score": 100
+    "api_doc_score": 88,
+    "error_handling_score": 85,
+    "auth_complexity_score": 99,
+    "rate_limit_clarity_score": 99
   },
   "security_score_components": {
-    "tls_enforcement": 85,
-    "auth_strength": 85,
-    "scope_granularity": 85,
-    "dependency_hygiene": 90,
-    "secret_handling": 85,
-    "security_notes": "Retry library with no network access. Ensure retried functions are idempotent to prevent unintended side effects. Retry loops can amplify DDoS impact — include rate limit awareness in retry logic."
+    "tls_enforcement": 90,
+    "auth_strength": 90,
+    "scope_granularity": 90,
+    "dependency_hygiene": 92,
+    "secret_handling": 90,
+    "security_notes": "Retry utility library. Retrying POST/mutating operations may cause duplicate effects — ensure idempotency before using retry. Exponential backoff without max can cause indefinite delays — always set max. Retry amplifies load on failing services — implement circuit breaker for sustained failures."
   },
   "reliability_score_components": {
     "uptime_documented": 88,

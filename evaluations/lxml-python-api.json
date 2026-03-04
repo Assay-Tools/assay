@@ -5,24 +5,24 @@
   "homepage": "https://lxml.de/",
   "repo_url": "https://github.com/lxml/lxml",
   "category": "developer-tools",
-  "subcategories": ["xml", "html", "python", "parsing", "web-scraping"],
-  "tags": ["python", "lxml", "xml", "html", "xpath", "xslt", "parsing", "web-scraping"],
-  "what_it_does": "Fast XML and HTML processing library for Python — parses, creates, and transforms XML/HTML using libxml2 and libxslt. lxml features: etree.parse() and etree.fromstring(), XPath 1.0 queries (element.xpath()), XSLT transforms, XMLSchema and RelaxNG validation, HTML parser (lxml.html), CSS selectors (cssselect), element tree manipulation, c14n canonicalization, XML signature support, ObjectifiedElement for dict-like access, and 10-100x faster than stdlib xml.etree.ElementTree. Standard library for processing XML configuration files, SOAP/XML APIs, HTML scraping, and structured document parsing.",
+  "subcategories": ["xml-parsing", "html-parsing", "python", "utilities"],
+  "tags": ["python", "lxml", "xml", "html", "xpath", "xslt", "etree", "parsing"],
+  "what_it_does": "Fast XML and HTML processing library for Python — C-backed bindings to libxml2 and libxslt providing the fastest XML/HTML parsing with XPath, XSLT, validation (DTD/XML Schema/RelaxNG), and lxml.etree API. lxml features: etree.parse()/etree.fromstring() for XML, html.parse()/html.fromstring() for HTML, XPath expressions (.xpath()), XSLT transformations, XML Schema and RelaxNG validation, ElementTree-compatible API, incremental parsing (iterparse for large files), objectify API for attribute-style XML access, ElementMaker for programmatic XML building, cleanup_namespaces(), and serialization (tostring() with pretty_print=True).",
   "use_cases": [
-    "Agent XML API parsing — tree = etree.fromstring(xml_response); namespaces = {'soap': 'http://schemas.xmlsoap.org/soap/envelope/'}; values = tree.xpath('//soap:Body//result/text()', namespaces=namespaces) — parse SOAP XML API response with namespace-aware XPath; agent processes legacy enterprise XML APIs",
-    "Agent HTML scraping — from lxml import html; tree = html.fromstring(html_content); prices = tree.xpath('//div[@class=\"price\"]/span/text()') — extract data from HTML with XPath; agent web scraper processes HTML faster than BeautifulSoup; XPath more precise than CSS selectors for complex paths",
-    "Agent XML generation — root = etree.Element('agents'); agent = etree.SubElement(root, 'agent'); agent.set('id', '1'); agent.text = 'SearchAgent'; xml_bytes = etree.tostring(root, pretty_print=True, xml_declaration=True, encoding='UTF-8') — generate valid XML for API or config; agent builds XML request bodies",
-    "Agent XML validation — schema_doc = etree.parse('schema.xsd'); schema = etree.XMLSchema(schema_doc); result = schema.validate(etree.parse('document.xml')); errors = schema.error_log — validate XML against XSD schema; agent ensures XML documents conform to expected format before processing",
-    "Agent XSLT transformation — transform = etree.XSLT(etree.parse('style.xsl')); result = transform(etree.parse('document.xml')); html_output = str(result) — transform XML to HTML/JSON/other format; agent converts legacy XML report format to modern output"
+    "Agent XML parsing — from lxml import etree; tree = etree.parse('data.xml'); root = tree.getroot(); items = root.xpath('//item[@status=\"active\"]/name/text()') — XPath; agent parses XML and extracts data via XPath; lxml XPath is much more powerful than ElementTree; returns list of matched nodes/text",
+    "Agent HTML scraping — from lxml import html; tree = html.fromstring(html_content); links = tree.xpath('//a[@href]/@href'); titles = tree.cssselect('.product h2') — HTML parse; agent parses HTML with lxml for fast XPath-based extraction; html.fromstring() handles malformed HTML; cssselect plugin adds CSS selector support",
+    "Agent large XML streaming — context = etree.iterparse('large.xml', events=('end',), tag='Record'); for event, elem in context: process(elem); elem.clear() — streaming parse; agent processes multi-GB XML files without loading into memory; elem.clear() releases memory; iterparse is event-driven",
+    "Agent XML validation — schema = etree.XMLSchema(etree.parse('schema.xsd')); doc = etree.parse('data.xml'); if not schema.validate(doc): errors = schema.error_log; handle_errors(errors) — schema validation; agent validates XML against XSD schema; error_log provides detailed validation errors",
+    "Agent XML generation — root = etree.Element('root'); child = etree.SubElement(root, 'item', id='1'); child.text = 'content'; xml_bytes = etree.tostring(root, pretty_print=True, xml_declaration=True, encoding='UTF-8') — XML creation; agent programmatically builds XML documents"
   ],
   "not_for": [
-    "JSON processing — lxml is XML/HTML only; use json module, orjson, or pydantic for JSON",
-    "Simple HTML scraping — BeautifulSoup4 is friendlier for HTML; lxml best when XPath precision or speed matters",
-    "Untrusted XML — standard XML parsers are vulnerable to XXE attacks; use defusedxml wrapper for untrusted XML input in agent security-sensitive contexts"
+    "Simple XML with stdlib — for basic XML tasks, stdlib xml.etree.ElementTree is sufficient without the C dependency",
+    "JSON data — lxml is XML/HTML only; for JSON use stdlib json or orjson",
+    "Environments where C extension fails — lxml requires compiled C extension; some minimal environments (Alpine musl) may have issues; use lxml-stubs for type hints"
   ],
-  "best_when": "Processing XML APIs (SOAP, RSS, Atom, SAML), HTML scraping with XPath precision, XML validation against schemas, or XSLT transforms — lxml is 10-100x faster than Python stdlib XML with full XPath/XSLT support.",
-  "avoid_when": "You're processing JSON, doing simple HTML scraping (BeautifulSoup4 easier), or receiving untrusted XML (use defusedxml for security).",
-  "alternatives": ["beautifulsoup4-api", "httpx-api"],
+  "best_when": "Fast XML/HTML processing with XPath and XSLT — lxml is 5-50x faster than stdlib ElementTree and provides full XPath 1.0, XSLT, and schema validation that stdlib lacks.",
+  "avoid_when": "Simple XML without XPath (use stdlib etree), JSON data, or environments where C extension compilation fails.",
+  "alternatives": ["beautifulsoup-python-api", "parsel-python-api"],
   "interface": {
     "has_rest_api": false,
     "has_graphql": false,
@@ -38,21 +38,21 @@
     "methods": ["none"],
     "oauth": false,
     "scopes": false,
-    "notes": "No auth — local parsing library."
+    "notes": "No auth — XML/HTML parsing library."
   },
   "pricing": {
     "model": "open_source",
     "free_tier_exists": true,
-    "free_tier_limits": "Completely free, BSD licensed",
+    "free_tier_limits": "Completely free, BSD/GPL licensed",
     "paid_tiers": "None",
     "requires_credit_card": false,
-    "notes": "lxml is BSD licensed. Free for all use."
+    "notes": "lxml is BSD 3-Clause and GPL licensed. Free for all use."
   },
   "performance": {
-    "latency_p50_ms": 1,
-    "latency_p99_ms": 100,
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
     "uptime_sla_percent": null,
-    "rate_limits": "No rate limits. 10-100x faster than Python stdlib xml.etree. XPath queries compiled and cached. Large XML files (100MB+) parsed incrementally with iterparse().",
+    "rate_limits": "No rate limits. Performance: 5-50x faster than stdlib xml.etree.ElementTree. XPath evaluation: very fast for most queries. iterparse for large files: O(n) streaming. XSLT: fast C transformation. HTML parsing: faster than html.parser with better error recovery.",
     "data_source": "llm_estimated"
   },
   "requirements": {
@@ -66,41 +66,41 @@
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
-    "documentation_accuracy": 82,
-    "error_message_quality": 80,
-    "error_message_notes": "XMLSyntaxError with line number for malformed XML. XPathEvalError for invalid XPath expressions. XMLSchemaValidateError with detailed schema violation messages. UnicodeDecodeError for encoding issues. etree.XMLParser errors show byte offset of parse failure.",
+    "documentation_accuracy": 88,
+    "error_message_quality": 85,
+    "error_message_notes": "lxml.etree.XMLSyntaxError for malformed XML with line/column. lxml.etree.XPathEvalError for invalid XPath. lxml.etree.DocumentInvalid from schema.assertValid(). Excellent error messages with position information.",
     "idempotency_support": "full",
-    "idempotency_notes": "Parsing same XML produces identical element tree. XPath queries are deterministic. etree.tostring() is deterministic for same element tree. XSLT transforms are deterministic.",
+    "idempotency_notes": "parse/fromstring are pure conversions. XPath evaluation is deterministic. Tree modification methods are stateful but deterministic. iterparse is single-pass.",
     "pagination_style": "none",
     "retry_guidance_documented": false,
     "known_agent_gotchas": [
-      "XXE vulnerability with default parser — etree.parse(untrusted_xml) with default parser allows XML External Entity injection; malicious XML can read local files; agent code processing untrusted XML must use defusedxml: from defusedxml import etree; or etree.XMLParser(resolve_entities=False, no_network=True)",
-      "Namespace handling required for namespaced XML — element.xpath('//result') fails if XML uses namespace prefix; must use: element.xpath('//ns:result', namespaces={'ns': 'http://example.com/ns'}); agent code parsing SOAP or namespaced APIs must extract and pass namespace map from document",
-      "text vs tail for mixed content — element.text is text before first child; element.tail is text after element (following sibling text); <p>Hello <b>world</b>!</p>: p.text='Hello ', b.text='world', b.tail='!'; agent HTML text extraction must concatenate text and tail recursively",
-      "iterparse() for large files — etree.parse('huge.xml') loads entire file into memory; for 100MB+ XML use etree.iterparse('huge.xml', events=('end',), tag='record') — processes elements one at a time; agent must call element.clear() after processing each element to free memory",
-      "lxml html vs etree parsing differ — etree.fromstring(html_bytes) fails on malformed HTML; lxml.html.fromstring(html_bytes) handles real-world HTML gracefully; agent web scraping must use lxml.html module not etree for HTML content",
-      "XPath returns list always — element.xpath('//title/text()') returns list even for single result; agent code doing title = element.xpath('//title/text()') gets list not string; use element.xpath('//title/text()')[0] or element.findtext('title') for single value"
+      "XPath returns list of nodes not single value — root.xpath('//item/text()') returns list ['val1', 'val2']; root.xpath('//item[1]/text()') returns list with one element; agent code: use [0] or xpath('//item[1]/text()')[0] for single value; or xpath('string(//item[1]/text())') returns string directly; xpath('count(//item)') returns float",
+      "lxml elements have tail text — etree structure: <a>text<b/>tail</a>; elem.text is 'text' (before child); elem[0].tail is 'tail' (after child b, still part of parent a); agent code parsing mixed-content XML: use itertext() or get_text() from lxml.html for HTML; raw XML: concatenate elem.text and each child's tail",
+      "Namespace handling in XPath — <root xmlns:ns='http://example.com'><ns:item/></root>; xpath('//ns:item') requires namespace map: root.xpath('//ns:item', namespaces={'ns': 'http://example.com'}); agent code with namespaced XML: always define namespace map; Clark notation alternative: root.xpath('//{http://example.com}item')",
+      "iterparse memory management — iterparse yields (event, elem) pairs; element still holds children in memory; agent code: after processing elem, call elem.clear() and del elem; also root reference keeps everything alive: use root = tree.getroot() outside loop or clear root too; without clearing: iterparse for large files still loads all into memory",
+      "from lxml import etree vs import lxml.etree — both work; from lxml import etree is conventional; lxml.html is separate: from lxml import html; html module has fromstring() that handles malformed HTML better than etree; agent code: use html.fromstring() for HTML (returns HtmlElement); etree.fromstring() for strict XML",
+      "html.fromstring() vs html.document_fromstring() — html.fromstring('<p>text</p>') may return an Element (not full document) if input is a fragment; html.document_fromstring() always returns full document HtmlElement; agent code parsing complete HTML pages: use document_fromstring(); for fragments: fromstring() and work with the element directly"
     ]
   },
   "af_score_components": {
     "mcp_score": 0,
-    "api_doc_score": 80,
-    "error_handling_score": 78,
-    "auth_complexity_score": 98,
-    "rate_limit_clarity_score": 98
+    "api_doc_score": 88,
+    "error_handling_score": 85,
+    "auth_complexity_score": 99,
+    "rate_limit_clarity_score": 99
   },
   "security_score_components": {
-    "tls_enforcement": 88,
-    "auth_strength": 88,
-    "scope_granularity": 85,
-    "dependency_hygiene": 85,
+    "tls_enforcement": 90,
+    "auth_strength": 90,
+    "scope_granularity": 88,
+    "dependency_hygiene": 88,
     "secret_handling": 88,
-    "security_notes": "CRITICAL: Default lxml parser vulnerable to XXE attacks from untrusted XML. Always use defusedxml or disable external entity resolution for untrusted input. XML bombs (billion laughs) also possible — use parser limits for untrusted XML in agent systems. Trusted internal XML processing is safe."
+    "security_notes": "XML parsing library. XXE (XML External Entity) attacks: lxml has resolve_entities=False to disable; use etree.XMLParser(resolve_entities=False, no_network=True) for untrusted XML. Billion laughs attack: use etree.XMLParser(huge_tree=False). XSLT from untrusted source: allows arbitrary code execution via extensions — never apply untrusted XSLT."
   },
   "reliability_score_components": {
-    "uptime_documented": 85,
-    "version_stability": 85,
-    "breaking_changes_history": 82,
-    "error_recovery": 82
+    "uptime_documented": 88,
+    "version_stability": 88,
+    "breaking_changes_history": 88,
+    "error_recovery": 90
   }
 }
