@@ -1,28 +1,28 @@
 {
   "id": "sqlalchemy-python-api",
-  "name": "SQLAlchemy",
+  "name": "sqlalchemy",
   "version_evaluated": "2.x",
-  "homepage": "https://docs.sqlalchemy.org/en/20/",
+  "homepage": "https://www.sqlalchemy.org/",
   "repo_url": "https://github.com/sqlalchemy/sqlalchemy",
   "category": "developer-tools",
   "subcategories": ["database", "orm", "python", "sql"],
-  "tags": ["python", "orm", "sql", "postgresql", "mysql", "sqlite", "migrations", "alembic", "open-source"],
-  "what_it_does": "The Python SQL toolkit and ORM. SQLAlchemy provides two layers: Core (SQL expression language for building queries programmatically) and ORM (Python class-to-table mapping with relationships, lazy loading, sessions). SQLAlchemy 2.0 modernized the API with Python 3.7+ typing and async support. Paired with Alembic for migrations. The standard database toolkit for Python, used by FastAPI, Flask, and countless Python applications.",
+  "tags": ["python", "sqlalchemy", "orm", "sql", "database", "postgres", "mysql", "sqlite"],
+  "what_it_does": "SQL toolkit and Object-Relational Mapping (ORM) library for Python — provides both Core (SQL expression language) and ORM (mapped classes) layers. SQLAlchemy 2.x features: declarative_base() / DeclarativeBase for model definition, relationship() for associations, Session for unit-of-work ORM, select()/insert()/update()/delete() for Core SQL, engine = create_engine(url) for connection management, Alembic integration for migrations, AsyncSession/create_async_engine for async support, Inspector for schema reflection, Connection.execute() for raw SQL, and type annotations with Mapped[] in 2.0 style.",
   "use_cases": [
-    "Map Python classes to database tables with SQLAlchemy ORM and manage relationships (one-to-many, many-to-many)",
-    "Build complex SQL queries programmatically with SQLAlchemy Core's expression language",
-    "Use with FastAPI and async SQLAlchemy (async_engine, AsyncSession) for async database access",
-    "Manage schema migrations with Alembic (SQLAlchemy's migration companion) for version-controlled schema changes",
-    "Support multiple databases (PostgreSQL, MySQL, SQLite, Oracle) with the same application code via dialect abstraction"
+    "Agent ORM models — from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship; class Base(DeclarativeBase): pass; class User(Base): __tablename__ = 'users'; id: Mapped[int] = mapped_column(primary_key=True); name: Mapped[str]; posts: Mapped[list['Post']] = relationship(back_populates='user') — model definition; agent defines database schema as Python classes",
+    "Agent CRUD operations — with Session(engine) as session: user = User(name='Alice'); session.add(user); session.commit(); users = session.execute(select(User).where(User.name == 'Alice')).scalars().all() — ORM CRUD; agent creates, reads, updates, deletes records; Session handles transactions; commit() persists",
+    "Agent async ORM — from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine; engine = create_async_engine('postgresql+asyncpg://...'); async with AsyncSession(engine) as session: result = await session.execute(select(User)); users = result.scalars().all() — async; agent uses async SQLAlchemy with asyncpg/aiosqlite",
+    "Agent SQL Core — from sqlalchemy import create_engine, text; engine = create_engine(url); with engine.connect() as conn: result = conn.execute(text('SELECT * FROM users WHERE id = :id'), {'id': user_id}); rows = result.fetchall() — raw SQL; agent executes parameterized queries safely; text() is safe (parameterized)",
+    "Agent schema reflection — from sqlalchemy import inspect; inspector = inspect(engine); tables = inspector.get_table_names(); columns = inspector.get_columns('users') — reflection; agent introspects existing database schema; useful for dynamic queries on unknown schemas or database tooling"
   ],
   "not_for": [
-    "MongoDB or NoSQL databases — SQLAlchemy is relational databases only",
-    "Highest performance bulk operations — SQLAlchemy's ORM layer adds overhead; use raw SQL with psycopg2 for extreme bulk throughput",
-    "Simple scripts that just need one or two queries — raw SQL via sqlite3 or psycopg2 is simpler"
+    "NoSQL databases — SQLAlchemy is SQL-only; for MongoDB use motor/pymongo, for Redis use redis-py",
+    "Simple SQLite scripts — for simple SQLite, stdlib sqlite3 or peewee is lighter",
+    "Async MongoDB — use motor; SQLAlchemy does not support document stores"
   ],
-  "best_when": "You're building Python applications that need a full-featured ORM with relationship management, migrations, and cross-database compatibility.",
-  "avoid_when": "You need MongoDB/NoSQL, or you want the simplest possible raw SQL access — psycopg2 or sqlite3 are simpler.",
-  "alternatives": ["django-api"],
+  "best_when": "Production Python applications needing SQL database access — SQLAlchemy 2.x is the standard for Python ORM with excellent performance, async support, and connection pooling for PostgreSQL, MySQL, and SQLite.",
+  "avoid_when": "NoSQL databases (use motor/pymongo), simple one-time scripts (use sqlite3), or when peewee/tortoise-orm simpler API suffices.",
+  "alternatives": ["sqlmodel-python-api", "peewee-python-api", "tortoise-python-api"],
   "interface": {
     "has_rest_api": false,
     "has_graphql": false,
@@ -38,21 +38,21 @@
     "methods": ["none"],
     "oauth": false,
     "scopes": false,
-    "notes": "Library with no auth — database credentials in connection URL."
+    "notes": "No auth — ORM library. Database credentials passed via connection URL."
   },
   "pricing": {
     "model": "open_source",
     "free_tier_exists": true,
-    "free_tier_limits": "MIT licensed, completely free",
+    "free_tier_limits": "Completely free, MIT licensed",
     "paid_tiers": "None",
     "requires_credit_card": false,
-    "notes": "Free and open source, maintained by Michael Bayer (zzzeek) and community."
+    "notes": "SQLAlchemy is MIT licensed. Free for all use."
   },
   "performance": {
     "latency_p50_ms": null,
     "latency_p99_ms": null,
     "uptime_sla_percent": null,
-    "rate_limits": "No rate limits — local library. ORM adds overhead; use Core for performance-critical paths.",
+    "rate_limits": "No rate limits. Performance: connection pooling via QueuePool (default 5 connections). ORM overhead: ~0.1-0.5ms per query vs raw SQL. Lazy loading adds N+1 queries — use joinedload. selectin_load for async eager loading. Core (SQL expression) faster than ORM for bulk operations.",
     "data_source": "llm_estimated"
   },
   "requirements": {
@@ -67,40 +67,40 @@
     "mcp_server_quality": null,
     "mcp_security_score": null,
     "documentation_accuracy": 88,
-    "error_message_quality": 82,
-    "error_message_notes": "SQLAlchemy 2.0 provides typed errors for common issues. Session state errors have descriptive messages. Relationship loading errors include the relationship name and loading strategy.",
-    "idempotency_support": "full",
-    "idempotency_notes": "Read queries are idempotent. merge() provides idempotent upsert for ORM objects.",
-    "pagination_style": "offset",
+    "error_message_quality": 85,
+    "error_message_notes": "sqlalchemy.exc.IntegrityError for constraint violations. sqlalchemy.exc.OperationalError for connection/query errors. sqlalchemy.orm.exc.NoResultFound from scalar_one() on empty result. Detailed error messages with SQL statement. 2.x error messages improved over 1.x.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "SELECT queries are idempotent. INSERT with ON CONFLICT DO NOTHING is idempotent. Session.merge() for upsert semantics. Session rollback() reverts changes. Transactions provide atomicity.",
+    "pagination_style": "none",
     "retry_guidance_documented": false,
     "known_agent_gotchas": [
-      "SQLAlchemy 2.0 changed the API from 1.x — session.execute() now returns Row objects, not tuples; session.query() is legacy; new code must use select() statement API",
-      "ORM sessions are not thread-safe — use scoped_session() or one session per thread/request; never share Session between concurrent requests",
-      "Lazy loading relationships outside the session context raises DetachedInstanceError — load relationships eagerly (joinedload, selectinload) or access within session scope",
-      "N+1 query problem: accessing ORM relationships in loops triggers a query per object — use selectinload() or joinedload() in query options to eager load",
-      "Async SQLAlchemy requires AsyncEngine and AsyncSession — regular Engine/Session blocks the event loop in async context; don't mix sync and async SQLAlchemy",
-      "SQLAlchemy Column types are not Python types — Integer, String, DateTime are SQLAlchemy types not Python int/str/datetime; use Mapped[int] for type annotations in 2.0 style"
+      "SQLAlchemy 2.0 style vs 1.x legacy — session.query(User).all() is 1.x legacy; 2.x style: session.execute(select(User)).scalars().all(); both work in 2.x but 2.x style is preferred; agent code: use select() + session.execute() for new code; result.scalars() for ORM objects; result.mappings() for dict-like rows",
+      "Lazy loading causes N+1 in non-async — session.execute(select(User)).scalars().all() then user.posts for each user triggers one query per user (N+1); use eager loading: select(User).options(selectinload(User.posts)); or joinedload() for JOIN; agent code: always specify loading strategy for relationships used in loops",
+      "AsyncSession cannot use lazy loading — async SQLAlchemy with AsyncSession raises greenlet error on lazy relationship access; must use selectinload/joinedload eagerly; agent async code: select(User).options(selectinload(User.posts)) before executing; lazy loading is sync-only; greenlet_spawn error = forgot eager load",
+      "Session must be scoped to request — creating global Session causes cross-request data sharing; agent code: create new Session per request/operation using context manager: with Session(engine) as session:; scoped_session for thread-local scoping in multi-threaded apps; AsyncSession for async",
+      "commit() required to persist changes — session.add(obj) schedges for insert but does not execute; session.commit() flushes and commits transaction; session.flush() executes SQL without committing; agent code: after add/modify: session.commit() to persist; forget commit = data not saved, visible to same session but not others",
+      "Connection strings vary by driver — SQLite: 'sqlite:///db.sqlite3'; PostgreSQL+psycopg2: 'postgresql+psycopg2://user:pass@host/db'; PostgreSQL+asyncpg: 'postgresql+asyncpg://user:pass@host/db'; MySQL: 'mysql+pymysql://user:pass@host/db'; agent code: install driver separately (pip install psycopg2-binary or asyncpg); SQLAlchemy itself is driver-agnostic"
     ]
   },
   "af_score_components": {
     "mcp_score": 0,
     "api_doc_score": 88,
-    "error_handling_score": 82,
-    "auth_complexity_score": 100,
-    "rate_limit_clarity_score": 100
+    "error_handling_score": 85,
+    "auth_complexity_score": 95,
+    "rate_limit_clarity_score": 98
   },
   "security_score_components": {
-    "tls_enforcement": 90,
-    "auth_strength": 85,
-    "scope_granularity": 82,
+    "tls_enforcement": 88,
+    "auth_strength": 88,
+    "scope_granularity": 85,
     "dependency_hygiene": 90,
-    "secret_handling": 85,
-    "security_notes": "Parameterized queries prevent SQL injection in both Core and ORM. text() literals can inject SQL — use bindparams() with text(). Connection credentials in env variables. TLS via database connection URL parameters."
+    "secret_handling": 82,
+    "security_notes": "ORM library. Use parameterized queries (select(), text() with parameters) — never string format SQL. Connection URL contains credentials — use environment variables, not hardcoded. Connection pooling: set pool_recycle for long-running apps with MySQL. Encrypt connection with SSL: create_engine(url, connect_args={'sslmode': 'require'})."
   },
   "reliability_score_components": {
-    "uptime_documented": 90,
+    "uptime_documented": 88,
     "version_stability": 85,
-    "breaking_changes_history": 78,
+    "breaking_changes_history": 80,
     "error_recovery": 88
   }
 }

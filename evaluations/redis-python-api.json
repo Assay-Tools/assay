@@ -1,0 +1,106 @@
+{
+  "id": "redis-python-api",
+  "name": "redis",
+  "version_evaluated": "5.x",
+  "homepage": "https://redis-py.readthedocs.io/",
+  "repo_url": "https://github.com/redis/redis-py",
+  "category": "developer-tools",
+  "subcategories": ["caching", "database", "python", "messaging"],
+  "tags": ["python", "redis", "cache", "pub-sub", "queue", "distributed", "in-memory"],
+  "what_it_does": "Redis client library for Python — provides sync and async access to Redis data structures including strings, hashes, lists, sets, sorted sets, streams, and pub/sub. redis-py 5.x features: Redis() and AsyncRedis() clients, connection pooling, pipeline() for batched commands, Pub/Sub with subscribe/publish, Redis Streams, Lua scripting, cluster support (RedisCluster), Sentinel support, SSL/TLS, command pipelining for throughput, client-side caching (RESP3), keyspace notifications, sorted sets for leaderboards/queues, and XADD/XREAD for streams.",
+  "use_cases": [
+    "Agent caching — import redis; r = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True); r.setex('cache:result', 3600, json.dumps(data)); cached = r.get('cache:result'); if cached: return json.loads(cached) — TTL cache; agent caches computation results with TTL; decode_responses=True returns str not bytes",
+    "Agent pub/sub — r = redis.Redis(); p = r.pubsub(); p.subscribe('tasks'); for message in p.listen(): if message['type'] == 'message': handle(json.loads(message['data'])) — pub/sub; agent subscribes to Redis channel for inter-process communication; publish: r.publish('tasks', json.dumps(task))",
+    "Agent distributed lock — with r.lock('job:lock:123', timeout=30, blocking_timeout=5) as lock: do_exclusive_work() — distributed lock; agent acquires distributed lock to prevent concurrent processing; timeout= auto-releases if agent crashes; blocking_timeout= gives up if cannot acquire",
+    "Agent rate limiting — pipe = r.pipeline(); pipe.incr('rate:user:123'); pipe.expire('rate:user:123', 60); count, _ = pipe.execute(); if count > 100: raise RateLimitError() — atomic counter; agent implements rate limiting with atomic Redis operations; pipeline() batches commands atomically",
+    "Agent async Redis — from redis.asyncio import Redis; async with Redis(host='localhost', decode_responses=True) as r: await r.set('key', 'value', ex=300); val = await r.get('key') — async; agent uses Redis in async context; redis.asyncio mirrors sync API with await; connection pooling automatic"
+  ],
+  "not_for": [
+    "Persistent data storage — Redis is primarily in-memory; for durable persistence use PostgreSQL/SQLite with Redis for caching layer",
+    "Complex queries — Redis has limited query capabilities; for complex queries use PostgreSQL/MongoDB",
+    "Large binary objects — Redis is not optimized for large binary blobs; for files use S3/filesystem with Redis for metadata"
+  ],
+  "best_when": "Caching, pub/sub messaging, distributed locks, rate limiting, and session storage — Redis is the standard for these use cases in Python applications with excellent performance and atomic operations.",
+  "avoid_when": "Primary durable storage (use PostgreSQL), complex relational queries, large file storage, or when a simpler in-process cache (cachetools) suffices.",
+  "alternatives": ["diskcache-python-api", "cachetools-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "java", "javascript", "go", "ruby"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["password", "acl"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Redis AUTH password authentication. Redis 6+ ACL for username/password and command-level permissions. SSL/TLS support via ssl=True parameter."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Redis OSS is free. Redis Cloud has free 30MB tier.",
+    "paid_tiers": "Redis Cloud for managed hosting",
+    "requires_credit_card": false,
+    "notes": "redis-py client is MIT licensed. Redis server is BSD 3-Clause (OSS). Redis Stack (commercial features) requires license."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits on client library. Performance: single command: <1ms on localhost. Pipeline(): batch N commands in 1 round trip. Connection pool: default 10 connections. In-memory: 100K+ operations/second. Network latency dominates over operation time.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted", "cloud"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 88,
+    "error_message_quality": 85,
+    "error_message_notes": "redis.exceptions.ConnectionError for connection failures. redis.exceptions.TimeoutError for socket timeout. redis.exceptions.ResponseError for server errors (WRONGTYPE). redis.exceptions.LockError for lock failures. Clear exception hierarchy with specific types.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "SET is idempotent. SETEX is idempotent. INCR is not idempotent (increments each call). DEL is idempotent (no error on missing key). Pipeline operations are batched-atomic. SETNX for conditional set.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "decode_responses=True for string operations — redis.Redis() by default returns bytes: r.get('key') returns b'value' not 'value'; decode_responses=True returns str; agent code: use decode_responses=True unless storing binary data; bytes mode: r.get('key').decode('utf-8') to convert; JSON: json.loads(r.get('key')) handles both bytes and str",
+      "Connection pool is shared — Redis() creates one global connection pool; multiple Redis() instances use separate pools; agent code: create one Redis() instance at module level and reuse; do NOT create Redis() per request; pool exhaustion raises ConnectionError; pool_size: redis.Redis(max_connections=50)",
+      "Pipeline does not execute immediately — r.pipeline() creates pipeline; pipe.set(); pipe.get() queues commands; pipe.execute() sends all at once and returns list of results; agent code: collect results from execute() in order: results = pipe.execute(); results[0] is first command result; atomic=True makes pipeline a MULTI/EXEC transaction",
+      "Pub/Sub blocks on listen() — p.listen() is a blocking generator; must run in separate thread or async; p.get_message(timeout=0) for non-blocking poll; agent code: for real-time pub/sub: use threading or asyncio; or use p.get_message(timeout=1.0) in polling loop; unsubscribe() to stop; p.close() to cleanup",
+      "Lock() requires timeout — r.lock('key') without timeout can hold forever if agent crashes; r.lock('key', timeout=30) auto-expires after 30s; blocking_timeout=5 gives up acquiring after 5s; agent code: always set both timeout (auto-release) and blocking_timeout (acquire limit); LockNotOwnedError if lock expired during held period",
+      "SCAN not KEYS for production — r.keys('pattern:*') blocks Redis server (O(n) scan of all keys); agent code in production: use r.scan_iter('pattern:*') which uses SCAN with cursor in chunks; or r.scan(cursor=0, match='pattern:*', count=100) for manual pagination; KEYS is fine for development/debugging"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 88,
+    "error_handling_score": 85,
+    "auth_complexity_score": 90,
+    "rate_limit_clarity_score": 95
+  },
+  "security_score_components": {
+    "tls_enforcement": 85,
+    "auth_strength": 85,
+    "scope_granularity": 80,
+    "dependency_hygiene": 88,
+    "secret_handling": 80,
+    "security_notes": "Redis client. Encrypt connections with ssl=True for production. Store credentials in env vars not code. Redis ACL for command-level access control. Redis is in-memory — data lost on restart without persistence config. Do not store plaintext secrets in Redis. KEYS command can DoS Redis — never use in production."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 90,
+    "version_stability": 88,
+    "breaking_changes_history": 82,
+    "error_recovery": 85
+  }
+}

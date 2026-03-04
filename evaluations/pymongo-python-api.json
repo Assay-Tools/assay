@@ -1,0 +1,106 @@
+{
+  "id": "pymongo-python-api",
+  "name": "pymongo",
+  "version_evaluated": "4.x",
+  "homepage": "https://pymongo.readthedocs.io/",
+  "repo_url": "https://github.com/mongodb/mongo-python-driver",
+  "category": "developer-tools",
+  "subcategories": ["database", "nosql", "python", "mongodb"],
+  "tags": ["python", "pymongo", "mongodb", "nosql", "document", "bson", "aggregation"],
+  "what_it_does": "Official MongoDB driver for Python — provides sync access to MongoDB with full support for CRUD operations, aggregation pipeline, change streams, transactions, GridFS, and Atlas Search. pymongo 4.x features: MongoClient with connection pooling, database.collection.insert_one/many(), find()/find_one() with query filter dict, update_one/many() with $set/$push operators, delete_one/many(), aggregate() pipeline, create_index(), bulk_write() for batch operations, watch() for change streams, ClientSession for multi-document transactions, and GridFS for large file storage.",
+  "use_cases": [
+    "Agent document CRUD — from pymongo import MongoClient; client = MongoClient('mongodb://localhost:27017'); db = client['mydb']; collection = db['documents']; result = collection.insert_one({'name': 'doc', 'data': payload}); doc = collection.find_one({'_id': result.inserted_id}) — basic CRUD; agent stores and retrieves JSON documents",
+    "Agent query and filter — docs = list(collection.find({'status': 'active', 'score': {'$gte': 80}}, projection={'name': 1, 'score': 1}, sort=[('score', -1)], limit=10)) — query; agent queries with MongoDB query language; projection selects fields; sort controls order; limit caps results",
+    "Agent aggregation — pipeline = [{'$match': {'status': 'active'}}, {'$group': {'_id': '$category', 'count': {'$sum': 1}, 'avg_score': {'$avg': '$score'}}}, {'$sort': {'count': -1}}]; results = list(collection.aggregate(pipeline)) — aggregation; agent runs analytics queries",
+    "Agent change streams — with collection.watch() as stream: for change in stream: operation = change['operationType']; document = change['fullDocument']; handle_change(operation, document) — real-time; agent subscribes to real-time document changes; requires replica set; change['operationType'] is 'insert'/'update'/'delete'",
+    "Agent bulk write — from pymongo import UpdateOne, InsertOne; operations = [UpdateOne({'_id': id}, {'$set': data}, upsert=True) for id, data in items]; result = collection.bulk_write(operations, ordered=False) — bulk; agent efficiently writes many documents; ordered=False for parallel execution; result.matched_count, modified_count, upserted_count"
+  ],
+  "not_for": [
+    "SQL databases — pymongo is MongoDB-specific; for PostgreSQL/MySQL use SQLAlchemy",
+    "Async MongoDB — use motor (async MongoDB driver built on pymongo) for async/await usage",
+    "Embedded databases — for local document storage without a server use TinyDB or SQLite JSON columns"
+  ],
+  "best_when": "MongoDB-backed applications needing full MongoDB feature access — pymongo is the official driver with complete API coverage for all MongoDB operations.",
+  "avoid_when": "Async applications (use motor), relational data (use SQLAlchemy), or simple local storage (use TinyDB/SQLite).",
+  "alternatives": ["motor-python-api", "sqlalchemy-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "java", "javascript", "go", "ruby"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["password", "x509", "aws_iam", "kerberos"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "MongoDB SCRAM-SHA-256 authentication. X.509 certificate auth. AWS IAM auth for Atlas. Kerberos/LDAP for enterprise."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "pymongo client is free. MongoDB Atlas has free 512MB M0 cluster.",
+    "paid_tiers": "MongoDB Atlas paid tiers for production",
+    "requires_credit_card": false,
+    "notes": "pymongo is Apache 2.0 licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits on client library. Performance: single document insert: <5ms local. find_one(): <5ms with index. aggregate() on large collections: index-dependent. Connection pool: maxPoolSize=100 default. bulk_write() dramatically faster than individual operations.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted", "cloud"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 90,
+    "error_message_quality": 85,
+    "error_message_notes": "pymongo.errors.DuplicateKeyError for unique constraint violations (with key info). pymongo.errors.ConnectionFailure for connection issues. pymongo.errors.OperationFailure with error code for server errors. BulkWriteError for batch operation failures with partial results.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "find operations are idempotent. insert_one generates new ObjectId — not idempotent. update_one with $set is idempotent. bulk_write with upsert=True for upsert semantics. replace_one is idempotent for same document.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "MongoClient is thread-safe and should be singleton — creating MongoClient per request is wasteful; MongoClient manages connection pool internally; agent code: create one MongoClient at module/app startup; pass db/collection references around; MongoClient handles reconnection automatically; close client at app shutdown",
+      "_id field is ObjectId by default — insert_one({'name': 'test'}) adds '_id': ObjectId('...'); comparing with string fails; agent code: result.inserted_id is ObjectId; to find: collection.find_one({'_id': result.inserted_id}); string _id: collection.find_one({'_id': '123'}) if you inserted string id; bson.ObjectId('string') to convert",
+      "find() returns cursor not list — collection.find({'x': 1}) returns Cursor; cursor is lazy — does not execute until iterated; agent code: list(collection.find(filter)) to materialize; cursor.limit() before iteration; cursor has sort(), skip(), limit() methods; iterating cursor twice requires reset: cursor.rewind() or re-execute find()",
+      "update requires operator — collection.update_one({'_id': id}, {'$set': {'field': val}}) is correct; collection.update_one({'_id': id}, {'field': val}) REPLACES document (sets field and removes others); agent code: always use $set, $push, $pull, $inc operators in update document; replace_one() for intentional document replacement",
+      "change streams require replica set — collection.watch() raises OperationFailure: 'The $changeStream stage is only supported on replica sets'; Atlas clusters are always replica sets; local MongoDB single node: rs.initiate() to create single-node replica set; agent code: check deployment supports change streams before using",
+      "Aggregation $lookup vs populate — MongoDB does not auto-join; use $lookup stage in aggregation for reference resolution; or use application-level join (fetch documents separately); agent code: for referenced documents: aggregate with $lookup: {'$lookup': {'from': 'users', 'localField': 'user_id', 'foreignField': '_id', 'as': 'user'}}; manual populate is also fine"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 90,
+    "error_handling_score": 85,
+    "auth_complexity_score": 88,
+    "rate_limit_clarity_score": 95
+  },
+  "security_score_components": {
+    "tls_enforcement": 88,
+    "auth_strength": 88,
+    "scope_granularity": 85,
+    "dependency_hygiene": 90,
+    "secret_handling": 82,
+    "security_notes": "MongoDB driver. Enable TLS: MongoClient(tls=True, tlsCAFile=ca_cert). NoSQL injection: MongoDB query filter is a dict — user-controlled keys with $where, $regex, $gt can be injected; validate and sanitize query filters from user input. Use MongoDB Atlas with IP allowlist. Enable MongoDB authentication always."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 88,
+    "breaking_changes_history": 82,
+    "error_recovery": 88
+  }
+}
