@@ -40,9 +40,9 @@ Items ready to be claimed. Roughly priority-ordered.
 - [x] ~~**OpenAPI spec polish** — moved to Completed~~
 
 ### API Completeness
-- [ ] **Change feed endpoint** — `GET /v1/packages/updated-since?timestamp=...`
-- [ ] **Filter by score dimension** — Extend `/v1/packages` to accept `min_security_score`, `min_reliability_score`
-- [ ] **Category leaderboards** — `GET /v1/categories/{slug}/leaderboard`
+- [x] ~~**Change feed endpoint** — moved to Completed~~
+- [x] ~~**Filter by score dimension** — moved to Completed~~
+- [x] ~~**Category leaderboards** — moved to Completed~~
 
 ### Testing & Quality
 - [x] ~~**Test suite** — moved to Completed~~
@@ -79,3 +79,4 @@ Items ready to be claimed. Roughly priority-ordered.
 - [x] **CI/CD pipeline** — GitHub Actions lint (ruff) + test (pytest) on push/PR, CI badge in README (2026-03-04)
 - [x] **Linting pass** — 64 violations fixed (25 auto-fix + 39 E501 line-length) (2026-03-04)
 - [x] **OpenAPI spec polish** — tag descriptions, endpoint docstrings, schema field descriptions, API metadata (2026-03-04)
+- [x] **API completeness** — score dimension filters, change feed endpoint, category leaderboards + 16 new tests (2026-03-04)
