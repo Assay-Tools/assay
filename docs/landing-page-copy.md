@@ -126,11 +126,12 @@ Both give access to the same ratings data. The **REST API** (`/api/v1/packages`)
 
 | Tier | Price | What you get |
 |------|-------|--------------|
-| Free | $0 | Browse the full directory, read all scores |
-| API Pro | $49/month | 5,000 API queries/day, watchlists, webhooks, priority support |
-| Certified Agent-Ready | $299/month | Independent certification badge, detailed score breakdown, competitive benchmarking, priority re-evaluation |
+| Free | $0 | Browse the full directory, read all scores, 100 API calls/day |
+| Package Monitoring | $3/month per package | Score change notifications, score history, monthly mini-report, 200 API calls/day |
+| Package Evaluation Report | $99 one-time | Full score breakdown, improvement recommendations, competitive positioning |
+| Certified Agent-Ready | Coming later | Independent certification badge, priority re-evaluation, embeddable widget |
 
-All pricing is monthly, cancel anytime. The directory is free forever — Assay's business model doesn't depend on paywalling the ratings.
+The directory is free forever — Assay's business model doesn't depend on paywalling the ratings.
 
 ---
 

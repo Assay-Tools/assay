@@ -41,17 +41,51 @@ These authorities will expand as trust and revenue grow.
 
 ## Revenue Streams
 
-### 1. Platform Subscriptions
+### 1. Platform Access
 
-Recurring revenue from platform access tiers.
+#### Free Tier — $0
 
-| Tier | Price | Audience | What They Get |
-|------|-------|----------|---------------|
-| **Free** | $0 | Everyone | Browse full directory, read all scores, basic API access |
-| **API Pro** | $49/mo | Agent developers, operators | 5,000 API queries/day, watchlists, webhooks, priority support |
-| **Certified Agent-Ready** | $299/mo | Software vendors | Independent certification badge, detailed score breakdown, competitive benchmarking, priority re-evaluation |
+For agents and humans exploring the agentic software landscape.
 
-**Rationale**: Free tier builds trust and distribution. The directory is the trust engine — paywalling it would undermine credibility. Paid tiers serve users who need higher throughput (API Pro) or third-party validation (Certified).
+- Browse full directory, read all scores, search and filter
+- API access: **100 calls/day** (enough for personal use, not enough to scrape)
+- MCP server access (same rate limit)
+- Web UI with no restrictions
+
+**Rationale**: The directory is the trust engine. Paywalling it would undermine credibility. Rate limits prevent abuse while keeping the platform open to everyone.
+
+#### Package Monitoring (Pro) — $3/month per package
+
+For package owners, developers, and maintainers who want to stay on top of their scores.
+
+- **Score change notifications** — email alert when your package's AF Score changes, with explanation of what changed and why
+- **Score history tracking** — trend data showing how your score has moved over time
+- **Monthly mini-report** — automated summary of your package's standing in its category
+- **Additional API headroom** — 200 calls/day (vs 100 free)
+- **Per-package pricing** — pay only for the packages you care about
+
+**Pricing rationale**: $3/mo is a slam dunk. One package = cost of a coffee. A maintainer with 10 packages = $30/mo, still very reasonable. Low friction to start, scales naturally with the customer's footprint, and every subscriber directly supports the platform.
+
+**Examples**:
+- Solo dev with 1 MCP server: $3/mo
+- Small shop with 5 packages: $15/mo
+- Active maintainer with 15 packages: $45/mo
+
+#### Certified Agent-Ready — $299/month (Future, not built yet)
+
+For organizations that want third-party validation of their agent-readiness.
+
+- Embeddable verified score widget for their own docs/site
+- Unlimited priority re-evaluations (every release gets re-scored)
+- Monthly competitive category report
+- Improvement consulting (agent-generated, prioritized roadmap)
+- Featured placement in Assay directory
+- Use of "Certified Agent-Ready" mark in marketing materials
+- Score API endpoint for displaying their score dynamically
+
+**Status**: Deferred to Q3/Q4 2026. The badge only has value once Assay has enough brand recognition that certification means something. Build the brand first with free content and $99 reports, then activate this tier.
+
+**Rationale**: Free tier builds trust and distribution. Pro tier generates sustainable recurring revenue at low friction. Certified tier is a future premium offering that requires brand equity to justify.
 
 ### 2. Knowledge Products — Package Evaluation Reports
 
@@ -67,7 +101,7 @@ One-time revenue from detailed, actionable reports delivered to package owners/m
 - Agent-generated, human-reviewed before delivery
 - Marginal cost is near zero (data exists, report generation is agentic)
 
-**Upsell path**: Report recipients who improve their scores may want the $299/mo Certified badge to advertise it.
+**Upsell path**: Report recipients become natural candidates for $3/mo monitoring (track their improvements) and eventually Certified ($299/mo) once that tier launches.
 
 ### 3. Knowledge Products — Quarterly Ecosystem Reports
 
@@ -101,7 +135,7 @@ Free knowledge products that build authority and drive awareness.
 1. **Lead source**: Assay's own evaluation database (2,456+ evaluated packages)
 2. **Warm outreach**: Email package maintainers with a teaser — "We evaluated [package]. Here's your AF Score: [X/100]. Want the full breakdown with improvement recommendations?"
 3. **Delivery**: Agent-generated report, AJ reviews, delivered via email as PDF
-4. **Upsell**: After improvements, offer Certified Agent-Ready ($299/mo) for ongoing badge
+4. **Upsell**: Offer $3/mo monitoring to track improvements over time
 
 ### Quarterly Report — Lead Gen Funnel
 
@@ -143,9 +177,9 @@ Focus outreach on packages that are:
 
 ### Break-Even Targets
 
-- **Current costs ($23/mo)**: 1 report sale every ~4 months
-- **With Claude Max ($223/mo)**: 3 report sales/month or 5 API Pro subscribers
-- **Comfortable operating margin ($500/mo revenue)**: 5 reports + 1-2 subscriptions
+- **Current costs ($23/mo)**: 1 report sale every ~4 months, or 8 monitored packages
+- **With Claude Max ($223/mo)**: 3 reports/month, or 2 reports + 25 monitored packages
+- **Comfortable operating margin ($500/mo revenue)**: 4 reports + 30 monitored packages
 
 ---
 
@@ -184,12 +218,13 @@ Focus outreach on packages that are:
 
 **Q2 2026**:
 - Payment processing (Stripe)
-- API Pro tier activation
-- Certified Agent-Ready tier activation
+- Package Monitoring (Pro) tier activation ($3/mo per package)
 - Automated re-evaluation pipeline
 - Second quarterly report
+- Scale prospecting based on Q1 learnings
 
 **Q3+ 2026**:
+- Certified Agent-Ready tier activation (requires brand equity)
 - Community contributions (distributed evaluation network)
 - CLI tool
-- Scale prospecting based on Q1-Q2 learnings
+- API rate limiting infrastructure
