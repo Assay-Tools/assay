@@ -1,28 +1,28 @@
 {
   "id": "watchdog-python-api",
-  "name": "Watchdog (Python)",
-  "version_evaluated": "4.0+",
+  "name": "watchdog",
+  "version_evaluated": "4.x",
   "homepage": "https://python-watchdog.readthedocs.io/",
   "repo_url": "https://github.com/gorakhargosh/watchdog",
   "category": "developer-tools",
-  "subcategories": ["file-watching", "event-driven", "python"],
-  "tags": ["file-watching", "inotify", "fsevents", "kqueue", "python", "event-driven", "hot-reload", "automation"],
-  "what_it_does": "Cross-platform Python library for monitoring filesystem events — file creation, modification, deletion, and directory changes. Uses native OS APIs (inotify on Linux, FSEvents on macOS, ReadDirectoryChangesW on Windows) with polling fallback for network filesystems. Used for hot-reload dev servers, file-triggered pipelines, and watch-based automation.",
+  "subcategories": ["utilities", "python", "filesystem", "monitoring"],
+  "tags": ["python", "watchdog", "filesystem", "watch", "events", "inotify", "FSEvents", "hot-reload"],
+  "what_it_does": "Filesystem events monitoring library — watches directories for file creation, modification, deletion, and movement. watchdog features: Observer thread for non-blocking monitoring, FileSystemEventHandler base class, on_created/on_modified/on_deleted/on_moved event handlers, PatternMatchingEventHandler for glob-based filtering, LoggingEventHandler for debug output, recursive= flag for deep directory watching, platform-native backends (inotify on Linux, FSEvents on macOS, ReadDirectoryChangesW on Windows), and fallback polling backend. Used for hot-reload, live compilation, and file synchronization.",
   "use_cases": [
-    "Trigger agent workflows when new files arrive in a watched directory — process uploads, outputs, or data drops automatically",
-    "Build file-based event pipelines where agent actions are triggered by file system changes (new model checkpoints, data exports)",
-    "Implement hot-reload functionality in agent development environments that restart or reload configs when source files change",
-    "Monitor agent output directories and trigger downstream processing steps when output files are written",
-    "Watch configuration files for changes and apply live config updates to long-running agent processes without restart"
+    "Agent filesystem watch — from watchdog.observers import Observer; from watchdog.events import FileSystemEventHandler; class Handler(FileSystemEventHandler): def on_modified(self, event): if not event.is_directory: process_file(event.src_path); observer = Observer(); observer.schedule(Handler(), path='/watch/dir', recursive=True); observer.start() — non-blocking watch; agent monitors directory for changes in background thread",
+    "Agent pattern filtering — from watchdog.events import PatternMatchingEventHandler; handler = PatternMatchingEventHandler(patterns=['*.py', '*.json'], ignore_patterns=['*.pyc'], ignore_directories=True, case_sensitive=False); observer.schedule(handler, '/src', recursive=True) — filtered watch; agent responds only to specific file types; patterns use fnmatch glob syntax",
+    "Agent hot reload — handler = MyHandler(); observer = Observer(); observer.schedule(handler, '.', recursive=True); observer.start(); try: while True: time.sleep(1) except KeyboardInterrupt: observer.stop(); observer.join() — hot reload loop; agent watches for changes and reloads configuration or reprocesses files; main thread sleeps while observer thread fires events",
+    "Agent event details — def on_created(self, event): path = event.src_path; is_dir = event.is_directory; print(f'Created: {path}'); def on_moved(self, event): print(f'Moved: {event.src_path} -> {event.dest_path') — event attributes; agent accesses event.src_path for all events; on_moved provides both src_path and dest_path",
+    "Agent file stabilization — class StableHandler(FileSystemEventHandler): def on_modified(self, event): time.sleep(0.1); size1 = os.path.getsize(event.src_path); time.sleep(0.1); size2 = os.path.getsize(event.src_path); if size1 == size2: process(event.src_path) — stability check; agent waits for file to stop changing before processing; prevents partial file reads during large file writes"
   ],
   "not_for": [
-    "Distributed file system monitoring across multiple hosts — Watchdog monitors local filesystem only; use S3 event notifications or cloud storage triggers for distributed monitoring",
-    "High-frequency file changes at scale — many rapid changes can overwhelm the event queue; debounce events for high-frequency write scenarios",
-    "Network filesystems without polling — inotify/FSEvents don't work on NFS/SMB; use polling observer for network mounts"
+    "High-frequency event processing — watchdog may miss events during heavy IO; for reliable event processing use OS-native APIs directly",
+    "Network filesystem watching — NFS/CIFS don't support inotify; watchdog falls back to polling with high latency",
+    "Windows service file watching — watchdog observer is a thread not service; for Windows service use win32file directly"
   ],
-  "best_when": "You need cross-platform filesystem event monitoring in Python for local files — triggering actions on file changes without polling loops.",
-  "avoid_when": "You're watching network-mounted filesystems or need distributed file event streaming — use cloud storage event notifications instead.",
-  "alternatives": ["inotify-tools-api", "s3-event-notifications-api"],
+  "best_when": "Local filesystem monitoring for hot-reload, live compilation, and file sync — watchdog provides cross-platform native filesystem events with clean Python API.",
+  "avoid_when": "Network filesystems (use polling with explicit scheduling), extremely high-frequency events (use OS APIs), or when event ordering guarantees are required.",
+  "alternatives": ["watchfiles-python-api"],
   "interface": {
     "has_rest_api": false,
     "has_graphql": false,
@@ -38,28 +38,28 @@
     "methods": ["none"],
     "oauth": false,
     "scopes": false,
-    "notes": "No authentication — local Python library. Uses OS filesystem permissions for access control."
+    "notes": "No auth — filesystem monitoring library. Filesystem permissions control what can be watched."
   },
   "pricing": {
     "model": "open_source",
     "free_tier_exists": true,
-    "free_tier_limits": "Completely free, Apache 2.0 license",
+    "free_tier_limits": "Completely free, Apache 2.0 licensed",
     "paid_tiers": "None",
     "requires_credit_card": false,
-    "notes": "Watchdog is open source and free."
+    "notes": "watchdog is Apache 2.0 licensed. Free for all use."
   },
   "performance": {
-    "latency_p50_ms": 50,
-    "latency_p99_ms": 500,
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
     "uptime_sla_percent": null,
-    "rate_limits": "No rate limits — local execution. inotify queue size limits apply on Linux (default 8192 events).",
+    "rate_limits": "No rate limits. Performance: inotify/FSEvents: event latency <10ms for native backends. Polling fallback: checks every 1 second by default. Event handler runs in observer thread — expensive handlers block event queue; offload processing to separate thread or queue.",
     "data_source": "llm_estimated"
   },
   "requirements": {
     "requires_signup": false,
     "requires_credit_card": false,
     "domain_verification": false,
-    "data_residency": ["local"],
+    "data_residency": ["self-hosted"],
     "compliance": [],
     "min_contract": "none"
   },
@@ -68,39 +68,39 @@
     "mcp_security_score": null,
     "documentation_accuracy": 82,
     "error_message_quality": 75,
-    "error_message_notes": "Observer thread exceptions are silently swallowed by default — must subclass or set unhandled_exception_handler to surface errors from event handlers.",
+    "error_message_notes": "OSError if watched directory deleted. PermissionError if insufficient filesystem permissions. Observer thread exceptions logged but don't crash main thread — add error handling in event handlers.",
     "idempotency_support": "partial",
-    "idempotency_notes": "File system events are not idempotent — the same file modification produces a single event. Agents must handle event deduplication if the same file is processed multiple times across restarts.",
+    "idempotency_notes": "Observer.schedule() can be called multiple times. observer.start() raises RuntimeError if already started. observer.stop() + join() required for clean shutdown.",
     "pagination_style": "none",
     "retry_guidance_documented": false,
     "known_agent_gotchas": [
-      "FileCreatedEvent may fire before the file is fully written — use a small delay or watch for FileModifiedEvent to ensure file is complete before processing",
-      "On macOS with FSEvents, events are delivered in batches every ~1s — not true real-time; use polling observer for lower latency on macOS",
-      "inotify watch limits on Linux default to 8192 — monitoring deep directory trees can exhaust watches; increase fs.inotify.max_user_watches in /proc/sys/fs/inotify",
-      "ObservedWatch paths must exist at observer start time — watching a directory that doesn't exist yet requires polling or creating the directory first",
-      "Recursive=True on Windows uses polling for subdirectories > 2 levels deep and can miss events for deeply nested structures",
-      "Event handler exceptions crash the observer thread silently — always wrap handler logic in try/except and log errors to prevent silent failures"
+      "Event handler runs in observer thread — FileSystemEventHandler.on_modified() runs in watchdog's observer thread not main thread; agent code: event handlers must be thread-safe; avoid shared mutable state without locks; for long processing: put event in queue.Queue() and process in main thread; blocking handler blocks all subsequent events",
+      "Duplicate events are common — a single file save generates multiple events (modified, modified again for metadata); editor atomic saves: delete + create; agent code: debounce events with a timer: use threading.Timer or track last-processed timestamp; for editors: on_created may be more reliable than on_modified for 'file saved' semantics",
+      "observer.stop() must be followed by observer.join() — observer.stop() signals the thread to stop; observer.join() waits for thread to actually exit; agent code without join() may have the observer thread still running after script exit; always: observer.stop(); observer.join() — typically in finally block or signal handler",
+      "recursive=True watches ALL subdirectories — observer.schedule(handler, '/', recursive=True) watches entire filesystem; on Linux with inotify: inotify watch limit may be hit (sysctl fs.inotify.max_user_watches); agent code on large directories: increase limit or use non-recursive with specific subdirs; event.is_directory to filter directory events",
+      "File deletion events may have stale paths — on_deleted event.src_path refers to deleted file; os.path.exists(event.src_path) is False; agent code processing deletions: use path string directly for logging or cleanup; do not attempt to read file content on deletion event",
+      "macOS FSEvents may batch events — macOS can batch multiple events and deliver at once; on_modified may fire after multiple changes; agent code expecting real-time single-event delivery: add small sleep in event handler before processing to let file settle; or use kqueue-based observer for lower latency"
     ]
   },
   "af_score_components": {
     "mcp_score": 0,
     "api_doc_score": 82,
-    "error_handling_score": 72,
-    "auth_complexity_score": 100,
-    "rate_limit_clarity_score": 100
+    "error_handling_score": 75,
+    "auth_complexity_score": 99,
+    "rate_limit_clarity_score": 99
   },
   "security_score_components": {
-    "tls_enforcement": 100,
-    "auth_strength": 100,
-    "scope_granularity": 100,
-    "dependency_hygiene": 85,
-    "secret_handling": 88,
-    "security_notes": "Local filesystem only. Event handlers in agent pipelines should validate file paths to prevent path traversal if watch directories are user-controllable."
+    "tls_enforcement": 90,
+    "auth_strength": 90,
+    "scope_granularity": 88,
+    "dependency_hygiene": 88,
+    "secret_handling": 90,
+    "security_notes": "Filesystem monitoring — operates with process permissions. Watching directories containing secrets: event handlers receive file paths (not contents); reading file content in handler uses normal file I/O permissions. Symlink traversal: recursive=True follows symlinks — could escape intended directory; validate event.src_path is within watched root before processing."
   },
   "reliability_score_components": {
-    "uptime_documented": 100,
+    "uptime_documented": 80,
     "version_stability": 80,
     "breaking_changes_history": 78,
-    "error_recovery": 72
+    "error_recovery": 78
   }
 }

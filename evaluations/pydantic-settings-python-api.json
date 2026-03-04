@@ -1,0 +1,106 @@
+{
+  "id": "pydantic-settings-python-api",
+  "name": "pydantic-settings",
+  "version_evaluated": "2.x",
+  "homepage": "https://docs.pydantic.dev/latest/concepts/pydantic_settings/",
+  "repo_url": "https://github.com/pydantic/pydantic-settings",
+  "category": "developer-tools",
+  "subcategories": ["configuration", "python", "settings", "validation"],
+  "tags": ["python", "pydantic", "settings", "configuration", "environment", "validation", "type-safe"],
+  "what_it_does": "Type-safe settings management with Pydantic — loads configuration from environment variables, .env files, secrets files, and custom sources with automatic type coercion and validation. pydantic-settings features: BaseSettings subclass for defining settings schema, automatic env var loading, case-insensitive env var matching, nested model support (model_config SettingsConfigDict), env_prefix for namespacing, secrets_dir for Docker secrets, JSON field support in env vars, .env file loading via dotenv, custom settings sources (YAML, TOML, remote), model_validator for cross-field validation, and computed_field for derived settings.",
+  "use_cases": [
+    "Agent settings class — from pydantic_settings import BaseSettings; class Settings(BaseSettings): api_key: str; db_url: str; port: int = 8080; debug: bool = False; model_config = SettingsConfigDict(env_file='.env'); settings = Settings() — typed settings; agent defines settings schema; pydantic validates and coerces env vars; API_KEY env var maps to api_key field",
+    "Agent nested config — class DatabaseSettings(BaseSettings): host: str = 'localhost'; port: int = 5432; class Settings(BaseSettings): db: DatabaseSettings = DatabaseSettings(); settings = Settings() — nested; agent loads DB_HOST and DB_PORT env vars via nested model; env var prefix follows model nesting",
+    "Agent env prefix — class Settings(BaseSettings): key: str; model_config = SettingsConfigDict(env_prefix='MYAPP_'); settings = Settings() — MYAPP_KEY=value loads key; agent namespaces settings to avoid env var collisions; env_prefix applies to all fields; nested models add further prefix",
+    "Agent secrets directory — class Settings(BaseSettings): db_password: SecretStr; model_config = SettingsConfigDict(secrets_dir='/run/secrets'); settings = Settings() — Docker secrets; agent reads /run/secrets/db_password file as password value; SecretStr prevents password appearing in logs/repr; ideal for Docker/Kubernetes deployments",
+    "Agent computed settings — from pydantic import computed_field; class Settings(BaseSettings): host: str = 'localhost'; port: int = 5432; @computed_field; @property; def db_url(self) -> str: return f'postgresql://{self.host}:{self.port}/db' — derived; agent computes settings from other settings; computed_field not set from env; derived from validated base values"
+  ],
+  "not_for": [
+    "Dynamic config changes at runtime — pydantic-settings loads once at startup; for hot-reload config use watchdog + re-instantiation",
+    "Non-Pydantic projects — significant dependency; for simple .env loading use python-dotenv",
+    "Complex multi-environment merging — pydantic-settings is single-source per class; for complex environment layering use dynaconf"
+  ],
+  "best_when": "FastAPI/Pydantic projects needing type-safe environment configuration — pydantic-settings is the standard settings approach for Pydantic v2 projects with validation and type coercion.",
+  "avoid_when": "Simple .env loading without validation (use python-dotenv), complex multi-environment config (use dynaconf), or non-Pydantic projects.",
+  "alternatives": ["python-dotenv-python-api", "dynaconf-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — settings management library."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "pydantic-settings is MIT licensed. Part of Pydantic ecosystem. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Performance: Settings() instantiated once at startup — validation happens once. Use @lru_cache: from functools import lru_cache; @lru_cache; def get_settings(): return Settings() — prevents re-reading env on every call.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 90,
+    "error_message_quality": 90,
+    "error_message_notes": "ValidationError with field names and detailed error messages for type mismatches. Missing required field raises ValidationError listing the field name. Pydantic v2 errors include input value and expected type.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Settings() is deterministic for same environment. @lru_cache makes it singleton. Validation is pure and reproducible.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Field names are case-insensitive by default — class Settings: API_KEY: str and API_KEY=value env var works; also api_key=value works; env var lookup is case-insensitive; agent code: define fields in snake_case; pydantic-settings maps MY_API_KEY env var to my_api_key field by default; control with case_sensitive=True in SettingsConfigDict",
+      "env_file does not override existing env vars — when both .env file and os.environ have a value, os.environ wins; agent code: this matches 12-factor: environment always wins over file; for testing: patch os.environ or use dotenv_settings_source directly; env_ignore_empty=True skips empty env vars",
+      "Nested models need env var prefix — class Settings: db: DatabaseSettings; DB_HOST env var maps to db.host only if env_nested_delimiter='__' set: model_config = SettingsConfigDict(env_nested_delimiter='__'); without delimiter, nested models only load from their own defaults; agent code: set env_nested_delimiter for nested env var support",
+      "SecretStr fields hide values in repr — settings.db_password returns SecretStr('**********'); to get actual value: settings.db_password.get_secret_value(); agent code: never log settings object directly if it contains SecretStr — repr is safe but get_secret_value() result is not; use SecretStr for all passwords and API keys",
+      "Settings should be singleton — creating Settings() multiple times re-reads environment; in FastAPI: from functools import lru_cache; @lru_cache(); def get_settings() -> Settings: return Settings(); use Depends(get_settings) for DI; agent code: never instantiate Settings() per request; one instance per process",
+      "Pydantic-settings v2 import changed — pydantic v1 used from pydantic import BaseSettings; pydantic v2 moved to from pydantic_settings import BaseSettings; agent code migrating from v1: pip install pydantic-settings and update import; SettingsConfigDict replaces class Config in model_config field"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 90,
+    "error_handling_score": 90,
+    "auth_complexity_score": 99,
+    "rate_limit_clarity_score": 99
+  },
+  "security_score_components": {
+    "tls_enforcement": 90,
+    "auth_strength": 90,
+    "scope_granularity": 90,
+    "dependency_hygiene": 92,
+    "secret_handling": 90,
+    "security_notes": "SecretStr type prevents accidental logging of secrets. Secrets directory for Docker secrets is secure. Validation ensures type safety before use. Do not commit .env files with real values to git. Use secrets_dir for container deployments instead of environment variables when possible."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 90,
+    "version_stability": 88,
+    "breaking_changes_history": 85,
+    "error_recovery": 90
+  }
+}
