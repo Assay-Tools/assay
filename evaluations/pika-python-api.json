@@ -1,0 +1,106 @@
+{
+  "id": "pika-python-api",
+  "name": "pika",
+  "version_evaluated": "1.3.x",
+  "homepage": "https://pika.readthedocs.io/",
+  "repo_url": "https://github.com/pika/pika",
+  "category": "developer-tools",
+  "subcategories": ["messaging", "python", "RabbitMQ", "AMQP"],
+  "tags": ["python", "pika", "RabbitMQ", "AMQP", "messaging", "queue", "publish", "consume"],
+  "what_it_does": "Pure Python RabbitMQ client library — AMQP 0-9-1 implementation for connecting to RabbitMQ. pika features: BlockingConnection for synchronous use, SelectConnection for async event-driven use, AsyncioConnection for asyncio, channel.basic_publish() for sending messages, channel.basic_consume() with callback for receiving, channel.queue_declare() with durable=True, channel.exchange_declare() for fanout/direct/topic exchanges, channel.queue_bind() for routing, basic_ack/nack/reject for message acknowledgment, prefetch_count for QoS, heartbeat_interval, SSL/TLS support, and connection parameters with credentials.",
+  "use_cases": [
+    "Agent publish message — import pika; params = pika.ConnectionParameters('localhost', credentials=pika.PlainCredentials('user', 'pass')); conn = pika.BlockingConnection(params); channel = conn.channel(); channel.queue_declare(queue='tasks', durable=True); channel.basic_publish(exchange='', routing_key='tasks', body=json.dumps(data), properties=pika.BasicProperties(delivery_mode=2)); conn.close() — publish; agent sends durable message to queue; delivery_mode=2 persists to disk",
+    "Agent consume messages — def callback(ch, method, props, body): process(json.loads(body)); ch.basic_ack(delivery_tag=method.delivery_tag); channel.basic_qos(prefetch_count=1); channel.basic_consume(queue='tasks', on_message_callback=callback); channel.start_consuming() — consumer; agent processes messages one at a time; ack after successful processing; nack on failure",
+    "Agent exchange fanout — channel.exchange_declare(exchange='notifications', exchange_type='fanout'); result = channel.queue_declare(queue='', exclusive=True); channel.queue_bind(exchange='notifications', queue=result.method.queue) — pub/sub; agent receives all messages published to exchange; exclusive queue deleted when consumer disconnects; fanout broadcasts to all bindings",
+    "Agent topic routing — channel.exchange_declare(exchange='events', exchange_type='topic'); channel.queue_bind(exchange='events', queue='errors', routing_key='*.error.*'); channel.basic_publish(exchange='events', routing_key='app.error.critical', body=message) — topic; agent routes by pattern; * matches one word; # matches zero or more; 'app.error.*' matches 'app.error.critical'",
+    "Agent asyncio consumer — import asyncio; from aio_pika import connect_robust; async def main(): conn = await connect_robust('amqp://user:pass@localhost/'); async with conn: channel = await conn.channel(); queue = await channel.declare_queue('tasks', durable=True); async for message in queue: async with message.process(): process(message.body) — note: uses aio-pika not pika directly for asyncio"
+  ],
+  "not_for": [
+    "High-throughput async publishing — pika BlockingConnection is synchronous; for high-throughput async use aio-pika or kombu",
+    "Redis-based queues — pika is AMQP/RabbitMQ only; for Redis queues use RQ or redis-py directly",
+    "Celery broker abstraction — Celery abstracts the broker; use Celery when you want broker-agnostic task queues"
+  ],
+  "best_when": "Direct RabbitMQ integration requiring AMQP features — exchanges, routing keys, pub/sub — that higher-level abstractions like Celery don't expose.",
+  "avoid_when": "Async applications (use aio-pika), broker abstraction (use Celery/Dramatiq), Redis queues (use RQ), or when you don't need RabbitMQ-specific features.",
+  "alternatives": ["celery-python-api", "dramatiq-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["api_key"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "AMQP PlainCredentials with username/password. TLS/SSL for encrypted connections. RabbitMQ vhost for multi-tenancy."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, BSD licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "pika is BSD 3-Clause licensed. Free for all use. RabbitMQ server itself is open-source."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits (RabbitMQ server limits apply). Performance: BlockingConnection: ~1000 msg/s publish. prefetch_count=1 ensures at-most-once in-flight per consumer. For high throughput: multiple channels or aio-pika with asyncio.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 82,
+    "error_message_quality": 78,
+    "error_message_notes": "AMQPConnectionError on connection failure. ChannelClosedByBroker when queue/exchange operations fail (wrong parameters). pika.exceptions.* for various AMQP errors. Connection errors may be silent until next operation.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "queue_declare with same parameters is idempotent (passive=True checks existence). basic_publish is not idempotent — sends duplicate messages on retry. Use message deduplication in consumer for exactly-once semantics.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "BlockingConnection is not thread-safe — pika.BlockingConnection and its channels cannot be shared between threads; agent code with multiple publishing threads: create separate connection per thread; or use SelectConnection with thread-safe method queue: connection.add_callback_threadsafe(); never share channel between threads",
+      "Always ack or nack every message — basic_consume without basic_ack causes messages to pile up in 'Unacked' state; RabbitMQ re-delivers on disconnect; agent code: always ack after successful processing: ch.basic_ack(delivery_tag=method.delivery_tag); nack with requeue=False to dead-letter; nack with requeue=True for retry",
+      "durable queue + persistent message for reliability — channel.queue_declare(durable=True) survives RabbitMQ restart; but message must also have delivery_mode=2: BasicProperties(delivery_mode=2); agent code: both queue AND message must be durable for true persistence; durable queue with non-persistent message loses messages on restart",
+      "Heartbeat timeout causes silent disconnect — default heartbeat=600 seconds; if consumer blocks for >600s (slow processing), connection drops silently; agent code: set heartbeat=0 to disable (not recommended) or heartbeat=3600 for long tasks; or acknowledge before processing and use separate thread for processing",
+      "prefetch_count=1 for fair dispatch — channel.basic_qos(prefetch_count=1) limits consumer to 1 unacked message at a time; without QoS: RabbitMQ round-robins — fast workers get same count as slow; agent code with multiple consumers: always set prefetch_count=1 before consuming for fair load distribution",
+      "Connection parameters require explicit host — pika.ConnectionParameters() defaults to localhost:5672; agent code: always explicit: pika.ConnectionParameters(host='rabbitmq', port=5672, virtual_host='/', credentials=pika.PlainCredentials('user', 'pass'), heartbeat=600, blocked_connection_timeout=300); URLParameters alternative: pika.URLParameters('amqp://user:pass@host:5672/')"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 82,
+    "error_handling_score": 78,
+    "auth_complexity_score": 90,
+    "rate_limit_clarity_score": 92
+  },
+  "security_score_components": {
+    "tls_enforcement": 82,
+    "auth_strength": 85,
+    "scope_granularity": 80,
+    "dependency_hygiene": 88,
+    "secret_handling": 82,
+    "security_notes": "AMQP credentials transmitted in plaintext without TLS. Use SSL: pika.SSLOptions with ssl.create_default_context() for encrypted connection. Credentials in connection string visible in ps output and logs — use environment variables. RabbitMQ vhosts provide tenant isolation. Message body is not encrypted by default — encrypt sensitive payload before publishing."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 80,
+    "version_stability": 80,
+    "breaking_changes_history": 80,
+    "error_recovery": 78
+  }
+}

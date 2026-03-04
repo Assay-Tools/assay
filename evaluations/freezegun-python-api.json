@@ -1,0 +1,106 @@
+{
+  "id": "freezegun-python-api",
+  "name": "freezegun",
+  "version_evaluated": "1.x",
+  "homepage": "https://github.com/spulec/freezegun",
+  "repo_url": "https://github.com/spulec/freezegun",
+  "category": "developer-tools",
+  "subcategories": ["testing", "python", "datetime", "mocking"],
+  "tags": ["python", "freezegun", "testing", "mock", "datetime", "time", "freeze"],
+  "what_it_does": "Mock the Python datetime module for testing — freeze time at a specific point or control time flow in tests. freezegun features: @freeze_time('2024-01-15') decorator, freeze_time() context manager, freeze_time as class decorator, tick=True for real-time passing, auto_tick_seconds for controlled time flow, move_to() to jump to specific time, freeze_time with timedelta for relative times, patches datetime.datetime, datetime.date, time.time, time.localtime, time.gmtime, time.strftime, calendar.timegm, and uuid1() (time-based UUIDs). Works transparently with all Python datetime usage.",
+  "use_cases": [
+    "Agent test with frozen time — from freezegun import freeze_time; @freeze_time('2024-01-15 12:00:00'); def test_deadline_check(): result = is_overdue(deadline='2024-01-01'); assert result is True — frozen; agent tests time-dependent functions; datetime.now() returns frozen time; test is deterministic regardless of when run",
+    "Agent context manager — from freezegun import freeze_time; def test_expiry(): with freeze_time('2024-06-01'): token = generate_token(expires_in=3600); assert token.is_valid() is True; with freeze_time('2024-06-01 01:30:00'): assert token.is_valid() is False — time travel; agent tests token expiry by jumping to different times",
+    "Agent tick mode — with freeze_time('2024-01-15', tick=True): start = time.time(); time.sleep(0.1); elapsed = time.time() - start; assert 0.09 < elapsed < 0.15 — ticking; agent tests real elapsed time while starting from known base time; tick=True makes time flow normally from the frozen start",
+    "Agent auto-tick — with freeze_time('2024-01-15', auto_tick_seconds=10): t1 = datetime.now(); time.sleep(0); t2 = datetime.now(); delta = t2 - t1; assert delta.seconds == 10 — fast time; agent makes time advance fast for testing timeout/retry logic without real sleeps",
+    "Agent class decorator — @freeze_time('2024-01-15'); class TestBilling(TestCase): def test_monthly_charge(self): charge = calculate_monthly(start='2024-01-01'); assert charge.days == 14 — class-level freeze; agent applies frozen time to all test methods in class; each method sees same frozen time"
+  ],
+  "not_for": [
+    "Non-datetime timing — freezegun patches Python datetime only; OS-level timing (subprocess, asyncio.sleep wall clock) not affected",
+    "Performance benchmarking — freezegun patches time functions globally; causes overhead in tests; for benchmarking use actual time",
+    "Async sleep mocking — freezegun does not affect asyncio.sleep duration; for async time control use pytest-anyio or trio.testing.MockClock"
+  ],
+  "best_when": "Testing time-dependent Python code — freezegun is the standard library for mocking datetime in pytest and unittest tests.",
+  "avoid_when": "Async sleep duration control (use MockClock), OS-level timing, performance benchmarks, or non-Python datetime code.",
+  "alternatives": [],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — test utility library."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, Apache 2.0 licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "freezegun is Apache 2.0 licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Performance: freezegun patches datetime globally — small overhead per datetime call in tests. Not suitable for production use. Test-only library.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 78,
+    "error_message_notes": "TypeError for invalid date strings. Frozen time silently applies — no confirmation. Errors in patched functions may show confusing tracebacks. Generally well-behaved with pytest.",
+    "idempotency_support": "full",
+    "idempotency_notes": "freeze_time patches and unpatches cleanly. Context manager and decorator both properly restore original time functions on exit.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "freezegun does NOT freeze asyncio.sleep — async def test(): with freeze_time('2024-01-15'): await asyncio.sleep(60) — sleep still takes 60 real seconds; agent code testing async timeouts: use anyio.from_thread.run_sync() or trio.testing.MockClock; freezegun patches synchronous time only",
+      "C extensions may bypass freezegun — time.time() implemented in C is patched; but some C libraries (e.g., psutil) call OS time directly and bypass patches; agent code: freezegun works for pure Python and most stdlib; verify each library being tested actually uses patched datetime",
+      "freeze_time string format matters — '2024-01-15' is date only (time defaults to midnight); '2024-01-15 14:30:00' for specific time; '2024-01-15T14:30:00+00:00' for UTC; agent code: use full ISO 8601 with time component for precision; date-only freeze sets time to 00:00:00",
+      "Timezone-aware frozen time — freeze_time('2024-01-15') freezes to naive local time; for UTC freeze: freeze_time('2024-01-15 14:30:00+00:00') or freeze_time(datetime(2024,1,15, tzinfo=timezone.utc)); agent code testing timezone logic: be explicit about timezone in freeze_time argument",
+      "move_to() requires existing freeze context — freeze_time.move_to('2024-02-01') only works inside existing freeze_time context; cannot move time globally outside context; agent code: use with freeze_time('2024-01-01') as frozen: frozen.move_to('2024-02-01') — moves within context",
+      "freezegun patches at decoration time — @freeze_time('2024-01-15') applied to function patches when function is called; applying decorator to imported functions at module level may have unexpected interaction with module initialization code that runs at import; agent code: prefer context manager for complex setup scenarios"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 78,
+    "auth_complexity_score": 99,
+    "rate_limit_clarity_score": 99
+  },
+  "security_score_components": {
+    "tls_enforcement": 92,
+    "auth_strength": 92,
+    "scope_granularity": 92,
+    "dependency_hygiene": 92,
+    "secret_handling": 92,
+    "security_notes": "Test-only library. No network calls. Global patching of time functions: ensure freezegun is only in test dependencies (not production). Frozen time in production code would cause time-based security controls (token expiry, rate limiting) to malfunction."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 82,
+    "version_stability": 85,
+    "breaking_changes_history": 85,
+    "error_recovery": 82
+  }
+}

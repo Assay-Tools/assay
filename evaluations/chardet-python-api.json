@@ -5,24 +5,24 @@
   "homepage": "https://chardet.readthedocs.io/",
   "repo_url": "https://github.com/chardet/chardet",
   "category": "developer-tools",
-  "subcategories": ["python", "encoding", "text", "utilities"],
-  "tags": ["python", "encoding", "charset", "detection", "unicode", "text-processing", "i18n"],
-  "what_it_does": "Python library for automatically detecting the character encoding of byte strings. Uses statistical analysis to determine encoding (UTF-8, Latin-1, Windows-1252, Shift-JIS, etc.) from byte content. Essential for processing files or web content of unknown encoding. Returns encoding name and confidence score (0.0-1.0).",
+  "subcategories": ["utilities", "python", "encoding", "text"],
+  "tags": ["python", "chardet", "encoding", "charset", "detect", "unicode", "ASCII"],
+  "what_it_does": "Character encoding detection library for Python — detects encoding of byte strings using statistical analysis. chardet features: detect() for single-result detection with confidence score, UniversalDetector for streaming/incremental detection, supports 50+ encodings (UTF-8, Latin-1, Shift-JIS, GB2312, EUC-KR, Big5, ASCII, ISO-8859, Windows-1252, etc.), returns encoding name and confidence (0.0-1.0), and close() for finalizing detection. Used when reading files of unknown encoding from email, web scraping, or legacy systems.",
   "use_cases": [
-    "Detect encoding of uploaded files before decoding: chardet.detect(file_bytes) returns encoding and confidence",
-    "Process legacy CSV/text files from external systems with unknown or mixed encodings",
-    "Web scraping: detect encoding of HTTP response body when Content-Type header is missing or wrong",
-    "Convert byte streams to strings in data pipelines that receive files from diverse sources",
-    "Fallback encoding detection when HTTP charset header is absent for web content processing"
+    "Agent detect file encoding — import chardet; with open('unknown.txt', 'rb') as f: raw = f.read(); result = chardet.detect(raw); encoding = result['encoding']; confidence = result['confidence']; text = raw.decode(encoding) — detect; agent reads binary file and detects encoding; decode with detected encoding; check confidence before using",
+    "Agent streaming detection — from chardet import UniversalDetector; detector = UniversalDetector(); with open('large.txt', 'rb') as f: for line in f: detector.feed(line); if detector.done: break; detector.close(); result = detector.result — streaming; agent detects encoding without loading entire file; feed() until done=True",
+    "Agent web scraping encoding — import requests; import chardet; resp = requests.get(url); encoding = chardet.detect(resp.content)['encoding']; text = resp.content.decode(encoding or 'utf-8') — web; agent handles pages with wrong Content-Type charset declaration; detect actual encoding from bytes",
+    "Agent handle low confidence — result = chardet.detect(raw); if result['confidence'] < 0.7: try: text = raw.decode('utf-8') except UnicodeDecodeError: text = raw.decode('latin-1', errors='replace') — confidence check; agent uses fallback strategy for uncertain detection; latin-1 decodes any byte sequence",
+    "Agent multiple encodings — from charset_normalizer import from_bytes; results = from_bytes(raw).best(); text = str(results) — alternative; agent uses charset-normalizer (more accurate successor to chardet) for better detection; charset-normalizer is dependency of requests 2.26+"
   ],
   "not_for": [
-    "High-performance encoding detection — chardet is slow on large files; use charset-normalizer for better performance and accuracy",
-    "Binary file format detection (PDF, images) — chardet detects text encoding, not file types; use python-magic for file type detection",
-    "Production APIs with latency requirements — chardet analysis of large bytes can take significant time"
+    "Files with known encoding — if encoding is known (from HTTP headers, database), decode directly; chardet adds unnecessary overhead",
+    "Pure ASCII text — ASCII is always detected correctly; no need for chardet with English-only text",
+    "High-speed bulk processing — chardet uses statistical analysis; slow for bulk encoding detection; use charset-normalizer for accuracy or assume UTF-8 with error handling"
   ],
-  "best_when": "Processing text files of unknown encoding where you need to decode bytes to strings with fallback.",
-  "avoid_when": "Performance is critical — use charset-normalizer which is faster and more accurate for most cases.",
-  "alternatives": ["charset-normalizer-api", "cchardet-api"],
+  "best_when": "Detecting encoding of files or web content from unknown sources — chardet is the standard choice for handling legacy encodings when charset information is unavailable.",
+  "avoid_when": "Known encoding, ASCII-only text, high-speed bulk processing, or when charset-normalizer (more accurate) is already available via requests.",
+  "alternatives": [],
   "interface": {
     "has_rest_api": false,
     "has_graphql": false,
@@ -38,21 +38,21 @@
     "methods": ["none"],
     "oauth": false,
     "scopes": false,
-    "notes": "Pure Python library — no auth needed."
+    "notes": "No auth — encoding detection utility."
   },
   "pricing": {
     "model": "open_source",
     "free_tier_exists": true,
-    "free_tier_limits": "LGPL license — free for most use",
+    "free_tier_limits": "Completely free, LGPL licensed",
     "paid_tiers": "None",
     "requires_credit_card": false,
-    "notes": "LGPL licensed. Free for commercial use in most scenarios."
+    "notes": "chardet is LGPL 2.1 licensed. Free for all use."
   },
   "performance": {
     "latency_p50_ms": null,
     "latency_p99_ms": null,
     "uptime_sla_percent": null,
-    "rate_limits": "None — local library. Analysis speed depends on byte stream size.",
+    "rate_limits": "No rate limits. Performance: detect() on 100KB: ~10-50ms depending on encoding complexity. UniversalDetector streaming: faster for early termination. chardet is slower than charset-normalizer for the same task.",
     "data_source": "llm_estimated"
   },
   "requirements": {
@@ -66,41 +66,41 @@
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
-    "documentation_accuracy": 85,
-    "error_message_quality": 80,
-    "error_message_notes": "Returns None for encoding if confidence is too low. No exceptions for ambiguous inputs — always returns a result dict.",
+    "documentation_accuracy": 82,
+    "error_message_quality": 75,
+    "error_message_notes": "detect() returns None encoding when detection fails. Confidence 0.0 for empty input. No exceptions for normal usage. Agent must handle result['encoding'] being None.",
     "idempotency_support": "full",
-    "idempotency_notes": "Deterministic analysis — same input bytes always produce the same result.",
+    "idempotency_notes": "detect() is deterministic for same input. UniversalDetector is stateful — reset() to reuse. pure function after reset.",
     "pagination_style": "none",
     "retry_guidance_documented": false,
     "known_agent_gotchas": [
-      "chardet.detect() returns None for 'encoding' key when confidence is 0 or content is all ASCII — always check result['encoding'] is not None before decoding",
-      "Low confidence results (< 0.5) are unreliable — fallback to UTF-8 or Latin-1 when confidence is low",
-      "chardet is not thread-safe for the UniversalDetector class — create a new detector per thread for concurrent usage",
-      "charset-normalizer is installed with requests as a chardet alternative — if requests is installed, charset_normalizer.from_bytes() is available without chardet",
-      "chardet is slow on large files — pass only the first 10-50KB for performance: chardet.detect(file_bytes[:50000])",
-      "ASCII detection returns 'ascii' encoding — you can safely decode ASCII with UTF-8 since ASCII is a subset of UTF-8"
+      "result['encoding'] may be None — chardet.detect(b'') returns {'encoding': None, 'confidence': 0.0}; empty or too-short input fails detection; agent code: encoding = result['encoding'] or 'utf-8' — always provide fallback; also check result['confidence'] before trusting encoding",
+      "Confidence below 0.7 is unreliable — chardet.detect() confidence: 0.0=failed, 0.5-0.6=guess, 0.7-0.99=reliable; agent code: if confidence < 0.7: try multiple decodings or default to UTF-8; high confidence (>0.9) is trustworthy; medium confidence should have fallback",
+      "UTF-8 with BOM detected as UTF-8-SIG — files starting with 0xEF 0xBB 0xBF (UTF-8 BOM) detected as UTF-8-SIG; decoding with utf-8 raises UnicodeDecodeError; agent code: use detected encoding directly: raw.decode(result['encoding']) — UTF-8-SIG strips BOM automatically",
+      "chardet vs charset-normalizer — requests uses charset-normalizer not chardet since 2.26+; charset-normalizer is more accurate: from charset_normalizer import from_bytes; best = from_bytes(raw).best(); text = str(best); agent code for new projects: consider charset-normalizer as drop-in replacement with better accuracy",
+      "Input must be bytes not string — chardet.detect(text_string) where text_string is str raises TypeError; always pass bytes: chardet.detect(b'content'); when reading file: open in binary mode 'rb'; agent code: ensure input is bytes before calling detect()",
+      "Short strings give poor confidence — chardet.detect(b'Hello') — UTF-8 detected with 0.99 confidence (ASCII subset); chardet.detect(b'AB') — low confidence; agent code for encoding detection: need at least 100-1000 bytes for reliable detection; for very short strings: default to UTF-8; UniversalDetector needs more data than detect()"
     ]
   },
   "af_score_components": {
     "mcp_score": 0,
-    "api_doc_score": 85,
-    "error_handling_score": 80,
-    "auth_complexity_score": 100,
-    "rate_limit_clarity_score": 100
+    "api_doc_score": 82,
+    "error_handling_score": 75,
+    "auth_complexity_score": 99,
+    "rate_limit_clarity_score": 99
   },
   "security_score_components": {
-    "tls_enforcement": 100,
-    "auth_strength": 100,
-    "scope_granularity": 100,
-    "dependency_hygiene": 85,
-    "secret_handling": 90,
-    "security_notes": "Text encoding library — no network access. Ensure detected encoding is validated before using for security-sensitive decoding."
+    "tls_enforcement": 92,
+    "auth_strength": 92,
+    "scope_granularity": 92,
+    "dependency_hygiene": 90,
+    "secret_handling": 92,
+    "security_notes": "Pure detection library with no network calls. No security concerns in detection itself. Misdetected encoding may lead to incorrect text interpretation — validate decoded text when processing user data. latin-1 errors='replace' is safe fallback but may produce garbled text."
   },
   "reliability_score_components": {
-    "uptime_documented": 88,
-    "version_stability": 85,
-    "breaking_changes_history": 82,
-    "error_recovery": 88
+    "uptime_documented": 82,
+    "version_stability": 82,
+    "breaking_changes_history": 85,
+    "error_recovery": 82
   }
 }
