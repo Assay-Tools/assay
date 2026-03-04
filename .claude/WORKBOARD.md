@@ -50,9 +50,9 @@ Items ready to be claimed. Roughly priority-ordered.
 - [x] ~~**Linting pass** — moved to Completed~~
 
 ### Website Polish
-- [ ] **Staleness badge** — Visual indicator on package detail when last_evaluated > 90 days
-- [ ] **Score visualization** — Radar/spider charts for AF/Security/Reliability breakdown
-- [ ] **Display last_evaluated** — Surface evaluation date prominently in API responses and package detail
+- [x] ~~**Staleness badge** — moved to Completed~~
+- [x] ~~**Score visualization** — moved to Completed~~
+- [x] ~~**Display last_evaluated** — moved to Completed~~
 
 ### CLI
 - [ ] **CLI tool** — `assay check <pkg>`, `assay compare <a> <b>`, `assay stale --days 90`
@@ -80,3 +80,4 @@ Items ready to be claimed. Roughly priority-ordered.
 - [x] **Linting pass** — 64 violations fixed (25 auto-fix + 39 E501 line-length) (2026-03-04)
 - [x] **OpenAPI spec polish** — tag descriptions, endpoint docstrings, schema field descriptions, API metadata (2026-03-04)
 - [x] **API completeness** — score dimension filters, change feed endpoint, category leaderboards + 16 new tests (2026-03-04)
+- [x] **Website polish** — staleness badge, radar chart, prominent evaluation date (2026-03-04)
