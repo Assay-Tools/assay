@@ -1,0 +1,106 @@
+{
+  "id": "uvicorn-python-api",
+  "name": "uvicorn",
+  "version_evaluated": "0.29.x",
+  "homepage": "https://www.uvicorn.org/",
+  "repo_url": "https://github.com/encode/uvicorn",
+  "category": "developer-tools",
+  "subcategories": ["web-server", "asgi", "python", "async"],
+  "tags": ["python", "uvicorn", "asgi", "server", "fastapi", "starlette", "performance", "uvloop"],
+  "what_it_does": "Lightning-fast ASGI server for Python — production-grade async web server using uvloop and httptools. uvicorn features: HTTP/1.1 and HTTP/2, WebSocket support, worker processes (--workers N), hot reload (--reload for dev), SSL/TLS (--ssl-keyfile/--ssl-certfile), Unix socket support, graceful shutdown, access logging, --proxy-headers for reverse proxy, --root-path for sub-path deployment, --limit-concurrency for backpressure, programmatic startup via uvicorn.run() and Config, Gunicorn integration via UvicornWorker, and lifespan protocol support.",
+  "use_cases": [
+    "Agent FastAPI server — uvicorn main:app --host 0.0.0.0 --port 8080 --workers 4 — production; agent deploys FastAPI app with 4 worker processes; each worker handles requests independently; --workers requires fork() (not available on Windows)",
+    "Agent development server — uvicorn main:app --reload --host 127.0.0.1 --port 8000 — development; agent runs with auto-reload on file changes; --reload watches for .py changes; do NOT use --reload in production",
+    "Agent programmatic startup — import uvicorn; if __name__ == '__main__': uvicorn.run('main:app', host='0.0.0.0', port=8080, workers=4, log_level='info') — Python; agent starts uvicorn from Python code; useful for embedding in scripts or testing",
+    "Agent Gunicorn+Uvicorn — gunicorn main:app -w 4 -k uvicorn.workers.UvicornWorker -b 0.0.0.0:8080 — production; agent uses Gunicorn's process manager with uvicorn workers; best of both: Gunicorn process management + uvicorn async performance; recommended for production Kubernetes",
+    "Agent SSL termination — uvicorn main:app --ssl-keyfile key.pem --ssl-certfile cert.pem --host 0.0.0.0 --port 443 — SSL; agent runs with TLS directly (less common — usually offload to nginx/Caddy); --ssl-keyfile and --ssl-certfile for PEM files"
+  ],
+  "not_for": [
+    "WSGI applications — uvicorn is ASGI only; Flask/Django WSGI apps need gunicorn; or use Django ASGI mode",
+    "Standalone web server — uvicorn should be behind nginx/Caddy in production for static files, SSL, rate limiting",
+    "Windows multiprocessing — --workers N uses fork() which doesn't work on Windows; single process on Windows"
+  ],
+  "best_when": "Serving FastAPI, Starlette, or other ASGI applications in production — uvicorn is the standard ASGI server with the best performance for Python async web applications.",
+  "avoid_when": "WSGI apps (use gunicorn), Windows with multiple workers, or when Gunicorn's process management features are needed without uvicorn workers.",
+  "alternatives": ["gunicorn-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — ASGI server. Application handles auth."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, BSD licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "uvicorn is BSD 3-Clause licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits (server). Performance: one of the fastest Python ASGI servers. uvloop C event loop (--loop uvloop) for maximum performance. httptools C HTTP parser. Competitive with Go/Node.js for I/O-bound workloads. uvicorn[standard] installs uvloop and httptools.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted", "cloud"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 88,
+    "error_message_quality": 82,
+    "error_message_notes": "Startup errors (port in use, SSL issues) shown in stderr. Application errors in access log. Worker crashes logged with traceback. uvicorn logs are structured for log aggregation.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Server startup is idempotent (same result). --workers N creates N identical worker processes. Graceful restart via SIGHUP. Configuration is declarative.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "pip install uvicorn[standard] for performance — base pip install uvicorn skips uvloop and httptools; these C extensions provide 2-3x performance improvement; agent code: requirements.txt: uvicorn[standard]; or install separately: pip install uvloop httptools; check: uvicorn --version shows if uvloop/httptools active",
+      "--workers not available on Windows — uvicorn --workers 4 uses os.fork() which Windows doesn't support; single worker only on Windows; agent Docker images: use Linux base images for multi-worker; Windows dev: single worker acceptable; production: always Linux with --workers",
+      "String import 'module:app' vs object — uvicorn.run('main:app') (string) for --reload; uvicorn.run(app) (object) for programmatic without reload; --reload requires string import to re-import module; agent code: use string form 'myapp.main:app' for production; import object for embedded testing",
+      "--proxy-headers required behind reverse proxy — when behind nginx/Caddy, X-Forwarded-For and X-Forwarded-Proto headers contain real client IP and protocol; without --proxy-headers: request.client.host is proxy IP; agent code: add --proxy-headers in Kubernetes/Docker Compose deployments behind ingress; --forwarded-allow-ips='*' for trusted proxies",
+      "lifespan protocol for startup/shutdown — @asynccontextmanager; async def lifespan(app): await startup(); yield; await shutdown(); app = FastAPI(lifespan=lifespan) — startup/shutdown hooks; uvicorn implements lifespan protocol; agent code: use lifespan for database pool creation on startup and cleanup on shutdown; replaces deprecated on_event handlers",
+      "Log format and level configuration — uvicorn default: access log to stdout, error log to stderr; --log-level info/warning/error/critical; --no-access-log to disable access log; --log-config path/to/log_config.json for custom format; agent code: parse uvicorn logs as JSON: uvicorn --log-config log_config.json with json-format formatter"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 88,
+    "error_handling_score": 82,
+    "auth_complexity_score": 95,
+    "rate_limit_clarity_score": 98
+  },
+  "security_score_components": {
+    "tls_enforcement": 88,
+    "auth_strength": 85,
+    "scope_granularity": 82,
+    "dependency_hygiene": 90,
+    "secret_handling": 85,
+    "security_notes": "ASGI server. Use behind nginx/Caddy for SSL termination, rate limiting, and static files. --proxy-headers only when behind trusted proxy. Limit with --limit-concurrency for DoS protection. Do not expose uvicorn directly to internet without reverse proxy. Worker crashes = service degradation, not total failure with --workers."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 85,
+    "breaking_changes_history": 82,
+    "error_recovery": 85
+  }
+}

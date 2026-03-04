@@ -5,24 +5,24 @@
   "homepage": "https://websockets.readthedocs.io/",
   "repo_url": "https://github.com/python-websockets/websockets",
   "category": "developer-tools",
-  "subcategories": ["websocket", "python", "async", "networking", "real-time"],
-  "tags": ["python", "websockets", "websocket", "async", "asyncio", "real-time", "streaming", "server"],
-  "what_it_does": "WebSocket client and server library for Python asyncio — implements RFC 6455 with clean async API. websockets features: websockets.connect() for client, websockets.serve() for server, send()/recv() for messages, async for message in websocket iteration, ping()/pong() for keepalive, close() with status codes, connection.open/closed state, ssl= for WSS, extra_headers for custom headers, max_size for message size limit, open_timeout, ping_interval/timeout, per_message_deflate compression, and websockets.exceptions for error handling. Used for real-time agent communication, LLM streaming, and live data feeds.",
+  "subcategories": ["networking", "websocket", "async", "python"],
+  "tags": ["python", "websockets", "websocket", "async", "real-time", "server", "client", "streaming"],
+  "what_it_does": "WebSocket server and client library for Python — clean async API for both WebSocket server and client. websockets 12.x features: websockets.connect() for async client, websockets.serve() for server, send()/recv() for messages, ping/pong heartbeats, connection close handling, Unix domain socket support, SSL/TLS, subprotocol negotiation, compression (permessage-deflate), basic HTTP auth, broadcast() for sending to multiple connections, serve_forever() and connection event hooks.",
   "use_cases": [
-    "Agent WebSocket client — import websockets; async with websockets.connect('wss://api.example.com/ws') as ws: await ws.send(json.dumps({'action': 'subscribe', 'topic': 'agent_events'})); async for message in ws: event = json.loads(message); process(event) — streaming connection; agent receives real-time events; async for loops until connection closes",
-    "Agent LLM streaming — async with websockets.connect('wss://llm-api/stream', extra_headers={'Authorization': f'Bearer {token}'}) as ws: await ws.send(json.dumps(prompt)); async for chunk in ws: token = json.loads(chunk)['text']; yield token — stream LLM tokens as generated; agent displays partial responses incrementally",
-    "Agent WebSocket server — async def handler(websocket): async for message in websocket: result = await process_agent_request(message); await websocket.send(result); async with websockets.serve(handler, 'localhost', 8765): await asyncio.Future() — WebSocket server for agent API; multiple clients connect concurrently; each client gets independent handler coroutine",
-    "Agent broadcast server — connected = set(); async def handler(ws): connected.add(ws); try: async for msg in ws: await asyncio.gather(*[c.send(msg) for c in connected - {ws}]); finally: connected.remove(ws) — broadcast to all connected clients; agent multi-client scenario shares events; set() for O(1) add/remove",
-    "Agent connection with reconnect — async def connect_with_retry(url): while True: try: async with websockets.connect(url, ping_interval=20, ping_timeout=10) as ws: await handle_connection(ws); except (websockets.ConnectionClosed, OSError): await asyncio.sleep(1) — reconnect loop; agent persistent connections recover from server restarts; ping_interval keeps connection alive"
+    "Agent WebSocket client — import asyncio, websockets; async def connect(): async with websockets.connect('wss://api.example.com/ws') as ws: await ws.send(json.dumps({'type': 'subscribe', 'channel': 'updates'})); async for msg in ws: data = json.loads(msg); handle(data) — client; agent maintains WebSocket connection to streaming API; async for receives messages",
+    "Agent WebSocket server — async def handler(websocket): async for message in websocket: data = json.loads(message); result = process(data); await websocket.send(json.dumps(result)); async with websockets.serve(handler, 'localhost', 8765) as server: await server.serve_forever() — server; agent creates WebSocket server endpoint",
+    "Agent broadcast — CONNECTIONS = set(); async def handler(ws): CONNECTIONS.add(ws); try: async for msg in ws: websockets.broadcast(CONNECTIONS, msg); finally: CONNECTIONS.remove(ws); — broadcast; agent forwards messages to all connected clients; broadcast() is non-blocking (fire-and-forget)",
+    "Agent reconnect — async def connect_with_retry(): while True: try: async with websockets.connect(uri) as ws: async for msg in ws: handle(msg); except (websockets.ConnectionClosed, OSError): await asyncio.sleep(5) — reconnect; agent implements reconnection loop; ConnectionClosed when server closes; OSError for network failure",
+    "Agent ping/pong keepalive — async with websockets.connect(uri, ping_interval=20, ping_timeout=10) as ws: async for msg in ws: handle(msg) — keepalive; agent configures automatic heartbeats; ping_interval=20 sends ping every 20s; ping_timeout=10 closes if pong not received within 10s; prevents proxy timeout"
   ],
   "not_for": [
-    "HTTP requests — websockets is WebSocket only; for HTTP use httpx or aiohttp",
-    "Sync Python code — websockets requires asyncio; for sync WebSocket use websocket-client library",
-    "High-throughput binary data — websockets adds Python overhead; for ultra-high performance WebSocket use Rust-based solutions or native C extensions"
+    "HTTP REST APIs — websockets is WebSocket-only; for REST use FastAPI/httpx",
+    "Built-in reconnection — websockets has no automatic reconnect; implement retry loop manually",
+    "High-throughput message routing — for complex routing use aiohttp WebSocket or FastAPI WebSocket with message routing"
   ],
-  "best_when": "Real-time bidirectional communication between Python async agents — websockets provides clean RFC 6455-compliant WebSocket with minimal overhead for LLM streaming, live event feeds, and agent-to-agent messaging.",
-  "avoid_when": "You need HTTP (use httpx), sync code (use websocket-client), or ultra-high throughput binary streaming.",
-  "alternatives": ["aiohttp-python-api"],
+  "best_when": "Real-time streaming connections, agent-to-agent WebSocket communication, and bidirectional streaming — websockets is the cleanest pure-WebSocket async library.",
+  "avoid_when": "REST APIs (use httpx/FastAPI), automatic reconnection needed (implement manually), or when FastAPI's WebSocket endpoint is already in the stack.",
+  "alternatives": ["aiohttp-python-api", "fastapi-python-api"],
   "interface": {
     "has_rest_api": false,
     "has_graphql": false,
@@ -35,10 +35,10 @@
     "webhooks": false
   },
   "auth": {
-    "methods": ["none", "token", "tls"],
+    "methods": ["none"],
     "oauth": false,
     "scopes": false,
-    "notes": "WSS (WebSocket Secure) via ssl=True or ssl=context. Bearer token via extra_headers. Basic auth via URI: wss://user:pass@host. No built-in OAuth — implement via headers."
+    "notes": "No built-in auth. Basic HTTP auth via URI: wss://user:pass@host/ws. Custom auth via headers: additional_headers={'Authorization': 'Bearer token'}. SSL/TLS via ssl= parameter."
   },
   "pricing": {
     "model": "open_source",
@@ -46,13 +46,13 @@
     "free_tier_limits": "Completely free, BSD licensed",
     "paid_tiers": "None",
     "requires_credit_card": false,
-    "notes": "websockets is BSD licensed. Free for all use."
+    "notes": "websockets is BSD 3-Clause licensed. Free for all use."
   },
   "performance": {
-    "latency_p50_ms": 1,
-    "latency_p99_ms": 10,
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
     "uptime_sla_percent": null,
-    "rate_limits": "No client rate limits. WebSocket message latency: <1ms local, network-limited remote. Server handles thousands of concurrent connections with asyncio. Large messages (>10MB) may hit default max_size limit. Compression via per_message_deflate reduces bandwidth 3-10x.",
+    "rate_limits": "No rate limits. Performance: single connection: thousands of messages/second. broadcast() is non-blocking but not truly parallel. Server: asyncio-based — handles many concurrent connections. Message throughput limited by event loop.",
     "data_source": "llm_estimated"
   },
   "requirements": {
@@ -67,40 +67,40 @@
     "mcp_server_quality": null,
     "mcp_security_score": null,
     "documentation_accuracy": 90,
-    "error_message_quality": 88,
-    "error_message_notes": "websockets.ConnectionClosed with .code and .reason on close. websockets.ConnectionClosedOK (normal) vs ConnectionClosedError (error). websockets.InvalidURI for bad WebSocket URL. websockets.InvalidHandshake for failed upgrade. websockets.PayloadTooBig for messages exceeding max_size. Clear exception hierarchy with specific error classes.",
+    "error_message_quality": 85,
+    "error_message_notes": "websockets.exceptions.ConnectionClosed when connection closed (includes close code/reason). websockets.exceptions.ConnectionClosedOK for clean close. websockets.exceptions.ConnectionClosedError for error close. websockets.exceptions.InvalidURI for bad WebSocket URI. Clear exception hierarchy.",
     "idempotency_support": "partial",
-    "idempotency_notes": "WebSocket connections are stateful — not idempotent. Individual send() calls are idempotent (same bytes sent). recv() is stateful — consuming messages changes connection state. Reconnection creates new session without previous message history.",
+    "idempotency_notes": "send() is not idempotent (sends message each call). recv() consumes message (not idempotent). Connection state is stateful. Reconnection pattern provides fault tolerance.",
     "pagination_style": "none",
-    "retry_guidance_documented": true,
+    "retry_guidance_documented": false,
     "known_agent_gotchas": [
-      "ConnectionClosed raised inside async for — async for message in ws: raises ConnectionClosed when server closes; agent code must wrap: try: async for msg in ws: process(msg); except websockets.ConnectionClosed: handle_disconnect(); closing inside the loop body causes exception on next recv(); catching ConnectionClosed outside the for loop is the correct pattern",
-      "send() raises ConnectionClosed after disconnect — awaiting ws.send() on closed connection raises ConnectionClosed; agent code sending after server disconnect must check ws.open: if ws.open: await ws.send(data); else: reconnect(); or wrap in try/except ConnectionClosed; send() does not buffer — if connection is closed, message is lost",
-      "max_size=None required for large messages — websockets default max_size=2**20 (1MB); agent receiving large messages (images, embeddings, large JSON) gets PayloadTooBig exception; must set: websockets.connect(url, max_size=None) or max_size=10*1024*1024 for 10MB; server must also configure max_size",
-      "Ping/pong keepalive by default — websockets sends ping every 20s and expects pong within 20s; if server doesn't respond to ping (firewalls blocking PING frames, buggy servers), connection closed with TimeoutError; disable with ping_interval=None; or increase timeout: websockets.connect(url, ping_timeout=60)",
-      "Binary vs text messages — ws.send(bytes_data) sends binary frame; ws.send(str_data) sends text frame; ws.recv() returns str for text, bytes for binary; agent code expecting text but receiving binary raises AttributeError on str operations; check type: msg = await ws.recv(); if isinstance(msg, bytes): decode; or use recv_bytes=False to force text",
-      "Server handler must not raise exceptions — uncaught exception in websockets server handler closes connection with 1011 Internal Error; agent server must: async def handler(ws): try: async for msg in ws: await process(msg); except Exception as e: logger.error(e); closing without exception sends normal close frame; let exceptions propagate for debugging but catch in production"
+      "recv() raises ConnectionClosed on disconnect — async for msg in ws: iterates until connection closes; manually: msg = await ws.recv() raises ConnectionClosedOK (clean) or ConnectionClosedError (error); agent code: use async for in a try/except ConnectionClosed block; or check ws.closed before recv(); ConnectionClosed.code and .reason for diagnosis",
+      "send() does not guarantee delivery — websockets.send() puts message in buffer; network failure after send = message lost; WebSocket protocol has no ack; agent code: implement application-level ack if delivery guarantee needed; ping/pong only tests connection liveness, not message delivery",
+      "broadcast() is NOT awaited — websockets.broadcast(connections, message) is synchronous call (not coroutine); does NOT wait for all clients to receive; failed sends raise exceptions that must be caught; agent code: broadcast(connections, msg) — no await; wrap in try/except if any connection failure should be handled",
+      "SSL in production — websockets.connect('wss://...') auto-uses default SSL context; custom certs: ssl=ssl.create_default_context(cafile='ca.crt'); server: websockets.serve(handler, ssl=ssl_context); agent code: always use wss:// for production; validate server certificate; ssl=False only for testing",
+      "Connection object not thread-safe — websockets Connection must only be used from asyncio event loop it was created in; passing to threads: must use asyncio.run_coroutine_threadsafe(); agent code: all websocket operations must be coroutines; to send from sync thread: loop.call_soon_threadsafe(asyncio.ensure_future, ws.send(msg))",
+      "Concurrent recv() not supported — only one coroutine may await ws.recv() at a time; multiple consumers need producer-consumer pattern: async def producer(ws, queue): async for msg in ws: await queue.put(msg); agent code: single consumer per connection; use asyncio.Queue to distribute to multiple processors; do not await ws.recv() from multiple coroutines"
     ]
   },
   "af_score_components": {
     "mcp_score": 0,
     "api_doc_score": 90,
-    "error_handling_score": 88,
-    "auth_complexity_score": 88,
+    "error_handling_score": 85,
+    "auth_complexity_score": 90,
     "rate_limit_clarity_score": 95
   },
   "security_score_components": {
     "tls_enforcement": 88,
     "auth_strength": 82,
     "scope_granularity": 80,
-    "dependency_hygiene": 88,
-    "secret_handling": 82,
-    "security_notes": "Always use WSS (WebSocket Secure) in production — ws:// transmits plaintext including auth headers. Validate origin header in server to prevent CSRF. Implement authentication before allowing WebSocket upgrade — websockets has no built-in auth. Limit max_size to prevent memory exhaustion from large messages. Rate-limit connections per IP to prevent DoS."
+    "dependency_hygiene": 90,
+    "secret_handling": 85,
+    "security_notes": "WebSocket library. Always use wss:// (TLS) in production. Validate and authenticate connections on open. Rate limit incoming messages per connection. Validate message format before processing. Origin checking for browser clients. max_size parameter to limit message size and prevent memory exhaustion."
   },
   "reliability_score_components": {
     "uptime_documented": 88,
     "version_stability": 85,
-    "breaking_changes_history": 82,
+    "breaking_changes_history": 80,
     "error_recovery": 85
   }
 }
