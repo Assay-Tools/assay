@@ -1,0 +1,106 @@
+{
+  "id": "rq-python-api",
+  "name": "rq",
+  "version_evaluated": "1.x",
+  "homepage": "https://python-rq.org/",
+  "repo_url": "https://github.com/rq/rq",
+  "category": "developer-tools",
+  "subcategories": ["task-queue", "python", "redis", "background-jobs"],
+  "tags": ["python", "rq", "redis-queue", "background", "workers", "jobs", "simple", "celery-alternative"],
+  "what_it_does": "Simple Python job queue backed by Redis — enqueues any Python function as a background job with minimal setup. RQ features: Queue for job dispatch, Worker for processing, job.enqueue() / q.enqueue(fn, args), result fetching via job.result, job status tracking (queued/started/finished/failed), FailedJobRegistry for failed jobs, job dependencies via depends_on=, scheduled jobs via rq-scheduler extension, multiple queues with priorities, job timeouts, retries, and rq dashboard for monitoring. Much simpler than Celery.",
+  "use_cases": [
+    "Agent background job — from redis import Redis; from rq import Queue; q = Queue(connection=Redis()); def process_data(data_id): return do_work(data_id); job = q.enqueue(process_data, data_id, job_timeout=300) — enqueue; agent dispatches function to background worker; no decorator needed; job.id for tracking; run worker: rq worker",
+    "Agent job status — from rq.job import Job; job = Job.fetch(job_id, connection=Redis()); print(job.get_status()); if job.is_finished: result = job.result; elif job.is_failed: exc = job.exc_info — status; agent polls job status; is_queued/is_started/is_finished/is_failed properties; result available after completion",
+    "Agent multiple queues — from rq import Queue; high_q = Queue('high', connection=redis); low_q = Queue('low', connection=redis); high_q.enqueue(urgent_task, args); low_q.enqueue(bulk_task, args); # Workers: rq worker high low — priority; agent uses multiple queues with priority; workers process high queue first when both specified",
+    "Agent job dependencies — from rq import Queue, Dependency; q = Queue(connection=redis); job1 = q.enqueue(fetch_data, url); job2 = q.enqueue(process, depends_on=Dependency([job1])) — dependency; agent chains jobs where job2 runs after job1 completes successfully; job2 status: deferred until dependency met",
+    "Agent retry on failure — from rq import Retry; job = q.enqueue(flaky_task, retry=Retry(max=3, interval=[10, 30, 60])) — retry; agent configures automatic retry with backoff; interval= is list of wait seconds between attempts; max= is maximum retry count"
+  ],
+  "not_for": [
+    "Complex workflows — RQ lacks Celery's canvas (chain/group/chord) for complex task graphs; use Celery for complex pipelines",
+    "Non-Redis brokers — RQ is Redis-only; for RabbitMQ or other brokers use Celery/Dramatiq",
+    "High-throughput workloads — RQ is simple; for maximum throughput with tuned worker pooling use Celery with concurrency settings"
+  ],
+  "best_when": "Simple background job processing with Redis already in stack — RQ's minimal setup makes it ideal for small-to-medium background job needs without Celery's complexity.",
+  "avoid_when": "Complex task graphs (use Celery), non-Redis brokers (use Celery/Dramatiq), high-throughput needs (tune Celery), or when task monitoring beyond rq dashboard is needed.",
+  "alternatives": ["celery-python-api", "dramatiq-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — task queue library. Redis auth via connection URL."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, BSD licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "RQ is BSD 3-Clause licensed. Free for all use. Requires Redis."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Performance: job dispatch: <10ms. Worker pickup latency: depends on burst mode. Multiple workers: horizontal scaling. Default worker is single-threaded — one job at a time. rq worker --burst for batch processing.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 80,
+    "error_message_notes": "rq.exceptions.NoSuchJobError for missing job ID. rq.timeouts.JobTimeoutException for timed-out jobs. Failed jobs store exc_info (traceback string). job.exc_info contains exception traceback as string. job.latest_result().return_value after completion.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "enqueue() is not idempotent — creates new job each call. job_id= for deterministic job IDs (idempotent enqueue if same ID). Job function should be idempotent for safe retry. FailedJobRegistry for failed job management.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Functions must be importable by workers — q.enqueue(my_function) requires worker process to import my_function from same module path; lambda functions and closures cannot be pickled; agent code: define functions in importable module; worker runs in separate process so __main__ functions not available; use module-level functions",
+      "job.result requires waiting for completion — job.result is None until finished; use job.get_status() to check; polling: while not job.is_finished and not job.is_failed: time.sleep(1); or use rq-results via pub/sub; agent code: set result_ttl= to control how long result stored in Redis after completion (default 500s)",
+      "job_timeout is wall-clock time — q.enqueue(fn, job_timeout=300) kills worker after 300 seconds; not CPU time; default timeout=180; -1 for unlimited (dangerous); agent code: set appropriate timeout; long-running jobs need longer timeout; job.timeout for checking configured timeout",
+      "Worker must have access to all code — rq worker starts Python process importing your code; PYTHONPATH must include your project; Docker: copy all source code; agent code: run rq worker from project root; or specify module: rq worker --path /app; worker import failures appear in FailedJobRegistry",
+      "FailedJobRegistry for inspecting failures — from rq.job import FailedJobRegistry; failed = FailedJobRegistry('default', connection=redis); for job_id in failed.get_job_ids(): job = Job.fetch(job_id, connection=redis); print(job.exc_info) — inspect; agent monitors for failed jobs; requeue: failed.requeue(job_id)",
+      "result_ttl and failure_ttl control Redis storage — default result stored 500s after completion; jobs_per_page in RQ Dashboard; set result_ttl=-1 for permanent storage (memory leak risk); q.enqueue(fn, result_ttl=86400) for 24h retention; agent code: set appropriate TTLs; clean up old results to prevent Redis bloat"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 80,
+    "auth_complexity_score": 92,
+    "rate_limit_clarity_score": 95
+  },
+  "security_score_components": {
+    "tls_enforcement": 82,
+    "auth_strength": 80,
+    "scope_granularity": 78,
+    "dependency_hygiene": 85,
+    "secret_handling": 78,
+    "security_notes": "Task queue. Job arguments are pickled in Redis — do not pass secrets as job arguments. Secure Redis connection. Job function code runs with worker's permissions — validate inputs. Failed job exc_info may contain sensitive data in tracebacks."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 82,
+    "version_stability": 82,
+    "breaking_changes_history": 80,
+    "error_recovery": 82
+  }
+}
