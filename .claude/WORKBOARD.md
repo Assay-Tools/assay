@@ -35,8 +35,8 @@ Coordination file for multiple Claude sessions working on this repo.
 Items ready to be claimed. Roughly priority-ordered.
 
 ### Infrastructure (Pre-Launch)
-- [ ] **llms.txt** — Create `/llms.txt` and `/llms-full.txt` endpoints for AI agent discoverability
-- [ ] **Rate limiting** — Add slowapi/limits middleware, 100 calls/day free tier, protect production
+- [x] ~~**llms.txt** — moved to Completed~~
+- [x] ~~**Rate limiting** — moved to Completed~~
 - [ ] **OpenAPI spec polish** — Ensure `/openapi.json` is clean, add descriptions, publish docs link
 
 ### API Completeness
@@ -74,3 +74,4 @@ Items ready to be claimed. Roughly priority-ordered.
 - [x] **Q1 ecosystem report** — Quarterly report template + generation + full Q1-2026 output (2026-03-04)
 - [x] **BUSINESS.md** — Business model, pricing, agentic operating philosophy (2026-03-04)
 - [x] **SSL fix** — Railway cert provisioning via Cloudflare TXT record (2026-03-04)
+- [x] **llms.txt + rate limiting** — `/llms.txt`, `/llms-full.txt` routes + slowapi 100/day on all `/v1/*` endpoints (2026-03-04)
