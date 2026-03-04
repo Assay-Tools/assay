@@ -5,24 +5,24 @@
   "homepage": "https://dramatiq.io/",
   "repo_url": "https://github.com/Bogdanp/dramatiq",
   "category": "developer-tools",
-  "subcategories": ["task-queue", "python", "background-tasks", "rabbitmq", "redis"],
-  "tags": ["python", "dramatiq", "task-queue", "background", "rabbitmq", "redis", "worker", "actor"],
-  "what_it_does": "Background task processing library for Python — simple, reliable actor-based task queue using RabbitMQ or Redis backends. dramatiq features: @actor decorator for task definition, .send() and .send_with_options() for enqueuing, middleware system (Retries, TimeLimit, AgeLimit, Callbacks, Results), pipeline() for task chaining, group() for parallel tasks, Prometheus metrics integration, rate_limiter middleware, SimpleRateLimiter, WindowRateLimiter, dramatiq-crontab for scheduled tasks, and redis_dramatiq / rabbitmq brokers. Simpler API than Celery with better defaults.",
+  "subcategories": ["task-queue", "python", "async", "background-jobs"],
+  "tags": ["python", "dramatiq", "task-queue", "background", "actor", "Redis", "RabbitMQ", "workers"],
+  "what_it_does": "Simple and reliable background task processing for Python — Redis or RabbitMQ broker with actor-based task definition. dramatiq features: @dramatiq.actor decorator, .send() for async dispatch, .send_with_options() for delay/retries, middleware system (Retries, TimeLimit, AgeLimit, Prometheus, Results), group() and pipeline() for composition, rate limiting, gevent support, class-based actors, dead letter queue, QueueJoin for waiting on completion, GenericActors for shared base classes, and dramatically simpler setup than Celery.",
   "use_cases": [
-    "Agent background task — import dramatiq; @dramatiq.actor; def process_agent_response(conversation_id: str, response: str): store_and_analyze(conversation_id, response); process_agent_response.send('conv-123', 'Hello') — fire-and-forget background processing; agent HTTP handler returns immediately; dramatiq worker processes in background; RabbitMQ ensures delivery even if worker dies",
-    "Agent task with retry — @dramatiq.actor(max_retries=3, min_backoff=1000, max_backoff=60000); def call_external_api(user_id: str): result = flaky_api.call(user_id); save(result) — automatic retry with exponential backoff; agent integration handles transient API failures; max_retries=3 retries 3 times before discarding; dead letter queue for permanently failed messages",
-    "Agent task pipeline — from dramatiq import pipeline; pipe = pipeline([fetch_data.message('source'), transform_data.message(), store_results.message('destination')]); pipe.run() — chain tasks where output of one feeds next; agent data processing pipeline executes steps in order; pipeline.completed checks if all steps done; pipeline.result accesses final output",
-    "Agent parallel task group — from dramatiq import group; g = group([process_chunk.message(chunk) for chunk in chunks]); g.run(); results = g.results.get(block=True, timeout=300) — run tasks in parallel; agent batch processing splits work across workers; group.completed when all tasks done; combine with pipeline for fan-out/fan-in pattern",
-    "Agent rate-limited tasks — from dramatiq.rate_limits import WindowRateLimiter; from dramatiq.rate_limits.backends import RedisBackend; limiter = WindowRateLimiter(RedisBackend(), 'api-calls', limit=100, window=60); @dramatiq.actor; def call_rate_limited_api(params): with limiter.acquire(): result = api.call(params) — enforce rate limits across workers; agent API calls respect provider rate limits without coordination logic"
+    "Agent task dispatch — import dramatiq; import dramatiq.brokers.redis; redis_broker = dramatiq.brokers.redis.RedisBroker(url='redis://localhost:6379'); dramatiq.set_broker(redis_broker); @dramatiq.actor; def send_email(to: str, subject: str): smtp.send(to, subject); send_email.send('user@example.com', 'Hello') — async dispatch; agent defines actor and sends asynchronously; .send() enqueues; workers consume",
+    "Agent delayed task — @dramatiq.actor; def notify(user_id: int): push_notification(user_id); notify.send_with_options(args=(user_id,), delay=60000) — 60-second delay; agent schedules task for future; delay in milliseconds; send_with_options for all scheduling options",
+    "Agent task pipeline — from dramatiq import pipeline; result = pipeline([fetch.message(url), process.message(), save.message()]).run() — pipeline; agent chains tasks where output of one feeds next; pipeline.run() dispatches first task; each actor passes result to next in chain",
+    "Agent grouped tasks — from dramatiq import group; g = group([process.message(item) for item in items]).run(); g.wait(timeout=30000) — parallel group; agent dispatches multiple tasks in parallel and waits for completion; group.completed_count for progress; wait() blocks until all complete or timeout",
+    "Agent task with retries — @dramatiq.actor(max_retries=5, min_backoff=1000, max_backoff=60000); def flaky_task(item): try: risky_operation(item) except TransientError: raise — retry; actor auto-retries on exception with exponential backoff; max_retries=0 disables retries; after max retries, message goes to dead letter queue"
   ],
   "not_for": [
-    "Scheduled/periodic tasks natively — dramatiq doesn't include scheduling; use dramatiq-crontab or APScheduler with dramatiq for periodic tasks",
-    "In-process tasks — dramatiq requires external broker (RabbitMQ or Redis); for simple in-process background tasks use threading or asyncio",
-    "Complex workflow DAGs — dramatiq pipeline is linear; for complex DAG workflows use Prefect or Airflow"
+    "Celery-compatible workflows — dramatiq is not a Celery replacement with full compatibility; for Celery workflows use Celery",
+    "Complex workflow DAGs — dramatiq has pipeline/group but no full DAG; for complex workflows use Prefect or Airflow",
+    "Task result storage — dramatiq Results middleware is experimental; for reliable result retrieval use Celery or RQ"
   ],
-  "best_when": "Background task processing with reliable delivery requirements — dramatiq's simple @actor API, automatic retries, and RabbitMQ reliability make it ideal for agent systems that need fire-and-forget with guaranteed execution.",
-  "avoid_when": "You need scheduled/periodic tasks (add dramatiq-crontab), complex DAG workflows (use Prefect), or in-process tasks without external infrastructure.",
-  "alternatives": ["celery-python-api", "rq-python-api", "huey-python-api"],
+  "best_when": "Simple, reliable background task processing with cleaner API than Celery — dramatiq is an excellent Celery alternative for straightforward task queues with Redis or RabbitMQ.",
+  "avoid_when": "Celery ecosystem (use Celery), complex workflow DAGs (use Prefect), or when task result storage is critical (use RQ or Celery).",
+  "alternatives": ["celery-python-api", "rq-python-api"],
   "interface": {
     "has_rest_api": false,
     "has_graphql": false,
@@ -35,72 +35,72 @@
     "webhooks": false
   },
   "auth": {
-    "methods": ["none", "password", "tls"],
+    "methods": ["api_key"],
     "oauth": false,
     "scopes": false,
-    "notes": "No auth for in-process usage. RabbitMQ broker uses AMQP auth (username/password/vhost). Redis broker uses Redis AUTH. Production: use TLS and auth for broker connection."
+    "notes": "Auth via Redis/RabbitMQ connection string credentials."
   },
   "pricing": {
     "model": "open_source",
     "free_tier_exists": true,
     "free_tier_limits": "Completely free, LGPL licensed",
-    "paid_tiers": "Broker hosting costs separate (RabbitMQ, Redis)",
+    "paid_tiers": "None",
     "requires_credit_card": false,
-    "notes": "dramatiq is LGPL v3 licensed. RabbitMQ and Redis hosting costs are separate."
+    "notes": "dramatiq is LGPL 3.0 licensed. Free for all use."
   },
   "performance": {
-    "latency_p50_ms": 5,
-    "latency_p99_ms": 50,
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
     "uptime_sla_percent": null,
-    "rate_limits": "No client rate limits. RabbitMQ: ~10K-50K messages/sec. Redis broker: ~50K-100K messages/sec. Worker throughput depends on task duration and worker count. Run multiple workers: dramatiq mymodule --processes 4 --threads 8.",
+    "rate_limits": "No rate limits. Performance: task enqueue: ~1ms (Redis). Worker threads: configurable (default 8 threads per process). Throughput: 1000s of tasks/second with Redis broker. gevent workers for IO-bound tasks.",
     "data_source": "llm_estimated"
   },
   "requirements": {
     "requires_signup": false,
     "requires_credit_card": false,
     "domain_verification": false,
-    "data_residency": ["self-hosted", "cloud"],
+    "data_residency": ["self-hosted"],
     "compliance": [],
     "min_contract": "none"
   },
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
-    "documentation_accuracy": 85,
+    "documentation_accuracy": 88,
     "error_message_quality": 82,
-    "error_message_notes": "RateLimitExceeded when rate limiter blocks task. NoBroker when actor called without broker configured. ConnectionError for broker connection failures. Task exceptions logged with full traceback and retried per max_retries. Results backend required for accessing return values. Clear error messages with actionable guidance.",
+    "error_message_notes": "BrokerError for connection issues. Middleware exceptions are logged per-message. Dead letter queue for permanently failed tasks. Retry exceptions are re-raised — middleware catches them.",
     "idempotency_support": "partial",
-    "idempotency_notes": "Actor .send() is at-least-once delivery — task may execute multiple times on worker crash. Tasks should be idempotent or use idempotency keys. group() and pipeline() track completion via Results backend. .send() itself is idempotent (enqueue operation).",
+    "idempotency_notes": ".send() enqueues once. Retries may cause duplicate execution — design actors to be idempotent. Results middleware stores results with TTL.",
     "pagination_style": "none",
     "retry_guidance_documented": true,
     "known_agent_gotchas": [
-      "Actor arguments must be JSON-serializable — dramatiq serializes actor arguments to JSON for the broker; passing non-serializable objects (SQLAlchemy models, datetime without serializer) raises TypeError at send time; agent code must serialize to primitive types before .send(): actor.send(model.id) not actor.send(model); use middleware or custom encoder for custom types",
-      "NoBroker error if broker not configured before actor import — from mymodule import my_actor before broker setup raises NoBroker; agent code must configure broker before importing actor modules; use lazy imports or configure broker in application startup: dramatiq.set_broker(broker) before any actor imports in worker process",
-      "Results backend required for return values — @dramatiq.actor return values are discarded without Results backend; actor.send().get_result() raises NoResultBackend; agent code needing task results must configure: dramatiq.set_results_backend(RedisBackend()); and use @dramatiq.actor(store_results=True); results have TTL and expire",
-      "At-least-once delivery means tasks may run twice — RabbitMQ acks after task completes; if worker dies mid-task, RabbitMQ redelivers; agent tasks that are not idempotent (send email, charge card) must implement idempotency keys: check if already processed before doing work; store completion flag in database",
-      "middleware order matters — dramatiq applies middleware in list order; Retries middleware must come before TimeLimit otherwise retry is rejected by time limit; agent middleware configuration: use default [AgeLimit, TimeLimit, ShutdownNotifications, Callbacks, Pipelines, Retries] order unless specifically overriding; wrong order causes subtle retry/timeout interaction bugs",
-      "Worker must import same module as producer — dramatiq worker (dramatiq mymodule) must import same actor functions as producer; if actor defined in myapp.tasks but worker started with dramatiq myapp, actors not registered; agent deployment must ensure worker command matches module path exactly; use --path for package roots"
+      "Actor arguments must be JSON-serializable — dramatiq serializes actor args to JSON; passing non-serializable objects (datetime, Decimal, custom objects) raises TypeError at .send() time; agent code: convert to JSON-safe types before sending: send(str(uuid), timestamp.isoformat()); or use custom encoder middleware",
+      "Broker must be set before importing actors — dramatiq.set_broker(broker) must be called before any module that has @dramatiq.actor is imported; actor registration happens at import time; agent code: set broker at app startup before any task modules are imported; common pattern: configure in __init__.py or settings module",
+      "Workers are separate processes — dramatiq workers run via: dramatiq mymodule; agent code must start workers separately from the dispatch code; workers import the same module and consume tasks; development: run python -m dramatiq myapp.tasks in separate terminal; production: use systemd or Docker",
+      "Retries use exponential backoff by default — @dramatiq.actor auto-retries on exception; default max_retries=20 with backoff; tasks that should NOT retry: @dramatiq.actor(max_retries=0); agent code with one-shot tasks: set max_retries=0 or catch exceptions inside actor; be explicit about retry behavior",
+      "group.wait() blocks the calling thread — g.wait(timeout=30000) blocks for up to 30 seconds; in async code: run in executor: await loop.run_in_executor(None, g.wait, 30000); agent code: group.completed_count for non-blocking progress check; group.wait() is for synchronization not monitoring",
+      "Dead letter queue requires manual inspection — messages that exhaust retries go to DLQ; dramatiq has no built-in DLQ UI; agent code: monitor DLQ via Redis CLI or broker admin; implement DLQ alert: subscribe to dead-letter queue and notify on new entries; dramatiq-abort middleware for manual task cancellation"
     ]
   },
   "af_score_components": {
     "mcp_score": 0,
-    "api_doc_score": 85,
+    "api_doc_score": 88,
     "error_handling_score": 82,
-    "auth_complexity_score": 88,
-    "rate_limit_clarity_score": 88
+    "auth_complexity_score": 92,
+    "rate_limit_clarity_score": 99
   },
   "security_score_components": {
-    "tls_enforcement": 82,
-    "auth_strength": 80,
-    "scope_granularity": 78,
-    "dependency_hygiene": 85,
-    "secret_handling": 80,
-    "security_notes": "Task arguments serialized to JSON and stored in RabbitMQ/Redis — avoid passing secrets as actor arguments. Use secret references (IDs) not values in task messages. RabbitMQ and Redis brokers should use TLS and authentication in production. Task queues accessible to all workers — namespace queues for multi-tenant deployments."
+    "tls_enforcement": 85,
+    "auth_strength": 85,
+    "scope_granularity": 82,
+    "dependency_hygiene": 88,
+    "secret_handling": 82,
+    "security_notes": "Task arguments serialized to broker (Redis/RabbitMQ) as JSON — do not include secrets in task arguments. Use secure Redis/RabbitMQ connections with TLS and authentication. Worker processes have same code access as main process — isolate worker permissions if needed. JSON deserialization in workers: arguments from broker could be manipulated if broker is compromised."
   },
   "reliability_score_components": {
     "uptime_documented": 85,
     "version_stability": 85,
-    "breaking_changes_history": 82,
-    "error_recovery": 88
+    "breaking_changes_history": 85,
+    "error_recovery": 85
   }
 }

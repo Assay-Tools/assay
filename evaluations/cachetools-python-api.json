@@ -5,24 +5,24 @@
   "homepage": "https://cachetools.readthedocs.io/",
   "repo_url": "https://github.com/tkem/cachetools",
   "category": "developer-tools",
-  "subcategories": ["caching", "python", "utilities", "data-structures"],
-  "tags": ["python", "cachetools", "cache", "lru", "ttl", "lfu", "memoize", "decorator"],
-  "what_it_does": "Extensible memoizing collections and decorators for Python — provides thread-safe LRU, LFU, TTL, and RR cache implementations with memoize decorators. cachetools features: LRUCache (Least Recently Used), LFUCache (Least Frequently Used), TTLCache (time-to-live expiration), RRCache (Random Replacement), MRUCache (Most Recently Used), TLRUCache (Timer-based LRU), cached()/cachedmethod() decorators, custom key functions, maxsize enforcement, cache.getsizeof() support for sized values, and thread-safe operations with optional lock parameter. Pure Python, zero dependencies.",
+  "subcategories": ["caching", "python", "utilities", "in-memory"],
+  "tags": ["python", "cachetools", "LRU", "cache", "TTL", "memoize", "in-memory"],
+  "what_it_does": "Extensible memoizing collections and decorators for Python — provides LRU, LFU, TTL, and RR cache implementations with @cached decorator. cachetools features: LRUCache (Least Recently Used eviction), LFUCache (Least Frequently Used), TTLCache (time-to-live expiration), RRCache (Random Replacement), Cache base class, @cached(cache) decorator for memoization, @cachedmethod(lambda self: self.cache) for method caching, keys parameter for custom cache key functions, lock parameter for thread safety, getsizeof for weighted caching, and MRUCache (Most Recently Used). Pure Python, no dependencies, no subprocess or network.",
   "use_cases": [
-    "Agent LRU memoization — from cachetools import LRUCache, cached; cache = LRUCache(maxsize=128); @cached(cache); def fetch_user(user_id): return db.get(user_id) — LRU memoize; agent caches user lookups; maxsize=128 keeps 128 most recently used; older entries evicted automatically; thread-safe with lock=threading.RLock()",
-    "Agent TTL cache — from cachetools import TTLCache, cached; cache = TTLCache(maxsize=100, ttl=300); @cached(cache); def get_config(key): return config_service.get(key) — time-to-live; agent caches config for 300 seconds; entries expire automatically; fetch fresh on expiry; maxsize limits memory",
-    "Agent method caching — from cachetools import cachedmethod, LRUCache; class DataService: def __init__(self): self.cache = LRUCache(maxsize=50); @cachedmethod(lambda self: self.cache); def expensive_query(self, key): return self.db.query(key) — instance method cache; agent caches instance method results; each instance has its own cache",
-    "Agent custom key function — from cachetools import cached, LRUCache; def ignore_second_arg(a, b): return a; cache = LRUCache(maxsize=100); @cached(cache, key=ignore_second_arg); def fetch(url, timeout): return requests.get(url, timeout=timeout) — custom key; agent ignores non-essential arguments in cache key; same URL cached regardless of timeout value",
-    "Agent sized cache — from cachetools import LRUCache; def content_size(value): return len(value); cache = LRUCache(maxsize=1024*1024, getsizeof=content_size); cache['key'] = large_content — size-aware cache; agent limits cache by total bytes not entry count; getsizeof callback returns size of each value; maxsize is total size budget"
+    "Agent LRU memoize — from cachetools import LRUCache, cached; cache = LRUCache(maxsize=128); @cached(cache); def fetch_user(user_id: int): return db.query(user_id) — LRU memoize; agent caches database results; 128 most recent user_ids cached; oldest evicted when full; @cached reuses cache across calls",
+    "Agent TTL cache — from cachetools import TTLCache, cached; cache = TTLCache(maxsize=100, ttl=300); @cached(cache); def get_config(key: str): return api.get(key) — 5-min TTL; agent caches API responses that expire; TTL in seconds; entries evict after ttl seconds regardless of access",
+    "Agent thread-safe cache — from cachetools import LRUCache, cached; from threading import Lock; cache = LRUCache(maxsize=50); lock = Lock(); @cached(cache, lock=lock); def expensive(x): return compute(x) — thread-safe; agent uses cache across threads; lock= parameter makes get/set atomic",
+    "Agent method cache — from cachetools import LRUCache, cachedmethod; class DataService: def __init__(self): self.cache = LRUCache(maxsize=32); @cachedmethod(lambda self: self.cache); def fetch(self, key: str): return db.get(key) — instance method; agent caches method results per instance; lambda self: self.cache provides instance-specific cache",
+    "Agent weighted cache — from cachetools import LRUCache, cached; cache = LRUCache(maxsize=1024*1024, getsizeof=lambda v: len(v)); @cached(cache); def load_content(url): return fetch_content(url) — size-limited; agent limits cache by bytes not count; getsizeof returns weight of each value; maxsize is total weight limit"
   ],
   "not_for": [
-    "Persistent/disk caching — cachetools is in-memory only; for disk persistence use cachelib FileSystemCache or diskcache",
-    "Distributed caching — cachetools is single-process; for distributed use Redis via cachelib/redis-py",
-    "Simple single-function caching — functools.lru_cache is simpler and faster for basic use cases"
+    "Persistent caching — cachetools is in-memory only; cache lost on process restart; use diskcache for persistence",
+    "Distributed caching — cachetools is single-process; for shared cache use Redis via cachelib",
+    "Async functions — @cached does not work with async def; use async-lru or aiocache for async memoization"
   ],
-  "best_when": "In-process caching with eviction policy control — cachetools provides LRU/LFU/TTL policies with clean decorator API, filling the gap between functools.lru_cache (basic) and Redis (distributed).",
-  "avoid_when": "Disk persistence needed (use cachelib), distributed caching (use Redis), or simple single-function memoization (use functools.lru_cache).",
-  "alternatives": [],
+  "best_when": "In-process memoization with LRU/TTL eviction policies — cachetools is lightweight with no dependencies and pure Python, ideal for function-level caching within a process.",
+  "avoid_when": "Persistent cache (use diskcache), distributed cache (use Redis), async functions (use async-lru or aiocache), or when functools.lru_cache is sufficient.",
+  "alternatives": ["diskcache-python-api"],
   "interface": {
     "has_rest_api": false,
     "has_graphql": false,
@@ -38,7 +38,7 @@
     "methods": ["none"],
     "oauth": false,
     "scopes": false,
-    "notes": "No auth — in-memory caching library."
+    "notes": "No auth — in-memory cache library."
   },
   "pricing": {
     "model": "open_source",
@@ -52,7 +52,7 @@
     "latency_p50_ms": null,
     "latency_p99_ms": null,
     "uptime_sla_percent": null,
-    "rate_limits": "No rate limits. Performance: LRUCache get/set: O(1) — uses OrderedDict internally. TTLCache: O(log n) on expiry cleanup. All operations <1ms in-process. Thread safety adds lock overhead — use only when needed. Pure Python — slower than functools.lru_cache C extension for simple cases.",
+    "rate_limits": "No rate limits. Performance: get/set: <0.01ms — dict-based with OrderedDict for LRU. TTLCache: lazy expiry (expired entries evicted on access or when maxsize reached). No background thread for TTL — expiry is demand-driven.",
     "data_source": "llm_estimated"
   },
   "requirements": {
@@ -68,18 +68,18 @@
     "mcp_security_score": null,
     "documentation_accuracy": 90,
     "error_message_quality": 85,
-    "error_message_notes": "KeyError for cache miss on direct access. ValueError for negative maxsize. Raises standard Python exceptions that are clear and expected. No custom exception hierarchy needed — simple get/set interface.",
+    "error_message_notes": "KeyError on cache miss (dict-like interface). TypeError if cache key is unhashable. @cached swallows cache misses automatically — transparent memoization.",
     "idempotency_support": "full",
-    "idempotency_notes": "cache[key] = value is idempotent. @cached decorated function is idempotent for same arguments (returns cached result). TTLCache entries expire deterministically based on time. Cache operations are deterministic for given state.",
+    "idempotency_notes": "@cached is idempotent — same args always return same cached value until evicted. TTLCache entries expire — subsequent calls re-compute after TTL. Cache.clear() resets state.",
     "pagination_style": "none",
     "retry_guidance_documented": false,
     "known_agent_gotchas": [
-      "Thread safety requires explicit lock — cachetools.cached(cache) is NOT thread-safe by default; agent concurrent code: @cached(cache, lock=threading.RLock()); without lock, concurrent cache updates corrupt LRUCache OrderedDict; lock is optional for single-threaded use; always add lock for async or multi-threaded agents",
-      "@cached does not handle exceptions — if the wrapped function raises an exception, @cached does not cache the exception and does not retry; agent code: uncached exception leaves cache unchanged; next call re-executes function; if caching failed results is needed: implement manually with try/except in wrapped function",
-      "TTLCache expiry is checked on access not on schedule — TTLCache doesn't run background cleanup; expired entries only removed when accessed; cache.expire() forces cleanup manually; agent code checking cache size may see expired entries still counted in len(cache); call cache.expire() if accurate size matters",
-      "cachedmethod lambda must return the cache instance — @cachedmethod(lambda self: self.cache) requires the lambda to return a mutable mapping; if lambda returns None or wrong type, cachedmethod raises TypeError; agent code: ensure each instance initializes self.cache before first method call; __post_init__ for dataclasses",
-      "Cache key defaults include all arguments — @cached(cache) uses cachetools.keys.hashkey(*args, **kwargs) as default key; unhashable arguments (lists, dicts) raise TypeError on cache miss; agent code passing dicts to cached functions: use key=lambda *a, **kw: hashkey(str(a), str(kw)) or convert to tuple before calling",
-      "maxsize=0 means unlimited size — LRUCache(maxsize=0) has unlimited capacity (no eviction); LRUCache(maxsize=128) limits to 128 entries; agent code intending 'no cache' should use cachetools.NullCache not maxsize=0; unlimited cache will grow without bound for agents with many unique keys"
+      "@cached does not work with async functions — @cached(cache)(async_fn) does not await; agent code for async memoization: use async-lru: from async_lru import alru_cache; @alru_cache(maxsize=128); or implement manually with asyncio.Lock; cachetools has no async support",
+      "Cache key must be hashable — @cached uses function arguments as cache key; unhashable args (list, dict, set) raise TypeError; agent code with list args: convert to tuple: @cached(cache, key=lambda *a, **k: (tuple(a[0]),)); or use custom key function that hashes the input",
+      "Thread safety requires explicit lock — LRUCache is not thread-safe by default; concurrent reads/writes cause data corruption; agent code in threaded context: always pass lock=Lock() to @cached; lock applies to entire get-or-compute-and-set; this serializes all cache operations",
+      "TTLCache does not eagerly expire — TTLCache(maxsize=100, ttl=300) does not run a background thread; entries remain in memory until accessed or evicted by maxsize; agent code checking cache.currsize: expired entries still counted until accessed; cache.expire() forces expiry of stale entries",
+      "@cachedmethod needs unique cache per instance — if all instances share one class-level cache: @cachedmethod(lambda self: MyClass.cache), keys collide between instances; agent code: use instance-level cache: self.cache = LRUCache(maxsize=32) in __init__; or include self in key function",
+      "Cache.clear() does not reset statistics — cachetools tracks hits/misses via cache.hits and cache.misses (added later); clearing cache with cache.clear() does not reset counters; for testing cache effectiveness: check (cache.hits / (cache.hits + cache.misses)) ratio; create new cache instance to reset all state"
     ]
   },
   "af_score_components": {
@@ -92,15 +92,15 @@
   "security_score_components": {
     "tls_enforcement": 92,
     "auth_strength": 92,
-    "scope_granularity": 90,
-    "dependency_hygiene": 95,
+    "scope_granularity": 92,
+    "dependency_hygiene": 98,
     "secret_handling": 88,
-    "security_notes": "Pure Python in-memory library with no dependencies and no network calls. Do not cache secrets in shared cache instances. TTLCache limits secret exposure time. Cache poisoning: validate cached values if keys are user-controlled. Thread lock prevents race conditions in concurrent agents."
+    "security_notes": "Pure in-memory cache. No network calls, no external dependencies. Cached values live in process memory — avoid caching sensitive data without TTL; set appropriate maxsize to prevent memory exhaustion. Cache poisoning: untrusted input as cache keys may cause unexpected eviction patterns — validate inputs before use as keys."
   },
   "reliability_score_components": {
-    "uptime_documented": 90,
+    "uptime_documented": 92,
     "version_stability": 92,
-    "breaking_changes_history": 90,
+    "breaking_changes_history": 92,
     "error_recovery": 90
   }
 }
