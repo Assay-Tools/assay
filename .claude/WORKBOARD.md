@@ -37,7 +37,7 @@ Items ready to be claimed. Roughly priority-ordered.
 ### Infrastructure (Pre-Launch)
 - [x] ~~**llms.txt** — moved to Completed~~
 - [x] ~~**Rate limiting** — moved to Completed~~
-- [ ] **OpenAPI spec polish** — Ensure `/openapi.json` is clean, add descriptions, publish docs link
+- [x] ~~**OpenAPI spec polish** — moved to Completed~~
 
 ### API Completeness
 - [ ] **Change feed endpoint** — `GET /v1/packages/updated-since?timestamp=...`
@@ -78,3 +78,4 @@ Items ready to be claimed. Roughly priority-ordered.
 - [x] **Test suite** — 49 pytest tests covering models, API routes (packages, categories, compare, stats, queue) (2026-03-04)
 - [x] **CI/CD pipeline** — GitHub Actions lint (ruff) + test (pytest) on push/PR, CI badge in README (2026-03-04)
 - [x] **Linting pass** — 64 violations fixed (25 auto-fix + 39 E501 line-length) (2026-03-04)
+- [x] **OpenAPI spec polish** — tag descriptions, endpoint docstrings, schema field descriptions, API metadata (2026-03-04)

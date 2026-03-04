@@ -56,6 +56,7 @@ def _apply_eager(q):
 
 @router.get("/health", response_model=HealthResponse, tags=["system"])
 def health():
+    """Check API health and version."""
     return HealthResponse()
 
 
@@ -78,6 +79,12 @@ def list_packages(
     offset: int = Query(0, ge=0),
     db: Session = Depends(get_db),
 ):
+    """List and filter evaluated packages.
+
+    Supports filtering by category, MCP availability, free tier,
+    minimum AF score, compliance, and package type. Results are
+    paginated and sortable.
+    """
     q = db.query(Package)
     q = _apply_eager(q)
 
@@ -127,6 +134,7 @@ def list_packages(
 def get_package(
     request: Request, response: Response, package_id: str, db: Session = Depends(get_db),
 ):
+    """Get full evaluation data for a single package."""
     q = db.query(Package).filter(Package.id == package_id)
     q = _apply_eager(q)
     pkg = q.first()
@@ -140,6 +148,7 @@ def get_package(
 def get_agent_guide(
     request: Request, response: Response, package_id: str, db: Session = Depends(get_db),
 ):
+    """Get agent-optimized guide with scores, gotchas, and auth info."""
     q = db.query(Package).filter(Package.id == package_id)
     q = _apply_eager(q)
     pkg = q.first()
@@ -154,6 +163,7 @@ def get_agent_guide(
 @router.get("/v1/categories", response_model=CategoryListResponse, tags=["categories"])
 @limiter.limit(API_RATE_LIMIT)
 def list_categories(request: Request, response: Response, db: Session = Depends(get_db)):
+    """List all categories with evaluated package counts."""
     cats = db.query(Category).options(joinedload(Category.packages)).all()
     return CategoryListResponse(
         categories=[
@@ -175,6 +185,7 @@ def list_categories(request: Request, response: Response, db: Session = Depends(
 def get_category_packages(
     request: Request, response: Response, slug: str, db: Session = Depends(get_db),
 ):
+    """Get all packages in a category, ranked by AF score."""
     cat = (
         db.query(Category).options(joinedload(Category.packages))
         .filter(Category.slug == slug).first()
@@ -209,6 +220,7 @@ def compare_packages(
     ids: str = Query(..., description="Comma-separated package IDs"),
     db: Session = Depends(get_db),
 ):
+    """Compare up to 10 packages side by side."""
     id_list = [i.strip() for i in ids.split(",") if i.strip()]
     if not id_list:
         raise HTTPException(status_code=400, detail="No package IDs provided")
@@ -366,6 +378,7 @@ def get_evaluation_queue(
 @router.get("/v1/stats", response_model=StatsResponse, tags=["stats"])
 @limiter.limit(API_RATE_LIMIT)
 def get_stats(request: Request, response: Response, db: Session = Depends(get_db)):
+    """Get sitewide statistics and score distribution."""
     total_packages = db.query(func.count(Package.id)).scalar() or 0
     total_evaluated = (
         db.query(func.count(Package.id))

@@ -17,8 +17,23 @@ from .web_routes import router as web_router
 
 app = FastAPI(
     title="Assay",
-    description="The quality layer for agentic software — package agent-friendliness ratings",
+    summary="The quality layer for agentic software",
+    description=(
+        "Independent agent-friendliness ratings for MCP servers, APIs, and SDKs. "
+        "Assay scores packages on documentation accuracy, error quality, security "
+        "posture, and more — so agents and developers can pick the right tool."
+    ),
     version="0.1.0",
+    contact={"name": "Assay Tools", "url": "https://assay.tools"},
+    license_info={"name": "MIT"},
+    openapi_tags=[
+        {"name": "packages", "description": "Browse, search, and inspect evaluated packages"},
+        {"name": "categories", "description": "Package categories and per-category listings"},
+        {"name": "compare", "description": "Side-by-side package comparison"},
+        {"name": "stats", "description": "Sitewide statistics and score distribution"},
+        {"name": "contribute", "description": "Evaluation queue for community contributors"},
+        {"name": "system", "description": "Health checks and operational endpoints"},
+    ],
 )
 
 # Attach rate limiter to app state (required by slowapi)
