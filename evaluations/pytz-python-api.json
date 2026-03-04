@@ -5,24 +5,24 @@
   "homepage": "https://pythonhosted.org/pytz/",
   "repo_url": "https://github.com/stub42/pytz",
   "category": "developer-tools",
-  "subcategories": ["datetime", "python", "timezone", "utilities"],
-  "tags": ["python", "pytz", "timezone", "datetime", "utc", "localize", "tzinfo"],
-  "what_it_does": "Timezone library for Python datetime — provides Olson timezone database for datetime localization and conversion. pytz features: pytz.timezone() for timezone objects, datetime.astimezone() for conversion, pytz.localize() for naive datetime localization, pytz.utc for UTC timezone, pytz.all_timezones for all timezone names, pytz.common_timezones for common zones, and normalization after arithmetic. Predates Python 3.9 zoneinfo module. Now largely superseded by stdlib zoneinfo but widely used in existing codebases.",
+  "subcategories": ["utilities", "python", "datetime", "timezone"],
+  "tags": ["python", "pytz", "timezone", "datetime", "UTC", "IANA", "DST"],
+  "what_it_does": "IANA timezone database for Python — provides timezone objects for making naive datetime objects timezone-aware. pytz features: timezone() for IANA timezone lookup (e.g. 'US/Eastern', 'Europe/London'), utc for UTC timezone object, localize() for attaching timezone to naive datetime, normalize() for DST transition correction, astimezone() for timezone conversion, all_timezones list, common_timezones for frequently used zones, and timezone abbreviation lookup. Note: Python 3.9+ has zoneinfo in stdlib which largely supersedes pytz.",
   "use_cases": [
-    "Agent UTC storage — from datetime import datetime; import pytz; utc = pytz.utc; now_utc = datetime.now(utc); stored = now_utc.isoformat() — always store as UTC; agent converts to local for display; pytz.utc is the recommended UTC timezone object for stdlib datetime",
-    "Agent timezone conversion — eastern = pytz.timezone('US/Eastern'); utc_time = datetime(2024, 6, 15, 12, 0, 0, tzinfo=pytz.utc); eastern_time = utc_time.astimezone(eastern) — convert UTC to local timezone; agent displays timestamps in user's timezone; astimezone() handles DST transitions automatically",
-    "Agent datetime localization — eastern = pytz.timezone('US/Eastern'); naive_dt = datetime(2024, 3, 15, 12, 0, 0); localized = eastern.localize(naive_dt) — localize naive datetime; agent receives naive datetime from external system; localize() makes it timezone-aware; do not use replace(tzinfo=eastern) — wrong for DST boundary times",
-    "Agent timezone list — user_tz = request.json.get('timezone'); if user_tz not in pytz.all_timezones_set: return error; tz = pytz.timezone(user_tz) — validate user-provided timezone; agent user preference validation uses pytz.all_timezones_set for O(1) membership check; pytz.common_timezones for UI dropdown",
-    "Agent DST-aware scheduling — eastern = pytz.timezone('US/Eastern'); scheduled = eastern.localize(datetime(2024, 11, 3, 9, 0)); utc_scheduled = scheduled.astimezone(pytz.utc) — 9 AM Eastern before/after DST change is different UTC times; agent scheduler computes correct UTC for 'same local time' after DST change via localize"
+    "Agent timezone-aware datetime — import pytz; from datetime import datetime; eastern = pytz.timezone('US/Eastern'); naive_dt = datetime(2024, 6, 15, 14, 30); aware_dt = eastern.localize(naive_dt); print(aware_dt) — '2024-06-15 14:30:00-04:00' — localized; agent creates timezone-aware datetime; localize() attaches timezone to naive datetime correctly handling DST",
+    "Agent UTC conversion — utc = pytz.utc; now_utc = datetime.now(utc); eastern = pytz.timezone('US/Eastern'); now_eastern = now_utc.astimezone(eastern); print(now_eastern) — UTC to Eastern; agent converts between timezones; astimezone() converts aware datetime; pytz.normalize() required after arithmetic on DST-aware datetimes",
+    "Agent list timezones — print(pytz.all_timezones[:5]) — all IANA zones; print(pytz.common_timezones[:5]) — frequently used; tz = pytz.timezone('America/New_York') — canonical name; agent lists available timezones; 'US/Eastern' is alias for 'America/New_York'; prefer canonical names",
+    "Agent DST handling — eastern = pytz.timezone('US/Eastern'); ambiguous_dt = datetime(2024, 11, 3, 1, 30); std = eastern.localize(ambiguous_dt, is_dst=False); dst = eastern.localize(ambiguous_dt, is_dst=True) — DST ambiguity; agent explicitly specifies DST during 'fall back' hour when 1:30 AM occurs twice; is_dst=None raises AmbiguousTimeError",
+    "Agent store UTC convert display — # Store in UTC; utc_dt = datetime.now(pytz.utc); db.save(utc_dt.isoformat()); # Display in user timezone; user_tz = pytz.timezone(user.timezone); display_dt = utc_dt.astimezone(user_tz) — UTC storage pattern; agent stores all times in UTC; converts to user timezone for display only"
   ],
   "not_for": [
-    "New Python 3.9+ code — use stdlib zoneinfo module which is simpler and has no pitfalls; pytz is legacy but maintained",
-    "Datetime arithmetic with pytz — adding timedelta to pytz-localized datetime can produce wrong result without normalize(); use pendulum or arrow for safe arithmetic",
-    "Modern Django/SQLAlchemy — both now support zoneinfo natively; pytz still works but zoneinfo is preferred"
+    "Python 3.9+ projects — use zoneinfo (stdlib) instead: from zoneinfo import ZoneInfo; datetime.now(ZoneInfo('US/Eastern')); no dependency needed",
+    "Arrow or pendulum users — both libraries include timezone support; no need for pytz separately",
+    "New projects — prefer zoneinfo for Python 3.9+; pytz is legacy but still widely used"
   ],
-  "best_when": "Maintaining existing Python codebases that use pytz for timezone handling — pytz remains correct and maintained but new code should use Python 3.9+ zoneinfo instead.",
-  "avoid_when": "Starting new projects on Python 3.9+ (use zoneinfo), need safe timezone arithmetic (use pendulum), or want minimal dependencies.",
-  "alternatives": ["pendulum-python-api", "arrow-python-api"],
+  "best_when": "Legacy Python codebases requiring timezone support, or dependencies that still require pytz timezone objects — otherwise prefer stdlib zoneinfo on Python 3.9+.",
+  "avoid_when": "Python 3.9+ (use zoneinfo), projects using arrow/pendulum (built-in TZ support), or new projects where stdlib zoneinfo is available.",
+  "alternatives": ["arrow-python-api"],
   "interface": {
     "has_rest_api": false,
     "has_graphql": false,
@@ -38,7 +38,7 @@
     "methods": ["none"],
     "oauth": false,
     "scopes": false,
-    "notes": "No auth — local timezone library."
+    "notes": "No auth — timezone database library."
   },
   "pricing": {
     "model": "open_source",
@@ -46,13 +46,13 @@
     "free_tier_limits": "Completely free, MIT licensed",
     "paid_tiers": "None",
     "requires_credit_card": false,
-    "notes": "pytz is MIT licensed. Free for all use."
+    "notes": "pytz is MIT licensed. IANA timezone database updates distributed via pip updates. Free for all use."
   },
   "performance": {
     "latency_p50_ms": null,
     "latency_p99_ms": null,
     "uptime_sla_percent": null,
-    "rate_limits": "No rate limits. pytz.timezone() lookup: ~1μs. localize() and astimezone(): ~5μs. Suitable for real-time use. pytz caches timezone objects internally.",
+    "rate_limits": "No rate limits. Performance: timezone() lookup: <0.1ms with internal caching. localize() and astimezone(): <0.1ms. Pure Python with bundled timezone database.",
     "data_source": "llm_estimated"
   },
   "requirements": {
@@ -66,41 +66,41 @@
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
-    "documentation_accuracy": 82,
+    "documentation_accuracy": 85,
     "error_message_quality": 80,
-    "error_message_notes": "pytz.exceptions.UnknownTimeZoneError for invalid timezone names. NonExistentTimeError for DST gap times. AmbiguousTimeError for DST fall-back times. Error messages include the invalid timezone name. pytz errors are clear for common issues.",
+    "error_message_notes": "UnknownTimeZoneError for invalid timezone names. AmbiguousTimeError for DST transition times without is_dst. NonExistentTimeError for 'spring forward' gaps. Error messages include the timezone name.",
     "idempotency_support": "full",
-    "idempotency_notes": "pytz timezone operations are deterministic. localize() and astimezone() produce consistent results. pytz.timezone() returns same object for same name (cached). Timezone conversions are idempotent.",
+    "idempotency_notes": "All pytz operations are pure and deterministic. localize() returns new datetime without modifying original.",
     "pagination_style": "none",
     "retry_guidance_documented": false,
     "known_agent_gotchas": [
-      "Never use replace(tzinfo=tz) — datetime(2024, 1, 1).replace(tzinfo=eastern) uses historical EST offset not LMT; correct: eastern.localize(datetime(2024, 1, 1)); agent code using replace() instead of localize() gets wrong UTC offset for many timezones; pytz documentation explicitly warns against replace() for pytz timezones",
-      "Datetime arithmetic requires normalize() — localized = eastern.localize(datetime(2024, 3, 10, 1, 0)); wrong = localized + timedelta(hours=1); correct = eastern.normalize(localized + timedelta(hours=1)) — adding timedelta crosses DST boundary without normalize() gives wrong timezone offset; use pendulum or arrow for safe arithmetic; pytz normalize() fixes the offset after arithmetic",
-      "AmbiguousTimeError during DST fall-back — eastern.localize(datetime(2024, 11, 3, 1, 30)) raises AmbiguousTimeError — 1:30 AM exists twice on fall-back day; must specify: eastern.localize(datetime(2024, 11, 3, 1, 30), is_dst=True) for first occurrence or is_dst=False for second; agent scheduling during fall-back must explicitly handle ambiguity",
-      "NonExistentTimeError during DST spring-forward — eastern.localize(datetime(2024, 3, 10, 2, 30)) raises NonExistentTimeError — 2:30 AM doesn't exist (clocks spring to 3:00); agent must handle: try: eastern.localize(dt); except pytz.NonExistentTimeError: use is_dst=True to interpret as spring forward equivalent",
-      "pytz is de-prioritized in Python 3.9+ — Python 3.9 added zoneinfo module covering pytz's functionality; datetime(2024, 1, 1, tzinfo=ZoneInfo('America/New_York')) is the modern approach; agent new code should use from zoneinfo import ZoneInfo; pytz remains correct but zoneinfo is stdlib-native",
-      "pytz timezone objects are not equal to zoneinfo objects — pytz.timezone('UTC') != datetime.timezone.utc; mixing pytz and zoneinfo objects raises TypeError in comparisons; agent codebase mixing old (pytz) and new (zoneinfo) code must normalize to one timezone library; convert pytz tz to zoneinfo: ZoneInfo(str(pytz_tz))"
+      "Never use tz=pytz.timezone('...') in datetime constructor — datetime(2024, 1, 1, tzinfo=eastern) is WRONG and produces incorrect UTC offsets for DST; always use eastern.localize(datetime(2024, 1, 1)) instead; this is the most common pytz mistake; tzinfo= parameter bypasses DST logic",
+      "normalize() required after timedelta arithmetic — eastern_dt + timedelta(hours=25) may cross DST boundary and have wrong offset; always: pytz.normalize(eastern_dt + timedelta(hours=25)) after any arithmetic on timezone-aware datetimes; normalize() re-applies correct DST offset",
+      "Timezone names are IANA not Windows — pytz.timezone('Eastern Standard Time') raises UnknownTimeZoneError; use IANA names: 'America/New_York' or 'US/Eastern'; agent code accepting user timezone strings: validate with try: pytz.timezone(tz_str) except UnknownTimeZoneError; common mistake with Windows system timezone names",
+      "AmbiguousTimeError during 'fall back' — when is_dst=None (default), localizing a time that exists twice raises AmbiguousTimeError; agent code processing logs from fall-back hour: use is_dst=False for standard time (after clock falls back); is_dst=True for DST time (before fallback); or trap AmbiguousTimeError",
+      "pytz timezone objects are not equal across calls — pytz.timezone('US/Eastern') == pytz.timezone('US/Eastern') is True (cached); but isinstance checks work; comparing pytz tz with zoneinfo tz returns False; agent code mixing pytz and zoneinfo: avoid mixing; pick one system",
+      "pytz is deprecated for Python 3.9+ — Python 3.9 added zoneinfo to stdlib; pytz still works but new code should use: from zoneinfo import ZoneInfo; datetime.now(ZoneInfo('America/New_York')); no localize() needed; ZoneInfo handles DST automatically with + operator; agent code targeting Python 3.9+: migrate to zoneinfo"
     ]
   },
   "af_score_components": {
     "mcp_score": 0,
-    "api_doc_score": 80,
-    "error_handling_score": 82,
+    "api_doc_score": 85,
+    "error_handling_score": 80,
     "auth_complexity_score": 99,
     "rate_limit_clarity_score": 99
   },
   "security_score_components": {
     "tls_enforcement": 92,
     "auth_strength": 92,
-    "scope_granularity": 90,
+    "scope_granularity": 92,
     "dependency_hygiene": 90,
     "secret_handling": 92,
-    "security_notes": "Timezone library with no network calls. Incorrect timezone handling (wrong DST, naive datetimes) can cause security issues in time-sensitive agent operations (token expiry, session management). Always use timezone-aware datetimes for security-critical time comparisons."
+    "security_notes": "Pure timezone database library. No network calls — timezone data is bundled. Update pytz regularly for IANA database updates (governments change DST rules). No security concerns beyond keeping timezone data current."
   },
   "reliability_score_components": {
-    "uptime_documented": 85,
-    "version_stability": 88,
-    "breaking_changes_history": 90,
+    "uptime_documented": 88,
+    "version_stability": 85,
+    "breaking_changes_history": 85,
     "error_recovery": 88
   }
 }

@@ -1,28 +1,28 @@
 {
   "id": "cattrs-python-api",
   "name": "cattrs",
-  "version_evaluated": "23+",
+  "version_evaluated": "23.x",
   "homepage": "https://catt.rs/",
   "repo_url": "https://github.com/python-attrs/cattrs",
   "category": "developer-tools",
-  "subcategories": ["python", "serialization", "deserialization", "validation"],
-  "tags": ["python", "serialization", "deserialization", "attrs", "dataclasses", "type-hints", "converters"],
-  "what_it_does": "Python library for structuring (deserializing) and unstructuring (serializing) complex Python objects. Built on top of attrs but also works with dataclasses. Converts between untyped dicts/lists and typed attrs/dataclass instances using Python type hints. Highly customizable via Converter class. The complement to attrs for serialization/deserialization.",
+  "subcategories": ["serialization", "python", "attrs", "data-classes"],
+  "tags": ["python", "cattrs", "attrs", "serialization", "deserialization", "structuring", "unstructuring"],
+  "what_it_does": "Structuring and unstructuring library for attrs/dataclasses — converts between Python objects and primitive data (dicts, lists) for serialization. cattrs features: structure() for dict→object conversion, unstructure() for object→dict conversion, Converter for custom serialization rules, GenConverter with generics support, register_structure_hook/register_unstructure_hook for custom types, ClassValidationError with per-field errors, cattrs.preconf.json for JSON-ready converters, support for attrs, dataclasses, TypedDict, NamedTuple, and most typing constructs (Union, Optional, List, Dict), and exception groups for multiple field errors.",
   "use_cases": [
-    "Deserialize JSON API responses into typed attrs or dataclass objects using cattrs.structure() with full type hint support",
-    "Serialize complex Python object graphs to dicts/JSON with customizable field mapping using cattrs.unstructure()",
-    "Handle Union types and Optional fields in deserialization with automatic type disambiguation",
-    "Build custom converters for domain-specific serialization needs (date formats, enum handling, custom type coercion)",
-    "Validate and deserialize configuration files (JSON, TOML, YAML) into strongly-typed Python objects"
+    "Agent attrs to dict — import cattrs; import attrs; @attrs.define; class User: id: int; name: str; email: str; user = User(1, 'Alice', 'a@b.com'); d = cattrs.unstructure(user) — {'id': 1, 'name': 'Alice', 'email': 'a@b.com'}; user2 = cattrs.structure(d, User) — round-trip; agent converts attrs objects to dicts for JSON serialization",
+    "Agent nested structuring — @attrs.define; class Order: id: int; user: User; items: list[str]; data = {'id': 99, 'user': {'id': 1, 'name': 'Alice', 'email': 'a@b.com'}, 'items': ['book', 'pen']}; order = cattrs.structure(data, Order) — nested; agent structures nested dicts recursively; all nested attrs/dataclass fields are structured automatically",
+    "Agent custom converter — from cattrs import Converter; c = Converter(); c.register_unstructure_hook(datetime, lambda dt: dt.isoformat()); c.register_structure_hook(datetime, lambda v, _: datetime.fromisoformat(v)); d = c.unstructure(user_with_datetime) — custom types; agent registers converters for types cattrs doesn't handle by default (datetime, UUID, Decimal)",
+    "Agent JSON preset — from cattrs.preconf.json import make_json_converter; c = make_json_converter(); json_dict = c.unstructure(obj) — JSON-ready; agent uses pre-configured converter that handles datetime→ISO string, bytes→base64, UUID→string; unstructure produces JSON-serializable dict directly; then json.dumps(json_dict)",
+    "Agent validation errors — from cattrs import ClassValidationError; try: obj = cattrs.structure(data, MyClass) except ClassValidationError as e: for exc in e.exceptions: print(exc.exc_type, exc.path) — validation; agent catches structured exceptions with per-field error details; ClassValidationError has .exceptions list with path to each failed field"
   ],
   "not_for": [
-    "Pydantic-style schema generation or FastAPI integration — use Pydantic for OpenAPI schema and API validation",
-    "Simple JSON parsing where dicts suffice — avoid adding cattrs for trivial cases that don't need typed objects",
-    "High-performance binary serialization — use msgpack or protobuf for binary formats"
+    "API serialization with schema generation — cattrs has no OpenAPI/JSON Schema output; for API use Pydantic which generates schemas",
+    "Validation with rich error messages — Pydantic v2 has better validation error messages for user-facing APIs",
+    "Simple dict serialization — for attrs without complex nesting, attrs.asdict() is sufficient; cattrs shines for complex types"
   ],
-  "best_when": "You're using attrs or dataclasses and need round-trip serialization/deserialization with type safety and customization.",
-  "avoid_when": "You need JSON schema, OpenAPI integration, or are starting fresh — Pydantic covers both validation and serialization in one package.",
-  "alternatives": ["pydantic-v2-api", "attrs-python-api", "marshmallow-api"],
+  "best_when": "attrs/dataclass serialization with custom types, complex nesting, and Union types — cattrs is the standard serialization companion for attrs classes.",
+  "avoid_when": "API schema generation (use Pydantic), simple attrs serialization (use attrs.asdict()), or when Pydantic's integrated validation is needed.",
+  "alternatives": ["pydantic-python-api", "attrs-python-api"],
   "interface": {
     "has_rest_api": false,
     "has_graphql": false,
@@ -38,21 +38,21 @@
     "methods": ["none"],
     "oauth": false,
     "scopes": false,
-    "notes": "Pure Python library — no auth needed."
+    "notes": "No auth — serialization library."
   },
   "pricing": {
     "model": "open_source",
     "free_tier_exists": true,
-    "free_tier_limits": "MIT license — completely free",
+    "free_tier_limits": "Completely free, MIT licensed",
     "paid_tiers": "None",
     "requires_credit_card": false,
-    "notes": "MIT licensed open source library."
+    "notes": "cattrs is MIT licensed. Part of the attrs ecosystem. Free for all use."
   },
   "performance": {
     "latency_p50_ms": null,
     "latency_p99_ms": null,
     "uptime_sla_percent": null,
-    "rate_limits": "None — local library",
+    "rate_limits": "No rate limits. Performance: structure/unstructure: <1ms for small objects. GenConverter generates optimized code for faster structuring. Hooks are cached per type. Large nested structures may take several ms.",
     "data_source": "llm_estimated"
   },
   "requirements": {
@@ -66,41 +66,41 @@
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
-    "documentation_accuracy": 82,
-    "error_message_quality": 78,
-    "error_message_notes": "Structure failures raise cattrs.ClassValidationError with a list of all field errors (not just the first). Unstructure is generally safe. Error messages include field paths for nested structures.",
+    "documentation_accuracy": 88,
+    "error_message_quality": 85,
+    "error_message_notes": "ClassValidationError groups per-field errors with path. StructureError for hook failures. Exception paths show nested field location. Error messages are better than raw Python exceptions.",
     "idempotency_support": "full",
-    "idempotency_notes": "Pure transformation library — all operations are deterministic given the same input.",
+    "idempotency_notes": "structure/unstructure are pure operations. Same input always produces same output. Converter state is shared — hooks are global per Converter instance.",
     "pagination_style": "none",
     "retry_guidance_documented": false,
     "known_agent_gotchas": [
-      "cattrs v22+ changed from Converter to BaseConverter/Converter split — code using old Converter may need updates when upgrading",
-      "structure() is strict about extra keys by default in newer versions — configure converter with forbid_extra_keys=False if input dicts have unknown fields",
-      "Union type structuring requires type tags or custom disambiguation hooks — simple Union[A, B] won't auto-discriminate without configuration",
-      "ClassValidationError collects ALL errors, not just the first — agents should iterate through .exceptions attribute for full error list",
-      "cattrs does not validate the output of unstructure() — serialization is assumed correct; validation only happens on structure()",
-      "The global cattrs.structure/unstructure uses a global converter — use explicit Converter() instances in library code to avoid global state mutation"
+      "Default converter is global and shared — cattrs.structure() uses a global default Converter; registering hooks on default converter affects all code using it; agent code: create a custom Converter() for app-specific hooks instead of modifying global; from cattrs import Converter; c = Converter() — isolated converter",
+      "Union types need disambiguation — cattrs.structure({'x': 1}, Union[ClassA, ClassB]) may fail without discriminator; cattrs tries each type in order; agent code with Union: add discriminator field or use register_structure_hook to implement custom Union logic; or use Literal-tagged unions with GenConverter",
+      "datetime not handled by default converter — cattrs.structure('2024-01-15T14:30:00', datetime) raises StructureError by default; agent code: use make_json_converter() from cattrs.preconf.json which handles datetime, UUID, bytes; or register_structure_hook(datetime, ...) on custom converter",
+      "unstructure returns plain dicts not JSON — cattrs.unstructure(obj) returns Python dict; may contain non-JSON-serializable types (datetime, UUID); json.dumps(cattrs.unstructure(obj)) may raise TypeError; agent code: use make_json_converter() which handles common non-JSON types; or register unstructure hooks for each special type",
+      "ClassValidationError requires explicit handling — cattrs.structure() with invalid data raises ClassValidationError (not ValueError/TypeError); agent code: catch ClassValidationError specifically to get field-level errors; generic except Exception misses the structured error info; import ClassValidationError from cattrs",
+      "Slots attrs classes need GenConverter — @attrs.define (slots=True by default) works with default Converter; but complex generic types (List[MyClass], Optional[MyClass]) work better with GenConverter: from cattrs import GenConverter; c = GenConverter() — generates optimized code for generic types; default Converter works for most cases"
     ]
   },
   "af_score_components": {
     "mcp_score": 0,
-    "api_doc_score": 82,
-    "error_handling_score": 78,
-    "auth_complexity_score": 100,
-    "rate_limit_clarity_score": 100
+    "api_doc_score": 88,
+    "error_handling_score": 85,
+    "auth_complexity_score": 99,
+    "rate_limit_clarity_score": 99
   },
   "security_score_components": {
-    "tls_enforcement": 100,
-    "auth_strength": 100,
-    "scope_granularity": 100,
-    "dependency_hygiene": 90,
+    "tls_enforcement": 92,
+    "auth_strength": 92,
+    "scope_granularity": 92,
+    "dependency_hygiene": 92,
     "secret_handling": 90,
-    "security_notes": "Pure transformation library — no network access, no security concerns beyond input validation."
+    "security_notes": "Pure serialization library. structure() deserializes untrusted data — validators in attrs classes run during structure(); ensure all attrs validators are properly defined. Unstructuring to dict does not sanitize data — validate before structuring from user input."
   },
   "reliability_score_components": {
-    "uptime_documented": 90,
-    "version_stability": 80,
-    "breaking_changes_history": 75,
-    "error_recovery": 85
+    "uptime_documented": 88,
+    "version_stability": 85,
+    "breaking_changes_history": 82,
+    "error_recovery": 88
   }
 }

@@ -1,28 +1,28 @@
 {
   "id": "watchfiles-python-api",
   "name": "watchfiles",
-  "version_evaluated": "0.21+",
+  "version_evaluated": "0.21.x",
   "homepage": "https://watchfiles.helpmanual.io/",
   "repo_url": "https://github.com/samuelcolvin/watchfiles",
   "category": "developer-tools",
-  "subcategories": ["python", "filesystem", "async", "development"],
-  "tags": ["python", "file-watching", "inotify", "fsevents", "async", "hot-reload", "rust", "cross-platform"],
-  "what_it_does": "Simple, modern, fast file watching library for Python, built on Rust's notify crate via PyO3. Provides both sync and async APIs for watching file system changes. Used as the file watcher in Uvicorn (--reload), FastAPI dev server, and many Python development tools. Significantly faster and more reliable than watchdog for Python async contexts.",
+  "subcategories": ["utilities", "python", "filesystem", "async"],
+  "tags": ["python", "watchfiles", "filesystem", "watch", "async", "rust", "hot-reload"],
+  "what_it_does": "Fast filesystem watching for Python — Rust-backed file change detection with both sync and async APIs. watchfiles features: watch() sync generator that yields sets of (Change, path) tuples, awatch() async generator for asyncio, run_process() for subprocess hot-reload, arun_process() async version, Change enum (added/modified/deleted), filter_func parameter for custom filtering, recursive watching with native OS events (inotify/FSEvents/kqueue), debouncing by default, and significantly faster than pure-Python watchdog for high-frequency changes.",
   "use_cases": [
-    "Implement hot-reload in Python development servers using watch() or awatch() async generator for file change events",
-    "Build agent systems that monitor configuration file changes and reload without process restart",
-    "Watch directories for new files in Python pipelines (inbox processors, file-based triggers) with async support",
-    "Implement file synchronization tools that react to change events with cross-platform native OS event support",
-    "Replace watchdog in async Python applications where asyncio event loop integration is required"
+    "Agent sync file watch — from watchfiles import watch, Change; for changes in watch('/path/to/dir'): for change, path in changes: if change == Change.modified: process(path); print(f'{change}: {path}') — blocking watch; agent monitors directory synchronously; watch() blocks until changes; each iteration yields a set of (Change, path) tuples",
+    "Agent async file watch — from watchfiles import awatch; async def monitor(): async for changes in awatch('/path/to/dir'): for change, path in changes: await handle_change(change, path) — async watch; agent monitors files in asyncio context without blocking; awatch() is async generator; ideal for FastAPI/asyncio applications",
+    "Agent process hot-reload — from watchfiles import run_process; run_process('python server.py', watch_dir='src/') — hot reload; agent restarts subprocess when watched files change; run_process blocks main process; subprocess killed and restarted on any change; used by uvicorn --reload internally",
+    "Agent filtered watch — from watchfiles import watch, Change; def py_only(change, path): return path.endswith('.py'); for changes in watch('src/', watch_filter=py_only): handle(changes) — filtered; agent watches only specific file types; watch_filter receives (Change, path) and returns bool; replaces post-filtering logic",
+    "Agent change classification — from watchfiles import watch, Change; for changes in watch('.'): added = {p for c, p in changes if c == Change.added}; modified = {p for c, p in changes if c == Change.modified}; deleted = {p for c, p in changes if c == Change.deleted} — classify; agent processes different change types differently; Change.added/modified/deleted are the three event types"
   ],
   "not_for": [
-    "Python < 3.8 environments — watchfiles requires Python 3.8+ and uses modern async features",
-    "Non-Python environments — watchfiles is Python-only; use chokidar for Node.js or notify-rs directly for Rust",
-    "Network filesystem watching — native OS events don't work on NFS/CIFS; polling mode may be needed"
+    "Complex event handler patterns — watchfiles yields changes as sets; for event handler class pattern use watchdog",
+    "Windows deep integration — watchfiles has good Windows support but watchdog's ReadDirectoryChangesW gives more event detail",
+    "Process-level file watching in production — for production monitoring use OS-level tools (systemd, inotifywait)"
   ],
-  "best_when": "You need fast, async-native file watching in Python — especially in FastAPI/Uvicorn/asyncio contexts where watchdog's threading model causes issues.",
-  "avoid_when": "You need Python < 3.8 support or are watching network filesystems where native OS events are unreliable.",
-  "alternatives": ["watchdog-python-api", "schedule-py-api"],
+  "best_when": "Fast async-compatible file watching in asyncio applications and hot-reload scenarios — watchfiles is Rust-backed making it more reliable than pure Python alternatives.",
+  "avoid_when": "Event handler class pattern (use watchdog), complex Windows integration, or when the sync-only watchdog API is already in use.",
+  "alternatives": ["watchdog-python-api"],
   "interface": {
     "has_rest_api": false,
     "has_graphql": false,
@@ -38,21 +38,21 @@
     "methods": ["none"],
     "oauth": false,
     "scopes": false,
-    "notes": "Local filesystem library. No authentication required."
+    "notes": "No auth — filesystem watching library."
   },
   "pricing": {
     "model": "open_source",
     "free_tier_exists": true,
-    "free_tier_limits": "MIT licensed. Completely free.",
+    "free_tier_limits": "Completely free, MIT licensed",
     "paid_tiers": "None",
     "requires_credit_card": false,
-    "notes": "MIT license. Created by Samuel Colvin (author of Pydantic)."
+    "notes": "watchfiles is MIT licensed. Created by Samuel Colvin (also created Pydantic). Free for all use."
   },
   "performance": {
-    "latency_p50_ms": 50,
-    "latency_p99_ms": 500,
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
     "uptime_sla_percent": null,
-    "rate_limits": "No rate limits — local filesystem library. Rust backend provides native OS event latency.",
+    "rate_limits": "No rate limits. Performance: Rust core provides <5ms event latency. Debouncing: 300ms default prevents event storms. Native OS events (inotify/FSEvents) — no polling. Significantly lower CPU than watchdog's polling fallback.",
     "data_source": "llm_estimated"
   },
   "requirements": {
@@ -66,39 +66,39 @@
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
-    "documentation_accuracy": 85,
+    "documentation_accuracy": 88,
     "error_message_quality": 82,
-    "error_message_notes": "Clear error messages for invalid paths and permission issues. Async generator pattern is intuitive. Exceptions propagate cleanly.",
-    "idempotency_support": "full",
-    "idempotency_notes": "File watching is event-driven — events are reported once per change. Restart watching is straightforward.",
+    "error_message_notes": "RuntimeError if watched path doesn't exist. StopIteration/StopAsyncIteration when interrupted. Changes are sets — no ordering guarantee within a batch. Generally clean error messages.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "watch() is a generator — each call creates new watcher. run_process() manages subprocess lifecycle. awatch() is async generator requiring async context.",
     "pagination_style": "none",
     "retry_guidance_documented": false,
     "known_agent_gotchas": [
-      "awatch() is an async generator — must be consumed with async for; forgetting await or async for causes the watcher to never start",
-      "File change events may be batched — multiple rapid changes to the same file appear as one event; debounce logic may be needed for write-then-read patterns",
-      "Watching large directory trees (thousands of files) consumes inotify watches on Linux — check /proc/sys/fs/inotify/max_user_watches and increase if needed",
-      "watchfiles detects Python file changes by default for --reload use case — configure filters with Change.added, Change.modified, Change.deleted to customize",
-      "Process cancellation must be handled carefully with async generators — use try/finally or async with contextlib.asynccontextmanager for cleanup",
-      "Network filesystems (NFS, Samba) do not generate native OS events — watchfiles will miss changes on network mounts without polling mode"
+      "Changes are a Set not ordered list — for changes in watch('.'): each iteration yields Set[tuple[Change, str]]; order within set is undefined; agent code: do not assume order of changes within one batch; process all changes in set before next iteration; use {p for c, p in changes if c == Change.modified} to extract paths",
+      "watch() is a blocking generator — for changes in watch('dir') blocks until first change, then blocks again; agent code: run in separate thread if main thread must continue; or use awatch() in async context; run_process() handles subprocess management separately",
+      "awatch() requires async for — async for changes in awatch('dir') — cannot use next() or list(); agent code using awatch() must be in async def function; cancel the async generator with generator.aclose() on shutdown; CTRL+C raises CancelledError in async context",
+      "Debouncing may combine rapid changes — watchfiles defaults to 300ms debounce; multiple rapid saves appear as one change set; agent code processing file sequences: debouncing is usually desirable but may cause missed events if processing takes longer than debounce window; force_polling=True disables native events and uses slower polling",
+      "run_process() path must be string command — run_process('python server.py') not run_process(['python', 'server.py']); shell=True implied; agent code: use string command; pass target= for function-based reload: run_process(target=my_function, args=(arg1,))",
+      "watch_filter receives Change and str not event object — watch_filter=lambda c, p: p.endswith('.py') — c is Change enum, p is string path; unlike watchdog's event objects; agent code migrating from watchdog: update filter function signature from (event) to (change, path); Change enum: Change.added, Change.modified, Change.deleted"
     ]
   },
   "af_score_components": {
     "mcp_score": 0,
-    "api_doc_score": 85,
+    "api_doc_score": 88,
     "error_handling_score": 82,
-    "auth_complexity_score": 100,
-    "rate_limit_clarity_score": 100
+    "auth_complexity_score": 99,
+    "rate_limit_clarity_score": 99
   },
   "security_score_components": {
-    "tls_enforcement": 100,
-    "auth_strength": 100,
-    "scope_granularity": 100,
+    "tls_enforcement": 92,
+    "auth_strength": 92,
+    "scope_granularity": 90,
     "dependency_hygiene": 90,
-    "secret_handling": 100,
-    "security_notes": "Local filesystem library. Rust backend provides memory safety. No network calls. Watch paths should be validated to prevent watching sensitive system directories."
+    "secret_handling": 90,
+    "security_notes": "Rust-backed filesystem watcher. Path traversal: validate that watched paths don't allow escape from intended directory. run_process() executes shell commands — ensure command string is not user-controlled. Symlinks: watchfiles follows symlinks by default — may expose unintended directories."
   },
   "reliability_score_components": {
-    "uptime_documented": 92,
+    "uptime_documented": 88,
     "version_stability": 85,
     "breaking_changes_history": 82,
     "error_recovery": 88
