@@ -1,0 +1,106 @@
+{
+  "id": "orjson-python-api",
+  "name": "orjson",
+  "version_evaluated": "3.x",
+  "homepage": "https://github.com/ijl/orjson",
+  "repo_url": "https://github.com/ijl/orjson",
+  "category": "developer-tools",
+  "subcategories": ["json", "serialization", "python", "performance"],
+  "tags": ["python", "orjson", "json", "fast", "serialization", "rust", "datetime", "uuid"],
+  "what_it_does": "Fast, correct Python JSON library — Rust-backed JSON serialization and deserialization with native support for datetime, UUID, numpy arrays, dataclasses, and more types than stdlib json. orjson features: orjson.dumps() returns bytes (not str), orjson.loads() accepts str/bytes/memoryview, native datetime/date/time/UUID/numpy/dataclass/attrs serialization, OPT_NON_STR_KEYS for dict keys, OPT_INDENT_2 for pretty print, OPT_SORT_KEYS for sorted output, OPT_OMIT_MICROSECONDS for datetime, default= function for custom types, and 3-10x faster than stdlib json. Returns bytes from dumps().",
+  "use_cases": [
+    "Agent fast JSON — import orjson; data = {'id': uuid.uuid4(), 'created': datetime.now(), 'values': [1, 2, 3]}; json_bytes = orjson.dumps(data); json_str = json_bytes.decode() — native types; agent serializes Python objects with datetime/UUID natively without conversion; no TypeError for unserializable types",
+    "Agent high-throughput API — from fastapi.responses import Response; @app.get('/data'); def get_data(): result = compute_result(); return Response(content=orjson.dumps(result), media_type='application/json') — FastAPI; agent returns pre-serialized bytes directly; avoids FastAPI's own JSON serialization overhead",
+    "Agent numpy serialization — import numpy as np; import orjson; arr = np.array([1.0, 2.0, 3.0]); json_bytes = orjson.dumps({'array': arr}) — numpy; agent serializes numpy arrays directly to JSON without .tolist() conversion; also works with numpy scalars (np.int64, np.float32)",
+    "Agent dataclass serialization — from dataclasses import dataclass; @dataclass; class Result: id: int; name: str; score: float; result = Result(1, 'test', 0.95); json_bytes = orjson.dumps(result) — dataclass; agent serializes dataclasses directly; also works with attrs classes",
+    "Agent fast parsing — records = orjson.loads(api_response_bytes) — parsing; agent deserializes large JSON responses faster than stdlib; orjson.loads accepts bytes directly without decode step; significant speedup for large JSON payloads (100KB+)"
+  ],
+  "not_for": [
+    "environments without Rust toolchain — orjson is a compiled Rust extension; wheels available for common platforms; source build requires Rust",
+    "Custom JSON encoding without bytes — orjson.dumps() always returns bytes; if str output needed: decode() every time; for str output with flexibility use ujson or stdlib",
+    "All Python platforms — wheels not available for all platforms; check PyPI for target platform support"
+  ],
+  "best_when": "High-throughput JSON serialization/deserialization where stdlib json is a bottleneck — orjson is 3-10x faster with native datetime/UUID support.",
+  "avoid_when": "str output required without decode step, platforms without orjson wheels, or when stdlib json's customizability (custom encoders) is needed.",
+  "alternatives": ["msgpack-python-api", "ujson-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — JSON serialization library."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT/Apache dual licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "orjson is MIT and Apache 2.0 dual licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Performance: 3-10x faster than stdlib json. dumps() of complex nested dict: ~50-200 microseconds. loads() of 1MB JSON: ~5-20ms. numpy array serialization: very fast (direct memory access). Rust core eliminates Python overhead.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 88,
+    "error_message_quality": 82,
+    "error_message_notes": "orjson.JSONEncodeError for unserializable types. orjson.JSONDecodeError for invalid JSON. TypeError when default= function raises TypeError. Error messages are brief but include type name causing failure.",
+    "idempotency_support": "full",
+    "idempotency_notes": "dumps/loads are pure functions. Same input = same bytes output. Deterministic with OPT_SORT_KEYS. Thread-safe — no global state.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "dumps() returns bytes not str — orjson.dumps({'key': 'val'}) returns b'{\"key\":\"val\"}' bytes, not string; agent code: decode when str needed: orjson.dumps(data).decode(); or use directly as bytes in HTTP response body; cannot pass to functions expecting str without decode",
+      "default= for custom types — unserializable types raise JSONEncodeError unless default= provided; def default(obj): if isinstance(obj, Decimal): return float(obj); raise TypeError; orjson.dumps(data, default=default) — custom handler; default receives unserializable object and must return serializable or raise TypeError",
+      "option= is a bit flag — orjson.dumps(data, option=orjson.OPT_INDENT_2 | orjson.OPT_SORT_KEYS) — combine with bitwise OR; orjson.OPT_INDENT_2 for pretty print (only 2-space indent); OPT_NON_STR_KEYS for int/bool dict keys; OPT_OMIT_MICROSECONDS truncates datetime microseconds",
+      "datetime timezone handling — orjson serializes timezone-aware datetime with offset: '2024-01-01T12:00:00+00:00'; naive datetime serialized without timezone; OPT_UTC_Z for UTC suffix 'Z' instead of '+00:00'; agent code: use timezone-aware datetimes for unambiguous serialization; loads() parses datetime strings to string (not datetime) by default",
+      "int keys not supported by default — {'1': 'val', '2': 'val'} with int keys: orjson.dumps({1: 'a', 2: 'b'}) raises JSONEncodeError by default; use OPT_NON_STR_KEYS: orjson.dumps(dict_with_int_keys, option=orjson.OPT_NON_STR_KEYS); converts int/bool/float keys to string",
+      "Numpy array type matters — orjson serializes numpy int64/float64/bool arrays directly; np.float16 not supported (raises JSONEncodeError); np.object_ arrays require default= handler; agent code: ensure numpy arrays are float64 or int64; use arr.astype(np.float64) before serializing float16/float32"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 88,
+    "error_handling_score": 82,
+    "auth_complexity_score": 99,
+    "rate_limit_clarity_score": 99
+  },
+  "security_score_components": {
+    "tls_enforcement": 90,
+    "auth_strength": 90,
+    "scope_granularity": 90,
+    "dependency_hygiene": 90,
+    "secret_handling": 88,
+    "security_notes": "JSON serialization library. No network calls. Do not serialize secrets to JSON without encryption. Rust extension — keep updated for security patches. orjson validates JSON on loads() — safe for untrusted input. Circular references raise JSONEncodeError."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 88,
+    "breaking_changes_history": 88,
+    "error_recovery": 88
+  }
+}

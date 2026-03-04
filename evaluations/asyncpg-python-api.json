@@ -1,0 +1,106 @@
+{
+  "id": "asyncpg-python-api",
+  "name": "asyncpg",
+  "version_evaluated": "0.29.x",
+  "homepage": "https://magicstack.github.io/asyncpg/",
+  "repo_url": "https://github.com/MagicStack/asyncpg",
+  "category": "developer-tools",
+  "subcategories": ["database", "postgresql", "async", "python"],
+  "tags": ["python", "asyncpg", "postgresql", "async", "asyncio", "database", "high-performance"],
+  "what_it_does": "High-performance async PostgreSQL client for Python — uses PostgreSQL binary protocol directly for maximum throughput. asyncpg features: asyncpg.connect() and asyncpg.create_pool() for connection management, await conn.fetch(sql)/fetchrow()/fetchval()/execute() for queries, parameterized queries with $1 $2 placeholders, transaction support via conn.transaction(), COPY FROM/TO for bulk data, prepared statements, custom type codecs, listen/notify pub/sub, and connection pool with min_size/max_size. Significantly faster than psycopg2 for async PostgreSQL.",
+  "use_cases": [
+    "Agent async PostgreSQL — import asyncpg; async with asyncpg.connect('postgresql://user:pass@host/db') as conn: rows = await conn.fetch('SELECT * FROM users WHERE status = $1', 'active'); for row in rows: process(dict(row)) — query; agent queries PostgreSQL with parameterized queries; row is Record with dict-like access",
+    "Agent connection pool — pool = await asyncpg.create_pool('postgresql://...', min_size=5, max_size=20); async with pool.acquire() as conn: result = await conn.fetchrow('SELECT * FROM items WHERE id = $1', item_id) — pooled; agent uses connection pool for concurrent FastAPI/asyncio application; acquire() checks out connection",
+    "Agent transaction — async with conn.transaction(): await conn.execute('INSERT INTO orders ...'); await conn.execute('UPDATE inventory ...') — atomic; agent wraps multiple operations in transaction; automatic rollback on exception; nested transactions create savepoints",
+    "Agent bulk COPY — import io; data = io.StringIO('1,Alice\\n2,Bob\\n'); await conn.copy_to_table('users', source=data, format='csv', columns=['id', 'name']) — bulk insert; agent loads large datasets into PostgreSQL; COPY is much faster than individual INSERTs; also copy_from_table for bulk export",
+    "Agent listen/notify — await conn.add_listener('channel', lambda conn, pid, ch, payload: handle(payload)); await conn.execute('LISTEN channel'); while True: await asyncio.sleep(1) — pub/sub; agent subscribes to PostgreSQL NOTIFY for real-time event streaming between processes"
+  ],
+  "not_for": [
+    "ORM usage — asyncpg is a low-level driver; for ORM use SQLAlchemy async with asyncpg as backend",
+    "MySQL/SQLite — asyncpg is PostgreSQL-specific; for MySQL use aiomysql; for SQLite use aiosqlite",
+    "Synchronous code — asyncpg is async-only; for sync PostgreSQL use psycopg2 or psycopg3"
+  ],
+  "best_when": "High-performance async PostgreSQL access in FastAPI or asyncio applications — asyncpg is 3-5x faster than psycopg2 for async workloads.",
+  "avoid_when": "ORM needed (use SQLAlchemy+asyncpg), non-PostgreSQL databases, synchronous code, or when psycopg3's sync+async flexibility is preferred.",
+  "alternatives": ["sqlalchemy-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["password", "ssl"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "PostgreSQL authentication via connection URL. SSL/TLS via ssl= parameter. SCRAM-SHA-256 supported."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, Apache 2.0 licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "asyncpg is Apache 2.0 licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Performance: binary protocol — 3-5x faster than psycopg2. fetch() for rows: sub-millisecond for indexed queries. Connection pool: critical for FastAPI; acquire/release per request. Prepared statements cached. COPY for bulk: orders of magnitude faster than individual inserts.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted", "cloud"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 88,
+    "error_message_quality": 85,
+    "error_message_notes": "asyncpg.exceptions.UniqueViolationError for constraint violations. asyncpg.exceptions.ConnectionDoesNotExistError. asyncpg.exceptions.PostgresError base class. Error messages include PostgreSQL SQLSTATE codes. Exceptions mirror PostgreSQL error codes closely.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "SELECT queries idempotent. INSERT ... ON CONFLICT DO NOTHING for idempotent insert. UPDATE is idempotent for same values. Transaction provides atomicity. Connection pool acquire/release is idempotent.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Placeholders use $1 $2 not %s — asyncpg uses positional $1, $2, $3 placeholders not psycopg2-style %s or %(name)s; conn.fetch('SELECT * FROM t WHERE id = $1 AND status = $2', id_val, 'active') — positional args; agent code migrating from psycopg2: replace all %s with $1, $2, etc.; named params not supported",
+      "fetch() returns list of Records not dicts — rows = await conn.fetch(sql) returns list of asyncpg.Record; Record is dict-like but not dict; dict(row) converts; row['column'] for access; row[0] for index access; agent code: use dict(row) to convert for JSON serialization; [dict(r) for r in rows] for list",
+      "Pool must be created at startup, not per request — await asyncpg.create_pool() is expensive; create once at application startup; agent FastAPI: create pool in lifespan context manager; store on app.state.pool; acquire per request with pool.acquire(); close pool at shutdown: await pool.close()",
+      "Transaction context manager auto-rollbacks — async with conn.transaction(): if exception raised inside, transaction auto-rolls back; no explicit rollback needed; nested: async with conn.transaction() creates savepoint; agent code: wrap database writes in transaction(); handle exceptions outside transaction block for partial success",
+      "Connection from pool must be used as context manager — async with pool.acquire() as conn: — context manager returns connection on exit; NOT async with pool.acquire() as conn: without release; or: conn = await pool.acquire(); try: ... finally: await pool.release(conn) — explicit release pattern; agent code: prefer async with acquire()",
+      "listen/notify requires dedicated connection — listeners block connection; agent code: use separate connection (not from pool) for LISTEN: conn = await asyncpg.connect(...); await conn.add_listener('channel', callback); keep connection alive; pool connections are not suitable for persistent listeners"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 88,
+    "error_handling_score": 85,
+    "auth_complexity_score": 90,
+    "rate_limit_clarity_score": 98
+  },
+  "security_score_components": {
+    "tls_enforcement": 90,
+    "auth_strength": 88,
+    "scope_granularity": 85,
+    "dependency_hygiene": 90,
+    "secret_handling": 82,
+    "security_notes": "PostgreSQL driver. Always use parameterized queries ($1, $2) — never format SQL strings. SSL in production: await asyncpg.connect(dsn, ssl='require'). Connection URL contains credentials — use environment variables. COPY is powerful but validate source data."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 88,
+    "version_stability": 85,
+    "breaking_changes_history": 82,
+    "error_recovery": 85
+  }
+}

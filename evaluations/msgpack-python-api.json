@@ -1,0 +1,106 @@
+{
+  "id": "msgpack-python-api",
+  "name": "msgpack",
+  "version_evaluated": "1.0.x",
+  "homepage": "https://msgpack.org/",
+  "repo_url": "https://github.com/msgpack/msgpack-python",
+  "category": "developer-tools",
+  "subcategories": ["serialization", "binary", "python", "performance"],
+  "tags": ["python", "msgpack", "messagepack", "binary", "serialization", "fast", "compact"],
+  "what_it_does": "MessagePack binary serialization library for Python — faster and more compact than JSON for serializing Python objects. msgpack features: msgpack.packb() for serialization to bytes, msgpack.unpackb() for deserialization, Unpacker for streaming, use_bin_type=True for Python 3 str/bytes distinction, raw=False for str output, strict_map_key for security, Packer class for repeated packing, ext_type for custom types, and C extension for maximum speed. MessagePack format is 20-50% smaller than equivalent JSON.",
+  "use_cases": [
+    "Agent binary serialization — import msgpack; packed = msgpack.packb({'id': 1, 'data': [1,2,3], 'name': 'test'}, use_bin_type=True); unpacked = msgpack.unpackb(packed, raw=False) — binary pack/unpack; agent uses msgpack for inter-process communication or cache storage where binary is acceptable",
+    "Agent Redis cache with msgpack — r = redis.Redis(); data = {'key': 'value', 'numbers': [1, 2, 3]}; r.set('cache:key', msgpack.packb(data, use_bin_type=True)); cached = msgpack.unpackb(r.get('cache:key'), raw=False) — compact cache; agent stores compact binary data in Redis; smaller than JSON for same data",
+    "Agent Celery serialization — app.conf.task_serializer = 'msgpack'; app.conf.result_serializer = 'msgpack'; app.conf.accept_content = ['msgpack'] — celery integration; agent configures Celery to use msgpack for task serialization; requires kombu[msgpack] extra",
+    "Agent streaming unpack — from msgpack import Unpacker; unpacker = Unpacker(raw=False); for chunk in data_stream: unpacker.feed(chunk); for unpacked in unpacker: process(unpacked) — streaming; agent processes continuous stream of msgpack messages (WebSocket, network stream)",
+    "Agent custom types — def default(obj): if isinstance(obj, datetime): return msgpack.ExtType(1, obj.isoformat().encode()); raise TypeError; def ext_hook(code, data): if code == 1: return datetime.fromisoformat(data.decode()); return msgpack.ExtType(code, data); packed = msgpack.packb(obj, default=default); unpacked = msgpack.unpackb(packed, ext_hook=ext_hook, raw=False) — custom; agent serializes datetime via ExtType"
+  ],
+  "not_for": [
+    "Human-readable data — msgpack is binary; for human-readable use JSON",
+    "Cross-language with complex types — msgpack base types work cross-language; custom ExtType requires coordinated extension handling in each language",
+    "Simple Python-only caching — for Python-only caching pickle is simpler; msgpack's advantage is cross-language and security (no code execution)"
+  ],
+  "best_when": "High-throughput binary serialization for inter-process or inter-service communication where JSON overhead matters — msgpack is faster and smaller than JSON with cross-language support.",
+  "avoid_when": "Human-readable output needed (use JSON), Python-only caching (use pickle or orjson), or when msgpack's binary format complicates debugging.",
+  "alternatives": ["orjson-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "javascript", "java", "go", "ruby", "rust"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — serialization library."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, Apache 2.0 licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "msgpack-python is Apache 2.0 licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Performance: 2-5x faster than stdlib json. 20-50% smaller payload than JSON. C extension enabled by default. packb/unpackb: ~10-50 microseconds for typical data. Streaming Unpacker adds memory buffer overhead.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 82,
+    "error_message_quality": 78,
+    "error_message_notes": "msgpack.exceptions.UnpackValueError for invalid msgpack data. TypeError for unserializable types. msgpack.exceptions.ExtraData if extra bytes after message. Exceptions are Python standard types with brief messages.",
+    "idempotency_support": "full",
+    "idempotency_notes": "packb/unpackb are pure functions. Same input = same bytes output. Deterministic encoding. Thread-safe.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "use_bin_type=True and raw=False required for Python 3 — msgpack.packb(data) without use_bin_type=True encodes str as bytes in legacy mode; msgpack.unpackb(data) without raw=False returns bytes for strings; agent code: ALWAYS use: msgpack.packb(data, use_bin_type=True) and msgpack.unpackb(data, raw=False); otherwise str/bytes confusion in Python 3",
+      "strict_map_key=False may be needed — msgpack.unpackb(data, raw=False) by default requires map keys to be str (strict_map_key=True); int keys cause msgpack.exceptions.UnpackValueError; agent code receiving msgpack from other systems with int keys: unpackb(data, raw=False, strict_map_key=False); or use strict_map_key=True and ensure sender uses string keys",
+      "No datetime/UUID native support — msgpack base spec has int, float, str, bytes, list, dict; datetime and UUID must use custom ExtType or convert to str/int before packing; agent code: convert datetime.isoformat() before packing; use default= function for custom types; or use ext_type for cross-language datetime",
+      "Streaming Unpacker requires feed() — Unpacker() does not accept bytes at construction; unpacker.feed(chunk) then iterate: for obj in unpacker: process(obj); agent code reading from socket: while True: chunk = sock.recv(4096); unpacker.feed(chunk); for obj in unpacker: handle(obj) — correct streaming pattern",
+      "Integer size affects encoding size — msgpack uses variable-length encoding; small integers (0-127) use 1 byte; large integers use more; Python large int beyond int64: msgpack raises OverflowError; agent code: ensure integers fit int64 range; for large numbers use str representation",
+      "max_buffer_size for streaming — Unpacker(max_buffer_size=N) limits memory buffer; default 100MB; large messages may exceed; agent code processing large msgpack messages: increase max_buffer_size or use packb/unpackb for complete messages instead of streaming"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 82,
+    "error_handling_score": 78,
+    "auth_complexity_score": 99,
+    "rate_limit_clarity_score": 99
+  },
+  "security_score_components": {
+    "tls_enforcement": 90,
+    "auth_strength": 90,
+    "scope_granularity": 90,
+    "dependency_hygiene": 90,
+    "secret_handling": 88,
+    "security_notes": "Binary serialization library. No code execution on deserialization (unlike pickle) — safe for untrusted input. Set max_buffer_size to prevent memory exhaustion. Validate data types after unpacking. Binary format harder to inspect than JSON — use logging for debugging."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 82,
+    "version_stability": 85,
+    "breaking_changes_history": 82,
+    "error_recovery": 82
+  }
+}
