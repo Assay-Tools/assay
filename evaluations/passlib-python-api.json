@@ -1,0 +1,106 @@
+{
+  "id": "passlib-python-api",
+  "name": "passlib",
+  "version_evaluated": "1.7.x",
+  "homepage": "https://passlib.readthedocs.io/",
+  "repo_url": "https://github.com/efficks/passlib",
+  "category": "security",
+  "subcategories": ["authentication", "password-hashing", "python", "security"],
+  "tags": ["python", "passlib", "password", "hashing", "bcrypt", "argon2", "pbkdf2", "scrypt"],
+  "what_it_does": "Comprehensive password hashing library for Python — provides unified interface over many password hashing algorithms with automatic salt generation, verification, and migration. passlib features: CryptContext for multi-algorithm management with deprecation/upgrade, bcrypt/argon2/scrypt/pbkdf2_sha256 hash schemes, hash(), verify(), needs_update() for password rotation, deprecated schemes for migration, automatic salt generation, and integration with FastAPI/Flask via passlib.context.",
+  "use_cases": [
+    "Agent password hashing — from passlib.context import CryptContext; pwd_context = CryptContext(schemes=['bcrypt'], deprecated='auto'); hashed = pwd_context.hash('user_password'); is_valid = pwd_context.verify('user_password', hashed) — bcrypt; agent hashes user passwords for storage; verify() is constant-time to prevent timing attacks",
+    "Agent FastAPI auth — from passlib.context import CryptContext; pwd_context = CryptContext(schemes=['argon2', 'bcrypt'], deprecated='auto'); def get_password_hash(password): return pwd_context.hash(password); def verify_password(plain, hashed): return pwd_context.verify(plain, hashed) — FastAPI pattern; standard FastAPI auth tutorial pattern",
+    "Agent password migration — context = CryptContext(schemes=['argon2', 'bcrypt'], deprecated=['bcrypt']); ok, new_hash = context.verify_and_update(password, stored_hash); if ok and new_hash: db.update_hash(user_id, new_hash) — migration; agent transparently upgrades old bcrypt hashes to argon2 on next login",
+    "Agent needs_update check — context = CryptContext(schemes=['bcrypt'], bcrypt__rounds=14); if context.needs_update(stored_hash): new_hash = context.hash(password); update_db(user_id, new_hash) — rotation; agent checks if hash should be upgraded (rounds too low) and rehashes on login",
+    "Agent simple bcrypt — from passlib.hash import bcrypt; hash = bcrypt.using(rounds=12).hash('password'); bcrypt.verify('password', hash) — direct; agent uses specific algorithm directly without CryptContext; using(rounds=12) sets work factor; verify() returns True/False"
+  ],
+  "not_for": [
+    "Non-password cryptography — passlib is password-specific; for general crypto use cryptography library",
+    "High-throughput password hashing — bcrypt/argon2 are deliberately slow; not suitable for high frequency; that is the intended security design",
+    "Argon2 without extra — argon2 scheme requires: pip install passlib[argon2] (installs argon2-cffi)"
+  ],
+  "best_when": "User authentication systems needing secure password storage with migration support — passlib's CryptContext handles multi-algorithm migration and is the standard recommendation for Python auth.",
+  "avoid_when": "Non-password crypto (use cryptography library), when argon2-cffi directly is preferred, or when bcrypt-only (use bcrypt package directly).",
+  "alternatives": ["cryptography-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — password hashing library. Implements auth primitives."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, BSD licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "passlib is BSD licensed. Free for all use. Note: passlib maintenance has slowed; argon2-cffi + bcrypt packages are alternatives."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Performance: bcrypt rounds=12: ~200ms (intentionally slow). argon2: configurable (100ms+ recommended). Designed for security not speed — this is correct behavior. Never optimize password hashing to be fast.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 80,
+    "error_message_notes": "passlib.exc.UnknownHashError for unrecognized hash format. passlib.exc.MissingBackendError when required backend (argon2, bcrypt) not installed. verify() returns False (not exception) for wrong password. Exceptions are clear about what's missing.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "hash() is NOT idempotent — generates new random salt each call (intended). verify() is idempotent (constant-time comparison). needs_update() is idempotent. CryptContext configuration is idempotent.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "passlib maintenance is reduced — passlib 1.7.x has not had major updates since 2020; for new projects consider argon2-cffi (for argon2) or bcrypt package directly; passlib still works and is widely deployed; agent code: passlib is safe to use but monitor for security advisories; CryptContext API remains stable",
+      "argon2 requires extra install — passlib schemes=['argon2'] raises MissingBackendError unless argon2-cffi installed: pip install passlib[argon2]; agent requirements.txt: passlib[argon2] not just passlib; bcrypt scheme: pip install passlib[bcrypt] or just bcrypt (auto-detected)",
+      "verify_and_update() pattern for migration — context.verify_and_update(password, hash) returns (valid, new_hash_or_None); if valid is True AND new_hash is not None: update stored hash; if new_hash is None: hash does not need update; agent code: must handle all 3 cases: (False, None)=wrong password, (True, None)=ok no update, (True, new)=ok update hash",
+      "CryptContext schemes order matters — first scheme is default for new hashes; remaining schemes for verifying legacy hashes; context = CryptContext(schemes=['argon2', 'bcrypt'], deprecated=['bcrypt']); agent code: put strongest/preferred scheme first; deprecated= marks schemes for migration; auto means all non-first schemes",
+      "Timing attack prevention via verify() — do NOT use hash == stored_hash for comparison; use context.verify(password, hash) which is constant-time; also do NOT short-circuit on hash comparison; agent code: always use verify() or needs_update(); never string comparison of hashes; passlib.crypto.digest.consteq() for constant-time string compare",
+      "bcrypt max password length is 72 bytes — bcrypt silently truncates passwords longer than 72 bytes; 'password' + 'X'*1000 and 'password' hash to same value for bcrypt; agent code: pre-hash with SHA-256 for long passwords: bcrypt.hash(sha256(password.encode()).hexdigest()); or use argon2 which has no length limit"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 80,
+    "auth_complexity_score": 99,
+    "rate_limit_clarity_score": 99
+  },
+  "security_score_components": {
+    "tls_enforcement": 95,
+    "auth_strength": 95,
+    "scope_granularity": 92,
+    "dependency_hygiene": 88,
+    "secret_handling": 95,
+    "security_notes": "Password hashing library. Never store plain text passwords. Use argon2 or bcrypt — do not use MD5/SHA256 directly for passwords. bcrypt max 72 bytes (pre-hash for longer). CryptContext automates secure migration between algorithms. Keep work factors updated as hardware improves."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 82,
+    "version_stability": 80,
+    "breaking_changes_history": 82,
+    "error_recovery": 85
+  }
+}

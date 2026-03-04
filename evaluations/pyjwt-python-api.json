@@ -1,0 +1,106 @@
+{
+  "id": "pyjwt-python-api",
+  "name": "pyjwt",
+  "version_evaluated": "2.x",
+  "homepage": "https://pyjwt.readthedocs.io/",
+  "repo_url": "https://github.com/jpadilla/pyjwt",
+  "category": "security",
+  "subcategories": ["authentication", "jwt", "python", "tokens"],
+  "tags": ["python", "pyjwt", "jwt", "json-web-token", "auth", "bearer", "RS256", "HS256"],
+  "what_it_does": "JSON Web Token (JWT) implementation for Python — encodes and decodes JWTs with various signing algorithms. PyJWT features: jwt.encode(payload, key, algorithm) for creating tokens, jwt.decode(token, key, algorithms=[]) for verification, HS256/HS384/HS512 (HMAC), RS256/RS512 (RSA), ES256/ES512 (ECDSA), PS256 (RSA-PSS), EdDSA (Ed25519), exp/nbf/iat claim validation, aud audience validation, leeway for clock skew, jwt.get_unverified_header() for algorithm inspection, and PyJWT[crypto] extra for RSA/EC support.",
+  "use_cases": [
+    "Agent JWT creation — import jwt; from datetime import datetime, timedelta, timezone; payload = {'sub': user_id, 'exp': datetime.now(tz=timezone.utc) + timedelta(hours=1), 'iat': datetime.now(tz=timezone.utc)}; token = jwt.encode(payload, secret_key, algorithm='HS256') — HMAC JWT; agent creates access token with expiry",
+    "Agent JWT verification — try: payload = jwt.decode(token, secret_key, algorithms=['HS256']); user_id = payload['sub']; except jwt.ExpiredSignatureError: raise HTTPException(401, 'Token expired'); except jwt.InvalidTokenError: raise HTTPException(401, 'Invalid token') — verification; agent verifies JWT and extracts claims",
+    "Agent RS256 JWT — from cryptography.hazmat.primitives import serialization; private_key = load_private_key(); token = jwt.encode(payload, private_key, algorithm='RS256'); public_key = load_public_key(); payload = jwt.decode(token, public_key, algorithms=['RS256']) — asymmetric; agent uses RS256 for distributed systems where verifier should not have signing key",
+    "Agent JWKS verification — import jwt; from jwt import PyJWKClient; jwks_client = PyJWKClient('https://auth.example.com/.well-known/jwks.json'); signing_key = jwks_client.get_signing_key_from_jwt(token); payload = jwt.decode(token, signing_key.key, algorithms=['RS256'], audience='api') — JWKS; agent verifies tokens from OAuth/OIDC provider",
+    "Agent refresh token pattern — access_payload = {'sub': uid, 'exp': now+timedelta(minutes=15), 'type': 'access'}; refresh_payload = {'sub': uid, 'exp': now+timedelta(days=30), 'type': 'refresh', 'jti': str(uuid4())}; access = jwt.encode(access_payload, secret, 'HS256'); refresh = jwt.encode(refresh_payload, secret, 'HS256') — token pair; agent implements access+refresh token pattern"
+  ],
+  "not_for": [
+    "Session tokens needing server-side revocation — JWTs are stateless; cannot revoke before expiry without blocklist; use session store (Redis) for server-side revocation",
+    "Encrypting sensitive data — JWT is signed (verifiable), not encrypted by default; for encrypted JWT use python-jose with JWE",
+    "SAML assertions — JWT is different from SAML; for SAML use python-saml"
+  ],
+  "best_when": "API authentication tokens for stateless services — PyJWT is the standard Python JWT library for creating and verifying bearer tokens in REST APIs and microservices.",
+  "avoid_when": "Server-side revocation needed (use Redis sessions), encrypted payloads (use JWE/python-jose), or extremely short-lived systems where JWT overhead matters.",
+  "alternatives": ["python-jose-python-api", "itsdangerous-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — JWT library. Implements JWT tokens for auth."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, MIT licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "PyJWT is MIT licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Performance: HS256 encode: <0.1ms. HS256 decode+verify: <0.1ms. RS256 sign: ~0.5ms. RS256 verify: <0.1ms. JWKS key fetch: network-dependent (cached by PyJWKClient). Very low overhead for auth middleware.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 90,
+    "error_message_quality": 88,
+    "error_message_notes": "jwt.ExpiredSignatureError for expired tokens. jwt.InvalidSignatureError for tampered signature. jwt.DecodeError for malformed JWT. jwt.InvalidAlgorithmError for wrong algorithm. jwt.MissingRequiredClaimError for missing required claim. Clear exception hierarchy.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "jwt.encode() with same payload+key+algorithm: HMAC is deterministic (same output); RSA/EC with random padding is NOT deterministic. jwt.decode() is idempotent for same valid token.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "ALWAYS specify algorithms in decode() — jwt.decode(token, key) without algorithms= raises DecodeWarning in 2.x; in older versions, omitting algorithms allowed algorithm confusion attacks (alg:none); agent code: ALWAYS: jwt.decode(token, key, algorithms=['HS256']); NEVER accept 'none' algorithm; validate algorithm matches expected",
+      "exp must be datetime or integer timestamp — payload['exp'] = datetime.now(tz=timezone.utc) + timedelta(hours=1) — datetime with timezone; or: payload['exp'] = int(time.time()) + 3600 — unix timestamp; naive datetime (without timezone) raises deprecation warning in PyJWT 2.x; agent code: always use timezone-aware datetime or explicit unix timestamp",
+      "jwt.encode() returns str in PyJWT 2.x — PyJWT 1.x returned bytes; 2.x returns str; agent code migrating from 1.x: remove .decode('utf-8') after encode(); bearer_token = 'Bearer ' + jwt.encode(payload, key) — concatenate directly in 2.x",
+      "audience and issuer must match exactly — jwt.decode(token, key, algorithms=['HS256'], options={'verify_aud': False}) disables aud check; agent code: ALWAYS verify aud: jwt.decode(token, key, algorithms=['RS256'], audience='api.example.com'); issuer: options={'verify_iss': True}; iss claim must match; security critical",
+      "PyJWKClient caches keys but is not async — PyJWKClient fetches JWKS synchronously; in async FastAPI: use httpx to fetch JWKS and cache manually; or run PyJWKClient in thread via asyncio.to_thread; agent async code: cache JWKS keys with periodic refresh; PyJWKClient(cache_keys=True) caches in memory",
+      "leeway for clock skew — jwt.decode(token, key, algorithms=['HS256'], leeway=10) allows 10 second clock skew for exp/nbf; useful in distributed systems; default: 0 seconds; agent code in distributed systems: set leeway=10 to handle minor clock differences; too large leeway negates exp benefit"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 90,
+    "error_handling_score": 88,
+    "auth_complexity_score": 95,
+    "rate_limit_clarity_score": 99
+  },
+  "security_score_components": {
+    "tls_enforcement": 92,
+    "auth_strength": 90,
+    "scope_granularity": 88,
+    "dependency_hygiene": 92,
+    "secret_handling": 88,
+    "security_notes": "JWT library. ALWAYS specify algorithms in decode() — prevents algorithm confusion attacks. Use RS256/ES256 for distributed systems (public key verification). Use short expiry (15min access, 7-30d refresh). JWTs are signed not encrypted — do not put sensitive data in payload. Keep secret keys in secrets manager."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 90,
+    "version_stability": 88,
+    "breaking_changes_history": 82,
+    "error_recovery": 88
+  }
+}
