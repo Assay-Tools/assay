@@ -45,7 +45,7 @@ Items ready to be claimed. Roughly priority-ordered.
 - [ ] **Category leaderboards** — `GET /v1/categories/{slug}/leaderboard`
 
 ### Testing & Quality
-- [ ] **Test suite** — Create initial pytest suite covering models, API routes, MCP server
+- [x] ~~**Test suite** — moved to Completed~~
 - [ ] **CI/CD pipeline** — GitHub Actions for lint + test on push
 - [ ] **Linting pass** — Run ruff, fix violations
 
@@ -75,3 +75,4 @@ Items ready to be claimed. Roughly priority-ordered.
 - [x] **BUSINESS.md** — Business model, pricing, agentic operating philosophy (2026-03-04)
 - [x] **SSL fix** — Railway cert provisioning via Cloudflare TXT record (2026-03-04)
 - [x] **llms.txt + rate limiting** — `/llms.txt`, `/llms-full.txt` routes + slowapi 100/day on all `/v1/*` endpoints (2026-03-04)
+- [x] **Test suite** — 49 pytest tests covering models, API routes (packages, categories, compare, stats, queue) (2026-03-04)
