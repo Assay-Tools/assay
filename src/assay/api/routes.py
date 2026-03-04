@@ -72,6 +72,12 @@ def list_packages(
     has_mcp: bool | None = Query(None, description="Filter packages with MCP server"),
     free_tier: bool | None = Query(None, description="Filter packages with a free tier"),
     min_af_score: float | None = Query(None, ge=0, le=100, description="Minimum AF score"),
+    min_security_score: float | None = Query(
+        None, ge=0, le=100, description="Minimum security score",
+    ),
+    min_reliability_score: float | None = Query(
+        None, ge=0, le=100, description="Minimum reliability score",
+    ),
     compliance: str | None = Query(None, description="Required compliance (e.g. SOC2, HIPAA)"),
     type: str | None = Query(None, description="Filter by package type (mcp_server, skill)"),
     sort: str = Query("af_score:desc", description="Sort field:direction (e.g. name:asc)"),
@@ -99,6 +105,10 @@ def list_packages(
         q = q.join(Package.pricing).filter(PackagePricing.free_tier_exists == free_tier)
     if min_af_score is not None:
         q = q.filter(Package.af_score >= min_af_score)
+    if min_security_score is not None:
+        q = q.filter(Package.security_score >= min_security_score)
+    if min_reliability_score is not None:
+        q = q.filter(Package.reliability_score >= min_reliability_score)
     if compliance:
         # compliance stored as JSON array string — use LIKE for SQLite compat
         q = q.join(Package.requirements).filter(
@@ -120,6 +130,47 @@ def list_packages(
         q = q.order_by(column.desc().nulls_last())
 
     packages = q.offset(offset).limit(limit).all()
+
+    return PackageListResponse(
+        packages=[p.to_dict() for p in packages],
+        total=total,
+        limit=limit,
+        offset=offset,
+    )
+
+
+@router.get("/v1/packages/updated-since", tags=["packages"])
+@limiter.limit(API_RATE_LIMIT)
+def packages_updated_since(
+    request: Request,
+    response: Response,
+    timestamp: str = Query(
+        ..., description="ISO 8601 timestamp (e.g. 2026-03-01T00:00:00Z)",
+    ),
+    limit: int = Query(100, ge=1, le=500),
+    offset: int = Query(0, ge=0),
+    db: Session = Depends(get_db),
+):
+    """Get packages updated since a given timestamp.
+
+    Useful for syncing local caches or tracking new evaluations.
+    Returns packages ordered by updated_at descending.
+    """
+    try:
+        since = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
+    except ValueError:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid timestamp format. Use ISO 8601 (e.g. 2026-03-01T00:00:00Z)",
+        )
+
+    q = db.query(Package).filter(Package.updated_at >= since)
+    q = _apply_eager(q)
+    total = q.count()
+    packages = (
+        q.order_by(Package.updated_at.desc())
+        .offset(offset).limit(limit).all()
+    )
 
     return PackageListResponse(
         packages=[p.to_dict() for p in packages],
@@ -207,6 +258,56 @@ def get_category_packages(
         ),
         packages=[p.to_dict() for p in packages],
     )
+
+
+@router.get(
+    "/v1/categories/{slug}/leaderboard", tags=["categories"],
+)
+@limiter.limit(API_RATE_LIMIT)
+def get_category_leaderboard(
+    request: Request,
+    response: Response,
+    slug: str,
+    dimension: str = Query(
+        "af_score",
+        description="Score dimension to rank by (af_score, security_score, reliability_score)",
+    ),
+    limit: int = Query(10, ge=1, le=50),
+    db: Session = Depends(get_db),
+):
+    """Top packages in a category ranked by a score dimension."""
+    cat = db.query(Category).filter(Category.slug == slug).first()
+    if not cat:
+        raise HTTPException(
+            status_code=404, detail=f"Category '{slug}' not found",
+        )
+
+    column = getattr(Package, dimension, None)
+    if column is None or dimension not in (
+        "af_score", "security_score", "reliability_score",
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail="dimension must be af_score, security_score, or reliability_score",
+        )
+
+    q = db.query(Package).filter(
+        Package.category_slug == slug,
+        column.isnot(None),
+    )
+    q = _apply_eager(q)
+    packages = q.order_by(column.desc()).limit(limit).all()
+
+    return {
+        "category": CategoryItem(
+            slug=cat.slug,
+            name=cat.name,
+            description=cat.description,
+            package_count=cat.package_count,
+        ).model_dump(),
+        "dimension": dimension,
+        "packages": [p.to_dict() for p in packages],
+    }
 
 
 # --- Compare ---

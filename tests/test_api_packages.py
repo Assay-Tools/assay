@@ -130,3 +130,87 @@ class TestGetAgentGuide:
     def test_agent_guide_nonexistent(self, client):
         resp = client.get("/v1/packages/nonexistent/agent-guide")
         assert resp.status_code == 404
+
+
+class TestFilterByScoreDimension:
+    def test_min_security_score(self, client, sample_packages):
+        resp = client.get("/v1/packages?min_security_score=60")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["total"] == 2
+        names = {p["name"] for p in data["packages"]}
+        assert names == {"Top API", "Mid Tool"}
+
+    def test_min_reliability_score(self, client, sample_packages):
+        resp = client.get("/v1/packages?min_reliability_score=70")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["total"] == 2
+        names = {p["name"] for p in data["packages"]}
+        assert names == {"Top API", "Mid Tool"}
+
+    def test_combined_score_filters(self, client, sample_packages):
+        resp = client.get(
+            "/v1/packages?min_security_score=80&min_reliability_score=80"
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["total"] == 1
+        assert data["packages"][0]["name"] == "Top API"
+
+    def test_score_filter_excludes_null(self, client, sample_packages):
+        """Packages with NULL scores should not match any minimum filter."""
+        resp = client.get("/v1/packages?min_security_score=0")
+        assert resp.status_code == 200
+        data = resp.json()
+        # new-pkg has None scores, should be excluded
+        names = {p["name"] for p in data["packages"]}
+        assert "New Package" not in names
+
+    def test_score_filter_with_category(self, client, sample_packages):
+        resp = client.get(
+            "/v1/packages?category=ai-ml&min_security_score=30"
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["total"] == 1
+        assert data["packages"][0]["name"] == "Basic SDK"
+
+
+class TestUpdatedSince:
+    def test_updated_since_returns_recent(self, client, sample_packages):
+        """All sample packages were just created, so a past timestamp returns all."""
+        resp = client.get(
+            "/v1/packages/updated-since?timestamp=2020-01-01T00:00:00Z"
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["total"] == 5
+
+    def test_updated_since_future_returns_none(self, client, sample_packages):
+        resp = client.get(
+            "/v1/packages/updated-since?timestamp=2099-01-01T00:00:00Z"
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["total"] == 0
+        assert data["packages"] == []
+
+    def test_updated_since_invalid_timestamp(self, client):
+        resp = client.get(
+            "/v1/packages/updated-since?timestamp=not-a-date"
+        )
+        assert resp.status_code == 400
+
+    def test_updated_since_pagination(self, client, sample_packages):
+        resp = client.get(
+            "/v1/packages/updated-since?timestamp=2020-01-01T00:00:00Z&limit=2&offset=0"
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert len(data["packages"]) == 2
+        assert data["total"] == 5
+
+    def test_updated_since_requires_timestamp(self, client):
+        resp = client.get("/v1/packages/updated-since")
+        assert resp.status_code == 422  # FastAPI validation error
