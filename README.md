@@ -6,7 +6,7 @@ Independent agent-friendliness ratings for MCP servers, APIs, and SDKs. Assay sc
 
 ## What it does
 
-- Rates 580+ packages on a 0-100 **AF Score** (Agent-Friendliness)
+- Rates 2,400+ packages on a 0-100 **AF Score** (Agent-Friendliness)
 - Covers MCP servers, REST APIs, GraphQL services, and SDKs
 - Scores across 5 dimensions: MCP quality, documentation, error messages, security, and auth complexity
 - Provides a REST API, MCP server, and web interface
@@ -84,6 +84,10 @@ Each package is evaluated across 5 weighted dimensions:
 | Auth Complexity | 15% | How easy it is for an agent to authenticate |
 
 The AF Score is the weighted average, scaled 0-100.
+
+## Business Model & Operations
+
+Assay is an **agentic business** — AI agents handle evaluation, report generation, prospecting, and operational execution. See [BUSINESS.md](BUSINESS.md) for the full business model, pricing tiers, product streams, and operating philosophy.
 
 ## License
 
