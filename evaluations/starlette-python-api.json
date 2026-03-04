@@ -1,30 +1,30 @@
 {
   "id": "starlette-python-api",
-  "name": "Starlette",
+  "name": "starlette",
   "version_evaluated": "0.36.x",
   "homepage": "https://www.starlette.io/",
   "repo_url": "https://github.com/encode/starlette",
   "category": "developer-tools",
-  "subcategories": ["web-framework", "python", "async", "asgi", "microservices"],
-  "tags": ["python", "starlette", "asgi", "async", "web", "framework", "fastapi", "routing", "middleware"],
-  "what_it_does": "Lightweight ASGI web framework for Python — the foundation that FastAPI is built on, providing routing, middleware, WebSocket, background tasks, and static files without FastAPI's pydantic overhead. Starlette features: Router with routes(), Mount for sub-apps, Request/Response objects, WebSocket support, StaticFiles, BackgroundTask, Middleware (CORS, GZip, HTTPS redirect, TrustedHost, Sessions), TestClient for sync testing, HTTPException, StreamingResponse, FileResponse, JSONResponse, HTMLResponse, RedirectResponse, and BaseHTTPMiddleware for custom middleware. Ideal for lightweight ASGI apps where FastAPI's validation overhead is unnecessary.",
+  "subcategories": ["web-framework", "python", "async", "ASGI"],
+  "tags": ["python", "starlette", "ASGI", "async", "middleware", "routing", "websocket", "fastapi"],
+  "what_it_does": "Lightweight ASGI framework and toolkit — the foundation underlying FastAPI. starlette features: Router for URL routing, Request/Response primitives, WebSocket support, BackgroundTasks for fire-and-forget, StaticFiles for serving assets, TestClient (synchronous httpx wrapper for testing async apps), Middleware (SessionMiddleware, CORSMiddleware, GZipMiddleware, HTTPSRedirectMiddleware), mount for sub-applications, StreamingResponse for generator-based responses, FileResponse for file downloads, and JSONResponse/HTMLResponse/PlainTextResponse helpers. Used directly when FastAPI overhead is unwanted.",
   "use_cases": [
-    "Agent lightweight API — from starlette.applications import Starlette; from starlette.routing import Route; from starlette.responses import JSONResponse; async def agent_endpoint(request): data = await request.json(); return JSONResponse({'status': 'ok', 'result': process(data)}); app = Starlette(routes=[Route('/agent', agent_endpoint, methods=['POST'])]) — minimal ASGI app; agent tool server without FastAPI overhead; manual request/response handling",
-    "Agent middleware stack — from starlette.middleware import Middleware; from starlette.middleware.cors import CORSMiddleware; from starlette.middleware.gzip import GZipMiddleware; app = Starlette(middleware=[Middleware(CORSMiddleware, allow_origins=['*']), Middleware(GZipMiddleware)]) — compose middleware; agent API with CORS + compression; add custom middleware with BaseHTTPMiddleware",
-    "Agent WebSocket endpoint — from starlette.websockets import WebSocket; async def ws_endpoint(websocket: WebSocket): await websocket.accept(); while True: data = await websocket.receive_text(); await websocket.send_text(process(data)); app = Starlette(routes=[WebSocketRoute('/ws', ws_endpoint)]) — native WebSocket in Starlette; agent real-time communication without FastAPI",
-    "Agent background tasks — from starlette.background import BackgroundTask; async def endpoint(request): task = BackgroundTask(send_notification, email='user@example.com'); return JSONResponse({'ok': True}, background=task) — background task after response sent; agent webhook handler returns 200 immediately then processes; task runs after response delivered to client",
-    "Agent static files + routing — from starlette.staticfiles import StaticFiles; from starlette.routing import Mount, Route; app = Starlette(routes=[Route('/api/v1', api_handler), Mount('/static', StaticFiles(directory='static'), name='static')]) — mixed API + static files; agent dashboard serves static frontend + API backend from single ASGI app; Mount for sub-application composition"
+    "Agent ASGI app — from starlette.applications import Starlette; from starlette.routing import Route; from starlette.responses import JSONResponse; async def homepage(request): return JSONResponse({'status': 'ok'}); app = Starlette(routes=[Route('/', homepage)]) — minimal ASGI; agent creates lightweight ASGI app without FastAPI overhead; run with uvicorn app:app",
+    "Agent background tasks — from starlette.background import BackgroundTasks; async def send_email(request): tasks = BackgroundTasks(); tasks.add_task(send_notification, email=request.query_params['email']); return JSONResponse({'status': 'queued'}, background=tasks) — fire-and-forget; agent runs tasks after response sent; background= parameter on response triggers after response delivered",
+    "Agent middleware stack — from starlette.middleware import Middleware; from starlette.middleware.cors import CORSMiddleware; app = Starlette(middleware=[Middleware(CORSMiddleware, allow_origins=['*'], allow_methods=['*'])]) — CORS; agent adds middleware to ASGI app; middleware list applies in order; starlette middlewares work with any ASGI framework",
+    "Agent WebSocket endpoint — from starlette.websockets import WebSocket; async def ws_endpoint(websocket: WebSocket): await websocket.accept(); data = await websocket.receive_text(); await websocket.send_text(f'Echo: {data}'); await websocket.close() — WebSocket; agent handles WebSocket connections with accept/receive/send/close lifecycle",
+    "Agent streaming response — from starlette.responses import StreamingResponse; async def stream(request): async def generator(): for chunk in data: yield chunk; return StreamingResponse(generator(), media_type='text/plain') — streaming; agent streams large responses without loading into memory; generator yields bytes or strings; media_type controls Content-Type"
   ],
   "not_for": [
-    "Schema validation — Starlette has no built-in pydantic integration; for request/response validation use FastAPI which builds on Starlette",
-    "Automatic API documentation — Starlette has no OpenAPI/Swagger generation; use FastAPI for automatic docs",
-    "Teams unfamiliar with ASGI — Starlette requires understanding of ASGI protocol; FastAPI with pydantic is more approachable for beginners"
+    "Full-featured REST APIs — starlette lacks FastAPI's automatic validation, OpenAPI, and dependency injection; use FastAPI for API development",
+    "Django-style batteries — no ORM, admin interface, or auth system; starlette is a toolkit not a full framework",
+    "WSGI apps — starlette is ASGI-only; for WSGI use Flask/Django"
   ],
-  "best_when": "Lightweight ASGI applications where FastAPI's pydantic validation overhead is unnecessary — building agent tool servers, proxies, WebSocket handlers, and microservices with manual request parsing.",
-  "avoid_when": "You need automatic request validation (use FastAPI), OpenAPI docs (use FastAPI), or are building consumer-facing APIs where pydantic's type safety is valuable.",
-  "alternatives": ["fastapi-python-api"],
+  "best_when": "Building custom ASGI frameworks, middleware, or lightweight services where FastAPI's overhead is unwanted — starlette is the foundation of FastAPI and provides all ASGI primitives directly.",
+  "avoid_when": "Full REST API with automatic validation (use FastAPI), traditional WSGI apps (use Flask), or when you need full-stack framework features (use Django).",
+  "alternatives": ["fastapi-python-api", "flask-python-api"],
   "interface": {
-    "has_rest_api": true,
+    "has_rest_api": false,
     "has_graphql": false,
     "has_grpc": false,
     "has_mcp_server": false,
@@ -35,10 +35,10 @@
     "webhooks": false
   },
   "auth": {
-    "methods": ["none", "token", "session"],
+    "methods": ["none"],
     "oauth": false,
     "scopes": false,
-    "notes": "No built-in auth. SessionMiddleware for cookie sessions. Bearer token via custom middleware or dependency. AuthenticationMiddleware with custom authenticator."
+    "notes": "No built-in auth — ASGI toolkit. Implement auth via middleware or use authlib/python-jose."
   },
   "pricing": {
     "model": "open_source",
@@ -46,60 +46,60 @@
     "free_tier_limits": "Completely free, BSD licensed",
     "paid_tiers": "None",
     "requires_credit_card": false,
-    "notes": "Starlette is BSD licensed. Free for all use."
+    "notes": "starlette is BSD 3-Clause licensed. Created by Tom Christie (encode). Free for all use."
   },
   "performance": {
-    "latency_p50_ms": 1,
-    "latency_p99_ms": 5,
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
     "uptime_sla_percent": null,
-    "rate_limits": "No rate limits. ~10-20% faster than FastAPI for same routes (no pydantic overhead). Comparable to raw ASGI performance. Uvicorn + Starlette: ~50K req/sec for simple JSON endpoints on modern hardware.",
+    "rate_limits": "No rate limits. Performance: starlette is one of the fastest Python ASGI frameworks. Routing: O(n) route matching. WebSocket: full-duplex with asyncio. Background tasks: run after response — don't block response. TestClient: synchronous wrapper around httpx AsyncClient for testing.",
     "data_source": "llm_estimated"
   },
   "requirements": {
     "requires_signup": false,
     "requires_credit_card": false,
     "domain_verification": false,
-    "data_residency": ["self-hosted", "cloud"],
+    "data_residency": ["self-hosted"],
     "compliance": [],
     "min_contract": "none"
   },
   "agent_readiness": {
     "mcp_server_quality": null,
     "mcp_security_score": null,
-    "documentation_accuracy": 88,
+    "documentation_accuracy": 90,
     "error_message_quality": 85,
-    "error_message_notes": "HTTPException with status_code and detail for HTTP errors. WebSocketDisconnect when client disconnects. RequestValidationError not raised (no built-in validation). StreamingResponse for chunked responses. Error handling via exception handlers registered on app. Error messages are clear HTTP-level errors.",
-    "idempotency_support": "partial",
-    "idempotency_notes": "Starlette routing is deterministic. Request handling is as idempotent as handler functions. BackgroundTask execution is not idempotent if task has side effects. WebSocket connections are stateful.",
+    "error_message_notes": "HTTPException with status_code and detail. WebSocketDisconnect on client disconnect. 422 for validation errors. Starlette exceptions are clean and well-described.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Request handling is stateless. BackgroundTasks run once per response. Middleware composition is deterministic.",
     "pagination_style": "none",
     "retry_guidance_documented": false,
     "known_agent_gotchas": [
-      "request.json() and request.body() can only be called once — Starlette streams request body; await request.json() consumes the stream; calling it again raises RuntimeError or returns empty; agent middleware that reads body must: body = await request.body(); request._body = body to cache for subsequent reads; or pass body through request state",
-      "No pydantic validation by default — Starlette accepts any request body; agent code must manually validate: data = await request.json(); if 'required_field' not in data: return JSONResponse({'error': 'missing field'}, status_code=422); or add FastAPI on top; missing validation leads to unhandled KeyError/TypeError in handlers",
-      "WebSocket must be explicitly accepted — async def handler(ws): # must call accept() before receiving; await ws.accept(); await ws.receive_text() — forgetting accept() causes WebSocket handshake timeout; client sees connection fail; always accept() before any receive/send operations",
-      "Mount() path matching is prefix not exact — Mount('/api', sub_app) matches /api, /api/v1, /api/anything; Route('/api', handler) matches only exact /api; agent apps mixing Mount and Route must order specific routes before Mount to prevent Mount swallowing specific paths",
-      "TestClient is synchronous wrapper — from starlette.testclient import TestClient; client = TestClient(app); response = client.get('/') — TestClient is sync even for async handlers; runs event loop internally; agent tests using TestClient cannot use pytest-asyncio; use httpx.AsyncClient(app=app) for async testing",
-      "exception_handlers must return Response — @app.exception_handler(HTTPException); async def http_exception_handler(request, exc): return JSONResponse({'detail': exc.detail}, status_code=exc.status_code) — handler must return Response object; returning None causes 'NoneType is not a callable' error; agent error handlers must always return valid Response"
+      "Request body can only be read once — await request.body() consumes the stream; calling request.body() twice raises error; agent code needing body in middleware AND endpoint: cache body on request.state or read in middleware and pass forward; request.json() also consumes; use starlette's Request.body() pattern with caching",
+      "Route ordering matters — Starlette matches routes in order; Route('/items/{id}') before Route('/items/special') means 'special' is never reached; agent code: put specific routes before parameterized routes; or use Mount for sub-application isolation",
+      "WebSocket lifecycle: accept before receive — await websocket.accept() must be called before receive/send; skipping accept raises RuntimeError; agent code: always accept() first; WebSocketDisconnect raised on client disconnect — catch it: try: while True: msg = await websocket.receive_text() except WebSocketDisconnect: handle_disconnect()",
+      "BackgroundTask exceptions are silently swallowed — tasks.add_task(fn) runs fn after response; if fn raises exception it's logged but not re-raised; agent code: wrap background tasks with try/except and explicit error logging; response returns 200 even if background task fails",
+      "Middleware order is reversed from declaration — app = Starlette(middleware=[MiddlewareA, MiddlewareB]); MiddlewareB wraps first (inner), MiddlewareA wraps outer; request passes A→B→endpoint; response passes endpoint→B→A; agent code: put authentication middleware first in list (outermost wrapper)",
+      "TestClient requires app as argument not URL — from starlette.testclient import TestClient; client = TestClient(app) — not TestClient('http://localhost'); TestClient runs app in-process via ASGI transport; agent test code: no server needed; client.get('/path') dispatches directly to app"
     ]
   },
   "af_score_components": {
     "mcp_score": 0,
-    "api_doc_score": 88,
+    "api_doc_score": 90,
     "error_handling_score": 85,
-    "auth_complexity_score": 90,
-    "rate_limit_clarity_score": 95
+    "auth_complexity_score": 99,
+    "rate_limit_clarity_score": 99
   },
   "security_score_components": {
-    "tls_enforcement": 88,
-    "auth_strength": 82,
-    "scope_granularity": 80,
-    "dependency_hygiene": 90,
-    "secret_handling": 85,
-    "security_notes": "ASGI framework with no built-in auth or input validation. Validate all input manually or use FastAPI. TrustedHostMiddleware prevents host header injection. HTTPSRedirectMiddleware forces HTTPS. CORS configuration: restrict allow_origins to specific domains in production. Session secret key must be cryptographically random and kept secret."
+    "tls_enforcement": 92,
+    "auth_strength": 88,
+    "scope_granularity": 88,
+    "dependency_hygiene": 92,
+    "secret_handling": 90,
+    "security_notes": "ASGI framework with no built-in auth. HTTPSRedirectMiddleware enforces HTTPS. TrustedHostMiddleware prevents host header injection. SessionMiddleware uses signed cookies — keep SECRET_KEY secret. CORSMiddleware: configure allow_origins specifically, avoid wildcard in production. StaticFiles: disable directory listing for production."
   },
   "reliability_score_components": {
     "uptime_documented": 88,
-    "version_stability": 85,
+    "version_stability": 88,
     "breaking_changes_history": 85,
     "error_recovery": 88
   }

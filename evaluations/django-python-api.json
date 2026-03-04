@@ -1,0 +1,106 @@
+{
+  "id": "django-python-api",
+  "name": "django",
+  "version_evaluated": "5.x",
+  "homepage": "https://www.djangoproject.com/",
+  "repo_url": "https://github.com/django/django",
+  "category": "developer-tools",
+  "subcategories": ["web-framework", "python", "ORM", "full-stack"],
+  "tags": ["python", "django", "ORM", "web", "REST", "admin", "MTV", "full-stack"],
+  "what_it_does": "Full-stack Python web framework with batteries included — ORM, admin interface, auth, templating, forms, migrations, caching, sessions, and signals. Django features: Model-Template-View (MTV) pattern, ORM (Model.objects.filter/create/update/delete), automatic admin interface (admin.site.register), URL routing (urls.py patterns), Django REST Framework integration, Channels for WebSocket (ASGI), class-based and function-based views, form validation, CSRF protection, middleware stack, management commands, Django's queryset lazy evaluation and select_related/prefetch_related for N+1 prevention, and database migrations via makemigrations/migrate.",
+  "use_cases": [
+    "Agent ORM query — from myapp.models import Article; articles = Article.objects.filter(published=True).select_related('author').order_by('-created_at')[:10]; for a in articles: print(a.title, a.author.name) — Django ORM; agent queries with automatic JOIN via select_related; lazy queryset evaluates on iteration; no N+1 for author field",
+    "Agent management command — from django.core.management.base import BaseCommand; class Command(BaseCommand): def handle(self, *args, **options): results = process_data(); self.stdout.write(self.style.SUCCESS(f'Processed {results}')) — custom command; agent creates python manage.py mycommand; self.stdout.write for output; add_arguments() for CLI args",
+    "Agent signals — from django.db.models.signals import post_save; from django.dispatch import receiver; @receiver(post_save, sender=User); def user_created(sender, instance, created, **kwargs): if created: send_welcome_email(instance) — signals; agent responds to model events; post_save, pre_delete, m2m_changed; receiver decorator connects signal",
+    "Agent cache — from django.core.cache import cache; cache.set('key', value, timeout=3600); cached = cache.get('key') — Django cache; agent uses configured cache backend (Redis/Memcached/local memory); cache.get_or_set('key', callable, timeout) atomically fetches or computes; supports tagging with django-cacheops",
+    "Agent queryset annotation — from django.db.models import Count, Avg; stats = Article.objects.values('category').annotate(count=Count('id'), avg_views=Avg('views')).filter(count__gte=5) — aggregation; agent computes database-side statistics; annotate() adds computed fields; values() groups by field; filter() after annotate for HAVING clause"
+  ],
+  "not_for": [
+    "Microservices/lightweight APIs — Django's overhead is high; for simple APIs use FastAPI or Flask",
+    "Async-first applications — Django has async view support but WSGI is default; for async-native use FastAPI+Starlette",
+    "Real-time applications — Django Channels adds WebSocket but complex; for real-time use FastAPI or dedicated WebSocket libs"
+  ],
+  "best_when": "Full-stack web applications with admin interface, complex ORM requirements, and batteries-included development — Django excels when you need auth, admin, ORM, forms, and migrations without assembling separate libraries.",
+  "avoid_when": "Lightweight APIs (use FastAPI), microservices (use Flask), async-first apps (use FastAPI), or when framework overhead must be minimized.",
+  "alternatives": ["fastapi-python-api", "flask-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["session", "token", "oauth"],
+    "oauth": true,
+    "scopes": true,
+    "notes": "Built-in session auth. Django REST Framework adds token/JWT auth. django-allauth for OAuth (Google, GitHub, etc.)."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, BSD licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "Django is BSD 3-Clause licensed. Maintained by Django Software Foundation. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Performance: WSGI with gunicorn: ~1000-5000 req/s (CPU bound). ORM N+1: use select_related() for ForeignKey, prefetch_related() for ManyToMany. Django Debug Toolbar for identifying slow queries. Connection pooling via pgbouncer or django-db-geventpool.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 95,
+    "error_message_quality": 90,
+    "error_message_notes": "DoesNotExist for missing objects. MultipleObjectsReturned for ambiguous .get(). FieldError for invalid ORM field names. IntegrityError for DB constraint violations. Django error messages are generally excellent with detailed tracebacks.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "ORM get_or_create() and update_or_create() are idempotent. Migrations are idempotent (applied once). Signal handlers may not be idempotent by default — design carefully.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "django.setup() required outside manage.py — agent code importing Django models outside Django shell: import django; os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'myproject.settings'); django.setup(); then import models; without setup() models raise AppRegistryNotReady; setup() initializes apps, models, and DB connections",
+      "ORM queries are lazy — Article.objects.filter(published=True) returns QuerySet not results; evaluation happens on iteration, list(), len(), or bool(); agent code: don't chain .filter() expecting it to execute; common gotcha: qs = Article.objects.all(); print(qs) — evaluated; len(qs) — evaluated again (two queries); cache with list(qs)",
+      "select_related vs prefetch_related — select_related for ForeignKey/OneToOne (SQL JOIN); prefetch_related for ManyToMany/reverse FK (separate query); agent code: articles with authors: Article.objects.select_related('author'); articles with tags (M2M): Article.objects.prefetch_related('tags'); mixing wrong type causes N+1 queries",
+      "Migrations must be created and applied — model changes require python manage.py makemigrations then migrate; agent code that changes models without migrating will hit 'column does not exist' errors; always: makemigrations after model change; fake migrations for already-applied DB changes: migrate --fake",
+      "CSRF required for POST forms — Django's CsrfViewMiddleware requires CSRF token in forms and AJAX POST; agent code calling Django API from external client: use @csrf_exempt decorator or DRF which handles CSRF via SessionAuthentication; or include X-CSRFToken header from cookie; REST APIs typically disable CSRF via DRF's exemption",
+      "Queryset update() bypasses signals and validation — Article.objects.filter(pk=1).update(title='New') directly updates DB; does NOT trigger post_save signal, does NOT call full_clean() validators; agent code needing signals or validation: use instance.save() instead; bulk_create() similarly bypasses signals"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 95,
+    "error_handling_score": 90,
+    "auth_complexity_score": 90,
+    "rate_limit_clarity_score": 99
+  },
+  "security_score_components": {
+    "tls_enforcement": 90,
+    "auth_strength": 92,
+    "scope_granularity": 90,
+    "dependency_hygiene": 92,
+    "secret_handling": 90,
+    "security_notes": "Django has excellent built-in security: CSRF protection, XSS prevention via template escaping, SQL injection prevention via ORM parameterization, clickjacking protection via X-Frame-Options. SECRET_KEY must be kept secret — used for CSRF, sessions, password reset tokens. DEBUG=True in production exposes stack traces. Use django-environ or python-decouple for environment-based config."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 95,
+    "version_stability": 92,
+    "breaking_changes_history": 90,
+    "error_recovery": 92
+  }
+}

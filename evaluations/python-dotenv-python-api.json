@@ -1,0 +1,106 @@
+{
+  "id": "python-dotenv-python-api",
+  "name": "python-dotenv",
+  "version_evaluated": "1.x",
+  "homepage": "https://saurabh-kumar.com/python-dotenv/",
+  "repo_url": "https://github.com/theskumar/python-dotenv",
+  "category": "developer-tools",
+  "subcategories": ["configuration", "python", "environment", "utilities"],
+  "tags": ["python", "dotenv", "env", "environment", "config", "12factor", ".env"],
+  "what_it_does": "Reads key-value pairs from .env files and sets them as environment variables — 12-factor app configuration pattern for Python. python-dotenv features: load_dotenv() to load .env into os.environ, dotenv_values() to load as dict without setting env vars, find_dotenv() to auto-locate .env up the directory tree, override= parameter to control whether existing env vars are overridden, dotenv_path parameter for explicit file path, Variable expansion (${OTHER_VAR}), comment support (#), multiline values with quotes, encoding parameter, and stream support for reading from file-like objects.",
+  "use_cases": [
+    "Agent load .env — from dotenv import load_dotenv; import os; load_dotenv(); api_key = os.getenv('API_KEY', 'default') — load env; agent loads .env file at startup; load_dotenv() is no-op if .env missing; os.getenv() with default for optional vars; call once at startup not per-request",
+    "Agent load as dict — from dotenv import dotenv_values; config = dotenv_values('.env'); config = dotenv_values('.env.test') — load as dict; agent loads .env without polluting os.environ; useful for testing or comparing environments; returns OrderedDict; missing file returns empty dict",
+    "Agent auto-find .env — from dotenv import load_dotenv, find_dotenv; load_dotenv(find_dotenv()) — find .env; agent finds .env by traversing parent directories from current file; find_dotenv(raise_error_if_not_found=True) raises IOError if not found; useful in nested project structures",
+    "Agent multiple environments — load_dotenv('.env.local', override=True) — environment override; agent loads environment-specific config; override=True replaces existing os.environ values; load_dotenv('.env') then load_dotenv('.env.local', override=True) for layered config; later load wins with override=True",
+    "Agent test isolation — from dotenv import dotenv_values; env = dotenv_values('.env.test'); with patch.dict(os.environ, env): run_tests() — test config; agent loads test-specific .env without modifying global environment; dotenv_values() as dict allows selective patching"
+  ],
+  "not_for": [
+    "Production secrets management — .env files in production are an anti-pattern; use AWS Secrets Manager, HashiCorp Vault, or Kubernetes secrets",
+    "Complex configuration schemas — dotenv is simple key=value only; for typed config with validation use pydantic-settings or dynaconf",
+    "Dynamic configuration — dotenv loads once at startup; for runtime config changes use a config server or environment-specific settings"
+  ],
+  "best_when": "Development environment configuration and 12-factor app patterns — python-dotenv is the standard for loading .env files in Python development.",
+  "avoid_when": "Production secrets (use Vault/AWS Secrets Manager), complex typed config (use pydantic-settings), or when os.environ is already set by deployment infrastructure.",
+  "alternatives": ["dynaconf-python-api", "pydantic-settings-python-api"],
+  "interface": {
+    "has_rest_api": false,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "No auth — environment loading utility."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free, BSD licensed",
+    "paid_tiers": "None",
+    "requires_credit_card": false,
+    "notes": "python-dotenv is BSD 3-Clause licensed. Free for all use."
+  },
+  "performance": {
+    "latency_p50_ms": null,
+    "latency_p99_ms": null,
+    "uptime_sla_percent": null,
+    "rate_limits": "No rate limits. Performance: file read once at startup — negligible overhead. load_dotenv() is idempotent; calling multiple times re-reads file but only sets vars not already in os.environ (unless override=True).",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 92,
+    "error_message_quality": 85,
+    "error_message_notes": "Silent on missing .env file by default. IOError if raise_error_if_not_found=True. Parsing errors logged as warnings. Generally very quiet — check return value of load_dotenv() (True if file loaded, False if not found).",
+    "idempotency_support": "full",
+    "idempotency_notes": "load_dotenv() is safe to call multiple times. Without override=True, existing env vars are preserved. dotenv_values() always reads fresh.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "load_dotenv() does not override existing env vars by default — if API_KEY is already set in os.environ, load_dotenv() does NOT overwrite it; agent code relying on .env to override shell environment: use load_dotenv(override=True); this is intentional — shell environment takes precedence; useful for CI/CD where env is set externally",
+      ".env file must not be committed to git — agent code initializing repos: add .env to .gitignore immediately; .env.example should document required vars without values; agent reading required vars: check os.getenv('KEY') is not None and raise helpful error if missing rather than silently using None",
+      "Variable expansion uses ${VAR} syntax — BASE=/opt; FULL=${BASE}/sub in .env; python-dotenv expands ${BASE} to /opt; if BASE not defined, ${BASE} expands to empty string not error; agent code using expansion: test that dependent vars are defined before expansion; no circular expansion detection",
+      "load_dotenv() returns bool — load_dotenv() returns True if .env found and loaded, False if not found; agent code: result = load_dotenv(); if not result: logger.warning('.env not found — using environment variables'); use return value for diagnostic logging not silent failure",
+      "Multiline values require quotes — VALUE='line1\\nline2' or VALUE=\"line1\\nline2\" in .env; unquoted values are single-line; actual newlines in unquoted values break parsing; agent code with multiline secrets (private keys): wrap in single or double quotes in .env file; or base64-encode them",
+      "dotenv_values() does NOT expand variables from os.environ — ${EXISTING_ENV_VAR} in .env file is expanded using values in .env only, not os.environ; agent code mixing dotenv and existing env vars: use load_dotenv() which does expand from os.environ; or merge manually: {**os.environ, **dotenv_values()}"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 92,
+    "error_handling_score": 85,
+    "auth_complexity_score": 99,
+    "rate_limit_clarity_score": 99
+  },
+  "security_score_components": {
+    "tls_enforcement": 90,
+    "auth_strength": 85,
+    "scope_granularity": 85,
+    "dependency_hygiene": 92,
+    "secret_handling": 75,
+    "security_notes": "High-risk for secrets management if misused. CRITICAL: .env files containing API keys/passwords should NEVER be committed to git. Add .env to .gitignore. For production: use proper secrets management (AWS Secrets Manager, Vault, Kubernetes Secrets). python-dotenv is appropriate for development only. Logging os.environ after load_dotenv() can expose secrets — be careful with debug logging."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 90,
+    "version_stability": 90,
+    "breaking_changes_history": 90,
+    "error_recovery": 90
+  }
+}
