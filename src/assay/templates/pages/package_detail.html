@@ -2,7 +2,6 @@
 {% block title %}{{ package.name }}{% endblock %}
 
 {% block head %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
 {% endblock %}
 
 {% block content %}
@@ -159,59 +158,41 @@
     </section>
     {% endif %}
 
-    {# ── Radar Chart ── #}
+    {# ── Radar Chart (inline SVG, zero dependencies) ── #}
     {% if package.af_score is not none or package.security_score is not none or package.reliability_score is not none %}
+    {% set af = (package.af_score if package.af_score is not none else 0) / 100 %}
+    {% set sec = (package.security_score if package.security_score is not none else 0) / 100 %}
+    {% set rel = (package.reliability_score if package.reliability_score is not none else 0) / 100 %}
+    {% set R = 80 %}
+    {# Axis endpoints: top (AF), bottom-right (Security), bottom-left (Reliability) #}
+    {# top: (100, 100-R), br: (100+0.866*R, 100+0.5*R), bl: (100-0.866*R, 100+0.5*R) #}
     <section class="mb-10">
         <div class="bg-surface-raised border border-gray-800 rounded-xl p-5 flex justify-center">
-            <div style="width: 280px; height: 280px;">
-                <canvas id="scoreRadar"></canvas>
-            </div>
+            <svg viewBox="0 0 200 200" width="240" height="240" xmlns="http://www.w3.org/2000/svg">
+                {# Concentric rings at 25%, 50%, 75%, 100% #}
+                {% for frac in [0.25, 0.5, 0.75, 1.0] %}
+                {% set r = R * frac %}
+                <polygon points="100,{{ 100 - r }} {{ 100 + 0.866 * r }},{{ 100 + 0.5 * r }} {{ 100 - 0.866 * r }},{{ 100 + 0.5 * r }}"
+                         fill="none" stroke="rgba(75,85,99,0.3)" stroke-width="1"/>
+                {% endfor %}
+                {# Axis lines #}
+                <line x1="100" y1="100" x2="100" y2="{{ 100 - R }}" stroke="rgba(75,85,99,0.3)" stroke-width="1"/>
+                <line x1="100" y1="100" x2="{{ 100 + 0.866 * R }}" y2="{{ 100 + 0.5 * R }}" stroke="rgba(75,85,99,0.3)" stroke-width="1"/>
+                <line x1="100" y1="100" x2="{{ 100 - 0.866 * R }}" y2="{{ 100 + 0.5 * R }}" stroke="rgba(75,85,99,0.3)" stroke-width="1"/>
+                {# Score polygon #}
+                <polygon points="100,{{ 100 - R * af }} {{ 100 + 0.866 * R * sec }},{{ 100 + 0.5 * R * sec }} {{ 100 - 0.866 * R * rel }},{{ 100 + 0.5 * R * rel }}"
+                         fill="rgba(99,102,241,0.2)" stroke="rgba(99,102,241,0.8)" stroke-width="2"/>
+                {# Score dots #}
+                <circle cx="100" cy="{{ 100 - R * af }}" r="4" fill="rgb(99,102,241)"/>
+                <circle cx="{{ 100 + 0.866 * R * sec }}" cy="{{ 100 + 0.5 * R * sec }}" r="4" fill="rgb(99,102,241)"/>
+                <circle cx="{{ 100 - 0.866 * R * rel }}" cy="{{ 100 + 0.5 * R * rel }}" r="4" fill="rgb(99,102,241)"/>
+                {# Axis labels #}
+                <text x="100" y="{{ 100 - R - 8 }}" text-anchor="middle" fill="#9ca3af" font-size="10" font-family="sans-serif">AF</text>
+                <text x="{{ 100 + 0.866 * R + 6 }}" y="{{ 100 + 0.5 * R + 12 }}" text-anchor="start" fill="#9ca3af" font-size="10" font-family="sans-serif">Security</text>
+                <text x="{{ 100 - 0.866 * R - 6 }}" y="{{ 100 + 0.5 * R + 12 }}" text-anchor="end" fill="#9ca3af" font-size="10" font-family="sans-serif">Reliability</text>
+            </svg>
         </div>
     </section>
-    <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        new Chart(document.getElementById('scoreRadar'), {
-            type: 'radar',
-            data: {
-                labels: ['Agent Friendliness', 'Security', 'Reliability'],
-                datasets: [{
-                    data: [
-                        {{ package.af_score if package.af_score is not none else 0 }},
-                        {{ package.security_score if package.security_score is not none else 0 }},
-                        {{ package.reliability_score if package.reliability_score is not none else 0 }}
-                    ],
-                    backgroundColor: 'rgba(99, 102, 241, 0.15)',
-                    borderColor: 'rgba(99, 102, 241, 0.8)',
-                    borderWidth: 2,
-                    pointBackgroundColor: 'rgba(99, 102, 241, 1)',
-                    pointRadius: 4
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: true,
-                plugins: { legend: { display: false } },
-                scales: {
-                    r: {
-                        min: 0, max: 100,
-                        ticks: {
-                            stepSize: 20,
-                            color: '#6b7280',
-                            backdropColor: 'transparent',
-                            font: { size: 10 }
-                        },
-                        pointLabels: {
-                            color: '#9ca3af',
-                            font: { size: 11 }
-                        },
-                        grid: { color: 'rgba(75, 85, 99, 0.3)' },
-                        angleLines: { color: 'rgba(75, 85, 99, 0.3)' }
-                    }
-                }
-            }
-        });
-    });
-    </script>
     {% endif %}
 
     {# ── Best when / Avoid when ── #}

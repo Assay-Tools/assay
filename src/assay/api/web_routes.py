@@ -212,6 +212,8 @@ def packages_list(
         qs_params["min_score"] = str(min_score)
     pagination_qs = urlencode(qs_params)
 
+    stale_cutoff = datetime.now(timezone.utc) - timedelta(days=90)
+
     return templates.TemplateResponse(
         "pages/packages.html",
         {
@@ -229,6 +231,7 @@ def packages_list(
             "filter_free": bool(free),
             "min_score": min_score,
             "pagination_qs": pagination_qs,
+            "stale_cutoff": stale_cutoff,
             "community_stats": _community_stats(db),
         },
     )

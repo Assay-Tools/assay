@@ -59,13 +59,13 @@ Items ready to be claimed. Roughly priority-ordered.
 - [x] ~~**Correction/dispute process** — moved to Completed~~
 
 ### Evaluation Pipeline
-- [ ] **Evaluation skill** — Portable Claude Code skill (slash command) that runs a full package evaluation: discovers package, scores all dimensions (AF, security, reliability), generates structured JSON matching the DB schema
-- [ ] **Submission API** — `POST /v1/evaluations` endpoint to accept evaluation JSON submissions, validate schema, and upsert package + agent_readiness + related records into DB
-- [ ] **Auth for submissions** — API key or token-based auth for the submission endpoint (prevent anonymous writes)
-- [ ] **Evaluation review queue** — Optional moderation: submitted evals land in "pending" status, admin can approve/reject before scores go live
+- [x] ~~**Evaluation skill** — moved to Completed~~
+- [x] ~~**Submission API** — moved to Completed~~
+- [x] ~~**Auth for submissions** — moved to Completed~~
+- [x] ~~**Evaluation review queue** — moved to Completed~~
 
 ### CLI
-- [ ] **CLI tool** — `assay check <pkg>`, `assay compare <a> <b>`, `assay stale --days 90`
+- [x] ~~**CLI tool** — moved to Completed~~
 
 ---
 
@@ -93,3 +93,8 @@ Items ready to be claimed. Roughly priority-ordered.
 - [x] **Website polish** — staleness badge, radar chart, prominent evaluation date (2026-03-04)
 - [x] **Disclaimer on about page** — as-is disclaimer, no warranty/guarantee/certification language (2026-03-04)
 - [x] **Correction/dispute process** — score disputes section on about page with GitHub issues + email contact (2026-03-04)
+- [x] **Submission API** — `POST /v1/evaluations` with Pydantic validation, pending queue, 11 tests (2026-03-04)
+- [x] **Auth for submissions** — X-Api-Key header auth, comma-separated keys in config (2026-03-04)
+- [x] **Evaluation review queue** — pending/approve/reject endpoints, PendingEvaluation model (2026-03-04)
+- [x] **Evaluation skill** — Claude Code `/evaluate` slash command for package evaluation (2026-03-04)
+- [x] **CLI tool** — `assay check/compare/stale` with ASCII output + --json, 5 tests (2026-03-04)
