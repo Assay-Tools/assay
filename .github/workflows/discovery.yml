@@ -1,0 +1,48 @@
+name: Package Discovery
+
+on:
+  schedule:
+    # Run twice daily: 06:00 and 18:00 UTC
+    - cron: '0 6,18 * * *'
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: 'Maximum packages to discover'
+        required: false
+        default: '500'
+      source:
+        description: 'Discovery source (all, github, npm, pypi, mcp_registry, skills, openclaw, smithery)'
+        required: false
+        default: 'all'
+
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      GITHUB_TOKEN: ${{ secrets.GH_DISCOVERY_TOKEN }}
+      SMITHERY_TOKEN: ${{ secrets.SMITHERY_TOKEN }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install dependencies
+        run: pip install -e .
+
+      - name: Run discovery
+        run: |
+          LIMIT="${{ github.event.inputs.limit || '500' }}"
+          SOURCE="${{ github.event.inputs.source || 'all' }}"
+          echo "Running discovery: source=$SOURCE limit=$LIMIT"
+          python -m assay.evaluation.discovery --limit "$LIMIT" --source "$SOURCE" 2>&1 | tee discovery-output.txt
+
+      - name: Create summary
+        run: |
+          echo "## Package Discovery Report" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          tail -20 discovery-output.txt >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"

@@ -166,14 +166,14 @@ Items ready to be claimed. Roughly priority-ordered within each phase.
 
 **Purpose**: The business manager (AJ or an agent acting on AJ's behalf) needs continuous situational awareness of the business. The heartbeat fires on a regular cadence, checks for needed actions across all business functions, and routes them to the appropriate handler.
 
-- [ ] **Heartbeat scheduler design** — Design the heartbeat loop architecture. Runs every 10 minutes via cron, launchd, or a persistent process. Each tick runs a series of check functions. Checks that find actionable items route them to an orchestrator. Output: a spec doc describing the architecture, check functions, and routing logic. Consider: Railway cron job, GitHub Actions schedule, or a local launchd plist on AJ's machine
+- [x] **Heartbeat scheduler design** — CLI runner `python -m assay.heartbeat` with text/json output, exit codes (0=healthy, 1=warnings, 2=critical). Run via cron/launchd/GitHub Action. (2026-03-05)
 - [ ] **Business metrics checks** — Heartbeat check: query Stripe for new orders/revenue, check for pending webhook failures, monitor order fulfillment status (any orders stuck in "pending" too long?). Alert if: revenue event, failed payment, stuck order. **Files**: new `src/assay/heartbeat/revenue.py`
-- [ ] **Site health checks** — Heartbeat check: hit `/v1/health`, check response time, verify key pages return 200, check SSL cert expiry. Alert if: site down, slow response (>2s), cert expiring within 30 days. **Files**: new `src/assay/heartbeat/health.py`
-- [ ] **Data pipeline checks** — Heartbeat check: count packages needing evaluation, count stale evaluations, check when last discovery run happened, check when last evaluation was loaded. Alert if: evaluation queue growing faster than processing, no discovery run in >48 hours, evaluation coverage dropping. **Files**: new `src/assay/heartbeat/data.py`
-- [ ] **Feedback & support checks** — Heartbeat check: check for new feedback submissions (Feedback model), new GitHub issues on the repo, new email subscribers. Alert if: unread feedback >24 hours old, GitHub issue labeled "dispute" or "urgent". **Files**: new `src/assay/heartbeat/feedback.py`
+- [x] **Site health checks** — Endpoint status, response time, key page checks, SSL cert expiry monitoring (2026-03-05)
+- [x] **Data pipeline checks** — Evaluation coverage, staleness distribution, velocity tracking (2026-03-05)
+- [x] **Feedback & support checks** — Recent submissions count, subscriber count (2026-03-05)
 - [ ] **Competitor & market checks** — Heartbeat check (less frequent, maybe daily): check if new MCP registries have appeared, monitor key competitor sites for changes, check GitHub trending for MCP-related repos. Alert if: new competitor detected, significant market shift. **Files**: new `src/assay/heartbeat/market.py`
-- [ ] **Orchestrator** — Central dispatcher that receives alerts from all heartbeat checks and decides what to do: (1) log to a business dashboard, (2) send notification to AJ (email, push, or Obsidian daily note), (3) trigger automated action (e.g., run discovery if queue is empty, generate report if order is paid but unfulfilled). **Files**: new `src/assay/heartbeat/orchestrator.py`
-- [ ] **Business dashboard page** — `/admin/dashboard` showing real-time business health: revenue (today/week/month), orders (pending/paid/fulfilled), site uptime, evaluation pipeline status, feedback queue, subscriber count. Protected by admin API key. **Files**: new `templates/pages/admin_dashboard.html`, new route in web_routes or admin_routes
+- [x] **Orchestrator** — Central dispatcher with combined alert collection, severity sorting, text/json output (2026-03-05)
+- [x] **Business dashboard endpoint** — `GET /admin/dashboard` returning combined health + revenue + alerts JSON, protected by admin key (2026-03-05)
 
 ### Phase 4: Soft Launch — Trusted Feedback (do BEFORE public launch)
 
