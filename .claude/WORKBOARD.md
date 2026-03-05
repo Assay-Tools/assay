@@ -73,7 +73,7 @@ Items ready to be claimed. Roughly priority-ordered within each phase.
 
 ### Strategic Additions (from business/GTM review)
 
-- [ ] **GitHub Action for CI** — Free `assay-score` Action that checks AF Score in CI. Every repo that adds it = marketing surface + backlink. Higher-leverage growth than cold email
+- [x] **GitHub Action for CI** — Composite action at action.yml with min-score threshold, dimension selection, step summary (2026-03-04)
 - [x] **Publish scoring methodology openly** — /methodology page with full weights, process, and limitations (2026-03-04)
 - [ ] **Target companies, not just individuals** — Reframe $99 report as "competitive analysis" for DevRel teams. Consider $499-999 tier with report + 30-min call. Update BUSINESS.md
 - [ ] **Partnership: Smithery.ai** — They're the MCP directory, Assay is the quality layer. Reach out after public launch with data, not a pitch deck
