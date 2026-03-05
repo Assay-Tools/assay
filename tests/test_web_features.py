@@ -82,6 +82,27 @@ class TestMethodologyPage:
         assert "Point-in-time snapshots" in resp.text
 
 
+class TestLegalPages:
+    def test_terms_page(self, client):
+        resp = client.get("/terms")
+        assert resp.status_code == 200
+        assert "Terms of Service" in resp.text
+        assert "Limitation of Liability" in resp.text
+
+    def test_privacy_page(self, client):
+        resp = client.get("/privacy")
+        assert resp.status_code == 200
+        assert "Privacy Policy" in resp.text
+        assert "GDPR" in resp.text
+        assert "CCPA" in resp.text
+
+    def test_footer_has_legal_links(self, client, sample_packages):
+        resp = client.get("/")
+        assert resp.status_code == 200
+        assert 'href="/terms"' in resp.text
+        assert 'href="/privacy"' in resp.text
+
+
 class TestEmbedCompare:
     def test_embed_compare(self, client, sample_packages):
         resp = client.get("/embed/compare?ids=top-api,mid-tool")

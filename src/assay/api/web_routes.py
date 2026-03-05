@@ -978,6 +978,18 @@ def developers_page(request: Request):
     })
 
 
+@router.get("/terms", response_class=HTMLResponse)
+def terms_page(request: Request):
+    """Terms of Service."""
+    return templates.TemplateResponse("pages/terms.html", {"request": request})
+
+
+@router.get("/privacy", response_class=HTMLResponse)
+def privacy_page(request: Request):
+    """Privacy Policy."""
+    return templates.TemplateResponse("pages/privacy.html", {"request": request})
+
+
 @router.get("/methodology", response_class=HTMLResponse)
 def methodology_page(request: Request):
     """Scoring methodology deep-dive."""
@@ -1085,6 +1097,8 @@ def sitemap_xml(db: Session = Depends(get_db)):
         ("/developers", "0.6", "monthly"),
         ("/contribute", "0.5", "monthly"),
         ("/feedback", "0.4", "monthly"),
+        ("/terms", "0.3", "monthly"),
+        ("/privacy", "0.3", "monthly"),
     ]:
         urls.append(
             f'  <url><loc>{base}{path}</loc>'
