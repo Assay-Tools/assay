@@ -39,6 +39,7 @@ from assay.models import (
     PackagePerformance,
     PackagePricing,
     PackageRequirements,
+    ScoreSnapshot,
 )
 
 
@@ -255,6 +256,18 @@ def load_evaluation(data: dict, db) -> str:
         af_score_computed=pkg.af_score,
     )
     db.add(eval_run)
+    db.flush()  # get eval_run.id before commit
+
+    # Score history snapshot
+    if pkg.af_score is not None:
+        snapshot = ScoreSnapshot(
+            package_id=pkg_id,
+            af_score=pkg.af_score,
+            security_score=pkg.security_score,
+            reliability_score=pkg.reliability_score,
+            evaluation_run_id=eval_run.id,
+        )
+        db.add(snapshot)
 
     db.commit()
     return pkg_id

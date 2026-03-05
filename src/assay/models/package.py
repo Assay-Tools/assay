@@ -536,3 +536,26 @@ class Feedback(Base):
     submitted_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc),
     )
+
+
+class ScoreSnapshot(Base):
+    """Historical score snapshots for trend tracking."""
+
+    __tablename__ = "score_snapshots"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    package_id: Mapped[str] = mapped_column(
+        String(255), ForeignKey("packages.id"), nullable=False, index=True,
+    )
+    af_score: Mapped[float | None] = mapped_column(Float)
+    security_score: Mapped[float | None] = mapped_column(Float)
+    reliability_score: Mapped[float | None] = mapped_column(Float)
+    recorded_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), index=True,
+    )
+    # Optional link to the evaluation run that produced these scores
+    evaluation_run_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("evaluation_runs.id"),
+    )
+
+    package: Mapped["Package"] = relationship()

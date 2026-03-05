@@ -15,6 +15,7 @@ from assay.models import (
     PackageInterface,
     PackagePricing,
     PackageRequirements,
+    ScoreSnapshot,
 )
 
 from .rate_limit import API_RATE_LIMIT, limiter
@@ -234,6 +235,42 @@ def get_agent_guide(
     if not pkg:
         raise HTTPException(status_code=404, detail=f"Package '{package_id}' not found")
     return pkg.to_agent_guide()
+
+
+@router.get("/v1/packages/{package_id}/score-history", tags=["packages"])
+@limiter.limit(API_RATE_LIMIT)
+def get_score_history(
+    request: Request,
+    response: Response,
+    package_id: str,
+    limit: int = Query(50, ge=1, le=200),
+    db: Session = Depends(get_db),
+):
+    """Get historical score snapshots for a package."""
+    pkg = db.query(Package).filter(Package.id == package_id).first()
+    if not pkg:
+        raise HTTPException(status_code=404, detail=f"Package '{package_id}' not found")
+
+    snapshots = (
+        db.query(ScoreSnapshot)
+        .filter(ScoreSnapshot.package_id == package_id)
+        .order_by(ScoreSnapshot.recorded_at.desc())
+        .limit(limit)
+        .all()
+    )
+
+    return {
+        "package_id": package_id,
+        "snapshots": [
+            {
+                "af_score": s.af_score,
+                "security_score": s.security_score,
+                "reliability_score": s.reliability_score,
+                "recorded_at": s.recorded_at.isoformat() if s.recorded_at else None,
+            }
+            for s in snapshots
+        ],
+    }
 
 
 # --- Categories ---
