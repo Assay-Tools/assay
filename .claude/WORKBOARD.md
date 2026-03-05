@@ -83,8 +83,8 @@ Items ready to be claimed. Roughly priority-ordered within each phase.
 
 ### Site Quality (BLOCKING — must fix before public launch)
 
-- [ ] **Full site audit — link and content tree** — End-to-end crawl of every page and link on assay.tools. Produce a site tree showing: (1) pages with broken links, (2) pages missing content or showing placeholder data, (3) pages that work correctly. Output as a structured doc that can be split into individual fix tasks. Include: all nav links, footer links, package detail page links (API endpoint, agent guide, badge, report inaccuracy), developer docs examples, about page references, category pages, compare flow, feedback form, email capture, RSS feed, sitemap.xml, badge SVG endpoints, embed widgets. Test both with and without data.
-- [ ] **Fix "Assay API" naming** — The developer docs and some pages reference "Claude API" as an example package. Review all user-facing copy to ensure when we're talking about *Assay's own API*, we call it "Assay API" not "Claude API". The Claude API is a *rated package*, not our product.
+- [x] **Full site audit — link and content tree** — All 16 main pages return 200, no broken links. Findings: (1) Categories page has 2 empty categories (Content Management, Agent Skills — 0 evaluated packages), (2) Compare page UX is weak (no visible Quick Add controls, massive unstructured package dump), (3) Methodology nav renders twice (cosmetic). (2026-03-05)
+- [x] **Fix "Assay API" naming** — Developer docs examples changed from `claude-api` to `stripe-api` to avoid confusion between Assay's API and the Claude API rated package (2026-03-05)
 
 ### Website Analytics & Tracking (should be live before public launch)
 
@@ -119,10 +119,10 @@ Items ready to be claimed. Roughly priority-ordered within each phase.
 - [ ] **Configure Stripe webhook** — In Stripe dashboard → Developers → Webhooks: add endpoint `https://assay.tools/v1/webhooks/stripe`, subscribe to events: `checkout.session.completed`, `customer.subscription.deleted`, `customer.subscription.updated`. Copy the webhook signing secret to `STRIPE_WEBHOOK_SECRET` env var.
 
 **Stripe code fixes (sessions can claim)**:
-- [ ] **Fix webhook signature bypass** — When `STRIPE_WEBHOOK_SECRET` is not set, the webhook handler skips signature verification entirely. In production, anyone could POST fake events and trigger order fulfillment. Add hard requirement: return 503 if webhook secret is missing. **File**: `src/assay/api/payments.py`
-- [ ] **Fix orphan order creation** — Orders are created and committed *before* calling `stripe.checkout.Session.create()`. If the Stripe call fails, orphan orders with `status="pending"` accumulate forever. Create order after Stripe session succeeds, or rollback on failure. **File**: `src/assay/api/payments.py`
-- [ ] **Fix buyReport() JS event handling** — The `buyReport()` function uses implicit global `event` object instead of passing it as a parameter. Fragile in strict mode. **File**: `templates/pages/package_detail.html`
-- [ ] **Add Stripe vars to .env.example** — `.env.example` is missing all four Stripe variables. Anyone setting up the project won't know they're needed
+- [x] **Fix webhook signature bypass** — Require STRIPE_WEBHOOK_SECRET, return 503 if missing. No more dev-mode bypass. (2026-03-05)
+- [x] **Fix orphan order creation** — Use db.flush()/rollback pattern: get order ID for success URL, only commit after Stripe session succeeds (2026-03-05)
+- [x] **Fix buyReport() JS event handling** — Pass event as explicit parameter instead of implicit global (2026-03-05)
+- [x] **Add Stripe vars to .env.example** — Added STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, STRIPE_PRICE_REPORT, STRIPE_PRICE_MONITORING (2026-03-05)
 - [ ] **Email sending infrastructure** — Transactional email for report delivery, payment confirmations, and future score-change notifications. Use Resend or Postmark (not raw SMTP). **Files**: new `src/assay/notifications/email.py`. **Note**: AJ must approve the sending service choice and create the account
 
 ### Phase 2: Monitoring Product (enables $3/mo recurring revenue)
