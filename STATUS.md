@@ -81,15 +81,15 @@ All technical work for Phase 0 and Phase 1 is complete. The product can accept p
 
 ### AJ Must Do (no one else can)
 
-**1. Form Incubator LLC in Wyoming (THIS WEEK)**
-- File a broad-purpose Wyoming LLC (~$100 filing + $60/yr registered agent) as an incubator entity for multiple agentic businesses
-- Assay runs as the first product line under a DBA (e.g., "Assay Tools" DBA under the incubator LLC)
+**1. Form "Business 34" LLC in Wyoming (THIS WEEK)**
+- File "Business 34 LLC" in Wyoming (~$100 filing + $60/yr registered agent) as the incubator entity for multiple agentic businesses
+- Assay runs as the first product line under a DBA (e.g., "Assay Tools" DBA under Business 34 LLC)
 - Get EIN from IRS: https://www.irs.gov/businesses/small-businesses-self-employed/apply-for-an-employer-identification-number-ein-online (free, immediate)
-- Open business bank account under the LLC
+- Open business bank account under Business 34 LLC
 - **Recommended formation service**: ZenBusiness ($0 + state fee) or Northwest ($29) — both handle Wyoming filing + registered agent
 - **Why Wyoming**: Strong single-member LLC protection, privacy (no public member disclosure), low fees ($100 formation, $60/yr), reduced defamation exposure from public scoring
-- **Why incubator model**: AJ plans to stand up multiple agentic businesses rapidly, test them, and keep winners. One broad LLC covers all product lines. Graduate successful products (consistent revenue) into their own LLCs later
-- **Stripe account**: Set up under the incubator LLC entity, not a personal account
+- **Why incubator model**: AJ plans to stand up multiple agentic businesses rapidly, test them, and keep winners. Business 34 LLC covers all product lines. Graduate successful products (consistent revenue) into their own LLCs later
+- **Stripe account**: Set up under Business 34 LLC, not a personal account
 - WHY URGENT: Zero liability protection right now. Every legal claim reaches personal assets. Must complete before Stripe goes live or any outbound prospecting.
 
 **2. Rotate Production Credentials (THIS WEEK)**
@@ -100,7 +100,7 @@ All technical work for Phase 0 and Phase 1 is complete. The product can accept p
 - Also rotate: Railway deploy token, Gmail app password
 
 **3. Create Stripe Account + Configure (AFTER LLC)**
-- Sign up at stripe.com with incubator LLC details + EIN + business bank account
+- Sign up at stripe.com with Business 34 LLC details + EIN + business bank account
 - Create two Products in Stripe dashboard:
   - "Package Evaluation Report" → one-time Price: $99.00 → copy Price ID
   - "Package Monitoring" → recurring Price: $3.00/month → copy Price ID
@@ -158,7 +158,7 @@ All technical work for Phase 0 and Phase 1 is complete. The product can accept p
 ## Remaining Workboard Items (26 total)
 
 ### Immediate / AJ-only (4 items)
-- Form incubator LLC in Wyoming (+ EIN, DBA for Assay)
+- Form "Business 34" LLC in Wyoming (+ EIN, DBA for Assay)
 - Rotate production credentials
 - Pick email sending service
 - Review ToS/Privacy with lawyer
