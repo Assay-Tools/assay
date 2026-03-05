@@ -36,6 +36,51 @@ Items ready to be claimed. Roughly priority-ordered within each phase.
 
 ---
 
+### Phase 0: Critical Fixes (BLOCKING — do before ANY public launch or payments)
+
+**Legal (AJ must handle personally)**:
+- [ ] **Form LLC + EIN** — File LLC in home state ($50-200), get EIN from IRS (free, online, immediate), open business bank account. Without this, every legal claim reaches personal assets. **Must complete before Stripe setup or any outbound prospecting**
+- [ ] **Terms of Service** — Binding legal doc linked from every page footer. Must include: scores are opinions not warranties, no-reliance clause, limitation of liability (capped at fees paid in last 12 months), API usage restrictions, mandatory arbitration, class action waiver, IP ownership. Use Termly/similar as starting point. **Files**: new `templates/pages/terms.html`, update `templates/base.html` footer
+- [ ] **Privacy Policy** — Stripe requires this before account creation. Cover: data collected (IPs, API keys, emails, payment info via Stripe), purpose, storage, sharing, deletion requests. GDPR + CCPA basics. **Files**: new `templates/pages/privacy.html`, update footer
+- [ ] **Refund policy** — Define before accepting money. Recommend: full refund within 14 days for reports, subscriptions cancel at end of billing period
+
+**Security (sessions can claim)**:
+- [ ] **Rotate production credentials** — `.secrets` file on disk contains live DB password on publicly-accessible Postgres proxy. Rotate DB password in Railway, delete `.secrets`, use env vars exclusively. Also rotate Railway deploy token and Gmail app password. **CRITICAL**
+- [ ] **Fix CORS configuration** — `allow_origins=["*"]` + `allow_credentials=True` is dangerous. Drop `allow_credentials` or set explicit origin. **File**: `src/assay/api/app.py` lines 48-55
+- [ ] **Separate admin vs submitter API keys** — All keys have identical permissions — submitters can approve own evaluations. Split into `SUBMISSION_API_KEYS` / `ADMIN_API_KEYS`. **File**: `src/assay/api/submission_routes.py`
+- [ ] **Sort field whitelist** — `getattr(Package, sort_field)` allows probing any model attribute. Add allowlist like leaderboard endpoint does. **File**: `src/assay/api/routes.py` line 124
+- [ ] **Sanitize LIKE wildcards** — Escape `%` and `_` in search input before ILIKE. **File**: `src/assay/api/web_routes.py` lines 153-160
+- [ ] **Add security headers** — `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Strict-Transport-Security`
+
+**Code Quality (sessions can claim)**:
+- [ ] **Fix AF weight mismatch** — `evaluator.py` uses different weights than `llms-full.txt` documents. Trust-destroying if a maintainer can't reproduce their score. Verify correct values, fix the other
+- [ ] **Fix Category.package_count N+1** — Iterates all packages in Python. Use SQL COUNT. **File**: `src/assay/models/package.py` lines 420-423
+- [ ] **Fix infinite recursion on GitHub 403** — `fetch_github_metadata` recurses with no max retry. Add counter (max 3). **File**: `src/assay/evaluation/evaluator.py` lines 256-259
+- [ ] **Stop leaking exception details** — Submission route returns raw exception messages. Log internally, return generic error. **File**: `src/assay/api/submission_routes.py` lines 164-168
+- [ ] **Strengthen disclaimer language** — Add "scores are editorial opinions, not statements of fact" framing. Add "as of [date]" to every score display. **File**: `templates/pages/about.html`
+
+### Website & UX (high impact for launch readiness — sessions can claim)
+
+- [ ] **"Report inaccuracy" link on package pages** — Link on every package detail page → pre-filled GitHub issue. Dispute path currently buried on `/about`. 30 min effort, huge trust signal. **File**: `templates/pages/package_detail.html`
+- [ ] **Developer docs page** — Proper `/developers` page: API getting-started, curl examples, rate limit docs, MCP config JSON, OpenAPI link. Currently API consumers hit raw Swagger. **Files**: new `templates/pages/developers.html`, update `web_routes.py`
+- [ ] **Embeddable score badges** — `/badge/{package_id}.svg` shields.io-style SVG. Every README embed = permanent backlink. Highest-leverage organic growth. Moved up from Phase 7. **File**: new route in `web_routes.py`
+- [ ] **Add text search to API** — Web supports `q` search but API `/v1/packages` does not. Agents can't search by name. **File**: `src/assay/api/routes.py`
+- [ ] **RSS feed** — `/feed.xml` for recently evaluated packages. **File**: new route in `web_routes.py`
+- [ ] **Email capture** — "Subscribe for weekly evaluations" on homepage. Primary re-engagement channel — currently every visitor is one-and-done. **File**: `templates/pages/index.html`
+- [ ] **Team/about enhancement** — Who runs this? Add brief human attribution. **File**: `templates/pages/about.html`
+- [ ] **Methodology page** — Dedicated deep-dive: data sources, LLM evaluation, weighting, limitations, re-eval frequency. Dual purpose: trust + legal protection. **Files**: new `templates/pages/methodology.html`
+- [ ] **Fix /docs footer link** — Points to raw Swagger. Relabel or redirect to `/developers`. **File**: `templates/base.html`
+
+### Strategic Additions (from business/GTM review)
+
+- [ ] **GitHub Action for CI** — Free `assay-score` Action that checks AF Score in CI. Every repo that adds it = marketing surface + backlink. Higher-leverage growth than cold email
+- [ ] **Publish scoring methodology openly** — Like OpenSSF Scorecard. Transparency builds trust. Blog post + methodology page
+- [ ] **Target companies, not just individuals** — Reframe $99 report as "competitive analysis" for DevRel teams. Consider $499-999 tier with report + 30-min call. Update BUSINESS.md
+- [ ] **Partnership: Smithery.ai** — They're the MCP directory, Assay is the quality layer. Reach out after public launch with data, not a pitch deck
+- [ ] **Partnership: Agent frameworks** — LangChain, CrewAI, AutoGen, Semantic Kernel. If their tool selection references Assay scores = instant demand
+- [ ] **Methodology Advisory Board** — 2-3 named credible people (Daniel Miessler first). Credibility signal + legal armor. Costs nothing
+- [ ] **Seed modelcontextprotocol/servers GitHub discussions** — People literally asking "which MCP servers are good?" in those threads. Be genuinely helpful with links to relevant Assay data
+
 ### Phase 1: Revenue Infrastructure (BLOCKING — must complete before any paid transactions)
 
 - [ ] **Stripe integration** — Stripe Checkout for one-time report purchases ($99) and subscription billing ($3/mo monitoring). Create Stripe account, add `stripe` dependency, implement checkout session creation + webhook handler for `checkout.session.completed` and `customer.subscription.*` events. Store payment status on orders. Environment: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_REPORT` (one-time), `STRIPE_PRICE_MONITORING` (recurring). **Files**: new `src/assay/api/payments.py`, update `pyproject.toml`
@@ -80,9 +125,9 @@ Items ready to be claimed. Roughly priority-ordered within each phase.
 ### Phase 6: Customer Generation & Growth
 
 - [ ] **Prospecting outreach to package maintainers** — The warm outreach play: for top-scored packages (AF 80+), reach out to maintainers with their score as a conversation opener. "Your package scored 87/100 on agent-friendliness — here's why." Links to full evaluation report purchase. Prioritize: packages with 55-75 scores (room to improve = report value), high GitHub stars, active development
-- [ ] **Outreach templates** — Draft 3-4 email/DM templates for different scenarios: (1) high scorer congratulations, (2) mid-scorer improvement opportunity, (3) new package discovered, (4) re-evaluation score change. AJ reviews before any outbound
+- [x] **Outreach templates** — Draft 3-4 email/DM templates for different scenarios: (1) high scorer congratulations, (2) mid-scorer improvement opportunity, (3) new package discovered, (4) re-evaluation score change. AJ reviews before any outbound
 - [ ] **LinkedIn presence** — Post about Assay on AJ's LinkedIn. Share Q1 ecosystem report findings as thought leadership. Tag relevant package maintainers when discussing their scores (with permission)
-- [x] **SEO basics** — Meta descriptions, OG tags, structured data (JSON-LD for SoftwareApplication ratings), sitemap.xml, robots.txt review. The directory should rank for "[package name] agent readiness" queries
+- [x] ~~**SEO basics** — moved to Completed~~
 - [ ] **Content calendar** — Recurring content plan: monthly "Top Movers" post (packages whose scores changed most), quarterly ecosystem report (already templated), category spotlights. Builds organic traffic and newsletter subscribers
 - [ ] **Email list / newsletter** — Capture emails via Q1 report download (gated PDF) and optional site signup. Monthly digest of score changes, new evaluations, ecosystem trends. Nurtures leads toward $99 reports and $3/mo monitoring
 
@@ -90,7 +135,7 @@ Items ready to be claimed. Roughly priority-ordered within each phase.
 
 - [ ] **Certified Agent-Ready program ($299/mo)** — Embeddable verified badge, priority re-evaluations, competitive reports, improvement consulting. Requires brand recognition first — don't launch until the directory has credibility
 - [ ] **Community evaluation network** — Allow external contributors to submit evaluations (beyond API key holders). Reputation system, review queue, contributor leaderboard. Scales evaluation capacity beyond what agentic automation can handle alone
-- [ ] **Comparison widgets** — Embeddable "Assay Score" badges for READMEs and docs sites (like shields.io). Free marketing — every badge is a backlink. `![Assay AF Score](https://assay.tools/badge/{package_id}.svg)`
+- [ ] **Comparison widgets** — Embeddable side-by-side comparison iframes for docs sites and blog posts. `<iframe src="https://assay.tools/embed/compare?ids=a,b">`
 
 ---
 
