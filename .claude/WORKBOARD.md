@@ -32,40 +32,65 @@ Coordination file for multiple Claude sessions working on this repo.
 
 ## Available Work
 
-Items ready to be claimed. Roughly priority-ordered.
+Items ready to be claimed. Roughly priority-ordered within each phase.
 
-### Infrastructure (Pre-Launch)
-- [x] ~~**llms.txt** — moved to Completed~~
-- [x] ~~**Rate limiting** — moved to Completed~~
-- [x] ~~**OpenAPI spec polish** — moved to Completed~~
+---
 
-### API Completeness
-- [x] ~~**Change feed endpoint** — moved to Completed~~
-- [x] ~~**Filter by score dimension** — moved to Completed~~
-- [x] ~~**Category leaderboards** — moved to Completed~~
+### Phase 1: Revenue Infrastructure (BLOCKING — must complete before any paid transactions)
 
-### Testing & Quality
-- [x] ~~**Test suite** — moved to Completed~~
-- [x] ~~**CI/CD pipeline** — moved to Completed~~
-- [x] ~~**Linting pass** — moved to Completed~~
+- [ ] **Stripe integration** — Stripe Checkout for one-time report purchases ($99) and subscription billing ($3/mo monitoring). Create Stripe account, add `stripe` dependency, implement checkout session creation + webhook handler for `checkout.session.completed` and `customer.subscription.*` events. Store payment status on orders. Environment: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_REPORT` (one-time), `STRIPE_PRICE_MONITORING` (recurring). **Files**: new `src/assay/api/payments.py`, update `pyproject.toml`
+- [ ] **Report delivery pipeline** — After Stripe payment confirmed, generate PDF report (use `weasyprint` or `reportlab`), store in S3/R2 or local filesystem, email download link to buyer. Connect to the existing `reports/generate_package_eval.py` script. **Files**: new `src/assay/reports/delivery.py`, new `src/assay/api/report_routes.py`
+- [ ] **Email sending infrastructure** — Transactional email for report delivery, payment confirmations, and future score-change notifications. Use Resend or Postmark (not raw SMTP). **Files**: new `src/assay/notifications/email.py`. **Note**: AJ must approve the sending service choice and create the account
+- [ ] **Buy report flow (web)** — "Buy Full Report — $99" button on package detail pages → Stripe Checkout → delivery. Only show for packages with enough data for a meaningful report. **Files**: update `templates/package_detail.html`, new `templates/report_purchase.html`, `templates/report_confirmation.html`
+- [ ] **Basic bookkeeping** — Simple revenue/expense tracking. Could be as minimal as a CSV/JSON log of transactions pulled from Stripe webhook events, or a lightweight admin page. Enough for tax reporting. **Files**: new `src/assay/admin/accounting.py` or `scripts/export_transactions.py`
 
-### Website Polish
-- [x] ~~**Staleness badge** — moved to Completed~~
-- [x] ~~**Score visualization** — moved to Completed~~
-- [x] ~~**Display last_evaluated** — moved to Completed~~
+### Phase 2: Monitoring Product (enables $3/mo recurring revenue)
 
-### Legal / Trust
-- [x] ~~**Disclaimer on about page** — moved to Completed~~
-- [x] ~~**Correction/dispute process** — moved to Completed~~
+- [ ] **User accounts** — Registration + login for package monitoring subscribers. Email/password or magic link auth. Store in DB. JWT or session-based. **Files**: new `src/assay/models/user.py`, new `src/assay/api/auth_routes.py`, new templates for login/register
+- [ ] **Package monitoring subscriptions** — Authenticated users can subscribe to packages ($3/mo each via Stripe). Dashboard showing subscribed packages, current scores, trends. **Files**: new `src/assay/models/subscription.py`, new `src/assay/api/subscription_routes.py`, new `templates/dashboard.html`
+- [ ] **Score history tracking** — Record score snapshots over time (monthly or on each re-evaluation). Enables trend charts and change detection. Currently scores are single current values with no history. **Files**: new `src/assay/models/score_history.py`, migration script
+- [ ] **Score change notifications** — When a monitored package's score changes, email the subscriber with old→new scores and explanation. Depends on: email infrastructure, score history, user accounts. **Files**: update `src/assay/notifications/email.py`
 
-### Evaluation Pipeline
-- [x] ~~**Evaluation skill** — moved to Completed~~
-- [x] ~~**Submission API** — moved to Completed~~
-- [x] ~~**Auth for submissions** — moved to Completed~~
-- [x] ~~**Evaluation review queue** — moved to Completed~~
+### Phase 3: Data Quality & Automation
 
-### CLI
-- [x] ~~**CLI tool** — moved to Completed~~
+- [ ] **Score backfill** — 500+ existing evaluations use old schema with only top-level security_score and no sub-component breakdown or reliability_score. Re-evaluate to populate all 14 sub-components. Can be batched via the evaluation skill
+- [ ] **Automated re-evaluation pipeline** — Scheduled re-evaluation of stale packages (>90 days). Could be a cron job, Railway scheduled task, or GitHub Action that triggers the evaluation skill. Prioritize by: staleness, popularity, monitoring subscribers
+- [ ] **Data freshness dashboard** — Admin view showing evaluation coverage, staleness distribution, queue depth, and re-evaluation velocity
+
+### Phase 4: Soft Launch — Trusted Feedback (do BEFORE public launch)
+
+- [ ] **Daniel Miessler outreach** — Personal message to Daniel with link to assay.tools. He's in the AI/security space, runs Fabric (an MCP-adjacent tool), and AJ has an existing relationship. Ask for honest feedback on scoring methodology, UX, and whether the $99 report is compelling. Share via DM (not public). **Goal**: Get a credible practitioner's gut check before going wide
+- [ ] **Trusted beta testers (5-10)** — Identify 5-10 people from AJ's network (security, AI, DevOps communities) who would give honest feedback. Send personal invites with specific questions: Is the scoring credible? Would you pay $99 for a report? What's missing? Collect feedback in a structured doc
+- [ ] **Feedback collection mechanism** — Simple way for beta testers to submit feedback. Could be a Google Form, GitHub Discussions, or a `/feedback` page on the site. Low effort, high signal
+- [ ] **Beta fixes sprint** — Reserve capacity to act on feedback from Daniel and beta testers before going public. Fix credibility issues, UX problems, or scoring methodology concerns
+
+### Phase 5: Public Launch — Maximum Visibility
+
+- [ ] **Hacker News submission** — "Show HN: Assay — Agent-readiness ratings for APIs and MCP servers". Timing matters: submit Tuesday-Thursday ~11am ET. Have answers ready for: How are scores calculated? Why should I trust this? What's the business model? AJ should be the one to post and respond to comments
+- [ ] **Reddit launch posts** — Submit to relevant subreddits with tailored messaging:
+  - `r/programming` — technical angle, scoring methodology
+  - `r/machinelearning` / `r/artificial` — AI agent tooling angle
+  - `r/selfhosted` — MCP server ratings angle
+  - `r/SideProject` — indie builder story
+  - Space posts 1-2 days apart, don't carpet-bomb same day
+- [ ] **Daniel Miessler's Discord (Fabric community)** — Share in the Fabric Discord where MCP/AI tool builders hang out. Daniel's blessing from Phase 4 helps here. Focus on how Assay rates MCP servers specifically
+- [ ] **Product Hunt launch** — Consider a Product Hunt submission. Good for visibility with indie dev / startup audience. Prep: good screenshots, one-liner, maker comment, hunter if possible
+- [ ] **Dev.to / Hashnode blog post** — "How We Rate 7,000 APIs for Agent-Readiness" — technical deep-dive on scoring methodology. Establishes credibility, drives organic traffic, good backlink for SEO
+
+### Phase 6: Customer Generation & Growth
+
+- [ ] **Prospecting outreach to package maintainers** — The warm outreach play: for top-scored packages (AF 80+), reach out to maintainers with their score as a conversation opener. "Your package scored 87/100 on agent-friendliness — here's why." Links to full evaluation report purchase. Prioritize: packages with 55-75 scores (room to improve = report value), high GitHub stars, active development
+- [ ] **Outreach templates** — Draft 3-4 email/DM templates for different scenarios: (1) high scorer congratulations, (2) mid-scorer improvement opportunity, (3) new package discovered, (4) re-evaluation score change. AJ reviews before any outbound
+- [ ] **LinkedIn presence** — Post about Assay on AJ's LinkedIn. Share Q1 ecosystem report findings as thought leadership. Tag relevant package maintainers when discussing their scores (with permission)
+- [ ] **SEO basics** — Meta descriptions, OG tags, structured data (JSON-LD for SoftwareApplication ratings), sitemap.xml, robots.txt review. The directory should rank for "[package name] agent readiness" queries
+- [ ] **Content calendar** — Recurring content plan: monthly "Top Movers" post (packages whose scores changed most), quarterly ecosystem report (already templated), category spotlights. Builds organic traffic and newsletter subscribers
+- [ ] **Email list / newsletter** — Capture emails via Q1 report download (gated PDF) and optional site signup. Monthly digest of score changes, new evaluations, ecosystem trends. Nurtures leads toward $99 reports and $3/mo monitoring
+
+### Phase 7: Product Expansion (Q3+ 2026)
+
+- [ ] **Certified Agent-Ready program ($299/mo)** — Embeddable verified badge, priority re-evaluations, competitive reports, improvement consulting. Requires brand recognition first — don't launch until the directory has credibility
+- [ ] **Community evaluation network** — Allow external contributors to submit evaluations (beyond API key holders). Reputation system, review queue, contributor leaderboard. Scales evaluation capacity beyond what agentic automation can handle alone
+- [ ] **Comparison widgets** — Embeddable "Assay Score" badges for READMEs and docs sites (like shields.io). Free marketing — every badge is a backlink. `![Assay AF Score](https://assay.tools/badge/{package_id}.svg)`
 
 ---
 
