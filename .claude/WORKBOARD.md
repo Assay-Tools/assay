@@ -93,7 +93,7 @@ Items ready to be claimed. Roughly priority-ordered within each phase.
 
 - [ ] **User accounts** — Registration + login for package monitoring subscribers. Email/password or magic link auth. Store in DB. JWT or session-based. **Files**: new `src/assay/models/user.py`, new `src/assay/api/auth_routes.py`, new templates for login/register
 - [ ] **Package monitoring subscriptions** — Authenticated users can subscribe to packages ($3/mo each via Stripe). Dashboard showing subscribed packages, current scores, trends. **Files**: new `src/assay/models/subscription.py`, new `src/assay/api/subscription_routes.py`, new `templates/dashboard.html`
-- [ ] **Score history tracking** — Record score snapshots over time (monthly or on each re-evaluation). Enables trend charts and change detection. Currently scores are single current values with no history. **Files**: new `src/assay/models/score_history.py`, migration script
+- [x] **Score history tracking** — ScoreSnapshot model + /v1/packages/{id}/score-history API + auto-snapshot in loader, 5 tests (2026-03-04)
 - [ ] **Score change notifications** — When a monitored package's score changes, email the subscriber with old→new scores and explanation. Depends on: email infrastructure, score history, user accounts. **Files**: update `src/assay/notifications/email.py`
 
 ### Phase 3: Data Quality & Automation
