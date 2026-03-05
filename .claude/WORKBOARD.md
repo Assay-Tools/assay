@@ -66,7 +66,7 @@ Items ready to be claimed. Roughly priority-ordered within each phase.
 - [x] **Embeddable score badges** — `/badge/{package_id}.svg` shields.io-style SVG with color coding (2026-03-04)
 - [x] **Add text search to API** — `q` param on `/v1/packages` with ILIKE search (2026-03-04)
 - [x] **RSS feed** — `/feed.xml` with 50 most recently evaluated packages (2026-03-04)
-- [ ] **Email capture** — "Subscribe for weekly evaluations" on homepage. Primary re-engagement channel — currently every visitor is one-and-done. **File**: `templates/pages/index.html`
+- [x] **Email capture** — EmailSubscriber model + /subscribe endpoint + homepage form (2026-03-04)
 - [x] **Team/about enhancement** — "Who We Are" section with AJ attribution + methodology link (2026-03-04)
 - [x] **Methodology page** — Full scoring breakdown with weights, data sources, evaluation process, limitations (2026-03-04)
 - [x] **Fix /docs footer link** — Relabeled to "API" (2026-03-04)
