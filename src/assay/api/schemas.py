@@ -1,5 +1,7 @@
 """Pydantic response models for the Assay API."""
 
+from __future__ import annotations
+
 from pydantic import BaseModel, Field
 
 # --- Health ---
@@ -70,3 +72,136 @@ class StatsResponse(BaseModel):
     score_distribution: ScoreDistribution = Field(
         description="Breakdown by score tier",
     )
+
+
+# --- Evaluation Submission ---
+
+class EvaluationInterfaceSubmission(BaseModel):
+    has_rest_api: bool = False
+    has_graphql: bool = False
+    has_grpc: bool = False
+    has_mcp_server: bool = False
+    mcp_server_url: str | None = None
+    has_sdk: bool = False
+    sdk_languages: list[str] = Field(default_factory=list)
+    openapi_spec_url: str | None = None
+    webhooks: bool = False
+
+
+class EvaluationAuthSubmission(BaseModel):
+    methods: list[str] = Field(default_factory=list)
+    oauth: bool = False
+    scopes: bool = False
+    notes: str | None = None
+
+
+class EvaluationPricingSubmission(BaseModel):
+    model: str | None = None
+    free_tier_exists: bool = False
+    free_tier_limits: dict | None = None
+    paid_tiers: list[dict] | None = None
+    requires_credit_card: bool = False
+    estimated_workload_costs: dict | None = None
+    notes: str | None = None
+
+
+class EvaluationPerformanceSubmission(BaseModel):
+    latency_p50_ms: int | None = None
+    latency_p99_ms: int | None = None
+    uptime_sla_percent: float | None = None
+    rate_limits: dict | None = None
+    data_source: str | None = None
+    measured_on: str | None = None
+
+
+class EvaluationRequirementsSubmission(BaseModel):
+    requires_signup: bool = False
+    requires_credit_card: bool = False
+    domain_verification: bool = False
+    data_residency: list[str] = Field(default_factory=list)
+    compliance: list[str] = Field(default_factory=list)
+    min_contract: str | None = "none"
+
+
+class EvaluationAgentReadinessSubmission(BaseModel):
+    mcp_server_quality: float | None = None
+    documentation_accuracy: float | None = None
+    error_message_quality: float | None = None
+    error_message_notes: str | None = None
+    idempotency_support: str | None = None
+    idempotency_notes: str | None = None
+    pagination_style: str | None = None
+    retry_guidance_documented: bool | None = None
+    known_agent_gotchas: list[str] = Field(default_factory=list)
+
+
+class AFScoreComponentsSubmission(BaseModel):
+    mcp_score: float = Field(ge=0, le=100)
+    api_doc_score: float = Field(ge=0, le=100)
+    error_handling_score: float = Field(ge=0, le=100)
+    auth_complexity_score: float = Field(ge=0, le=100)
+    rate_limit_clarity_score: float = Field(ge=0, le=100)
+
+
+class SecurityScoreComponentsSubmission(BaseModel):
+    tls_enforcement: float = Field(ge=0, le=100)
+    auth_strength: float = Field(ge=0, le=100)
+    scope_granularity: float = Field(ge=0, le=100)
+    dependency_hygiene: float = Field(ge=0, le=100)
+    secret_handling: float = Field(ge=0, le=100)
+    security_notes: str | None = None
+
+
+class ReliabilityScoreComponentsSubmission(BaseModel):
+    uptime_documented: float = Field(ge=0, le=100)
+    version_stability: float = Field(ge=0, le=100)
+    breaking_changes_history: float = Field(ge=0, le=100)
+    error_recovery: float = Field(ge=0, le=100)
+
+
+class EvaluationSubmission(BaseModel):
+    """Full evaluation submission matching the loader's expected JSON."""
+    id: str = Field(description="Package ID (slug, e.g. 'stripe')")
+    name: str = Field(description="Display name")
+    homepage: str | None = None
+    repo_url: str | None = None
+    category: str | None = Field(
+        None, description="Category slug (normalized to canonical list)",
+    )
+    subcategories: list[str] = Field(default_factory=list)
+    tags: list[str] = Field(default_factory=list)
+    what_it_does: str | None = None
+    use_cases: list[str] = Field(default_factory=list)
+    not_for: list[str] = Field(default_factory=list)
+    best_when: str | None = None
+    avoid_when: str | None = None
+    alternatives: list[str] = Field(default_factory=list)
+    version_evaluated: str | None = None
+    interface: EvaluationInterfaceSubmission | None = None
+    auth: EvaluationAuthSubmission | None = None
+    pricing: EvaluationPricingSubmission | None = None
+    performance: EvaluationPerformanceSubmission | None = None
+    requirements: EvaluationRequirementsSubmission | None = None
+    agent_readiness: EvaluationAgentReadinessSubmission | None = None
+    af_score_components: AFScoreComponentsSubmission | None = None
+    security_score_components: SecurityScoreComponentsSubmission | None = None
+    reliability_score_components: ReliabilityScoreComponentsSubmission | None = None
+
+
+class EvaluationSubmissionResponse(BaseModel):
+    status: str = Field(description="'accepted' or 'pending_review'")
+    package_id: str = Field(description="Package ID that was submitted")
+    message: str = Field(description="Human-readable status message")
+
+
+class PendingEvaluationResponse(BaseModel):
+    id: int = Field(description="Pending evaluation ID")
+    package_id: str = Field(description="Package slug")
+    submitted_at: str = Field(description="ISO 8601 timestamp")
+    submitted_by: str | None = Field(None, description="API key identifier")
+    status: str = Field(description="pending, approved, or rejected")
+
+
+class PendingEvaluationListResponse(BaseModel):
+    evaluations: list[PendingEvaluationResponse] = Field(default_factory=list)
+    total: int = Field(description="Total pending evaluations")

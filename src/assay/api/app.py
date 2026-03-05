@@ -13,6 +13,7 @@ from assay.database import init_db
 
 from .rate_limit import limiter
 from .routes import router
+from .submission_routes import router as submission_router
 from .web_routes import router as web_router
 
 app = FastAPI(
@@ -32,6 +33,10 @@ app = FastAPI(
         {"name": "compare", "description": "Side-by-side package comparison"},
         {"name": "stats", "description": "Sitewide statistics and score distribution"},
         {"name": "contribute", "description": "Evaluation queue for community contributors"},
+        {
+            "name": "evaluations",
+            "description": "Submit and manage package evaluations (API key required)",
+        },
         {"name": "system", "description": "Health checks and operational endpoints"},
     ],
 )
@@ -51,6 +56,7 @@ app.add_middleware(
 
 # API routes
 app.include_router(router)
+app.include_router(submission_router)
 
 # Web frontend routes
 app.include_router(web_router)

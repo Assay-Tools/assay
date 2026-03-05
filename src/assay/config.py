@@ -13,6 +13,9 @@ class Settings(BaseSettings):
     api_host: str = "0.0.0.0"
     api_port: int = 8000
 
+    # Submission auth — comma-separated API keys for evaluation submissions
+    submission_api_keys: str = ""
+
     # Evaluation
     anthropic_api_key: str = ""
     eval_model: str = "claude-haiku-4-5-20251001"

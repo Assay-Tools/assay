@@ -449,3 +449,20 @@ class EvaluationRun(Base):
     af_score_computed: Mapped[float | None] = mapped_column(Float)
 
     package: Mapped["Package"] = relationship(back_populates="evaluations")
+
+
+class PendingEvaluation(Base):
+    """Evaluation submissions awaiting admin review."""
+
+    __tablename__ = "pending_evaluations"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    package_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    submitted_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
+    submitted_by: Mapped[str | None] = mapped_column(String(255))
+    # pending, approved, rejected
+    status: Mapped[str] = mapped_column(String(50), default="pending")
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    payload: Mapped[str] = mapped_column(Text, nullable=False)  # Full JSON

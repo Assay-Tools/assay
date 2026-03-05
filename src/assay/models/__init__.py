@@ -10,6 +10,7 @@ from assay.models.package import (
     PackagePerformance,
     PackagePricing,
     PackageRequirements,
+    PendingEvaluation,
 )
 
 __all__ = [
@@ -22,4 +23,5 @@ __all__ = [
     "PackagePerformance",
     "PackagePricing",
     "PackageRequirements",
+    "PendingEvaluation",
 ]
