@@ -55,7 +55,7 @@ Items ready to be claimed. Roughly priority-ordered within each phase.
 
 - [ ] **Score backfill** — 500+ existing evaluations use old schema with only top-level security_score and no sub-component breakdown or reliability_score. Re-evaluate to populate all 14 sub-components. Can be batched via the evaluation skill
 - [ ] **Automated re-evaluation pipeline** — Scheduled re-evaluation of stale packages (>90 days). Could be a cron job, Railway scheduled task, or GitHub Action that triggers the evaluation skill. Prioritize by: staleness, popularity, monitoring subscribers
-- [ ] **Data freshness dashboard** — Admin view showing evaluation coverage, staleness distribution, queue depth, and re-evaluation velocity
+- [x] **Data freshness dashboard** — Admin view showing evaluation coverage, staleness distribution, queue depth, and re-evaluation velocity
 
 ### Phase 4: Soft Launch — Trusted Feedback (do BEFORE public launch)
 
@@ -124,3 +124,4 @@ Items ready to be claimed. Roughly priority-ordered within each phase.
 - [x] **Evaluation skill** — Claude Code `/evaluate` slash command for package evaluation (2026-03-04)
 - [x] **CLI tool** — `assay check/compare/stale` with ASCII output + --json, 5 tests (2026-03-04)
 - [x] **SEO basics** — meta descriptions, OG tags, JSON-LD, sitemap.xml, robots.txt, 11 tests (2026-03-04)
+- [x] **Data freshness dashboard** — /admin/freshness with coverage, staleness, category breakdown, 4 tests (2026-03-04)
