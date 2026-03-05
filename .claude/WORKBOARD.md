@@ -99,7 +99,7 @@ Items ready to be claimed. Roughly priority-ordered within each phase.
 ### Phase 3: Data Quality & Automation
 
 - [ ] **Score backfill** — 500+ existing evaluations use old schema with only top-level security_score and no sub-component breakdown or reliability_score. Re-evaluate to populate all 14 sub-components. Can be batched via the evaluation skill
-- [ ] **Automated re-evaluation pipeline** — Scheduled re-evaluation of stale packages (>90 days). Could be a cron job, Railway scheduled task, or GitHub Action that triggers the evaluation skill. Prioritize by: staleness, popularity, monitoring subscribers
+- [x] **Automated re-evaluation pipeline** — Weekly GitHub Action + check_stale.py script, creates/updates issue with stale packages (2026-03-04)
 - [x] **Data freshness dashboard** — Admin view showing evaluation coverage, staleness distribution, queue depth, and re-evaluation velocity
 
 ### Phase 4: Soft Launch — Trusted Feedback (do BEFORE public launch)
