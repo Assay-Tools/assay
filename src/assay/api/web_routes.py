@@ -663,6 +663,115 @@ def llms_full_txt():
     return LLMS_TXT + LLMS_FULL_TXT_EXTRA
 
 
+# ── Admin / Data Freshness ────────────────────────────────────────────────────
+
+
+@router.get("/admin/freshness", response_class=HTMLResponse)
+def admin_freshness(request: Request, db: Session = Depends(get_db)):
+    """Data freshness dashboard — evaluation coverage and staleness."""
+    now = datetime.now(timezone.utc)
+
+    # Overall counts
+    total_cataloged = db.query(func.count(Package.id)).scalar() or 0
+    total_evaluated = (
+        db.query(func.count(Package.id))
+        .filter(Package.af_score.isnot(None))
+        .scalar() or 0
+    )
+    total_unevaluated = total_cataloged - total_evaluated
+
+    # Staleness buckets (evaluated packages only)
+    stale_30 = stale_60 = stale_90 = stale_180 = stale_older = never_dated = 0
+    evaluated_pkgs = (
+        db.query(Package.last_evaluated)
+        .filter(Package.af_score.isnot(None))
+        .all()
+    )
+    for (last_eval,) in evaluated_pkgs:
+        if last_eval is None:
+            never_dated += 1
+            continue
+        if last_eval.tzinfo is None:
+            last_eval = last_eval.replace(tzinfo=timezone.utc)
+        age_days = (now - last_eval).days
+        if age_days <= 30:
+            stale_30 += 1
+        elif age_days <= 60:
+            stale_60 += 1
+        elif age_days <= 90:
+            stale_90 += 1
+        elif age_days <= 180:
+            stale_180 += 1
+        else:
+            stale_older += 1
+
+    staleness_buckets = [
+        ("0-30 days", stale_30, "text-green-400"),
+        ("31-60 days", stale_60, "text-green-400"),
+        ("61-90 days", stale_90, "text-yellow-400"),
+        ("91-180 days", stale_180, "text-orange-400"),
+        ("180+ days", stale_older, "text-red-400"),
+        ("No date", never_dated, "text-gray-500"),
+    ]
+
+    # Sub-component coverage (how many have full breakdowns)
+    has_sub = (
+        db.query(func.count(PackageAgentReadiness.package_id))
+        .filter(PackageAgentReadiness.tls_enforcement.isnot(None))
+        .scalar() or 0
+    )
+    missing_sub = total_evaluated - has_sub
+
+    # Per-category freshness
+    categories_raw = (
+        db.query(
+            Category.name,
+            Category.slug,
+            func.count(Package.id).label("total"),
+            func.count(Package.af_score).label("evaluated"),
+        )
+        .join(Package, Package.category_slug == Category.slug, isouter=True)
+        .group_by(Category.slug, Category.name)
+        .order_by(Category.name)
+        .all()
+    )
+    category_stats = []
+    for name, slug, total, evaluated in categories_raw:
+        pct = round(evaluated / total * 100) if total > 0 else 0
+        category_stats.append({
+            "name": name,
+            "slug": slug,
+            "total": total,
+            "evaluated": evaluated,
+            "pct": pct,
+        })
+
+    # Recently evaluated (last 10)
+    recent = (
+        db.query(Package.id, Package.name, Package.last_evaluated, Package.af_score)
+        .filter(Package.af_score.isnot(None), Package.last_evaluated.isnot(None))
+        .order_by(Package.last_evaluated.desc())
+        .limit(10)
+        .all()
+    )
+
+    return templates.TemplateResponse(
+        "pages/admin_freshness.html",
+        {
+            "request": request,
+            "total_cataloged": total_cataloged,
+            "total_evaluated": total_evaluated,
+            "total_unevaluated": total_unevaluated,
+            "staleness_buckets": staleness_buckets,
+            "has_sub_components": has_sub,
+            "missing_sub_components": missing_sub,
+            "category_stats": category_stats,
+            "recent_evaluations": recent,
+            "community_stats": _community_stats(db),
+        },
+    )
+
+
 # ── SEO ──────────────────────────────────────────────────────────────────────
 
 
