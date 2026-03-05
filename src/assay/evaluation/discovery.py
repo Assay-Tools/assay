@@ -14,7 +14,10 @@ from .sources import (
     GitHubAwesomeListSource,
     GitHubSource,
     MCPRegistrySource,
+    NpmSource,
     OpenClawSource,
+    PyPISource,
+    SmitherySource,
 )
 
 # Pre-defined categories with display names and keyword hints for matching.
@@ -137,6 +140,9 @@ SOURCE_CLASSES: dict[str, type[DiscoverySource]] = {
     "mcp_registry": MCPRegistrySource,
     "skills": GitHubAwesomeListSource,
     "openclaw": OpenClawSource,
+    "npm": NpmSource,
+    "pypi": PyPISource,
+    "smithery": SmitherySource,
 }
 
 
@@ -348,7 +354,7 @@ def main():
     )
     parser.add_argument(
         "--source",
-        choices=["github", "mcp_registry", "skills", "openclaw", "all"],
+        choices=list(SOURCE_CLASSES.keys()) + ["all"],
         default="all",
         help="Discovery source to use (default: all)",
     )

@@ -7,6 +7,8 @@ import time
 
 import httpx
 
+from assay.config import settings
+
 from .base import DiscoveredPackage, DiscoverySource
 
 
@@ -18,17 +20,30 @@ def slug_from_repo(full_name: str) -> str:
     return slug[:255]
 
 
+def _github_headers() -> dict[str, str]:
+    """Build GitHub API headers, with auth token if available."""
+    headers = {"Accept": "application/vnd.github+json"}
+    if settings.github_token:
+        headers["Authorization"] = f"Bearer {settings.github_token}"
+    return headers
+
+
 class GitHubSource(DiscoverySource):
     """Discovers MCP server repositories from GitHub search."""
 
     SEARCH_QUERIES = [
         "topic:mcp-server",
+        "topic:model-context-protocol",
         "mcp+server+in:name",
         "mcp-server+in:name",
+        '"@modelcontextprotocol/sdk" in:file',
+        "mcp-server in:path language:python",
+        "mcp-server in:path language:typescript",
     ]
 
     GITHUB_API = "https://api.github.com/search/repositories"
-    REQUEST_DELAY_SECONDS = 7.0
+    # Authenticated: 30 req/min for search. Unauthenticated: 10 req/min.
+    REQUEST_DELAY_SECONDS = 3.0
 
     @property
     def source_name(self) -> str:
@@ -36,7 +51,7 @@ class GitHubSource(DiscoverySource):
 
     def __init__(self):
         self.client = httpx.Client(
-            headers={"Accept": "application/vnd.github+json"},
+            headers=_github_headers(),
             timeout=30.0,
         )
         self._seen_urls: set[str] = set()
@@ -46,6 +61,9 @@ class GitHubSource(DiscoverySource):
         """Search GitHub for MCP server repos."""
         self._seen_urls.clear()
         self._results.clear()
+
+        auth_status = "authenticated" if settings.github_token else "unauthenticated"
+        print(f"  [github] Running {auth_status} ({len(self.SEARCH_QUERIES)} queries)")
 
         for query in self.SEARCH_QUERIES:
             if len(self._results) >= limit:
@@ -110,8 +128,14 @@ class GitHubSource(DiscoverySource):
                 break
 
             page += 1
-            print(f"  [github] Respecting rate limit, waiting {self.REQUEST_DELAY_SECONDS}s ...")
+            print(
+                f"  [github] Respecting rate limit, "
+                f"waiting {self.REQUEST_DELAY_SECONDS}s ..."
+            )
             time.sleep(self.REQUEST_DELAY_SECONDS)
 
-        print(f"  [github] Respecting rate limit, waiting {self.REQUEST_DELAY_SECONDS}s ...")
+        print(
+            f"  [github] Respecting rate limit, "
+            f"waiting {self.REQUEST_DELAY_SECONDS}s ..."
+        )
         time.sleep(self.REQUEST_DELAY_SECONDS)

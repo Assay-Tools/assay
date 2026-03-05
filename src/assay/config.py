@@ -25,6 +25,10 @@ class Settings(BaseSettings):
     stripe_price_monitoring: str = ""  # Price ID for $3/mo recurring
     app_url: str = "https://assay.tools"  # For Stripe redirect URLs
 
+    # Discovery
+    github_token: str = ""  # GitHub PAT for 5,000 req/hr (vs 60 unauthenticated)
+    smithery_token: str = ""  # Smithery.ai API token for registry access
+
     # Evaluation
     anthropic_api_key: str = ""
     eval_model: str = "claude-haiku-4-5-20251001"

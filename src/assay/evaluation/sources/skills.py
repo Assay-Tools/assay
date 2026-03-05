@@ -7,7 +7,17 @@ import time
 
 import httpx
 
+from assay.config import settings
+
 from .base import DiscoveredPackage, DiscoverySource
+
+
+def _github_headers(accept: str = "application/vnd.github+json") -> dict[str, str]:
+    """Build GitHub API headers, with auth token if available."""
+    headers = {"Accept": accept}
+    if settings.github_token:
+        headers["Authorization"] = f"Bearer {settings.github_token}"
+    return headers
 
 
 def _slug_from_url(url: str) -> str:
@@ -35,6 +45,8 @@ class GitHubAwesomeListSource(DiscoverySource):
         "anthropics/skills",
         "anthropics/claude-code-skills",
         "punkpeye/awesome-mcp-servers",
+        "wong2/awesome-mcp-servers",
+        "appcypher/awesome-mcp-servers",
     ]
 
     @property
@@ -45,7 +57,7 @@ class GitHubAwesomeListSource(DiscoverySource):
         results: list[DiscoveredPackage] = []
         seen_ids: set[str] = set()
         client = httpx.Client(
-            headers={"Accept": "application/vnd.github.raw+json"},
+            headers=_github_headers("application/vnd.github.raw+json"),
             timeout=30.0,
         )
 
@@ -119,12 +131,17 @@ class OpenClawSource(DiscoverySource):
     SEARCH_QUERIES = [
         "topic:agent-skill",
         "topic:claude-skill",
+        "topic:claude-code-skill",
         "topic:openclaw",
+        "topic:ai-agent-tool",
+        "topic:langchain-tool",
+        "topic:crewai-tool",
         "agent+skill+in:name",
+        '"tool_use" in:readme language:python',
     ]
 
     GITHUB_API = "https://api.github.com/search/repositories"
-    REQUEST_DELAY_SECONDS = 7.0
+    REQUEST_DELAY_SECONDS = 3.0
 
     @property
     def source_name(self) -> str:
@@ -134,7 +151,7 @@ class OpenClawSource(DiscoverySource):
         results: list[DiscoveredPackage] = []
         seen_urls: set[str] = set()
         client = httpx.Client(
-            headers={"Accept": "application/vnd.github+json"},
+            headers=_github_headers(),
             timeout=30.0,
         )
 
