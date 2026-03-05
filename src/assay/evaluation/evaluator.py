@@ -232,7 +232,7 @@ def fetch_github_readme(owner: str, repo: str, client: httpx.Client) -> str | No
 
 
 def fetch_github_metadata(
-    owner: str, repo: str, client: httpx.Client
+    owner: str, repo: str, client: httpx.Client, _retries: int = 0
 ) -> dict | None:
     """Fetch repo metadata from GitHub API. Returns None on failure."""
     url = f"https://api.github.com/repos/{owner}/{repo}"
@@ -246,17 +246,25 @@ def fetch_github_metadata(
             "topics": data.get("topics", []),
             "stars": data.get("stargazers_count"),
             "forks": data.get("forks_count"),
-            "license": data.get("license", {}).get("spdx_id") if data.get("license") else None,
+            "license": (
+                data.get("license", {}).get("spdx_id")
+                if data.get("license") else None
+            ),
             "open_issues": data.get("open_issues_count"),
             "created_at": data.get("created_at"),
             "updated_at": data.get("updated_at"),
             "archived": data.get("archived"),
             "default_branch": data.get("default_branch"),
         }
-    if resp.status_code == 403:
-        logger.warning("GitHub API rate limit hit. Sleeping 60s...")
+    if resp.status_code == 403 and _retries < 3:
+        logger.warning(
+            "GitHub API rate limit hit (attempt %d/3). Sleeping 60s...",
+            _retries + 1,
+        )
         time.sleep(60)
-        return fetch_github_metadata(owner, repo, client)
+        return fetch_github_metadata(owner, repo, client, _retries + 1)
+    if resp.status_code == 403:
+        logger.error("GitHub API rate limit: giving up after 3 retries")
     return None
 
 

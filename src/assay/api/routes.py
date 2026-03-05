@@ -118,12 +118,20 @@ def list_packages(
     # Count before pagination
     total = q.count()
 
-    # Sorting
+    # Sorting (whitelist to prevent attribute probing)
+    SORTABLE_FIELDS = {
+        "af_score", "security_score", "reliability_score",
+        "name", "created_at", "last_evaluated",
+    }
     sort_field, _, sort_dir = sort.partition(":")
     sort_dir = sort_dir.lower() if sort_dir else "desc"
-    column = getattr(Package, sort_field, None)
-    if column is None:
-        raise HTTPException(status_code=400, detail=f"Invalid sort field: {sort_field}")
+    if sort_field not in SORTABLE_FIELDS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid sort field: {sort_field}. "
+            f"Allowed: {', '.join(sorted(SORTABLE_FIELDS))}",
+        )
+    column = getattr(Package, sort_field)
     if sort_dir == "asc":
         q = q.order_by(column.asc())
     else:

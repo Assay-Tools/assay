@@ -26,21 +26,31 @@ router = APIRouter(tags=["evaluations"])
 SUBMISSION_RATE_LIMIT = "20/day"
 
 
-def _valid_api_keys() -> set[str]:
-    """Parse configured API keys (read from env at call time for testability)."""
+def _parse_keys(env_var: str, fallback: str) -> set[str]:
+    """Parse comma-separated API keys from env (read at call time for testability)."""
     import os
 
-    raw = os.environ.get("SUBMISSION_API_KEYS", settings.submission_api_keys)
+    raw = os.environ.get(env_var, fallback)
     if not raw:
         return set()
     return {k.strip() for k in raw.split(",") if k.strip()}
 
 
+def _submission_keys() -> set[str]:
+    return _parse_keys("SUBMISSION_API_KEYS", settings.submission_api_keys)
+
+
+def _admin_keys() -> set[str]:
+    """Admin keys. Falls back to submission keys if ADMIN_API_KEYS not set."""
+    keys = _parse_keys("ADMIN_API_KEYS", settings.admin_api_keys)
+    return keys if keys else _submission_keys()
+
+
 def _require_api_key(
     x_api_key: str = Header(..., description="Submission API key"),
 ) -> str:
-    """Validate API key from X-Api-Key header. Returns the key."""
-    keys = _valid_api_keys()
+    """Validate API key for submissions. Returns the key."""
+    keys = _submission_keys()
     if not keys:
         raise HTTPException(
             status_code=503,
@@ -48,6 +58,21 @@ def _require_api_key(
         )
     if x_api_key not in keys:
         raise HTTPException(status_code=401, detail="Invalid API key")
+    return x_api_key
+
+
+def _require_admin_key(
+    x_api_key: str = Header(..., description="Admin API key"),
+) -> str:
+    """Validate API key for admin operations (approve/reject/list)."""
+    keys = _admin_keys()
+    if not keys:
+        raise HTTPException(
+            status_code=503,
+            detail="Admin API is not configured (no API keys set)",
+        )
+    if x_api_key not in keys:
+        raise HTTPException(status_code=403, detail="Admin access required")
     return x_api_key
 
 
@@ -105,7 +130,7 @@ def list_pending_evaluations(
     status: str = Query("pending", description="Filter by status"),
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
-    api_key: str = Depends(_require_api_key),
+    api_key: str = Depends(_require_admin_key),
     db: Session = Depends(get_db),
 ):
     """List pending evaluation submissions (admin)."""
@@ -142,7 +167,7 @@ def approve_evaluation(
     request: Request,
     response: Response,
     evaluation_id: int,
-    api_key: str = Depends(_require_api_key),
+    api_key: str = Depends(_require_admin_key),
     db: Session = Depends(get_db),
 ):
     """Approve a pending evaluation and load it into the database."""
@@ -161,10 +186,15 @@ def approve_evaluation(
     data = json.loads(pending.payload)
     try:
         pkg_id = load_evaluation(data, db)
-    except Exception as e:
+    except Exception:
+        import logging
+        logging.getLogger(__name__).exception(
+            "Failed to load evaluation %d for package %s",
+            evaluation_id, pending.package_id,
+        )
         raise HTTPException(
             status_code=422,
-            detail=f"Failed to load evaluation: {e}",
+            detail="Failed to load evaluation. Check server logs for details.",
         )
 
     pending.status = "approved"
@@ -185,7 +215,7 @@ def reject_evaluation(
     response: Response,
     evaluation_id: int,
     reason: str = Query(None, description="Rejection reason"),
-    api_key: str = Depends(_require_api_key),
+    api_key: str = Depends(_require_admin_key),
     db: Session = Depends(get_db),
 ):
     """Reject a pending evaluation."""

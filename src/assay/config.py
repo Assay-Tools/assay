@@ -15,6 +15,8 @@ class Settings(BaseSettings):
 
     # Submission auth — comma-separated API keys for evaluation submissions
     submission_api_keys: str = ""
+    # Admin auth — comma-separated API keys for approve/reject and admin endpoints
+    admin_api_keys: str = ""
 
     # Stripe
     stripe_secret_key: str = ""
