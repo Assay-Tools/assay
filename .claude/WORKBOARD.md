@@ -67,14 +67,14 @@ Items ready to be claimed. Roughly priority-ordered within each phase.
 - [x] **Add text search to API** — `q` param on `/v1/packages` with ILIKE search (2026-03-04)
 - [x] **RSS feed** — `/feed.xml` with 50 most recently evaluated packages (2026-03-04)
 - [ ] **Email capture** — "Subscribe for weekly evaluations" on homepage. Primary re-engagement channel — currently every visitor is one-and-done. **File**: `templates/pages/index.html`
-- [ ] **Team/about enhancement** — Who runs this? Add brief human attribution. **File**: `templates/pages/about.html`
-- [ ] **Methodology page** — Dedicated deep-dive: data sources, LLM evaluation, weighting, limitations, re-eval frequency. Dual purpose: trust + legal protection. **Files**: new `templates/pages/methodology.html`
+- [x] **Team/about enhancement** — "Who We Are" section with AJ attribution + methodology link (2026-03-04)
+- [x] **Methodology page** — Full scoring breakdown with weights, data sources, evaluation process, limitations (2026-03-04)
 - [x] **Fix /docs footer link** — Relabeled to "API" (2026-03-04)
 
 ### Strategic Additions (from business/GTM review)
 
 - [ ] **GitHub Action for CI** — Free `assay-score` Action that checks AF Score in CI. Every repo that adds it = marketing surface + backlink. Higher-leverage growth than cold email
-- [ ] **Publish scoring methodology openly** — Like OpenSSF Scorecard. Transparency builds trust. Blog post + methodology page
+- [x] **Publish scoring methodology openly** — /methodology page with full weights, process, and limitations (2026-03-04)
 - [ ] **Target companies, not just individuals** — Reframe $99 report as "competitive analysis" for DevRel teams. Consider $499-999 tier with report + 30-min call. Update BUSINESS.md
 - [ ] **Partnership: Smithery.ai** — They're the MCP directory, Assay is the quality layer. Reach out after public launch with data, not a pitch deck
 - [ ] **Partnership: Agent frameworks** — LangChain, CrewAI, AutoGen, Semantic Kernel. If their tool selection references Assay scores = instant demand
