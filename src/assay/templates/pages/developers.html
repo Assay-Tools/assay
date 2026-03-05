@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+{% block title %}Developer Docs{% endblock %}
+{% block meta_description %}API documentation, rate limits, and integration guide for the Assay agent-readiness API.{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+
+    <h1 class="text-3xl font-bold text-white mb-2">Developer Documentation</h1>
+    <p class="text-gray-400 mb-10">Everything you need to integrate Assay scores into your agent, CI pipeline, or application.</p>
+
+    {# ── Quick Start ── #}
+    <section class="mb-10">
+        <h2 class="text-xl font-semibold text-white mb-4">Quick Start</h2>
+        <div class="bg-surface-raised border border-gray-800 rounded-xl p-5">
+            <p class="text-gray-400 text-sm mb-4">The Assay API is free and requires no authentication for read access.</p>
+            <p class="text-gray-500 text-xs mb-2">Base URL</p>
+            <code class="block bg-surface text-gray-200 px-4 py-2 rounded text-sm font-mono mb-4">https://assay.tools/v1</code>
+
+            <p class="text-gray-500 text-xs mb-2">Fetch a package score</p>
+            <pre class="bg-surface text-gray-200 px-4 py-3 rounded text-sm font-mono overflow-x-auto">curl https://assay.tools/v1/packages/claude-api</pre>
+        </div>
+    </section>
+
+    {# ── Endpoints ── #}
+    <section class="mb-10">
+        <h2 class="text-xl font-semibold text-white mb-4">API Endpoints</h2>
+        <div class="space-y-3">
+
+            {% macro endpoint(method, path, desc) %}
+            <div class="bg-surface-raised border border-gray-800 rounded-lg px-4 py-3 flex items-start gap-3">
+                <span class="inline-block bg-{% if method == 'GET' %}green{% else %}blue{% endif %}-900/50 text-{% if method == 'GET' %}green{% else %}blue{% endif %}-400 text-xs font-mono font-bold px-2 py-0.5 rounded mt-0.5">{{ method }}</span>
+                <div>
+                    <code class="text-gray-200 text-sm font-mono">{{ path }}</code>
+                    <p class="text-gray-500 text-xs mt-1">{{ desc }}</p>
+                </div>
+            </div>
+            {% endmacro %}
+
+            {{ endpoint("GET", "/v1/packages", "List all packages. Params: page, per_page, category, sort, q, min_security_score, min_reliability_score") }}
+            {{ endpoint("GET", "/v1/packages/{id}", "Get a single package with full scores and metadata") }}
+            {{ endpoint("GET", "/v1/packages/{id}/agent-guide", "Machine-readable agent guidance for a package") }}
+            {{ endpoint("GET", "/v1/packages/updated-since?timestamp=ISO", "Change feed — packages updated since a given time") }}
+            {{ endpoint("GET", "/v1/categories", "List all categories with package counts") }}
+            {{ endpoint("GET", "/v1/categories/{slug}/packages", "Packages in a specific category") }}
+            {{ endpoint("GET", "/v1/categories/{slug}/leaderboard", "Top packages in category by score dimension") }}
+            {{ endpoint("GET", "/v1/compare?ids=a,b,c", "Side-by-side comparison of up to 5 packages") }}
+            {{ endpoint("GET", "/v1/stats", "Sitewide statistics and score distribution") }}
+            {{ endpoint("GET", "/v1/queue", "Packages needing evaluation or re-evaluation") }}
+        </div>
+    </section>
+
+    {# ── Examples ── #}
+    <section class="mb-10">
+        <h2 class="text-xl font-semibold text-white mb-4">Examples</h2>
+        <div class="space-y-4">
+
+            <div>
+                <p class="text-gray-500 text-xs mb-2">Search packages by name</p>
+                <pre class="bg-surface-raised border border-gray-800 text-gray-200 px-4 py-3 rounded text-sm font-mono overflow-x-auto">curl "https://assay.tools/v1/packages?q=stripe&amp;sort=af_score"</pre>
+            </div>
+
+            <div>
+                <p class="text-gray-500 text-xs mb-2">Compare two packages</p>
+                <pre class="bg-surface-raised border border-gray-800 text-gray-200 px-4 py-3 rounded text-sm font-mono overflow-x-auto">curl "https://assay.tools/v1/compare?ids=stripe-api,square-api"</pre>
+            </div>
+
+            <div>
+                <p class="text-gray-500 text-xs mb-2">Get packages with high security scores</p>
+                <pre class="bg-surface-raised border border-gray-800 text-gray-200 px-4 py-3 rounded text-sm font-mono overflow-x-auto">curl "https://assay.tools/v1/packages?min_security_score=80&amp;sort=security_score"</pre>
+            </div>
+
+            <div>
+                <p class="text-gray-500 text-xs mb-2">Python example</p>
+                <pre class="bg-surface-raised border border-gray-800 text-gray-200 px-4 py-3 rounded text-sm font-mono overflow-x-auto">import httpx
+resp = httpx.get("https://assay.tools/v1/packages/claude-api")
+pkg = resp.json()
+print(f"{pkg['name']}: AF {pkg['af_score']}/100")</pre>
+            </div>
+        </div>
+    </section>
+
+    {# ── Rate Limits ── #}
+    <section class="mb-10">
+        <h2 class="text-xl font-semibold text-white mb-4">Rate Limits</h2>
+        <div class="bg-surface-raised border border-gray-800 rounded-xl p-5">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="text-gray-500 text-left">
+                        <th class="pb-2">Endpoint</th>
+                        <th class="pb-2">Limit</th>
+                    </tr>
+                </thead>
+                <tbody class="text-gray-300">
+                    <tr class="border-t border-gray-800">
+                        <td class="py-2 font-mono text-xs">/v1/* (read)</td>
+                        <td>100 requests/day per IP</td>
+                    </tr>
+                    <tr class="border-t border-gray-800">
+                        <td class="py-2 font-mono text-xs">/v1/checkout/*</td>
+                        <td>20 requests/day per IP</td>
+                    </tr>
+                    <tr class="border-t border-gray-800">
+                        <td class="py-2 font-mono text-xs">/v1/evaluations</td>
+                        <td>10 requests/day (API key required)</td>
+                    </tr>
+                </tbody>
+            </table>
+            <p class="text-gray-500 text-xs mt-3">Rate limit headers are included in every response. Contact us if you need higher limits.</p>
+        </div>
+    </section>
+
+    {# ── MCP Server ── #}
+    <section class="mb-10">
+        <h2 class="text-xl font-semibold text-white mb-4">MCP Server</h2>
+        <div class="bg-surface-raised border border-gray-800 rounded-xl p-5">
+            <p class="text-gray-400 text-sm mb-4">Add Assay as a tool source for your AI agent. Copy this config into your MCP client settings:</p>
+            <pre class="bg-surface text-gray-200 px-4 py-3 rounded text-sm font-mono overflow-x-auto">{
+  "mcpServers": {
+    "assay": {
+      "url": "https://assay.tools/mcp"
+    }
+  }
+}</pre>
+        </div>
+    </section>
+
+    {# ── Score Badges ── #}
+    <section class="mb-10">
+        <h2 class="text-xl font-semibold text-white mb-4">Score Badges</h2>
+        <div class="bg-surface-raised border border-gray-800 rounded-xl p-5">
+            <p class="text-gray-400 text-sm mb-4">Embed a live score badge in your README or documentation:</p>
+            <pre class="bg-surface text-gray-200 px-4 py-3 rounded text-sm font-mono overflow-x-auto mb-4">![Assay Score](https://assay.tools/badge/your-package-id.svg)</pre>
+            <p class="text-gray-500 text-xs">Badges update hourly and are cached for 1 hour.</p>
+        </div>
+    </section>
+
+    {# ── OpenAPI / Swagger ── #}
+    <section class="mb-10">
+        <h2 class="text-xl font-semibold text-white mb-4">OpenAPI Spec</h2>
+        <div class="flex gap-4">
+            <a href="/docs" class="bg-surface-raised border border-gray-800 hover:border-accent/50 rounded-lg px-4 py-3 text-sm text-gray-300 transition">
+                Interactive Swagger UI &rarr;
+            </a>
+            <a href="/openapi.json" class="bg-surface-raised border border-gray-800 hover:border-accent/50 rounded-lg px-4 py-3 text-sm text-gray-300 transition">
+                OpenAPI JSON &rarr;
+            </a>
+        </div>
+    </section>
+
+    {# ── LLMs.txt ── #}
+    <section class="mb-10">
+        <h2 class="text-xl font-semibold text-white mb-4">LLMs.txt</h2>
+        <p class="text-gray-400 text-sm mb-3">Machine-readable site description following the <code class="text-gray-300">llms.txt</code> specification:</p>
+        <div class="flex gap-4">
+            <a href="/llms.txt" class="text-accent hover:underline text-sm">/llms.txt</a>
+            <a href="/llms-full.txt" class="text-accent hover:underline text-sm">/llms-full.txt (extended)</a>
+        </div>
+    </section>
+
+</div>
+{% endblock %}
