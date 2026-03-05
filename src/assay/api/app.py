@@ -11,6 +11,7 @@ from slowapi.errors import RateLimitExceeded
 
 from assay.database import init_db
 
+from .payments import router as payments_router
 from .rate_limit import limiter
 from .routes import router
 from .submission_routes import router as submission_router
@@ -57,6 +58,7 @@ app.add_middleware(
 # API routes
 app.include_router(router)
 app.include_router(submission_router)
+app.include_router(payments_router)
 
 # Web frontend routes
 app.include_router(web_router)

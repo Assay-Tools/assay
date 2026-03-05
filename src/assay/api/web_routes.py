@@ -6,7 +6,7 @@ from pathlib import Path
 from urllib.parse import urlencode
 
 from fastapi import APIRouter, Depends, Query, Request
-from fastapi.responses import HTMLResponse, PlainTextResponse
+from fastapi.responses import HTMLResponse, PlainTextResponse, Response
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import func, or_
 from sqlalchemy.orm import Session, joinedload
@@ -661,3 +661,78 @@ def llms_txt():
 def llms_full_txt():
     """Extended llms.txt with scoring methodology and API usage examples."""
     return LLMS_TXT + LLMS_FULL_TXT_EXTRA
+
+
+# ── SEO ──────────────────────────────────────────────────────────────────────
+
+
+ROBOTS_TXT = """\
+User-agent: *
+Allow: /
+
+Sitemap: https://assay.tools/sitemap.xml
+"""
+
+
+@router.get("/robots.txt", response_class=PlainTextResponse)
+def robots_txt():
+    """Robots.txt for search engine crawlers."""
+    return ROBOTS_TXT
+
+
+@router.get("/sitemap.xml")
+def sitemap_xml(db: Session = Depends(get_db)):
+    """XML sitemap for search engine discovery."""
+    base = "https://assay.tools"
+    urls = []
+
+    # Static pages
+    for path, priority, freq in [
+        ("/", "1.0", "daily"),
+        ("/packages", "0.9", "daily"),
+        ("/categories", "0.8", "weekly"),
+        ("/compare", "0.6", "weekly"),
+        ("/about", "0.5", "monthly"),
+        ("/contribute", "0.5", "monthly"),
+    ]:
+        urls.append(
+            f'  <url><loc>{base}{path}</loc>'
+            f'<priority>{priority}</priority>'
+            f'<changefreq>{freq}</changefreq></url>'
+        )
+
+    # Category pages
+    categories = db.query(Category.slug).all()
+    for (slug,) in categories:
+        urls.append(
+            f'  <url><loc>{base}/categories/{slug}</loc>'
+            f'<priority>0.7</priority>'
+            f'<changefreq>weekly</changefreq></url>'
+        )
+
+    # Package detail pages (evaluated only)
+    packages = (
+        db.query(Package.id, Package.last_evaluated)
+        .filter(Package.af_score.isnot(None))
+        .all()
+    )
+    for pkg_id, last_eval in packages:
+        lastmod = ""
+        if last_eval:
+            lastmod = (
+                f"<lastmod>{last_eval.strftime('%Y-%m-%d')}</lastmod>"
+            )
+        urls.append(
+            f'  <url><loc>{base}/packages/{pkg_id}</loc>'
+            f'{lastmod}'
+            f'<priority>0.6</priority>'
+            f'<changefreq>monthly</changefreq></url>'
+        )
+
+    xml = (
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+        + "\n".join(urls)
+        + "\n</urlset>"
+    )
+    return Response(content=xml, media_type="application/xml")
