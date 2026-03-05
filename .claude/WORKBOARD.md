@@ -135,7 +135,7 @@ Items ready to be claimed. Roughly priority-ordered within each phase.
 
 - [ ] **Certified Agent-Ready program ($299/mo)** — Embeddable verified badge, priority re-evaluations, competitive reports, improvement consulting. Requires brand recognition first — don't launch until the directory has credibility
 - [ ] **Community evaluation network** — Allow external contributors to submit evaluations (beyond API key holders). Reputation system, review queue, contributor leaderboard. Scales evaluation capacity beyond what agentic automation can handle alone
-- [ ] **Comparison widgets** — Embeddable side-by-side comparison iframes for docs sites and blog posts. `<iframe src="https://assay.tools/embed/compare?ids=a,b">`
+- [x] **Comparison widgets** — /embed/compare?ids=a,b self-contained iframe widget with inline styles, 3 tests (2026-03-04)
 
 ---
 
