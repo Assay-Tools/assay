@@ -508,3 +508,17 @@ class Order(Base):
     report_path: Mapped[str | None] = mapped_column(String(500))
 
     package: Mapped["Package"] = relationship()
+
+
+class EmailSubscriber(Base):
+    """Email newsletter subscribers."""
+
+    __tablename__ = "email_subscribers"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
+    subscribed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc),
+    )
+    confirmed: Mapped[bool] = mapped_column(Boolean, default=False)
+    unsubscribed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

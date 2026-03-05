@@ -2,6 +2,7 @@
 
 from assay.models.package import (
     Category,
+    EmailSubscriber,
     EvaluationRun,
     Order,
     Package,
@@ -16,6 +17,7 @@ from assay.models.package import (
 
 __all__ = [
     "Category",
+    "EmailSubscriber",
     "EvaluationRun",
     "Order",
     "Package",

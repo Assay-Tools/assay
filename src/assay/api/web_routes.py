@@ -1,18 +1,25 @@
 """Web routes — server-rendered HTML pages for Assay."""
 
 import math
+import re
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from urllib.parse import urlencode
 
-from fastapi import APIRouter, Depends, Query, Request
-from fastapi.responses import HTMLResponse, PlainTextResponse, Response
+from fastapi import APIRouter, Depends, Form, Query, Request
+from fastapi.responses import HTMLResponse, PlainTextResponse, RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import func, or_
 from sqlalchemy.orm import Session, joinedload
 
 from assay.database import get_db
-from assay.models import Category, Order, Package, PackageAgentReadiness
+from assay.models import (
+    Category,
+    EmailSubscriber,
+    Order,
+    Package,
+    PackageAgentReadiness,
+)
 
 _templates_dir = Path(__file__).parent.parent / "templates"
 templates = Jinja2Templates(directory=str(_templates_dir))
@@ -950,6 +957,31 @@ def methodology_page(request: Request):
     return templates.TemplateResponse("pages/methodology.html", {
         "request": request,
     })
+
+
+# ── Email Subscribe ─────────────────────────────────────────────────────────
+
+_EMAIL_RE = re.compile(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$")
+
+
+@router.post("/subscribe")
+def subscribe_email(
+    email: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    """Subscribe an email to the Assay newsletter."""
+    email = email.strip().lower()
+    if not _EMAIL_RE.match(email) or len(email) > 255:
+        return RedirectResponse("/?subscribed=invalid", status_code=303)
+
+    existing = db.query(EmailSubscriber).filter_by(email=email).first()
+    if existing:
+        return RedirectResponse("/?subscribed=already", status_code=303)
+
+    subscriber = EmailSubscriber(email=email)
+    db.add(subscriber)
+    db.commit()
+    return RedirectResponse("/?subscribed=ok", status_code=303)
 
 
 # ── SEO ──────────────────────────────────────────────────────────────────────
