@@ -114,6 +114,43 @@ Items ready to be claimed. Roughly priority-ordered within each phase.
 - [x] **Automated re-evaluation pipeline** — Weekly GitHub Action + check_stale.py script, creates/updates issue with stale packages (2026-03-04)
 - [x] **Data freshness dashboard** — Admin view showing evaluation coverage, staleness distribution, queue depth, and re-evaluation velocity
 
+### Automated Discovery System (continuous package pipeline)
+
+**Current state**: 4 sources, manual CLI-only, no GitHub auth token (60 req/hr cap), ~7,000 packages. Needs to scale to continuous automated discovery across many more sources.
+
+**Infrastructure**:
+- [ ] **Add GitHub token to discovery** — Current discovery runs unauthenticated (60 req/hr, 1,000 results/query max). Add `GITHUB_TOKEN` env var support to `GitHubSource` and `OpenClawSource`. Authenticated gets 5,000 req/hr and better search results. **AJ**: create a GitHub PAT (fine-grained, read-only public repos) and add to Railway env vars. **Files**: `src/assay/evaluation/sources/github.py`, `config.py`
+- [ ] **Scheduled discovery runs** — GitHub Action on cron (daily or twice-daily). Runs `python -m assay.evaluation.discovery --limit 500` against production DB. New packages get `status="discovered"` and enter the evaluation queue. **Files**: new `.github/workflows/discovery.yml`
+- [ ] **Discovery run logging** — Track each discovery run: timestamp, source, packages found, new packages added, duplicates skipped. Store in DB or append to a log file. Enables monitoring whether discovery is finding new stuff or plateauing. **Files**: update `discovery.py`
+
+**New GitHub search queries**:
+- [ ] **Expand GitHub MCP search** — Add more search queries beyond the current 3: `topic:model-context-protocol`, `"mcp" in:readme language:python`, `"mcp" in:readme language:typescript`, `"@modelcontextprotocol/sdk" in:file`, `mcp-server in:path`. Each query surfaces different packages. **File**: `src/assay/evaluation/sources/github.py`
+- [ ] **GitHub skill discovery** — Dedicated searches for Claude Code skills, agent skills, and tool-use packages: `topic:claude-code-skill`, `topic:ai-agent-tool`, `"tool_use" in:readme`, `topic:langchain-tool`, `topic:crewai-tool`, `"function_calling" in:readme`. New `package_type="skill"` entries. **File**: `src/assay/evaluation/sources/skills.py`
+
+**New registry sources**:
+- [ ] **Smithery.ai registry** — Smithery is the largest MCP server directory. Check if they have a public API; if so, add as a `SmitherySource`. If not, scrape their server listing pages. **Files**: new `src/assay/evaluation/sources/smithery.py`
+- [ ] **mcp.run registry** — Another MCP hub. Same approach: API if available, scrape if not. **Files**: new `src/assay/evaluation/sources/mcprun.py`
+- [ ] **Glama.ai MCP directory** — Glama maintains an MCP server directory. Check for API/scraping options. **Files**: new `src/assay/evaluation/sources/glama.py`
+- [ ] **npm/PyPI search** — Search npm for `mcp-server` keyword packages and PyPI for packages with `mcp` classifier or keyword. These catch packages not on GitHub or not using the right topics. **Files**: new `src/assay/evaluation/sources/npm.py`, new `src/assay/evaluation/sources/pypi.py`
+- [ ] **Awesome list expansion** — Currently only 3 awesome lists. Add more: `wong2/awesome-mcp-servers`, `appcypher/awesome-mcp-servers`, any new curated lists that emerge. Make the list configurable rather than hardcoded. **File**: `src/assay/evaluation/sources/skills.py`
+
+**Quality & dedup**:
+- [ ] **Cross-source deduplication improvements** — Current dedup is by normalized repo URL and slug. Add: npm package name matching, PyPI package name matching, and fuzzy name matching for packages that appear in multiple registries under slightly different names
+- [ ] **Discovery quality scoring** — Not all discovered packages are worth evaluating. Add a priority signal based on: GitHub stars, recent activity (last commit date), downloads (npm/PyPI), whether it appears in multiple sources. High-signal packages get evaluated first. **File**: update `discovery.py`
+
+### Business Heartbeat & Orchestration System
+
+**Purpose**: The business manager (AJ or an agent acting on AJ's behalf) needs continuous situational awareness of the business. The heartbeat fires on a regular cadence, checks for needed actions across all business functions, and routes them to the appropriate handler.
+
+- [ ] **Heartbeat scheduler design** — Design the heartbeat loop architecture. Runs every 10 minutes via cron, launchd, or a persistent process. Each tick runs a series of check functions. Checks that find actionable items route them to an orchestrator. Output: a spec doc describing the architecture, check functions, and routing logic. Consider: Railway cron job, GitHub Actions schedule, or a local launchd plist on AJ's machine
+- [ ] **Business metrics checks** — Heartbeat check: query Stripe for new orders/revenue, check for pending webhook failures, monitor order fulfillment status (any orders stuck in "pending" too long?). Alert if: revenue event, failed payment, stuck order. **Files**: new `src/assay/heartbeat/revenue.py`
+- [ ] **Site health checks** — Heartbeat check: hit `/v1/health`, check response time, verify key pages return 200, check SSL cert expiry. Alert if: site down, slow response (>2s), cert expiring within 30 days. **Files**: new `src/assay/heartbeat/health.py`
+- [ ] **Data pipeline checks** — Heartbeat check: count packages needing evaluation, count stale evaluations, check when last discovery run happened, check when last evaluation was loaded. Alert if: evaluation queue growing faster than processing, no discovery run in >48 hours, evaluation coverage dropping. **Files**: new `src/assay/heartbeat/data.py`
+- [ ] **Feedback & support checks** — Heartbeat check: check for new feedback submissions (Feedback model), new GitHub issues on the repo, new email subscribers. Alert if: unread feedback >24 hours old, GitHub issue labeled "dispute" or "urgent". **Files**: new `src/assay/heartbeat/feedback.py`
+- [ ] **Competitor & market checks** — Heartbeat check (less frequent, maybe daily): check if new MCP registries have appeared, monitor key competitor sites for changes, check GitHub trending for MCP-related repos. Alert if: new competitor detected, significant market shift. **Files**: new `src/assay/heartbeat/market.py`
+- [ ] **Orchestrator** — Central dispatcher that receives alerts from all heartbeat checks and decides what to do: (1) log to a business dashboard, (2) send notification to AJ (email, push, or Obsidian daily note), (3) trigger automated action (e.g., run discovery if queue is empty, generate report if order is paid but unfulfilled). **Files**: new `src/assay/heartbeat/orchestrator.py`
+- [ ] **Business dashboard page** — `/admin/dashboard` showing real-time business health: revenue (today/week/month), orders (pending/paid/fulfilled), site uptime, evaluation pipeline status, feedback queue, subscriber count. Protected by admin API key. **Files**: new `templates/pages/admin_dashboard.html`, new route in web_routes or admin_routes
+
 ### Phase 4: Soft Launch — Trusted Feedback (do BEFORE public launch)
 
 - [ ] **Daniel Miessler outreach** — Personal message to Daniel with link to assay.tools. He's in the AI/security space, runs Fabric (an MCP-adjacent tool), and AJ has an existing relationship. Ask for honest feedback on scoring methodology, UX, and whether the $99 report is compelling. Share via DM (not public). **Goal**: Get a credible practitioner's gut check before going wide
