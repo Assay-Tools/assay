@@ -53,23 +53,23 @@ Items ready to be claimed. Roughly priority-ordered within each phase.
 - [x] **Add security headers** — `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Strict-Transport-Security`
 
 **Code Quality (sessions can claim)**:
-- [ ] **Fix AF weight mismatch** — `evaluator.py` uses different weights than `llms-full.txt` documents. Trust-destroying if a maintainer can't reproduce their score. Verify correct values, fix the other
+- [x] **Fix AF weight mismatch** — Fixed llms-full.txt docs to match code weights (2026-03-04)
 - [ ] **Fix Category.package_count N+1** — Iterates all packages in Python. Use SQL COUNT. **File**: `src/assay/models/package.py` lines 420-423
 - [x] **Fix infinite recursion on GitHub 403** — `fetch_github_metadata` recurses with no max retry. Add counter (max 3). **File**: `src/assay/evaluation/evaluator.py` lines 256-259
 - [x] **Stop leaking exception details** — Submission route returns raw exception messages. Log internally, return generic error. **File**: `src/assay/api/submission_routes.py` lines 164-168
-- [ ] **Strengthen disclaimer language** — Add "scores are editorial opinions, not statements of fact" framing. Add "as of [date]" to every score display. **File**: `templates/pages/about.html`
+- [x] **Strengthen disclaimer language** — Editorial opinions framing + as-of-date on package pages (2026-03-04)
 
 ### Website & UX (high impact for launch readiness — sessions can claim)
 
-- [ ] **"Report inaccuracy" link on package pages** — Link on every package detail page → pre-filled GitHub issue. Dispute path currently buried on `/about`. 30 min effort, huge trust signal. **File**: `templates/pages/package_detail.html`
+- [x] **"Report inaccuracy" link on package pages** — Pre-filled GitHub issue link on every package page (2026-03-04)
 - [ ] **Developer docs page** — Proper `/developers` page: API getting-started, curl examples, rate limit docs, MCP config JSON, OpenAPI link. Currently API consumers hit raw Swagger. **Files**: new `templates/pages/developers.html`, update `web_routes.py`
 - [ ] **Embeddable score badges** — `/badge/{package_id}.svg` shields.io-style SVG. Every README embed = permanent backlink. Highest-leverage organic growth. Moved up from Phase 7. **File**: new route in `web_routes.py`
-- [ ] **Add text search to API** — Web supports `q` search but API `/v1/packages` does not. Agents can't search by name. **File**: `src/assay/api/routes.py`
+- [x] **Add text search to API** — `q` param on `/v1/packages` with ILIKE search (2026-03-04)
 - [ ] **RSS feed** — `/feed.xml` for recently evaluated packages. **File**: new route in `web_routes.py`
 - [ ] **Email capture** — "Subscribe for weekly evaluations" on homepage. Primary re-engagement channel — currently every visitor is one-and-done. **File**: `templates/pages/index.html`
 - [ ] **Team/about enhancement** — Who runs this? Add brief human attribution. **File**: `templates/pages/about.html`
 - [ ] **Methodology page** — Dedicated deep-dive: data sources, LLM evaluation, weighting, limitations, re-eval frequency. Dual purpose: trust + legal protection. **Files**: new `templates/pages/methodology.html`
-- [ ] **Fix /docs footer link** — Points to raw Swagger. Relabel or redirect to `/developers`. **File**: `templates/base.html`
+- [x] **Fix /docs footer link** — Relabeled to "API" (2026-03-04)
 
 ### Strategic Additions (from business/GTM review)
 
@@ -173,3 +173,4 @@ Items ready to be claimed. Roughly priority-ordered within each phase.
 - [x] **Stripe integration** — checkout sessions, webhook handler, Order model, order status endpoint, 9 tests (2026-03-04)
 - [x] **Report delivery pipeline** — post-payment report generation, download endpoint, success page, 16 total payment tests (2026-03-04)
 - [x] **Buy report flow (web)** — $99 button on package pages → Stripe Checkout → delivery (2026-03-04)
+- [x] **Basic bookkeeping** — /admin/transactions (JSON/CSV) + /admin/revenue, admin key auth, 8 tests (2026-03-04)

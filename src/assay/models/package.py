@@ -3,7 +3,8 @@
 import json
 from datetime import datetime, timezone
 
-from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, Text, func, select
+from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from assay.database import Base
@@ -417,10 +418,21 @@ class Category(Base):
 
     packages: Mapped[list["Package"]] = relationship(back_populates="category")
 
-    @property
+    @hybrid_property
     def package_count(self) -> int:
         """Count of evaluated packages (those with an AF score)."""
         return sum(1 for p in self.packages if p.af_score is not None)
+
+    @package_count.inplace.expression
+    @classmethod
+    def _package_count_expression(cls):
+        return (
+            select(func.count(Package.id))
+            .where(Package.category_slug == cls.slug)
+            .where(Package.af_score.isnot(None))
+            .correlate(cls)
+            .scalar_subquery()
+        )
 
     def to_dict(self) -> dict:
         return {

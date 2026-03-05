@@ -25,8 +25,8 @@ class TestListCategories:
         # developer-tools: top-api (92), mid-tool (68), new-pkg (None) → count=2 (evaluated only)
         assert by_slug["developer-tools"]["package_count"] == 2
 
-        # ai-ml: basic-sdk (52), legacy-api (30) → count=2
-        assert by_slug["ai-ml"]["package_count"] == 2
+        # ai-ml: basic-sdk (52), legacy-api (30), low-sdk (35) → count=3
+        assert by_slug["ai-ml"]["package_count"] == 3
 
     def test_categories_sorted_by_name(self, client, sample_packages):
         resp = client.get("/v1/categories")

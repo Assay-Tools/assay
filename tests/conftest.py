@@ -254,8 +254,19 @@ def sample_packages(make_package, make_interface, make_auth, make_agent_readines
     )
     pkgs.append(p4)
 
-    # Unevaluated package
+    # Low-scoring package (for badge color tests)
     p5 = make_package(
+        id="low-sdk",
+        name="Low SDK",
+        category_slug="ai-ml",
+        af_score=35.0,
+        security_score=30.0,
+        reliability_score=40.0,
+    )
+    pkgs.append(p5)
+
+    # Unevaluated package
+    p6 = make_package(
         id="new-pkg",
         name="New Package",
         category_slug="developer-tools",
@@ -264,6 +275,6 @@ def sample_packages(make_package, make_interface, make_auth, make_agent_readines
         reliability_score=None,
         status="discovered",
     )
-    pkgs.append(p5)
+    pkgs.append(p6)
 
     return pkgs

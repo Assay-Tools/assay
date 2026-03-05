@@ -82,12 +82,8 @@ def index(request: Request, db: Session = Depends(get_db)):
         "avg_af_score": round(avg_af, 1) if avg_af is not None else None,
     }
 
-    # Categories with counts (eager load packages for count), sorted by count desc
-    categories = (
-        db.query(Category)
-        .options(joinedload(Category.packages))
-        .all()
-    )
+    # Categories with counts, sorted by count desc
+    categories = db.query(Category).all()
     categories.sort(key=lambda c: c.package_count, reverse=True)
 
     # Top rated packages for showcase
@@ -795,6 +791,148 @@ def admin_freshness(request: Request, db: Session = Depends(get_db)):
             "community_stats": _community_stats(db),
         },
     )
+
+
+# ── Embeddable Score Badges ───────────────────────────────────────────────────
+
+
+@router.get("/badge/{package_id}.svg")
+def score_badge(package_id: str, db: Session = Depends(get_db)):
+    """Shields.io-style SVG badge showing AF score for a package."""
+    pkg = db.query(Package).filter(Package.id == package_id).first()
+    if not pkg:
+        svg = _badge_svg("assay", "not found", "#555", "#999")
+        return Response(content=svg, media_type="image/svg+xml")
+
+    if pkg.af_score is None:
+        svg = _badge_svg("assay", "not evaluated", "#555", "#999")
+    elif pkg.af_score >= 80:
+        svg = _badge_svg(
+            "assay", f"AF {pkg.af_score:.0f}", "#555", "#4c1",
+        )
+    elif pkg.af_score >= 60:
+        svg = _badge_svg(
+            "assay", f"AF {pkg.af_score:.0f}", "#555", "#dfb317",
+        )
+    else:
+        svg = _badge_svg(
+            "assay", f"AF {pkg.af_score:.0f}", "#555", "#e05d44",
+        )
+
+    return Response(
+        content=svg,
+        media_type="image/svg+xml",
+        headers={"Cache-Control": "public, max-age=3600"},
+    )
+
+
+def _badge_svg(
+    label: str, value: str, label_color: str, value_color: str,
+) -> str:
+    """Generate a shields.io-style flat badge SVG."""
+    label_width = len(label) * 7 + 10
+    value_width = len(value) * 7 + 10
+    total_width = label_width + value_width
+    lx = label_width / 2
+    vx = label_width + value_width / 2
+    return (
+        f'<svg xmlns="http://www.w3.org/2000/svg"'
+        f' width="{total_width}" height="20">\n'
+        f'  <linearGradient id="b" x2="0" y2="100%">\n'
+        f'    <stop offset="0" stop-color="#bbb" stop-opacity=".1"/>\n'
+        f'    <stop offset="1" stop-opacity=".1"/>\n'
+        f'  </linearGradient>\n'
+        f'  <clipPath id="a">\n'
+        f'    <rect width="{total_width}" height="20"'
+        f' rx="3" fill="#fff"/>\n'
+        f'  </clipPath>\n'
+        f'  <g clip-path="url(#a)">\n'
+        f'    <rect width="{label_width}" height="20"'
+        f' fill="{label_color}"/>\n'
+        f'    <rect x="{label_width}" width="{value_width}"'
+        f' height="20" fill="{value_color}"/>\n'
+        f'    <rect width="{total_width}" height="20"'
+        f' fill="url(#b)"/>\n'
+        f'  </g>\n'
+        f'  <g fill="#fff" text-anchor="middle"'
+        f' font-family="Verdana,Geneva,sans-serif"'
+        f' font-size="11">\n'
+        f'    <text x="{lx}" y="15"'
+        f' fill="#010101" fill-opacity=".3">{label}</text>\n'
+        f'    <text x="{lx}" y="14">{label}</text>\n'
+        f'    <text x="{vx}" y="15"'
+        f' fill="#010101" fill-opacity=".3">{value}</text>\n'
+        f'    <text x="{vx}" y="14">{value}</text>\n'
+        f'  </g>\n'
+        f'</svg>'
+    )
+
+
+# ── RSS Feed ─────────────────────────────────────────────────────────────────
+
+
+@router.get("/feed.xml")
+def rss_feed(db: Session = Depends(get_db)):
+    """RSS feed of recently evaluated packages."""
+    packages = (
+        db.query(Package)
+        .filter(Package.af_score.isnot(None))
+        .order_by(Package.last_evaluated.desc())
+        .limit(50)
+        .all()
+    )
+
+    items = []
+    for pkg in packages:
+        last_eval = ""
+        if pkg.last_evaluated:
+            last_eval = pkg.last_evaluated.strftime("%a, %d %b %Y %H:%M:%S +0000")
+        desc = pkg.what_it_does or ""
+        score_text = f"AF Score: {pkg.af_score:.0f}/100" if pkg.af_score else ""
+        items.append(
+            f"    <item>\n"
+            f"      <title>{_xml_escape(pkg.name)} — {score_text}</title>\n"
+            f"      <link>https://assay.tools/packages/{pkg.id}</link>\n"
+            f"      <description>{_xml_escape(desc)}</description>\n"
+            f"      <guid>https://assay.tools/packages/{pkg.id}</guid>\n"
+            f"      <pubDate>{last_eval}</pubDate>\n"
+            f"    </item>"
+        )
+
+    xml = (
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<rss version="2.0">\n'
+        "  <channel>\n"
+        "    <title>Assay — Agent-Readiness Ratings</title>\n"
+        "    <link>https://assay.tools</link>\n"
+        "    <description>Recently evaluated MCP servers, APIs, and SDKs</description>\n"
+        "    <language>en-us</language>\n"
+        + "\n".join(items) + "\n"
+        "  </channel>\n"
+        "</rss>"
+    )
+    return Response(content=xml, media_type="application/rss+xml")
+
+
+def _xml_escape(text: str) -> str:
+    """Escape special XML characters."""
+    return (
+        text.replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace('"', "&quot;")
+    )
+
+
+# ── Developer Docs ───────────────────────────────────────────────────────────
+
+
+@router.get("/developers", response_class=HTMLResponse)
+def developers_page(request: Request):
+    """Developer documentation page with API examples and MCP config."""
+    return templates.TemplateResponse("pages/developers.html", {
+        "request": request,
+    })
 
 
 # ── SEO ──────────────────────────────────────────────────────────────────────

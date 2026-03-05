@@ -22,16 +22,17 @@ class TestListPackages:
         resp = client.get("/v1/packages")
         assert resp.status_code == 200
         data = resp.json()
-        assert data["total"] == 5  # all packages including unevaluated
+        assert data["total"] == 6  # all packages including unevaluated
 
     def test_filter_by_category(self, client, sample_packages):
         resp = client.get("/v1/packages?category=ai-ml")
         assert resp.status_code == 200
         data = resp.json()
-        assert data["total"] == 2
+        assert data["total"] == 3
         names = {p["name"] for p in data["packages"]}
         assert "Basic SDK" in names
         assert "Legacy API" in names
+        assert "Low SDK" in names
 
     def test_filter_by_min_af_score(self, client, sample_packages):
         resp = client.get("/v1/packages?min_af_score=80")
@@ -44,7 +45,7 @@ class TestListPackages:
         resp = client.get("/v1/packages?type=mcp_server")
         assert resp.status_code == 200
         data = resp.json()
-        assert data["total"] == 5
+        assert data["total"] == 6
 
     def test_sort_af_score_desc(self, client, sample_packages):
         resp = client.get("/v1/packages?sort=af_score:desc")
@@ -77,7 +78,7 @@ class TestListPackages:
         assert resp.status_code == 200
         data = resp.json()
         assert len(data["packages"]) == 2
-        assert data["total"] == 5
+        assert data["total"] == 6
         assert data["limit"] == 2
 
     def test_pagination_offset(self, client, sample_packages):
@@ -173,8 +174,10 @@ class TestFilterByScoreDimension:
         )
         assert resp.status_code == 200
         data = resp.json()
-        assert data["total"] == 1
-        assert data["packages"][0]["name"] == "Basic SDK"
+        assert data["total"] == 2
+        names = {p["name"] for p in data["packages"]}
+        assert "Basic SDK" in names
+        assert "Low SDK" in names
 
 
 class TestUpdatedSince:
@@ -185,7 +188,7 @@ class TestUpdatedSince:
         )
         assert resp.status_code == 200
         data = resp.json()
-        assert data["total"] == 5
+        assert data["total"] == 6
 
     def test_updated_since_future_returns_none(self, client, sample_packages):
         resp = client.get(
@@ -209,7 +212,7 @@ class TestUpdatedSince:
         assert resp.status_code == 200
         data = resp.json()
         assert len(data["packages"]) == 2
-        assert data["total"] == 5
+        assert data["total"] == 6
 
     def test_updated_since_requires_timestamp(self, client):
         resp = client.get("/v1/packages/updated-since")

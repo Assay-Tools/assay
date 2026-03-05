@@ -216,7 +216,6 @@ def _handle_list_categories(arguments: dict) -> str:
     with SessionLocal() as db:
         categories = (
             db.query(Category)
-            .options(joinedload(Category.packages))
             .order_by(Category.name)
             .all()
         )

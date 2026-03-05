@@ -243,7 +243,7 @@ def get_agent_guide(
 @limiter.limit(API_RATE_LIMIT)
 def list_categories(request: Request, response: Response, db: Session = Depends(get_db)):
     """List all categories with evaluated package counts."""
-    cats = db.query(Category).options(joinedload(Category.packages)).all()
+    cats = db.query(Category).all()
     return CategoryListResponse(
         categories=[
             CategoryItem(
@@ -265,10 +265,7 @@ def get_category_packages(
     request: Request, response: Response, slug: str, db: Session = Depends(get_db),
 ):
     """Get all packages in a category, ranked by AF score."""
-    cat = (
-        db.query(Category).options(joinedload(Category.packages))
-        .filter(Category.slug == slug).first()
-    )
+    cat = db.query(Category).filter(Category.slug == slug).first()
     if not cat:
         raise HTTPException(status_code=404, detail=f"Category '{slug}' not found")
 

@@ -16,8 +16,8 @@ class TestStats:
         resp = client.get("/v1/stats")
         assert resp.status_code == 200
         data = resp.json()
-        assert data["total_packages"] == 5
-        assert data["total_evaluated"] == 4  # one has af_score=None
+        assert data["total_packages"] == 6
+        assert data["total_evaluated"] == 5  # one has af_score=None
         assert data["total_categories"] == 2
 
     def test_score_distribution(self, client, sample_packages):
@@ -25,19 +25,20 @@ class TestStats:
         assert resp.status_code == 200
         dist = resp.json()["score_distribution"]
 
-        # top-api: 92 (excellent), mid-tool: 68 (good), basic-sdk: 52 (fair), legacy-api: 30 (poor)
+        # top-api: 92 (excellent), mid-tool: 68 (good), basic-sdk: 52 (fair),
+        # legacy-api: 30 (poor), low-sdk: 35 (poor)
         assert dist["excellent"] == 1
         assert dist["good"] == 1
         assert dist["fair"] == 1
-        assert dist["poor"] == 1
+        assert dist["poor"] == 2
         assert dist["unrated"] == 1
 
     def test_avg_af_score(self, client, sample_packages):
         resp = client.get("/v1/stats")
         assert resp.status_code == 200
         avg = resp.json()["avg_af_score"]
-        # (92 + 68 + 52 + 30) / 4 = 60.5
-        assert avg == 60.5
+        # (92 + 68 + 52 + 30 + 35) / 5 = 55.4
+        assert avg == 55.4
 
 
 class TestQueue:
