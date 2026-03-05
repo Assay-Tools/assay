@@ -86,6 +86,30 @@ Items ready to be claimed. Roughly priority-ordered within each phase.
 - [ ] **Full site audit — link and content tree** — End-to-end crawl of every page and link on assay.tools. Produce a site tree showing: (1) pages with broken links, (2) pages missing content or showing placeholder data, (3) pages that work correctly. Output as a structured doc that can be split into individual fix tasks. Include: all nav links, footer links, package detail page links (API endpoint, agent guide, badge, report inaccuracy), developer docs examples, about page references, category pages, compare flow, feedback form, email capture, RSS feed, sitemap.xml, badge SVG endpoints, embed widgets. Test both with and without data.
 - [ ] **Fix "Assay API" naming** — The developer docs and some pages reference "Claude API" as an example package. Review all user-facing copy to ensure when we're talking about *Assay's own API*, we call it "Assay API" not "Claude API". The Claude API is a *rated package*, not our product.
 
+### Website Analytics & Tracking (should be live before public launch)
+
+**Philosophy**: Track enough to extract real business value (traffic sources, conversion, launch effectiveness) while respecting privacy and not adding to internet shitification. Cookie-free analytics for the baseline — no consent banner needed. Opt-in only for anything that requires cookies or PII.
+
+**Analytics platform (AJ picks one)**:
+- [ ] **Choose and deploy privacy-first analytics** — Evaluate and pick ONE:
+  - **Plausible** (~$9/mo, hosted) — No cookies, no PII, GDPR/CCPA compliant by default, lightweight script (~1KB), open-source core. Dashboard shows: traffic, sources, top pages, conversions, countries. Good enough for 90% of business questions. No consent banner required.
+  - **Umami** (free, self-hosted on Railway) — Same privacy model as Plausible but self-hosted. Zero additional cost if deployed alongside Assay on Railway. Slightly more setup work. Open source.
+  - **Fathom** (~$14/mo) — Similar to Plausible, slightly more enterprise-focused.
+  - **Recommendation**: Umami self-hosted (fits the $23/mo budget, privacy-first, full control) or Plausible hosted (least friction, $9/mo is worth avoiding self-hosting headaches).
+
+**Core tracking (no cookies, no consent needed)**:
+- [ ] **Add analytics script to base template** — Single `<script>` tag in `base.html`. Should track: page views, referral sources, UTM parameters, device/browser/country, session duration. No cookies = no consent banner for this. **File**: `src/assay/templates/base.html`
+- [ ] **Define conversion goals** — Set up goal tracking for key business events: (1) report purchase click, (2) email signup, (3) API docs visit, (4) feedback submission, (5) badge embed code copy, (6) comparison started. These are just URL/event matches — still no cookies needed with Plausible/Umami.
+- [ ] **UTM parameter strategy for launch** — Define UTM tags for each launch channel so we can measure which channels actually drive traffic: `?utm_source=hackernews`, `?utm_source=reddit&utm_medium=r-programming`, `?utm_source=discord&utm_medium=fabric`, etc. Document the full UTM scheme before launch week begins.
+
+**Consent & enhanced tracking (opt-in only)**:
+- [ ] **Privacy-respecting consent mechanism** — Simple, honest preference center (NOT a dark-pattern cookie wall). Two tiers: (1) **Essential only** (default, cookie-free analytics, no PII) — always on, no consent needed. (2) **Enhanced** (opt-in) — enables Stripe conversion tracking, optional session replay for UX debugging, and any future integrations that require cookies. A small, non-intrusive banner: "We use cookie-free analytics by default. [Learn more] [Enable enhanced tracking]". Store preference in localStorage (not a cookie, irony intended). **Files**: new partial template, update `base.html`, update Privacy Policy
+- [ ] **Update Privacy Policy for analytics** — Add section describing: what we track (page views, referrals, country — no PII), what tool we use (open-source, privacy-first), what enhanced tracking adds if opted in, how to opt out. Must stay aligned with the existing DRAFT privacy policy. **File**: update `src/assay/templates/pages/privacy.html`
+
+**Business intelligence (post-launch)**:
+- [ ] **Launch effectiveness dashboard** — After public launch, build a simple internal view showing: traffic by source/day, conversion rates by channel, which Reddit/HN/Discord posts drove the most engaged traffic. Helps decide where to invest future marketing effort. Can be a simple admin page or just a saved analytics dashboard view.
+- [ ] **API usage analytics** — Track API call volume, top consumers (by IP or API key), most-requested endpoints, error rates. This data lives server-side (no client tracking needed). Useful for: identifying power users to convert to paid, detecting abuse, understanding what developers actually use. **Files**: middleware or logging enhancement in `src/assay/api/app.py`
+
 ### Phase 1: Revenue Infrastructure (BLOCKING — must complete before any paid transactions)
 
 **Stripe account setup (AJ must do)**:
