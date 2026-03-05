@@ -41,19 +41,19 @@ Visit `http://localhost:8000` for the web UI, `http://localhost:8000/docs` for A
 
 ```bash
 # Search packages
-curl 'https://assay.tools/api/v1/packages?q=email&limit=5'
+curl 'https://assay.tools/v1/packages?q=email&limit=5'
 
 # Get a specific package
-curl 'https://assay.tools/api/v1/packages/resend'
+curl 'https://assay.tools/v1/packages/resend'
 
 # Agent-optimized guide
-curl 'https://assay.tools/api/v1/packages/resend/agent-guide'
+curl 'https://assay.tools/v1/packages/resend/agent-guide'
 
 # Compare packages
-curl 'https://assay.tools/api/v1/compare?ids=resend,sendgrid,postmark'
+curl 'https://assay.tools/v1/compare?ids=resend,sendgrid,postmark'
 
 # Stats
-curl 'https://assay.tools/api/v1/stats'
+curl 'https://assay.tools/v1/stats'
 ```
 
 ## MCP Server

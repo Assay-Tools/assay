@@ -602,15 +602,15 @@ Assay evaluates packages on three dimensions (each 0-100):
 
 ## API
 
-- [Package list](/api/v1/packages): Browse and filter evaluated packages.
-- [Package detail](/api/v1/packages/{package_id}): Full evaluation data for a single package.
-- [Agent guide](/api/v1/packages/{id}/agent-guide): Agent-optimized view with scores.
-- [Categories](/api/v1/categories): List all categories with package counts.
-- [Category packages](/api/v1/categories/{slug}/packages): Packages in a category, by AF score.
-- [Compare](/api/v1/compare?ids=a,b,c): Side-by-side comparison of up to 10 packages.
-- [Stats](/api/v1/stats): Sitewide statistics and score distribution.
-- [Evaluation queue](/api/v1/queue): Packages needing evaluation or re-evaluation.
-- [Health](/api/v1/health): Health check endpoint.
+- [Package list](/v1/packages): Browse and filter evaluated packages.
+- [Package detail](/v1/packages/{package_id}): Full evaluation data for a single package.
+- [Agent guide](/v1/packages/{id}/agent-guide): Agent-optimized view with scores.
+- [Categories](/v1/categories): List all categories with package counts.
+- [Category packages](/v1/categories/{slug}/packages): Packages in a category, by AF score.
+- [Compare](/v1/compare?ids=a,b,c): Side-by-side comparison of up to 10 packages.
+- [Stats](/v1/stats): Sitewide statistics and score distribution.
+- [Evaluation queue](/v1/queue): Packages needing evaluation or re-evaluation.
+- [Health](/v1/health): Health check endpoint.
 
 ## Website
 
@@ -665,22 +665,22 @@ LLMS_FULL_TXT_EXTRA = """
 
 Search for MCP servers with high AF scores:
 ```
-GET /api/v1/packages?has_mcp=true&min_af_score=70&sort=af_score:desc
+GET /v1/packages?has_mcp=true&min_af_score=70&sort=af_score:desc
 ```
 
 Get agent-optimized guide for a package:
 ```
-GET /api/v1/packages/stripe/agent-guide
+GET /v1/packages/stripe/agent-guide
 ```
 
 Compare alternatives:
 ```
-GET /api/v1/compare?ids=resend,sendgrid,postmark
+GET /v1/compare?ids=resend,sendgrid,postmark
 ```
 
 Filter by category:
 ```
-GET /api/v1/packages?category=ai-ml&sort=af_score:desc
+GET /v1/packages?category=ai-ml&sort=af_score:desc
 ```
 
 ## Categories
