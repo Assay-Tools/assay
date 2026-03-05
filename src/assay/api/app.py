@@ -12,6 +12,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from assay.database import init_db
 
+from .admin_routes import router as admin_router
 from .payments import router as payments_router
 from .rate_limit import limiter
 from .routes import router
@@ -77,6 +78,7 @@ app.add_middleware(SecurityHeadersMiddleware)
 app.include_router(router)
 app.include_router(submission_router)
 app.include_router(payments_router)
+app.include_router(admin_router)
 
 # Web frontend routes
 app.include_router(web_router)
