@@ -3,43 +3,26 @@
   "name": "Codecov API",
   "version_evaluated": "current",
   "homepage": "https://docs.codecov.com/reference/overview",
-  "repo_url": "https://github.com/codecov/codecov-api",
+  "repo_url": "https://github.com/codecov",
   "category": "developer-tools",
-  "subcategories": [
-    "code-coverage",
-    "ci-cd",
-    "developer-tools",
-    "testing"
-  ],
-  "tags": [
-    "codecov",
-    "code-coverage",
-    "ci-cd",
-    "testing",
-    "rest-api",
-    "github",
-    "gitlab",
-    "bitbucket"
-  ],
-  "what_it_does": "Codecov's API for accessing code coverage reports, coverage trends, and diff coverage data across repositories integrated with CI/CD pipelines.",
+  "subcategories": ["code-quality", "testing", "ci-cd"],
+  "tags": ["code-coverage", "testing", "rest-api", "ci-cd", "developer-tools", "open-source", "reports"],
+  "what_it_does": "Code coverage reporting and analysis API that aggregates coverage data from CI/CD pipelines and provides REST endpoints for querying coverage reports, commit diffs, and repository settings.",
   "use_cases": [
-    "Fetching coverage percentages for pull request coverage gates",
-    "Querying historical coverage trends for engineering dashboards",
-    "Comparing coverage between branches or commits",
-    "Building custom coverage reporting into team portals",
-    "Identifying components with decreasing or insufficient coverage"
+    "Querying coverage percentages per commit or pull request for CI/CD gating",
+    "Monitoring coverage trends across branches and releases",
+    "Integrating coverage data into agent-generated quality reports",
+    "Alerting when coverage drops below a threshold after a PR merge",
+    "Fetching file-level coverage data for detailed analysis"
   ],
   "not_for": [
-    "Running tests or generating coverage data (requires test runner integration)",
-    "Code quality analysis beyond coverage metrics",
-    "Teams not using Codecov for coverage reporting"
+    "Generating coverage data itself (requires test runners like pytest-cov, Istanbul, etc.)",
+    "Real-time coverage computation (coverage is uploaded from CI, not computed via API)",
+    "Teams without CI/CD pipelines that upload coverage reports"
   ],
-  "best_when": "You use Codecov for code coverage tracking and need to query or display coverage data in custom tools or dashboards.",
-  "avoid_when": "You don't use Codecov, or need code quality analysis beyond coverage percentages.",
-  "alternatives": [
-    "sonarqube-api",
-    "github-rest-api"
-  ],
+  "best_when": "Engineering teams already upload coverage to Codecov via CI and want agents to query, gate, or report on coverage data.",
+  "avoid_when": "You do not have existing CI/CD that uploads coverage reports, or need real-time coverage computation.",
+  "alternatives": ["coveralls-api", "sonarcloud-api", "github-api"],
   "interface": {
     "has_rest_api": true,
     "has_graphql": false,
@@ -48,87 +31,75 @@
     "mcp_server_url": null,
     "has_sdk": false,
     "sdk_languages": [],
-    "openapi_spec_url": "https://api.codecov.io/api/v2/schema/",
+    "openapi_spec_url": "https://docs.codecov.com/openapi",
     "webhooks": true
   },
   "auth": {
-    "methods": [
-      "api_key"
-    ],
-    "oauth": false,
+    "methods": ["api_key"],
+    "oauth": true,
     "scopes": false,
-    "notes": "API tokens for authentication. Tokens generated per user in Codecov settings. Passed as Authorization header. Token provides access to all repos the user has access to."
+    "notes": "Repository tokens for uploading coverage; user tokens for API access. OAuth via GitHub/GitLab/Bitbucket for account authentication. No granular API scopes — token access is all-or-nothing per account."
   },
   "pricing": {
-    "model": "subscription",
+    "model": "freemium",
     "free_tier_exists": true,
-    "free_tier_limits": "Free for public repos; free for up to 5 users on private repos",
-    "paid_tiers": "Team: $12/user/month; Pro: $30/user/month; Enterprise: custom",
+    "free_tier_limits": "Free for public/open source repositories with unlimited coverage uploads",
+    "paid_tiers": "Pro starting at $10/month for private repos; Enterprise with custom pricing",
     "requires_credit_card": false,
-    "notes": "Free for open-source. Paid plans for private repositories above 5 users. Enterprise with SSO and compliance features. Sentry acquired Codecov in 2023."
+    "notes": "Fully free for open source. Private repo usage requires a paid plan. API access available on all tiers."
   },
   "performance": {
-    "latency_p50_ms": 150,
-    "latency_p99_ms": 800,
+    "latency_p50_ms": 300,
+    "latency_p99_ms": 1500,
     "uptime_sla_percent": 99.5,
-    "rate_limits": "Not publicly documented",
+    "rate_limits": "Not publicly documented; throttling applied on heavy usage",
     "data_source": "llm_estimated"
   },
   "requirements": {
     "requires_signup": true,
     "requires_credit_card": false,
     "domain_verification": false,
-    "data_residency": [
-      "US"
-    ],
-    "compliance": [
-      "SOC2",
-      "GDPR"
-    ],
+    "data_residency": ["US"],
+    "compliance": ["SOC2", "GDPR"],
     "min_contract": "none"
   },
   "agent_readiness": {
-    "mcp_server_quality": null,
-    "mcp_security_score": null,
+    "mcp_server_quality": 0,
+    "mcp_security_score": 0,
     "documentation_accuracy": 75,
-    "error_message_quality": 68,
-    "error_message_notes": "Standard HTTP error responses with JSON messages. Error detail is adequate but not exceptional.",
+    "error_message_quality": 70,
+    "error_message_notes": "REST errors are JSON with status codes. Error messages are generally clear for 404/401 cases but can be vague for data-not-yet-available scenarios (coverage not yet uploaded).",
     "idempotency_support": "full",
-    "idempotency_notes": "All primary API endpoints are read-only \u2014 fully idempotent.",
+    "idempotency_notes": "All API calls are reads; fully idempotent. Coverage data writes are handled via the separate codecov uploader CLI, not the API.",
     "pagination_style": "cursor",
     "retry_guidance_documented": false,
     "known_agent_gotchas": [
-      "Coverage upload (CI integration) and API query are separate concerns \u2014 API only reads, never uploads",
-      "Repository identified by owner/repo slug \u2014 must know exact naming including organization",
-      "Coverage data may lag after CI runs \u2014 poll for report readiness before querying",
-      "Component coverage (file, directory level) requires navigating nested API responses",
-      "Codecov was acquired by Sentry \u2014 some product direction may shift; verify documentation currency"
-    ],
-    "error_message_score": 65,
-    "auth_complexity_score": 82,
-    "rate_limit_score": 65,
-    "security_score": 78
+      "Coverage data may not be available immediately after a CI run — agents should poll with backoff",
+      "Rate limits are not publicly documented; agents doing bulk historical queries may get throttled without warning",
+      "API responses for commits without coverage data return 404 rather than an empty coverage object",
+      "Repository token and user API token are different credentials with different scopes",
+      "Codecov is acquired by Sentry — check current docs as API paths and auth may evolve"
+    ]
   },
-  "last_evaluated": "2026-02-28",
   "af_score_components": {
     "mcp_score": 0,
     "api_doc_score": 75,
-    "error_handling_score": 72,
-    "auth_complexity_score": 80,
-    "rate_limit_clarity_score": 72
+    "error_handling_score": 70,
+    "auth_complexity_score": 68,
+    "rate_limit_clarity_score": 52
   },
   "security_score_components": {
     "tls_enforcement": 100,
-    "auth_strength": 80,
-    "scope_granularity": 75,
-    "dependency_hygiene": 82,
-    "secret_handling": 78,
-    "security_notes": "Code coverage platform. Token auth. Coverage reports may reveal untested code paths \u2014 security-sensitive info. Self-hosted Codecov available for private repos."
+    "auth_strength": 72,
+    "scope_granularity": 55,
+    "dependency_hygiene": 75,
+    "secret_handling": 75,
+    "security_notes": "HTTPS enforced. OAuth via VCS providers. No fine-grained API scopes. SOC2 certified. Note: Codecov experienced a supply chain breach in 2021; current security posture has been overhauled since then."
   },
   "reliability_score_components": {
-    "uptime_documented": 82,
-    "version_stability": 82,
-    "breaking_changes_history": 78,
-    "error_recovery": 78
+    "uptime_documented": 72,
+    "version_stability": 75,
+    "breaking_changes_history": 70,
+    "error_recovery": 70
   }
 }

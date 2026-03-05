@@ -1,59 +1,58 @@
 {
   "id": "buildkite-api",
-  "name": "Buildkite CI/CD Platform",
+  "name": "Buildkite API",
   "version_evaluated": "current",
-  "homepage": "https://buildkite.com",
-  "repo_url": null,
+  "homepage": "https://buildkite.com/docs/apis/rest-api",
+  "repo_url": "https://github.com/buildkite",
   "category": "developer-tools",
-  "subcategories": ["ci-cd", "build-automation", "pipelines", "self-hosted-agents"],
-  "tags": ["ci-cd", "build", "pipelines", "rest-api", "graphql", "hybrid-ci", "self-hosted", "agents", "webhooks"],
-  "what_it_does": "Hybrid CI/CD platform where pipelines are defined as code and executed on your own infrastructure (Buildkite Agents), while Buildkite provides the coordination, dashboard, REST API, and GraphQL API for programmatic pipeline control.",
+  "subcategories": ["ci-cd", "build-automation", "developer-tools"],
+  "tags": ["ci-cd", "rest-api", "graphql", "pipelines", "builds", "agents", "webhooks", "automation"],
+  "what_it_does": "CI/CD platform API for managing pipelines, triggering builds, querying build results, managing agents, and analyzing test performance.",
   "use_cases": [
-    "Triggering CI/CD pipeline runs from an AI agent via REST API and polling for completion status",
-    "Programmatically creating and managing pipelines across multiple repositories via the Buildkite API",
-    "Running builds on your own infrastructure (GPU machines, specific OS environments) under a managed control plane",
-    "Integrating build status into agent workflows (check if tests pass before deploying or merging)",
-    "Retrieving build artifacts and test results programmatically for downstream agent processing"
+    "Triggering builds programmatically in response to events or schedules",
+    "Querying build status and artifact URLs for deployment automation",
+    "Managing and scaling build agent pools dynamically",
+    "Integrating test analytics and failure reporting into agent workflows",
+    "Orchestrating multi-pipeline workflows from an AI agent"
   ],
   "not_for": [
-    "Teams needing a fully managed build infrastructure without self-hosted agents — use GitHub Actions or CircleCI instead",
-    "Simple projects where GitHub Actions or GitLab CI built into the repo platform is sufficient",
-    "Consumer-facing workflow automation (Buildkite is developer/CI-focused)",
-    "Workflow orchestration beyond CI/CD — use Temporal or Inngest for business logic flows"
+    "Teams that need a fully managed cloud CI with zero infrastructure (Buildkite requires running your own agents)",
+    "Very small teams without infrastructure experience",
+    "Organizations needing built-in artifact storage (Buildkite is bring-your-own storage)"
   ],
-  "best_when": "An agent needs to trigger, monitor, and retrieve results from CI/CD builds via a clean API, especially in environments requiring builds to run on private infrastructure with specific hardware or network access.",
-  "avoid_when": "You need a fully hosted build environment, your pipelines are simple GitHub Actions workflows, or you don't have infrastructure to run Buildkite Agents on.",
-  "alternatives": ["gitlabci-api", "dagger-api"],
+  "best_when": "Engineering teams running Buildkite CI/CD want agents to trigger, monitor, and act on build results as part of automated workflows.",
+  "avoid_when": "You do not run your own Buildkite agents or need a zero-infra CI/CD platform.",
+  "alternatives": ["github-api", "circleci-api", "jenkins-api"],
   "interface": {
     "has_rest_api": true,
     "has_graphql": true,
     "has_grpc": false,
     "has_mcp_server": false,
     "mcp_server_url": null,
-    "has_sdk": false,
-    "sdk_languages": [],
-    "openapi_spec_url": "https://buildkite.com/user/api-access-tokens",
+    "has_sdk": true,
+    "sdk_languages": ["go", "ruby", "python"],
+    "openapi_spec_url": null,
     "webhooks": true
   },
   "auth": {
-    "methods": ["api_key", "oauth"],
+    "methods": ["api_key"],
     "oauth": true,
     "scopes": true,
-    "notes": "REST and GraphQL APIs use Bearer token auth. Tokens can be scoped to specific permissions (read builds, write builds, manage pipelines, read organizations, etc.). OAuth2 apps also supported. Tokens are per-user or service-account level."
+    "notes": "REST API uses token-based auth via Authorization header. OAuth apps available for user-authorized integrations with scopes (read_builds, write_builds, etc.). GraphQL API uses the same token auth."
   },
   "pricing": {
     "model": "freemium",
     "free_tier_exists": true,
-    "free_tier_limits": "Free for 1 user (Developer plan) with unlimited pipelines and builds",
-    "paid_tiers": "Team plan from $35/month for 5 users ($6/additional user); Enterprise custom pricing with SSO, audit logs, and dedicated support",
+    "free_tier_limits": "Free for up to 3 users with unlimited builds",
+    "paid_tiers": "Starting at $45/month for 5 users; scales by team size and features",
     "requires_credit_card": false,
-    "notes": "Pricing is per-user for the control plane; build compute costs are your own (you run the agents). This makes Buildkite very cost-effective for high-volume build teams with existing infrastructure."
+    "notes": "API access available on all plans. Free tier allows full API usage. Enterprise adds SSO, audit logs, and advanced security controls."
   },
   "performance": {
-    "latency_p50_ms": 150,
-    "latency_p99_ms": 600,
+    "latency_p50_ms": 200,
+    "latency_p99_ms": 1000,
     "uptime_sla_percent": 99.95,
-    "rate_limits": "REST API: 200 requests per minute per token. GraphQL API: point-based rate limiting with 10,000 points/minute. Webhook delivery is asynchronous with retry.",
+    "rate_limits": "REST: varies by endpoint; GraphQL: complexity-based limits",
     "data_source": "llm_estimated"
   },
   "requirements": {
@@ -65,43 +64,42 @@
     "min_contract": "none"
   },
   "agent_readiness": {
-    "mcp_server_quality": null,
-    "mcp_security_score": null,
-    "documentation_accuracy": 88,
+    "mcp_server_quality": 0,
+    "mcp_security_score": 0,
+    "documentation_accuracy": 85,
     "error_message_quality": 82,
-    "error_message_notes": "REST API returns standard HTTP status codes with JSON error bodies. Build failure reasons are accessible via the builds API including exit status and log output. Webhook payloads are well-documented and consistently structured.",
+    "error_message_notes": "REST API errors are JSON with message field and HTTP status codes. GraphQL errors follow standard format. Build failure details require querying job-level logs separately.",
     "idempotency_support": "partial",
-    "idempotency_notes": "Build triggers create new build instances — no idempotency key on the trigger endpoint to prevent duplicates. Agents should track triggered build numbers to avoid re-triggering. Webhook events are delivered at-least-once.",
+    "idempotency_notes": "Build triggers are not idempotent by default; the same API call creates a new build each time. Agents should implement deduplication logic or check for existing queued builds.",
     "pagination_style": "cursor",
     "retry_guidance_documented": true,
     "known_agent_gotchas": [
-      "No official SDK — agents must implement REST or GraphQL calls directly; several unofficial community clients exist in various states of maintenance",
-      "Buildkite Agents must be running on your infrastructure before builds can execute — build queue will pile up if agents go offline",
-      "REST API rate limit (200 req/min) can be hit quickly if an agent polls build status frequently at short intervals; use webhooks instead of polling where possible",
-      "Build log retrieval requires a separate API call with pagination — logs can be large for long builds",
-      "Pipeline-as-code (YAML) requires each repo to have Buildkite pipeline config committed — no API-only pipeline definition without a repository",
-      "GraphQL API has a separate point-based rate limit that is not well-documented in terms of which queries cost how many points"
+      "Triggering the same build endpoint twice creates two builds; agents must implement their own deduplication",
+      "Build agents are customer-managed; API calls can succeed while no agents are available to run the build",
+      "Artifact download URLs are signed and time-limited; agents must re-fetch them after expiry",
+      "GraphQL API and REST API have different feature coverage; some operations are REST-only",
+      "Webhook events require HMAC signature verification; agents receiving webhooks must validate the signature"
     ]
   },
   "af_score_components": {
     "mcp_score": 0,
-    "api_doc_score": 88,
+    "api_doc_score": 85,
     "error_handling_score": 82,
-    "auth_complexity_score": 85,
-    "rate_limit_clarity_score": 80
+    "auth_complexity_score": 80,
+    "rate_limit_clarity_score": 72
   },
   "security_score_components": {
     "tls_enforcement": 100,
     "auth_strength": 82,
-    "scope_granularity": 85,
-    "dependency_hygiene": 82,
+    "scope_granularity": 80,
+    "dependency_hygiene": 80,
     "secret_handling": 85,
-    "security_notes": "API tokens with granular permission scopes reduce blast radius of compromised credentials. Buildkite Secrets (pipeline env vars) are encrypted at rest and injected at build time without exposure in logs. Agents run on your infrastructure — network access is controlled by you. SOC 2 Type II certified."
+    "security_notes": "HTTPS enforced. OAuth scopes available for fine-grained access. Webhook HMAC verification documented. SOC2 Type II certified. Agent tokens are separate from API tokens for improved security posture."
   },
   "reliability_score_components": {
-    "uptime_documented": 90,
-    "version_stability": 88,
-    "breaking_changes_history": 85,
-    "error_recovery": 82
+    "uptime_documented": 85,
+    "version_stability": 85,
+    "breaking_changes_history": 82,
+    "error_recovery": 80
   }
 }
