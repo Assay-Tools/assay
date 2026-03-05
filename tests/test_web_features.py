@@ -59,3 +59,24 @@ class TestDeveloperDocs:
         assert "/v1/packages" in resp.text
         assert "Rate Limits" in resp.text
         assert "MCP Server" in resp.text
+
+
+class TestMethodologyPage:
+    def test_methodology_page(self, client):
+        resp = client.get("/methodology")
+        assert resp.status_code == 200
+        assert "Scoring Methodology" in resp.text
+        assert "Agent Friendliness" in resp.text
+        assert "Security" in resp.text
+        assert "Reliability" in resp.text
+
+    def test_methodology_shows_weights(self, client):
+        resp = client.get("/methodology")
+        assert "25%" in resp.text
+        assert "20%" in resp.text
+        assert "15%" in resp.text
+
+    def test_methodology_shows_limitations(self, client):
+        resp = client.get("/methodology")
+        assert "Limitations" in resp.text
+        assert "Point-in-time snapshots" in resp.text
