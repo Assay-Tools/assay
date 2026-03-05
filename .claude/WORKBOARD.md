@@ -39,7 +39,7 @@ Items ready to be claimed. Roughly priority-ordered within each phase.
 ### Phase 0: Critical Fixes (BLOCKING — do before ANY public launch or payments)
 
 **Legal (AJ must handle personally)**:
-- [ ] **Form LLC + EIN** — File LLC in home state ($50-200), get EIN from IRS (free, online, immediate), open business bank account. Without this, every legal claim reaches personal assets. **Must complete before Stripe setup or any outbound prospecting**
+- [ ] **Form incubator LLC in Wyoming** — File a broad-purpose Wyoming LLC (~$100 filing + $60/yr registered agent) as an incubator entity for multiple agentic businesses. Assay runs as the first product line under a DBA. Get EIN from IRS (free, online, immediate). Open business bank account under the LLC. When Assay graduates (consistent revenue), spin it out into its own LLC. **Recommended services**: ZenBusiness ($0 + state fee) or Northwest ($29). Wyoming chosen for: strong single-member LLC protection, privacy (no public member disclosure), low fees, and reduced defamation exposure from public scoring. **Must complete before Stripe setup or any outbound prospecting**
 - [x] **Terms of Service** — DRAFT at /terms with all required clauses, footer link, AJ must review with lawyer (2026-03-04)
 - [x] **Privacy Policy** — DRAFT at /privacy with GDPR/CCPA, footer link, AJ must review with lawyer (2026-03-04)
 - [x] **Refund policy** — Included in ToS: 14-day full refund for reports, cancel-anytime for subs (2026-03-04)
