@@ -1,0 +1,105 @@
+name: 'Assay Score Check'
+description: 'Check your package AF Score on assay.tools — agent-friendliness ratings for MCP servers, APIs, and SDKs.'
+branding:
+  icon: 'check-circle'
+  color: 'blue'
+
+inputs:
+  package:
+    description: 'Package ID on assay.tools (e.g., "openai-api", "stripe-mcp")'
+    required: true
+  min-score:
+    description: 'Minimum AF Score to pass (0-100). Fails the check if below this threshold.'
+    required: false
+    default: '0'
+  dimension:
+    description: 'Score dimension to check: af_score, security_score, or reliability_score'
+    required: false
+    default: 'af_score'
+
+outputs:
+  af-score:
+    description: 'AF Score (0-100)'
+    value: ${{ steps.check.outputs.af_score }}
+  security-score:
+    description: 'Security Score (0-100)'
+    value: ${{ steps.check.outputs.security_score }}
+  reliability-score:
+    description: 'Reliability Score (0-100)'
+    value: ${{ steps.check.outputs.reliability_score }}
+  name:
+    description: 'Package name'
+    value: ${{ steps.check.outputs.name }}
+  status:
+    description: 'Check result: pass or fail'
+    value: ${{ steps.check.outputs.status }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Check Assay Score
+      id: check
+      shell: bash
+      env:
+        PACKAGE_ID: ${{ inputs.package }}
+        MIN_SCORE: ${{ inputs.min-score }}
+        DIMENSION: ${{ inputs.dimension }}
+      run: |
+        # Fetch package data from Assay API
+        RESPONSE=$(curl -sf "https://assay.tools/v1/packages/${PACKAGE_ID}" 2>&1) || {
+          echo "::error::Package '${PACKAGE_ID}' not found on assay.tools"
+          exit 1
+        }
+
+        # Extract scores
+        AF_SCORE=$(echo "$RESPONSE" | jq -r '.af_score // empty')
+        SECURITY_SCORE=$(echo "$RESPONSE" | jq -r '.security_score // empty')
+        RELIABILITY_SCORE=$(echo "$RESPONSE" | jq -r '.reliability_score // empty')
+        NAME=$(echo "$RESPONSE" | jq -r '.name // empty')
+
+        if [ -z "$AF_SCORE" ]; then
+          echo "::warning::Package '${PACKAGE_ID}' has not been evaluated yet"
+          echo "af_score=" >> "$GITHUB_OUTPUT"
+          echo "security_score=" >> "$GITHUB_OUTPUT"
+          echo "reliability_score=" >> "$GITHUB_OUTPUT"
+          echo "name=${NAME}" >> "$GITHUB_OUTPUT"
+          echo "status=skip" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+
+        echo "af_score=${AF_SCORE}" >> "$GITHUB_OUTPUT"
+        echo "security_score=${SECURITY_SCORE}" >> "$GITHUB_OUTPUT"
+        echo "reliability_score=${RELIABILITY_SCORE}" >> "$GITHUB_OUTPUT"
+        echo "name=${NAME}" >> "$GITHUB_OUTPUT"
+
+        # Determine which score to check
+        case "$DIMENSION" in
+          security_score) CHECK_SCORE="$SECURITY_SCORE" ;;
+          reliability_score) CHECK_SCORE="$RELIABILITY_SCORE" ;;
+          *) CHECK_SCORE="$AF_SCORE" ;;
+        esac
+
+        # Display results
+        echo "## Assay Score Report" >> "$GITHUB_STEP_SUMMARY"
+        echo "" >> "$GITHUB_STEP_SUMMARY"
+        echo "| Dimension | Score |" >> "$GITHUB_STEP_SUMMARY"
+        echo "|-----------|-------|" >> "$GITHUB_STEP_SUMMARY"
+        echo "| Agent Friendliness | ${AF_SCORE} |" >> "$GITHUB_STEP_SUMMARY"
+        echo "| Security | ${SECURITY_SCORE:-N/A} |" >> "$GITHUB_STEP_SUMMARY"
+        echo "| Reliability | ${RELIABILITY_SCORE:-N/A} |" >> "$GITHUB_STEP_SUMMARY"
+        echo "" >> "$GITHUB_STEP_SUMMARY"
+        echo "[View full evaluation on assay.tools](https://assay.tools/packages/${PACKAGE_ID})" >> "$GITHUB_STEP_SUMMARY"
+
+        # Check threshold
+        MIN=${MIN_SCORE:-0}
+        if [ "$MIN" -gt 0 ] 2>/dev/null; then
+          SCORE_INT=${CHECK_SCORE%.*}
+          if [ "$SCORE_INT" -lt "$MIN" ]; then
+            echo "status=fail" >> "$GITHUB_OUTPUT"
+            echo "::error::${DIMENSION} score ${CHECK_SCORE} is below minimum threshold ${MIN}"
+            exit 1
+          fi
+        fi
+
+        echo "status=pass" >> "$GITHUB_OUTPUT"
+        echo "Assay ${DIMENSION}: ${CHECK_SCORE} (threshold: ${MIN})"
