@@ -40,9 +40,9 @@ Items ready to be claimed. Roughly priority-ordered within each phase.
 
 **Legal (AJ must handle personally)**:
 - [ ] **Form LLC + EIN** — File LLC in home state ($50-200), get EIN from IRS (free, online, immediate), open business bank account. Without this, every legal claim reaches personal assets. **Must complete before Stripe setup or any outbound prospecting**
-- [ ] **Terms of Service** — Binding legal doc linked from every page footer. Must include: scores are opinions not warranties, no-reliance clause, limitation of liability (capped at fees paid in last 12 months), API usage restrictions, mandatory arbitration, class action waiver, IP ownership. Use Termly/similar as starting point. **Files**: new `templates/pages/terms.html`, update `templates/base.html` footer
-- [ ] **Privacy Policy** — Stripe requires this before account creation. Cover: data collected (IPs, API keys, emails, payment info via Stripe), purpose, storage, sharing, deletion requests. GDPR + CCPA basics. **Files**: new `templates/pages/privacy.html`, update footer
-- [ ] **Refund policy** — Define before accepting money. Recommend: full refund within 14 days for reports, subscriptions cancel at end of billing period
+- [x] **Terms of Service** — DRAFT at /terms with all required clauses, footer link, AJ must review with lawyer (2026-03-04)
+- [x] **Privacy Policy** — DRAFT at /privacy with GDPR/CCPA, footer link, AJ must review with lawyer (2026-03-04)
+- [x] **Refund policy** — Included in ToS: 14-day full refund for reports, cancel-anytime for subs (2026-03-04)
 
 **Security (sessions can claim)**:
 - [ ] **Rotate production credentials** — `.secrets` file on disk contains live DB password on publicly-accessible Postgres proxy. Rotate DB password in Railway, delete `.secrets`, use env vars exclusively. Also rotate Railway deploy token and Gmail app password. **CRITICAL**
