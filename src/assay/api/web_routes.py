@@ -543,6 +543,15 @@ def about(request: Request, db: Session = Depends(get_db)):
     )
 
 
+@router.get("/methodology", response_class=HTMLResponse)
+def methodology(request: Request):
+    """Scoring methodology deep-dive."""
+    return templates.TemplateResponse(
+        "pages/methodology.html",
+        {"request": request},
+    )
+
+
 # ── llms.txt ───────────────────────────────────────────────────────────────
 
 LLMS_TXT = """\
@@ -935,6 +944,14 @@ def developers_page(request: Request):
     })
 
 
+@router.get("/methodology", response_class=HTMLResponse)
+def methodology_page(request: Request):
+    """Scoring methodology deep-dive."""
+    return templates.TemplateResponse("pages/methodology.html", {
+        "request": request,
+    })
+
+
 # ── SEO ──────────────────────────────────────────────────────────────────────
 
 
@@ -965,6 +982,8 @@ def sitemap_xml(db: Session = Depends(get_db)):
         ("/categories", "0.8", "weekly"),
         ("/compare", "0.6", "weekly"),
         ("/about", "0.5", "monthly"),
+        ("/methodology", "0.6", "monthly"),
+        ("/developers", "0.6", "monthly"),
         ("/contribute", "0.5", "monthly"),
     ]:
         urls.append(
