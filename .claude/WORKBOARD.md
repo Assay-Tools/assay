@@ -46,17 +46,17 @@ Items ready to be claimed. Roughly priority-ordered within each phase.
 
 **Security (sessions can claim)**:
 - [ ] **Rotate production credentials** — `.secrets` file on disk contains live DB password on publicly-accessible Postgres proxy. Rotate DB password in Railway, delete `.secrets`, use env vars exclusively. Also rotate Railway deploy token and Gmail app password. **CRITICAL**
-- [ ] **Fix CORS configuration** — `allow_origins=["*"]` + `allow_credentials=True` is dangerous. Drop `allow_credentials` or set explicit origin. **File**: `src/assay/api/app.py` lines 48-55
-- [ ] **Separate admin vs submitter API keys** — All keys have identical permissions — submitters can approve own evaluations. Split into `SUBMISSION_API_KEYS` / `ADMIN_API_KEYS`. **File**: `src/assay/api/submission_routes.py`
-- [ ] **Sort field whitelist** — `getattr(Package, sort_field)` allows probing any model attribute. Add allowlist like leaderboard endpoint does. **File**: `src/assay/api/routes.py` line 124
-- [ ] **Sanitize LIKE wildcards** — Escape `%` and `_` in search input before ILIKE. **File**: `src/assay/api/web_routes.py` lines 153-160
-- [ ] **Add security headers** — `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Strict-Transport-Security`
+- [x] **Fix CORS configuration** — `allow_origins=["*"]` + `allow_credentials=True` is dangerous. Drop `allow_credentials` or set explicit origin. **File**: `src/assay/api/app.py` lines 48-55
+- [x] **Separate admin vs submitter API keys** — All keys have identical permissions — submitters can approve own evaluations. Split into `SUBMISSION_API_KEYS` / `ADMIN_API_KEYS`. **File**: `src/assay/api/submission_routes.py`
+- [x] **Sort field whitelist** — `getattr(Package, sort_field)` allows probing any model attribute. Add allowlist like leaderboard endpoint does. **File**: `src/assay/api/routes.py` line 124
+- [x] **Sanitize LIKE wildcards** — Escape `%` and `_` in search input before ILIKE. **File**: `src/assay/api/web_routes.py` lines 153-160
+- [x] **Add security headers** — `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Strict-Transport-Security`
 
 **Code Quality (sessions can claim)**:
 - [ ] **Fix AF weight mismatch** — `evaluator.py` uses different weights than `llms-full.txt` documents. Trust-destroying if a maintainer can't reproduce their score. Verify correct values, fix the other
 - [ ] **Fix Category.package_count N+1** — Iterates all packages in Python. Use SQL COUNT. **File**: `src/assay/models/package.py` lines 420-423
-- [ ] **Fix infinite recursion on GitHub 403** — `fetch_github_metadata` recurses with no max retry. Add counter (max 3). **File**: `src/assay/evaluation/evaluator.py` lines 256-259
-- [ ] **Stop leaking exception details** — Submission route returns raw exception messages. Log internally, return generic error. **File**: `src/assay/api/submission_routes.py` lines 164-168
+- [x] **Fix infinite recursion on GitHub 403** — `fetch_github_metadata` recurses with no max retry. Add counter (max 3). **File**: `src/assay/evaluation/evaluator.py` lines 256-259
+- [x] **Stop leaking exception details** — Submission route returns raw exception messages. Log internally, return generic error. **File**: `src/assay/api/submission_routes.py` lines 164-168
 - [ ] **Strengthen disclaimer language** — Add "scores are editorial opinions, not statements of fact" framing. Add "as of [date]" to every score display. **File**: `templates/pages/about.html`
 
 ### Website & UX (high impact for launch readiness — sessions can claim)
@@ -83,8 +83,8 @@ Items ready to be claimed. Roughly priority-ordered within each phase.
 
 ### Phase 1: Revenue Infrastructure (BLOCKING — must complete before any paid transactions)
 
-- [ ] **Stripe integration** — Stripe Checkout for one-time report purchases ($99) and subscription billing ($3/mo monitoring). Create Stripe account, add `stripe` dependency, implement checkout session creation + webhook handler for `checkout.session.completed` and `customer.subscription.*` events. Store payment status on orders. Environment: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_REPORT` (one-time), `STRIPE_PRICE_MONITORING` (recurring). **Files**: new `src/assay/api/payments.py`, update `pyproject.toml`
-- [ ] **Report delivery pipeline** — After Stripe payment confirmed, generate PDF report (use `weasyprint` or `reportlab`), store in S3/R2 or local filesystem, email download link to buyer. Connect to the existing `reports/generate_package_eval.py` script. **Files**: new `src/assay/reports/delivery.py`, new `src/assay/api/report_routes.py`
+- [x] ~~**Stripe integration** — done, moved to Completed~~
+- [x] ~~**Report delivery pipeline** — done, moved to Completed~~
 - [ ] **Email sending infrastructure** — Transactional email for report delivery, payment confirmations, and future score-change notifications. Use Resend or Postmark (not raw SMTP). **Files**: new `src/assay/notifications/email.py`. **Note**: AJ must approve the sending service choice and create the account
 - [ ] **Buy report flow (web)** — "Buy Full Report — $99" button on package detail pages → Stripe Checkout → delivery. Only show for packages with enough data for a meaningful report. **Files**: update `templates/package_detail.html`, new `templates/report_purchase.html`, `templates/report_confirmation.html`
 - [ ] **Basic bookkeeping** — Simple revenue/expense tracking. Could be as minimal as a CSV/JSON log of transactions pulled from Stripe webhook events, or a lightweight admin page. Enough for tax reporting. **Files**: new `src/assay/admin/accounting.py` or `scripts/export_transactions.py`
@@ -170,3 +170,5 @@ Items ready to be claimed. Roughly priority-ordered within each phase.
 - [x] **CLI tool** — `assay check/compare/stale` with ASCII output + --json, 5 tests (2026-03-04)
 - [x] **SEO basics** — meta descriptions, OG tags, JSON-LD, sitemap.xml, robots.txt, 11 tests (2026-03-04)
 - [x] **Data freshness dashboard** — /admin/freshness with coverage, staleness, category breakdown, 4 tests (2026-03-04)
+- [x] **Stripe integration** — checkout sessions, webhook handler, Order model, order status endpoint, 9 tests (2026-03-04)
+- [x] **Report delivery pipeline** — post-payment report generation, download endpoint, success page, 16 total payment tests (2026-03-04)
