@@ -100,7 +100,7 @@ Items ready to be claimed. Roughly priority-ordered within each phase.
 **Core tracking (no cookies, no consent needed)**:
 - [ ] **Add analytics script to base template** — Single `<script>` tag in `base.html`. Should track: page views, referral sources, UTM parameters, device/browser/country, session duration. No cookies = no consent banner for this. **File**: `src/assay/templates/base.html`
 - [ ] **Define conversion goals** — Set up goal tracking for key business events: (1) report purchase click, (2) email signup, (3) API docs visit, (4) feedback submission, (5) badge embed code copy, (6) comparison started. These are just URL/event matches — still no cookies needed with Plausible/Umami.
-- [ ] **UTM parameter strategy for launch** — Define UTM tags for each launch channel so we can measure which channels actually drive traffic: `?utm_source=hackernews`, `?utm_source=reddit&utm_medium=r-programming`, `?utm_source=discord&utm_medium=fabric`, etc. Document the full UTM scheme before launch week begins.
+- [x] **UTM parameter strategy for launch** — Full UTM scheme documented in `docs/utm-strategy.md` covering all launch channels (2026-03-05)
 
 **Consent & enhanced tracking (opt-in only)**:
 - [ ] **Privacy-respecting consent mechanism** — Simple, honest preference center (NOT a dark-pattern cookie wall). Two tiers: (1) **Essential only** (default, cookie-free analytics, no PII) — always on, no consent needed. (2) **Enhanced** (opt-in) — enables Stripe conversion tracking, optional session replay for UX debugging, and any future integrations that require cookies. A small, non-intrusive banner: "We use cookie-free analytics by default. [Learn more] [Enable enhanced tracking]". Store preference in localStorage (not a cookie, irony intended). **Files**: new partial template, update `base.html`, update Privacy Policy
@@ -108,7 +108,7 @@ Items ready to be claimed. Roughly priority-ordered within each phase.
 
 **Business intelligence (post-launch)**:
 - [ ] **Launch effectiveness dashboard** — After public launch, build a simple internal view showing: traffic by source/day, conversion rates by channel, which Reddit/HN/Discord posts drove the most engaged traffic. Helps decide where to invest future marketing effort. Can be a simple admin page or just a saved analytics dashboard view.
-- [ ] **API usage analytics** — Track API call volume, top consumers (by IP or API key), most-requested endpoints, error rates. This data lives server-side (no client tracking needed). Useful for: identifying power users to convert to paid, detecting abuse, understanding what developers actually use. **Files**: middleware or logging enhancement in `src/assay/api/app.py`
+- [x] **API usage analytics** — Middleware tracks /v1/ call counts + errors per endpoint, logs slow requests. GET /admin/api-usage endpoint for stats. (2026-03-05)
 
 ### Phase 1: Revenue Infrastructure (BLOCKING — must complete before any paid transactions)
 
@@ -144,8 +144,8 @@ Items ready to be claimed. Roughly priority-ordered within each phase.
 
 **Infrastructure**:
 - [x] **Add GitHub token to discovery** — GITHUB_TOKEN env var support in GitHubSource and OpenClawSource. 5,000 req/hr authenticated vs 60. **AJ**: create GitHub PAT (fine-grained, read-only public repos) and add to Railway env vars. (2026-03-05)
-- [ ] **Scheduled discovery runs** — GitHub Action on cron (daily or twice-daily). Runs `python -m assay.evaluation.discovery --limit 500` against production DB. New packages get `status="discovered"` and enter the evaluation queue. **Files**: new `.github/workflows/discovery.yml`
-- [ ] **Discovery run logging** — Track each discovery run: timestamp, source, packages found, new packages added, duplicates skipped. Store in DB or append to a log file. Enables monitoring whether discovery is finding new stuff or plateauing. **Files**: update `discovery.py`
+- [x] **Scheduled discovery runs** — GitHub Action twice daily (06:00/18:00 UTC) with manual trigger, configurable source/limit (2026-03-05)
+- [x] **Discovery run logging** — JSON lines to logs/discovery/runs.jsonl with timestamp, sources, counts, totals (2026-03-05)
 
 **New GitHub search queries**:
 - [x] **Expand GitHub MCP search** — 7 queries (was 3): topic:model-context-protocol, @modelcontextprotocol/sdk in:file, language-specific path searches (2026-03-05)
@@ -160,7 +160,7 @@ Items ready to be claimed. Roughly priority-ordered within each phase.
 
 **Quality & dedup**:
 - [ ] **Cross-source deduplication improvements** — Current dedup is by normalized repo URL and slug. Add: npm package name matching, PyPI package name matching, and fuzzy name matching for packages that appear in multiple registries under slightly different names
-- [ ] **Discovery quality scoring** — Not all discovered packages are worth evaluating. Add a priority signal based on: GitHub stars, recent activity (last commit date), downloads (npm/PyPI), whether it appears in multiple sources. High-signal packages get evaluated first. **File**: update `discovery.py`
+- [x] **Discovery quality scoring** — Priority now uses stars + recent activity (high/medium/low tiers) (2026-03-05)
 
 ### Business Heartbeat & Orchestration System
 
