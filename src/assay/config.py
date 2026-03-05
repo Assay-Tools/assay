@@ -16,6 +16,13 @@ class Settings(BaseSettings):
     # Submission auth — comma-separated API keys for evaluation submissions
     submission_api_keys: str = ""
 
+    # Stripe
+    stripe_secret_key: str = ""
+    stripe_webhook_secret: str = ""
+    stripe_price_report: str = ""  # Price ID for $99 one-time report
+    stripe_price_monitoring: str = ""  # Price ID for $3/mo recurring
+    app_url: str = "https://assay.tools"  # For Stripe redirect URLs
+
     # Evaluation
     anthropic_api_key: str = ""
     eval_model: str = "claude-haiku-4-5-20251001"

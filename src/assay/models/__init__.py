@@ -3,6 +3,7 @@
 from assay.models.package import (
     Category,
     EvaluationRun,
+    Order,
     Package,
     PackageAgentReadiness,
     PackageAuth,
@@ -16,6 +17,7 @@ from assay.models.package import (
 __all__ = [
     "Category",
     "EvaluationRun",
+    "Order",
     "Package",
     "PackageAgentReadiness",
     "PackageAuth",

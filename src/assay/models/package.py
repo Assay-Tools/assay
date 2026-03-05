@@ -466,3 +466,33 @@ class PendingEvaluation(Base):
     status: Mapped[str] = mapped_column(String(50), default="pending")
     reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     payload: Mapped[str] = mapped_column(Text, nullable=False)  # Full JSON
+
+
+class Order(Base):
+    """Payment orders for reports and subscriptions."""
+
+    __tablename__ = "orders"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    package_id: Mapped[str | None] = mapped_column(
+        String(255), ForeignKey("packages.id"), nullable=True,
+    )
+    # report, monitoring_subscription
+    order_type: Mapped[str] = mapped_column(String(50), nullable=False)
+    # pending, paid, cancelled, refunded
+    status: Mapped[str] = mapped_column(String(50), default="pending")
+    stripe_session_id: Mapped[str | None] = mapped_column(String(255))
+    stripe_payment_intent: Mapped[str | None] = mapped_column(String(255))
+    stripe_subscription_id: Mapped[str | None] = mapped_column(String(255))
+    stripe_customer_id: Mapped[str | None] = mapped_column(String(255))
+    customer_email: Mapped[str | None] = mapped_column(String(255))
+    amount_cents: Mapped[int | None] = mapped_column(Integer)
+    currency: Mapped[str] = mapped_column(String(10), default="usd")
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc),
+    )
+    paid_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # Path to delivered report file (for report orders)
+    report_path: Mapped[str | None] = mapped_column(String(500))
+
+    package: Mapped["Package"] = relationship()
