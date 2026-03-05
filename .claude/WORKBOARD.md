@@ -81,13 +81,25 @@ Items ready to be claimed. Roughly priority-ordered within each phase.
 - [ ] **Methodology Advisory Board** — 2-3 named credible people (Daniel Miessler first). Credibility signal + legal armor. Costs nothing
 - [ ] **Seed modelcontextprotocol/servers GitHub discussions** — People literally asking "which MCP servers are good?" in those threads. Be genuinely helpful with links to relevant Assay data
 
+### Site Quality (BLOCKING — must fix before public launch)
+
+- [ ] **Full site audit — link and content tree** — End-to-end crawl of every page and link on assay.tools. Produce a site tree showing: (1) pages with broken links, (2) pages missing content or showing placeholder data, (3) pages that work correctly. Output as a structured doc that can be split into individual fix tasks. Include: all nav links, footer links, package detail page links (API endpoint, agent guide, badge, report inaccuracy), developer docs examples, about page references, category pages, compare flow, feedback form, email capture, RSS feed, sitemap.xml, badge SVG endpoints, embed widgets. Test both with and without data.
+- [ ] **Fix "Assay API" naming** — The developer docs and some pages reference "Claude API" as an example package. Review all user-facing copy to ensure when we're talking about *Assay's own API*, we call it "Assay API" not "Claude API". The Claude API is a *rated package*, not our product.
+
 ### Phase 1: Revenue Infrastructure (BLOCKING — must complete before any paid transactions)
 
-- [x] ~~**Stripe integration** — done, moved to Completed~~
-- [x] ~~**Report delivery pipeline** — done, moved to Completed~~
+**Stripe account setup (AJ must do)**:
+- [ ] **Create Stripe account** — Sign up at stripe.com. Requires: legal business name (needs LLC first), EIN, business bank account. Get the API keys from the Stripe dashboard.
+- [ ] **Create Stripe Products + Prices** — In Stripe dashboard: (1) Product "Package Evaluation Report" with one-time Price of $99.00, (2) Product "Package Monitoring" with recurring Price of $3.00/month. Copy the Price IDs (e.g., `price_xxx`).
+- [ ] **Set Railway environment variables** — In Railway dashboard, set: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_REPORT` (one-time price ID), `STRIPE_PRICE_MONITORING` (recurring price ID). All four are required.
+- [ ] **Configure Stripe webhook** — In Stripe dashboard → Developers → Webhooks: add endpoint `https://assay.tools/v1/webhooks/stripe`, subscribe to events: `checkout.session.completed`, `customer.subscription.deleted`, `customer.subscription.updated`. Copy the webhook signing secret to `STRIPE_WEBHOOK_SECRET` env var.
+
+**Stripe code fixes (sessions can claim)**:
+- [ ] **Fix webhook signature bypass** — When `STRIPE_WEBHOOK_SECRET` is not set, the webhook handler skips signature verification entirely. In production, anyone could POST fake events and trigger order fulfillment. Add hard requirement: return 503 if webhook secret is missing. **File**: `src/assay/api/payments.py`
+- [ ] **Fix orphan order creation** — Orders are created and committed *before* calling `stripe.checkout.Session.create()`. If the Stripe call fails, orphan orders with `status="pending"` accumulate forever. Create order after Stripe session succeeds, or rollback on failure. **File**: `src/assay/api/payments.py`
+- [ ] **Fix buyReport() JS event handling** — The `buyReport()` function uses implicit global `event` object instead of passing it as a parameter. Fragile in strict mode. **File**: `templates/pages/package_detail.html`
+- [ ] **Add Stripe vars to .env.example** — `.env.example` is missing all four Stripe variables. Anyone setting up the project won't know they're needed
 - [ ] **Email sending infrastructure** — Transactional email for report delivery, payment confirmations, and future score-change notifications. Use Resend or Postmark (not raw SMTP). **Files**: new `src/assay/notifications/email.py`. **Note**: AJ must approve the sending service choice and create the account
-- [x] ~~**Buy report flow (web)** — done, moved to Completed~~
-- [x] ~~**Basic bookkeeping** — done, moved to Completed~~
 
 ### Phase 2: Monitoring Product (enables $3/mo recurring revenue)
 

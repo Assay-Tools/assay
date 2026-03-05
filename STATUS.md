@@ -45,13 +45,15 @@ All technical work for Phase 0 and Phase 1 is complete. The product can accept p
 - `llms.txt` and `llms-full.txt` for LLM crawlers
 - OpenAPI spec with full documentation
 
-**Revenue Infrastructure**:
-- Stripe Checkout for $99 one-time report purchases
-- Stripe webhook handler (checkout.session.completed, subscription events)
+**Revenue Infrastructure** (CODE BUILT — but no Stripe account/credentials yet):
+- Stripe Checkout integration code for $99 one-time report purchases — **NOT LIVE** (no Stripe account exists)
+- Stripe webhook handler (checkout.session.completed, subscription events) — **NOT LIVE**
 - Post-payment PDF report generation + download endpoint
-- "Buy Full Report — $99" button on package detail pages
+- "Buy Full Report — $99" button on package detail pages (shows "Payment system is not configured" until Stripe env vars are set)
 - Admin bookkeeping: /admin/transactions (JSON/CSV), /admin/revenue
 - Order model with status tracking
+- **To activate**: AJ must create Stripe account (needs LLC first), create Products/Prices, set 4 env vars in Railway, configure webhook endpoint
+- **Known bugs**: webhook signature bypass when secret missing, orphan orders on Stripe API failure, fragile JS event handling
 
 **Website & UX**:
 - Landing page with hero, search, top-rated, recently evaluated, category grid
@@ -92,23 +94,37 @@ All technical work for Phase 0 and Phase 1 is complete. The product can accept p
 - Set all secrets as Railway environment variables only
 - Also rotate: Railway deploy token, Gmail app password
 
-**3. Pick Email Sending Service (THIS WEEK)**
+**3. Create Stripe Account + Configure (AFTER LLC)**
+- Sign up at stripe.com with LLC details + EIN + business bank account
+- Create two Products in Stripe dashboard:
+  - "Package Evaluation Report" → one-time Price: $99.00 → copy Price ID
+  - "Package Monitoring" → recurring Price: $3.00/month → copy Price ID
+- In Railway dashboard, set these env vars:
+  - `STRIPE_SECRET_KEY` = sk_live_xxx from Stripe API keys page
+  - `STRIPE_PRICE_REPORT` = price_xxx (the $99 one-time price ID)
+  - `STRIPE_PRICE_MONITORING` = price_xxx (the $3/mo recurring price ID)
+- Configure webhook: Stripe → Developers → Webhooks → add endpoint `https://assay.tools/v1/webhooks/stripe`
+  - Subscribe to: `checkout.session.completed`, `customer.subscription.deleted`, `customer.subscription.updated`
+  - Copy signing secret → set `STRIPE_WEBHOOK_SECRET` in Railway
+- Test with Stripe test mode first (sk_test_xxx keys) before going live
+
+**4. Pick Email Sending Service (THIS WEEK)**
 - Recommendation: Resend (developer-friendly, generous free tier)
 - Alternative: Postmark
 - Create account, get API key, set as Railway env var
 - Needed for: report delivery emails, payment confirmations, future notifications
 
-**4. Review Legal Docs**
+**5. Review Legal Docs**
 - ToS at /terms and Privacy Policy at /privacy are DRAFTS
 - Have a lawyer review before accepting real money
 - Key areas: defamation protection (scores as editorial opinions), limitation of liability, GDPR/CCPA compliance
 
-**5. Message Daniel Miessler (THIS WEEK)**
+**6. Message Daniel Miessler (THIS WEEK)**
 - Personal DM, not public
 - Suggested framing: "I built a rating system for MCP servers and APIs. Fabric is in the dataset. Before I go public, would you spend 15 minutes poking around assay.tools and tell me: (1) Does the scoring feel credible? (2) Anything that would make you distrust the ratings? (3) Would you use this yourself?"
 - Goal: credible practitioner gut-check before going wide
 
-**6. Identify 5-10 Beta Testers (NEXT WEEK)**
+**7. Identify 5-10 Beta Testers (NEXT WEEK)**
 - From your network: security, AI, DevOps people
 - Mix of: MCP server builders, agent framework users, API design people, security folks
 - Send personal invites with specific questions about scoring credibility and willingness to pay
