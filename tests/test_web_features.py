@@ -80,3 +80,25 @@ class TestMethodologyPage:
         resp = client.get("/methodology")
         assert "Limitations" in resp.text
         assert "Point-in-time snapshots" in resp.text
+
+
+class TestEmbedCompare:
+    def test_embed_compare(self, client, sample_packages):
+        resp = client.get("/embed/compare?ids=top-api,mid-tool")
+        assert resp.status_code == 200
+        assert "Top API" in resp.text
+        assert "Mid Tool" in resp.text
+        assert "assay.tools" in resp.text
+
+    def test_embed_compare_single(self, client, sample_packages):
+        resp = client.get("/embed/compare?ids=top-api")
+        assert resp.status_code == 200
+        assert "92" in resp.text
+
+    def test_embed_no_base_template(self, client, sample_packages):
+        """Embed should be self-contained, not using base.html."""
+        resp = client.get("/embed/compare?ids=top-api")
+        assert resp.status_code == 200
+        assert "<!DOCTYPE html>" in resp.text
+        # Should NOT contain base template elements like nav
+        assert "Search packages" not in resp.text

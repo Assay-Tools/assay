@@ -407,6 +407,32 @@ def compare_packages(
     )
 
 
+@router.get("/embed/compare", response_class=HTMLResponse)
+def embed_compare(
+    request: Request,
+    ids: str = Query(..., description="Comma-separated package IDs"),
+    db: Session = Depends(get_db),
+):
+    """Embeddable comparison widget for iframes."""
+    id_list = [i.strip() for i in ids.split(",") if i.strip()][:10]
+    if not id_list:
+        return HTMLResponse("<p>No package IDs provided.</p>", status_code=400)
+
+    packages = (
+        db.query(Package)
+        .options(joinedload(Package.category))
+        .filter(Package.id.in_(id_list))
+        .all()
+    )
+    pkg_map = {p.id: p for p in packages}
+    packages = [pkg_map[pid] for pid in id_list if pid in pkg_map]
+
+    return templates.TemplateResponse(
+        "embeds/compare.html",
+        {"request": request, "packages": packages},
+    )
+
+
 # ── Contribute ────────────────────────────────────────────────────────────────
 
 
