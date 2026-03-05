@@ -54,6 +54,16 @@ Items ready to be claimed. Roughly priority-ordered.
 - [x] ~~**Score visualization** — moved to Completed~~
 - [x] ~~**Display last_evaluated** — moved to Completed~~
 
+### Legal / Trust
+- [x] ~~**Disclaimer on about page** — moved to Completed~~
+- [x] ~~**Correction/dispute process** — moved to Completed~~
+
+### Evaluation Pipeline
+- [ ] **Evaluation skill** — Portable Claude Code skill (slash command) that runs a full package evaluation: discovers package, scores all dimensions (AF, security, reliability), generates structured JSON matching the DB schema
+- [ ] **Submission API** — `POST /v1/evaluations` endpoint to accept evaluation JSON submissions, validate schema, and upsert package + agent_readiness + related records into DB
+- [ ] **Auth for submissions** — API key or token-based auth for the submission endpoint (prevent anonymous writes)
+- [ ] **Evaluation review queue** — Optional moderation: submitted evals land in "pending" status, admin can approve/reject before scores go live
+
 ### CLI
 - [ ] **CLI tool** — `assay check <pkg>`, `assay compare <a> <b>`, `assay stale --days 90`
 
@@ -81,3 +91,5 @@ Items ready to be claimed. Roughly priority-ordered.
 - [x] **OpenAPI spec polish** — tag descriptions, endpoint docstrings, schema field descriptions, API metadata (2026-03-04)
 - [x] **API completeness** — score dimension filters, change feed endpoint, category leaderboards + 16 new tests (2026-03-04)
 - [x] **Website polish** — staleness badge, radar chart, prominent evaluation date (2026-03-04)
+- [x] **Disclaimer on about page** — as-is disclaimer, no warranty/guarantee/certification language (2026-03-04)
+- [x] **Correction/dispute process** — score disputes section on about page with GitHub issues + email contact (2026-03-04)
