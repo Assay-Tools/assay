@@ -2,11 +2,12 @@
 
 import logging
 from datetime import datetime, timezone
+from pathlib import Path
 
 import stripe
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
-from starlette.responses import Response
+from starlette.responses import FileResponse, Response
 
 from assay.config import settings
 from assay.database import get_db
@@ -17,6 +18,9 @@ from .rate_limit import limiter
 logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["payments"])
+
+# Project root for resolving report file paths
+PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
 
 
 def _ensure_stripe():
@@ -231,6 +235,14 @@ def _handle_checkout_completed(session_data: dict, db: Session):
         order.id, order.order_type, order.package_id,
     )
 
+    # Generate report for report orders
+    if order.order_type == "report":
+        try:
+            from assay.reports.delivery import generate_report_for_order
+            generate_report_for_order(order, db)
+        except Exception:
+            logger.exception("Report generation failed for order %d", order.id)
+
 
 def _handle_subscription_cancelled(sub_data: dict, db: Session):
     """Mark subscription orders as cancelled."""
@@ -279,3 +291,37 @@ def get_order_status(
         "paid_at": order.paid_at.isoformat() if order.paid_at else None,
         "report_path": order.report_path,
     }
+
+
+# --- Report download ---
+
+
+@router.get("/v1/orders/{order_id}/download")
+@limiter.limit("50/day")
+def download_report(
+    request: Request,
+    response: Response,
+    order_id: int,
+    db: Session = Depends(get_db),
+):
+    """Download the generated report for a paid order."""
+    order = db.query(Order).filter(Order.id == order_id).first()
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    if order.status != "paid":
+        raise HTTPException(status_code=402, detail="Order has not been paid")
+
+    if not order.report_path:
+        raise HTTPException(status_code=404, detail="Report not yet generated")
+
+    report_file = PROJECT_ROOT / order.report_path
+
+    if not report_file.exists():
+        raise HTTPException(status_code=404, detail="Report file not found")
+
+    return FileResponse(
+        path=str(report_file),
+        filename=f"assay-report-{order.package_id}.md",
+        media_type="text/markdown",
+    )

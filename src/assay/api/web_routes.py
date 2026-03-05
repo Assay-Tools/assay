@@ -12,7 +12,7 @@ from sqlalchemy import func, or_
 from sqlalchemy.orm import Session, joinedload
 
 from assay.database import get_db
-from assay.models import Category, Package, PackageAgentReadiness
+from assay.models import Category, Order, Package, PackageAgentReadiness
 
 _templates_dir = Path(__file__).parent.parent / "templates"
 templates = Jinja2Templates(directory=str(_templates_dir))
@@ -149,9 +149,10 @@ def packages_list(
     if type:
         query = query.filter(Package.package_type == type)
 
-    # Search
+    # Search (escape LIKE wildcards in user input)
     if q:
-        search_term = f"%{q}%"
+        escaped = q.replace("%", r"\%").replace("_", r"\_")
+        search_term = f"%{escaped}%"
         query = query.filter(
             or_(
                 Package.name.ilike(search_term),
@@ -661,6 +662,30 @@ def llms_txt():
 def llms_full_txt():
     """Extended llms.txt with scoring methodology and API usage examples."""
     return LLMS_TXT + LLMS_FULL_TXT_EXTRA
+
+
+# ── Order Success Page ────────────────────────────────────────────────────────
+
+
+@router.get("/orders/{order_id}/success", response_class=HTMLResponse)
+def order_success(request: Request, order_id: int, db: Session = Depends(get_db)):
+    """Post-checkout success page showing order status and download link."""
+    order = db.query(Order).filter(Order.id == order_id).first()
+    if not order:
+        return templates.TemplateResponse("pages/order_success.html", {
+            "request": request,
+            "order": None,
+            "error": "Order not found",
+        })
+
+    pkg = db.query(Package).filter(Package.id == order.package_id).first()
+
+    return templates.TemplateResponse("pages/order_success.html", {
+        "request": request,
+        "order": order,
+        "package": pkg,
+        "error": None,
+    })
 
 
 # ── Admin / Data Freshness ────────────────────────────────────────────────────

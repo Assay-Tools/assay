@@ -67,10 +67,13 @@ class TestMonitoringCheckout:
 
 class TestWebhook:
     @patch("assay.api.payments.stripe")
+    @patch("assay.reports.delivery.generate_report_for_order")
     def test_checkout_completed_webhook(
-        self, mock_stripe, client, sample_packages, db,
+        self, mock_generate, mock_stripe, client, sample_packages, db,
     ):
         from assay.models import Order
+
+        mock_generate.return_value = "reports/output/packages/top-api-order-1.md"
 
         order = Order(
             package_id="top-api",
@@ -116,6 +119,7 @@ class TestWebhook:
         updated_order = db.query(Order).filter(Order.id == order_id).first()
         assert updated_order.status == "paid"
         assert updated_order.customer_email == "buyer@example.com"
+        mock_generate.assert_called_once()
 
     def test_webhook_missing_signature(self, client):
         resp = client.post(
@@ -149,6 +153,106 @@ class TestOrderStatus:
     def test_get_nonexistent_order(self, client):
         resp = client.get("/v1/orders/9999")
         assert resp.status_code == 404
+
+
+class TestReportDownload:
+    def test_download_paid_report(self, client, db, tmp_path):
+        from assay.models import Order
+
+        # Create a report file
+        report_file = tmp_path / "reports" / "output" / "packages" / "top-api-order-1.md"
+        report_file.parent.mkdir(parents=True)
+        report_file.write_text("# Test Report\nContent here.")
+
+        order = Order(
+            package_id="top-api",
+            order_type="report",
+            amount_cents=9900,
+            status="paid",
+            report_path="reports/output/packages/top-api-order-1.md",
+        )
+        db.add(order)
+        db.commit()
+
+        with patch("assay.api.payments.PROJECT_ROOT", tmp_path):
+            resp = client.get(f"/v1/orders/{order.id}/download")
+            assert resp.status_code == 200
+
+    def test_download_unpaid_order(self, client, db):
+        from assay.models import Order
+
+        order = Order(
+            package_id="top-api",
+            order_type="report",
+            amount_cents=9900,
+            status="pending",
+        )
+        db.add(order)
+        db.commit()
+
+        resp = client.get(f"/v1/orders/{order.id}/download")
+        assert resp.status_code == 402
+
+    def test_download_no_report(self, client, db):
+        from assay.models import Order
+
+        order = Order(
+            package_id="top-api",
+            order_type="report",
+            amount_cents=9900,
+            status="paid",
+            report_path=None,
+        )
+        db.add(order)
+        db.commit()
+
+        resp = client.get(f"/v1/orders/{order.id}/download")
+        assert resp.status_code == 404
+
+    def test_download_nonexistent_order(self, client):
+        resp = client.get("/v1/orders/9999/download")
+        assert resp.status_code == 404
+
+
+class TestOrderSuccessPage:
+    def test_success_page_paid(self, client, sample_packages, db):
+        from assay.models import Order
+
+        order = Order(
+            package_id="top-api",
+            order_type="report",
+            amount_cents=9900,
+            status="paid",
+            customer_email="buyer@example.com",
+        )
+        db.add(order)
+        db.commit()
+
+        resp = client.get(f"/orders/{order.id}/success")
+        assert resp.status_code == 200
+        assert "Payment Successful" in resp.text
+        assert "buyer@example.com" in resp.text
+
+    def test_success_page_pending(self, client, db):
+        from assay.models import Order
+
+        order = Order(
+            package_id="top-api",
+            order_type="report",
+            amount_cents=9900,
+            status="pending",
+        )
+        db.add(order)
+        db.commit()
+
+        resp = client.get(f"/orders/{order.id}/success")
+        assert resp.status_code == 200
+        assert "Payment Processing" in resp.text
+
+    def test_success_page_not_found(self, client):
+        resp = client.get("/orders/9999/success")
+        assert resp.status_code == 200
+        assert "Order Not Found" in resp.text
 
 
 class TestNotConfigured:
