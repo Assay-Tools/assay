@@ -595,8 +595,8 @@ LLMS_FULL_TXT_EXTRA = """
 | Component | Weight | What It Measures |
 |-----------|--------|-----------------|
 | MCP Server Quality | 25% | Existence, maturity, documentation of MCP server |
-| Documentation Accuracy | 30% | API docs quality, examples, completeness |
-| Error Message Quality | 15% | Structured errors with codes and recovery guidance |
+| Documentation Accuracy | 25% | API docs quality, examples, completeness |
+| Error Message Quality | 20% | Structured errors with codes and recovery guidance |
 | Auth Complexity | 15% | How easy to authenticate programmatically (100 = simple) |
 | Rate Limit Clarity | 15% | Clear docs + response headers for rate limits |
 

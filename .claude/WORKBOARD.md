@@ -86,8 +86,8 @@ Items ready to be claimed. Roughly priority-ordered within each phase.
 - [x] ~~**Stripe integration** — done, moved to Completed~~
 - [x] ~~**Report delivery pipeline** — done, moved to Completed~~
 - [ ] **Email sending infrastructure** — Transactional email for report delivery, payment confirmations, and future score-change notifications. Use Resend or Postmark (not raw SMTP). **Files**: new `src/assay/notifications/email.py`. **Note**: AJ must approve the sending service choice and create the account
-- [ ] **Buy report flow (web)** — "Buy Full Report — $99" button on package detail pages → Stripe Checkout → delivery. Only show for packages with enough data for a meaningful report. **Files**: update `templates/package_detail.html`, new `templates/report_purchase.html`, `templates/report_confirmation.html`
-- [ ] **Basic bookkeeping** — Simple revenue/expense tracking. Could be as minimal as a CSV/JSON log of transactions pulled from Stripe webhook events, or a lightweight admin page. Enough for tax reporting. **Files**: new `src/assay/admin/accounting.py` or `scripts/export_transactions.py`
+- [x] ~~**Buy report flow (web)** — done, moved to Completed~~
+- [x] ~~**Basic bookkeeping** — done, moved to Completed~~
 
 ### Phase 2: Monitoring Product (enables $3/mo recurring revenue)
 
@@ -172,3 +172,4 @@ Items ready to be claimed. Roughly priority-ordered within each phase.
 - [x] **Data freshness dashboard** — /admin/freshness with coverage, staleness, category breakdown, 4 tests (2026-03-04)
 - [x] **Stripe integration** — checkout sessions, webhook handler, Order model, order status endpoint, 9 tests (2026-03-04)
 - [x] **Report delivery pipeline** — post-payment report generation, download endpoint, success page, 16 total payment tests (2026-03-04)
+- [x] **Buy report flow (web)** — $99 button on package pages → Stripe Checkout → delivery (2026-03-04)

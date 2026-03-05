@@ -80,6 +80,10 @@ def list_packages(
     ),
     compliance: str | None = Query(None, description="Required compliance (e.g. SOC2, HIPAA)"),
     type: str | None = Query(None, description="Filter by package type (mcp_server, skill)"),
+    q: str | None = Query(
+        None, description="Text search across name, description, and tags",
+        alias="q",
+    ),
     sort: str = Query("af_score:desc", description="Sort field:direction (e.g. name:asc)"),
     limit: int = Query(20, ge=1, le=100),
     offset: int = Query(0, ge=0),
@@ -88,35 +92,51 @@ def list_packages(
     """List and filter evaluated packages.
 
     Supports filtering by category, MCP availability, free tier,
-    minimum AF score, compliance, and package type. Results are
-    paginated and sortable.
+    minimum AF score, compliance, package type, and text search.
+    Results are paginated and sortable.
     """
-    q = db.query(Package)
-    q = _apply_eager(q)
+    query = db.query(Package)
+    query = _apply_eager(query)
+
+    # Text search
+    if q:
+        escaped = q.replace("%", r"\%").replace("_", r"\_")
+        search_term = f"%{escaped}%"
+        query = query.filter(
+            or_(
+                Package.name.ilike(search_term),
+                Package.what_it_does.ilike(search_term),
+                Package.tags.ilike(search_term),
+            )
+        )
 
     # Filters
     if type:
-        q = q.filter(Package.package_type == type)
+        query = query.filter(Package.package_type == type)
     if category:
-        q = q.filter(Package.category_slug == category)
+        query = query.filter(Package.category_slug == category)
     if has_mcp is not None:
-        q = q.join(Package.interface).filter(PackageInterface.has_mcp_server == has_mcp)
+        query = query.join(Package.interface).filter(
+            PackageInterface.has_mcp_server == has_mcp,
+        )
     if free_tier is not None:
-        q = q.join(Package.pricing).filter(PackagePricing.free_tier_exists == free_tier)
+        query = query.join(Package.pricing).filter(
+            PackagePricing.free_tier_exists == free_tier,
+        )
     if min_af_score is not None:
-        q = q.filter(Package.af_score >= min_af_score)
+        query = query.filter(Package.af_score >= min_af_score)
     if min_security_score is not None:
-        q = q.filter(Package.security_score >= min_security_score)
+        query = query.filter(Package.security_score >= min_security_score)
     if min_reliability_score is not None:
-        q = q.filter(Package.reliability_score >= min_reliability_score)
+        query = query.filter(Package.reliability_score >= min_reliability_score)
     if compliance:
         # compliance stored as JSON array string — use LIKE for SQLite compat
-        q = q.join(Package.requirements).filter(
+        query = query.join(Package.requirements).filter(
             PackageRequirements.compliance.contains(compliance)
         )
 
     # Count before pagination
-    total = q.count()
+    total = query.count()
 
     # Sorting (whitelist to prevent attribute probing)
     SORTABLE_FIELDS = {
@@ -133,11 +153,11 @@ def list_packages(
         )
     column = getattr(Package, sort_field)
     if sort_dir == "asc":
-        q = q.order_by(column.asc())
+        query = query.order_by(column.asc())
     else:
-        q = q.order_by(column.desc().nulls_last())
+        query = query.order_by(column.desc().nulls_last())
 
-    packages = q.offset(offset).limit(limit).all()
+    packages = query.offset(offset).limit(limit).all()
 
     return PackageListResponse(
         packages=[p.to_dict() for p in packages],
