@@ -11,6 +11,9 @@ from starlette.responses import Response, StreamingResponse
 
 from assay.config import settings
 from assay.database import get_db
+from assay.heartbeat.data import check_data_pipeline
+from assay.heartbeat.feedback import check_feedback
+from assay.heartbeat.health import check_site_health
 from assay.models import Order
 
 logger = logging.getLogger(__name__)
@@ -138,5 +141,54 @@ def revenue_summary(
         },
         "by_month": {
             k: f"${v / 100:.2f}" for k, v in sorted(by_month.items())
+        },
+    }
+
+
+@router.get("/dashboard")
+def business_dashboard(
+    request: Request,
+    db: Session = Depends(get_db),
+    _auth=Depends(_require_admin_key),
+):
+    """Business health dashboard — real-time health, data, feedback status."""
+    now = datetime.now(timezone.utc)
+
+    # Run all heartbeat checks
+    health_alerts = check_site_health()
+    data_alerts = check_data_pipeline(db)
+    feedback_alerts = check_feedback(db)
+
+    all_alerts = health_alerts + data_alerts + feedback_alerts
+    severity_order = {"critical": 0, "warning": 1, "info": 2}
+    all_alerts.sort(key=lambda a: severity_order.get(a.level, 3))
+
+    # Revenue summary (inline, avoid circular import)
+    orders = db.query(Order).filter(Order.status == "paid").all()
+    total_revenue = sum(o.amount_cents or 0 for o in orders)
+
+    return {
+        "timestamp": now.isoformat(),
+        "status": (
+            "critical" if any(a.level == "critical" for a in all_alerts)
+            else "warning" if any(a.level == "warning" for a in all_alerts)
+            else "healthy"
+        ),
+        "revenue": {
+            "total_usd": f"${total_revenue / 100:.2f}",
+            "paid_orders": len(orders),
+        },
+        "alerts": [
+            {
+                "level": a.level,
+                "check": a.check,
+                "message": a.message,
+            }
+            for a in all_alerts
+        ],
+        "checks_run": {
+            "site_health": len(health_alerts),
+            "data_pipeline": len(data_alerts),
+            "feedback": len(feedback_alerts),
         },
     }
