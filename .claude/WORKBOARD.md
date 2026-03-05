@@ -106,7 +106,7 @@ Items ready to be claimed. Roughly priority-ordered within each phase.
 
 - [ ] **Daniel Miessler outreach** — Personal message to Daniel with link to assay.tools. He's in the AI/security space, runs Fabric (an MCP-adjacent tool), and AJ has an existing relationship. Ask for honest feedback on scoring methodology, UX, and whether the $99 report is compelling. Share via DM (not public). **Goal**: Get a credible practitioner's gut check before going wide
 - [ ] **Trusted beta testers (5-10)** — Identify 5-10 people from AJ's network (security, AI, DevOps communities) who would give honest feedback. Send personal invites with specific questions: Is the scoring credible? Would you pay $99 for a report? What's missing? Collect feedback in a structured doc
-- [ ] **Feedback collection mechanism** — Simple way for beta testers to submit feedback. Could be a Google Form, GitHub Discussions, or a `/feedback` page on the site. Low effort, high signal
+- [x] **Feedback collection mechanism** — /feedback page with structured form, Feedback model, footer link, 6 tests (2026-03-04)
 - [ ] **Beta fixes sprint** — Reserve capacity to act on feedback from Daniel and beta testers before going public. Fix credibility issues, UX problems, or scoring methodology concerns
 
 ### Phase 5: Public Launch — Maximum Visibility
