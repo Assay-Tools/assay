@@ -63,14 +63,15 @@ def create_report_checkout(
             detail="Package has not been evaluated yet — no report available",
         )
 
-    # Create order record
+    # Create order, flush to get ID, then create Stripe session.
+    # Only commit if Stripe succeeds — rollback on failure.
     order = Order(
         package_id=package_id,
         order_type="report",
         amount_cents=9900,
     )
     db.add(order)
-    db.commit()
+    db.flush()  # Assigns order.id without committing
 
     try:
         session = stripe.checkout.Session.create(
@@ -88,6 +89,7 @@ def create_report_checkout(
             cancel_url=f"{settings.app_url}/packages/{package_id}",
         )
     except stripe.StripeError as e:
+        db.rollback()
         logger.error("Stripe checkout creation failed: %s", e)
         raise HTTPException(status_code=502, detail="Payment service error")
 
@@ -122,13 +124,15 @@ def create_monitoring_checkout(
     if not pkg:
         raise HTTPException(status_code=404, detail=f"Package '{package_id}' not found")
 
+    # Create order, flush to get ID, then create Stripe session.
+    # Only commit if Stripe succeeds — rollback on failure.
     order = Order(
         package_id=package_id,
         order_type="monitoring_subscription",
         amount_cents=300,
     )
     db.add(order)
-    db.commit()
+    db.flush()
 
     try:
         session = stripe.checkout.Session.create(
@@ -146,6 +150,7 @@ def create_monitoring_checkout(
             cancel_url=f"{settings.app_url}/packages/{package_id}",
         )
     except stripe.StripeError as e:
+        db.rollback()
         logger.error("Stripe checkout creation failed: %s", e)
         raise HTTPException(status_code=502, detail="Payment service error")
 
@@ -168,6 +173,13 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
     if not settings.stripe_secret_key:
         raise HTTPException(status_code=503, detail="Not configured")
 
+    if not settings.stripe_webhook_secret:
+        logger.error("STRIPE_WEBHOOK_SECRET not set — refusing webhook")
+        raise HTTPException(
+            status_code=503,
+            detail="Webhook signature verification not configured",
+        )
+
     stripe.api_key = settings.stripe_secret_key
     payload = await request.body()
     sig_header = request.headers.get("stripe-signature")
@@ -176,16 +188,9 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="Missing stripe-signature")
 
     try:
-        if settings.stripe_webhook_secret:
-            event = stripe.Webhook.construct_event(
-                payload, sig_header, settings.stripe_webhook_secret,
-            )
-        else:
-            # Dev mode — no signature verification
-            import json
-            event = stripe.Event.construct_from(
-                json.loads(payload), stripe.api_key,
-            )
+        event = stripe.Webhook.construct_event(
+            payload, sig_header, settings.stripe_webhook_secret,
+        )
     except stripe.SignatureVerificationError:
         raise HTTPException(status_code=400, detail="Invalid signature")
     except Exception as e:

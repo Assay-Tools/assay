@@ -8,7 +8,7 @@ import pytest
 # Patch settings at module level so it's picked up by all tests
 _STRIPE_SETTINGS = {
     "stripe_secret_key": "sk_test_fake",
-    "stripe_webhook_secret": "",
+    "stripe_webhook_secret": "whsec_test_fake",
     "stripe_price_report": "price_report_test",
     "stripe_price_monitoring": "price_monitoring_test",
     "app_url": "https://test.assay.tools",
@@ -103,7 +103,7 @@ class TestWebhook:
             },
         }
 
-        mock_stripe.Event.construct_from.return_value = event_data
+        mock_stripe.Webhook.construct_event.return_value = event_data
 
         resp = client.post(
             "/v1/webhooks/stripe",
@@ -120,6 +120,18 @@ class TestWebhook:
         assert updated_order.status == "paid"
         assert updated_order.customer_email == "buyer@example.com"
         mock_generate.assert_called_once()
+
+    def test_webhook_rejects_missing_secret(self, client, _patch_settings):
+        _patch_settings.stripe_webhook_secret = ""
+        resp = client.post(
+            "/v1/webhooks/stripe",
+            content="{}",
+            headers={
+                "Content-Type": "application/json",
+                "stripe-signature": "test_sig",
+            },
+        )
+        assert resp.status_code == 503
 
     def test_webhook_missing_signature(self, client):
         resp = client.post(
