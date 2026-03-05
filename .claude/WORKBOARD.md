@@ -140,23 +140,23 @@ Items ready to be claimed. Roughly priority-ordered within each phase.
 
 ### Automated Discovery System (continuous package pipeline)
 
-**Current state**: 4 sources, manual CLI-only, no GitHub auth token (60 req/hr cap), ~7,000 packages. Needs to scale to continuous automated discovery across many more sources.
+**Current state**: 7 sources (was 4), GitHub auth support, expanded search queries, ~7,000 packages. Needs scheduled runs and quality scoring.
 
 **Infrastructure**:
-- [ ] **Add GitHub token to discovery** — Current discovery runs unauthenticated (60 req/hr, 1,000 results/query max). Add `GITHUB_TOKEN` env var support to `GitHubSource` and `OpenClawSource`. Authenticated gets 5,000 req/hr and better search results. **AJ**: create a GitHub PAT (fine-grained, read-only public repos) and add to Railway env vars. **Files**: `src/assay/evaluation/sources/github.py`, `config.py`
+- [x] **Add GitHub token to discovery** — GITHUB_TOKEN env var support in GitHubSource and OpenClawSource. 5,000 req/hr authenticated vs 60. **AJ**: create GitHub PAT (fine-grained, read-only public repos) and add to Railway env vars. (2026-03-05)
 - [ ] **Scheduled discovery runs** — GitHub Action on cron (daily or twice-daily). Runs `python -m assay.evaluation.discovery --limit 500` against production DB. New packages get `status="discovered"` and enter the evaluation queue. **Files**: new `.github/workflows/discovery.yml`
 - [ ] **Discovery run logging** — Track each discovery run: timestamp, source, packages found, new packages added, duplicates skipped. Store in DB or append to a log file. Enables monitoring whether discovery is finding new stuff or plateauing. **Files**: update `discovery.py`
 
 **New GitHub search queries**:
-- [ ] **Expand GitHub MCP search** — Add more search queries beyond the current 3: `topic:model-context-protocol`, `"mcp" in:readme language:python`, `"mcp" in:readme language:typescript`, `"@modelcontextprotocol/sdk" in:file`, `mcp-server in:path`. Each query surfaces different packages. **File**: `src/assay/evaluation/sources/github.py`
-- [ ] **GitHub skill discovery** — Dedicated searches for Claude Code skills, agent skills, and tool-use packages: `topic:claude-code-skill`, `topic:ai-agent-tool`, `"tool_use" in:readme`, `topic:langchain-tool`, `topic:crewai-tool`, `"function_calling" in:readme`. New `package_type="skill"` entries. **File**: `src/assay/evaluation/sources/skills.py`
+- [x] **Expand GitHub MCP search** — 7 queries (was 3): topic:model-context-protocol, @modelcontextprotocol/sdk in:file, language-specific path searches (2026-03-05)
+- [x] **GitHub skill discovery** — 9 queries (was 4): claude-code-skill, ai-agent-tool, langchain-tool, crewai-tool, tool_use in readme (2026-03-05)
 
 **New registry sources**:
-- [ ] **Smithery.ai registry** — Smithery is the largest MCP server directory. Check if they have a public API; if so, add as a `SmitherySource`. If not, scrape their server listing pages. **Files**: new `src/assay/evaluation/sources/smithery.py`
+- [x] **Smithery.ai registry** — SmitherySource added, requires SMITHERY_TOKEN. AJ: create token at smithery.ai (2026-03-05)
 - [ ] **mcp.run registry** — Another MCP hub. Same approach: API if available, scrape if not. **Files**: new `src/assay/evaluation/sources/mcprun.py`
 - [ ] **Glama.ai MCP directory** — Glama maintains an MCP server directory. Check for API/scraping options. **Files**: new `src/assay/evaluation/sources/glama.py`
-- [ ] **npm/PyPI search** — Search npm for `mcp-server` keyword packages and PyPI for packages with `mcp` classifier or keyword. These catch packages not on GitHub or not using the right topics. **Files**: new `src/assay/evaluation/sources/npm.py`, new `src/assay/evaluation/sources/pypi.py`
-- [ ] **Awesome list expansion** — Currently only 3 awesome lists. Add more: `wong2/awesome-mcp-servers`, `appcypher/awesome-mcp-servers`, any new curated lists that emerge. Make the list configurable rather than hardcoded. **File**: `src/assay/evaluation/sources/skills.py`
+- [x] **npm/PyPI search** — NpmSource (4 search queries) + PyPISource (simple index filter by mcp-* prefix) (2026-03-05)
+- [x] **Awesome list expansion** — 5 repos (was 3): added wong2/awesome-mcp-servers, appcypher/awesome-mcp-servers (2026-03-05)
 
 **Quality & dedup**:
 - [ ] **Cross-source deduplication improvements** — Current dedup is by normalized repo URL and slug. Add: npm package name matching, PyPI package name matching, and fuzzy name matching for packages that appear in multiple registries under slightly different names
