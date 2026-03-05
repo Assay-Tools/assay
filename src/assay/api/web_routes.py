@@ -16,6 +16,7 @@ from assay.database import get_db
 from assay.models import (
     Category,
     EmailSubscriber,
+    Feedback,
     Order,
     Package,
     PackageAgentReadiness,
@@ -984,6 +985,46 @@ def subscribe_email(
     return RedirectResponse("/?subscribed=ok", status_code=303)
 
 
+# ── Feedback ─────────────────────────────────────────────────────────────────
+
+_FEEDBACK_TYPES = {"bug", "scoring", "feature", "general"}
+
+
+@router.get("/feedback", response_class=HTMLResponse)
+def feedback_page(request: Request):
+    """Feedback submission page."""
+    return templates.TemplateResponse("pages/feedback.html", {
+        "request": request,
+    })
+
+
+@router.post("/feedback")
+def submit_feedback(
+    feedback_type: str = Form(...),
+    message: str = Form(...),
+    email: str = Form(""),
+    db: Session = Depends(get_db),
+):
+    """Submit feedback."""
+    message = message.strip()
+    if not message or len(message) > 5000:
+        return RedirectResponse("/feedback?submitted=invalid", status_code=303)
+
+    if feedback_type not in _FEEDBACK_TYPES:
+        feedback_type = "general"
+
+    email_val = email.strip().lower() if email.strip() else None
+
+    fb = Feedback(
+        email=email_val,
+        feedback_type=feedback_type,
+        message=message[:5000],
+    )
+    db.add(fb)
+    db.commit()
+    return RedirectResponse("/feedback?submitted=ok", status_code=303)
+
+
 # ── SEO ──────────────────────────────────────────────────────────────────────
 
 
@@ -1017,6 +1058,7 @@ def sitemap_xml(db: Session = Depends(get_db)):
         ("/methodology", "0.6", "monthly"),
         ("/developers", "0.6", "monthly"),
         ("/contribute", "0.5", "monthly"),
+        ("/feedback", "0.4", "monthly"),
     ]:
         urls.append(
             f'  <url><loc>{base}{path}</loc>'
