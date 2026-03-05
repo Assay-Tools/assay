@@ -82,7 +82,7 @@ Items ready to be claimed. Roughly priority-ordered within each phase.
 - [ ] **Prospecting outreach to package maintainers** — The warm outreach play: for top-scored packages (AF 80+), reach out to maintainers with their score as a conversation opener. "Your package scored 87/100 on agent-friendliness — here's why." Links to full evaluation report purchase. Prioritize: packages with 55-75 scores (room to improve = report value), high GitHub stars, active development
 - [ ] **Outreach templates** — Draft 3-4 email/DM templates for different scenarios: (1) high scorer congratulations, (2) mid-scorer improvement opportunity, (3) new package discovered, (4) re-evaluation score change. AJ reviews before any outbound
 - [ ] **LinkedIn presence** — Post about Assay on AJ's LinkedIn. Share Q1 ecosystem report findings as thought leadership. Tag relevant package maintainers when discussing their scores (with permission)
-- [ ] **SEO basics** — Meta descriptions, OG tags, structured data (JSON-LD for SoftwareApplication ratings), sitemap.xml, robots.txt review. The directory should rank for "[package name] agent readiness" queries
+- [x] **SEO basics** — Meta descriptions, OG tags, structured data (JSON-LD for SoftwareApplication ratings), sitemap.xml, robots.txt review. The directory should rank for "[package name] agent readiness" queries
 - [ ] **Content calendar** — Recurring content plan: monthly "Top Movers" post (packages whose scores changed most), quarterly ecosystem report (already templated), category spotlights. Builds organic traffic and newsletter subscribers
 - [ ] **Email list / newsletter** — Capture emails via Q1 report download (gated PDF) and optional site signup. Monthly digest of score changes, new evaluations, ecosystem trends. Nurtures leads toward $99 reports and $3/mo monitoring
 
@@ -123,3 +123,4 @@ Items ready to be claimed. Roughly priority-ordered within each phase.
 - [x] **Evaluation review queue** — pending/approve/reject endpoints, PendingEvaluation model (2026-03-04)
 - [x] **Evaluation skill** — Claude Code `/evaluate` slash command for package evaluation (2026-03-04)
 - [x] **CLI tool** — `assay check/compare/stale` with ASCII output + --json, 5 tests (2026-03-04)
+- [x] **SEO basics** — meta descriptions, OG tags, JSON-LD, sitemap.xml, robots.txt, 11 tests (2026-03-04)
