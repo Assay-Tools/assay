@@ -16,6 +16,8 @@ from assay.heartbeat.feedback import check_feedback
 from assay.heartbeat.health import check_site_health
 from assay.models import Order
 
+from .usage import api_call_counts, api_error_counts
+
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/admin", tags=["admin"])
@@ -191,4 +193,37 @@ def business_dashboard(
             "data_pipeline": len(data_alerts),
             "feedback": len(feedback_alerts),
         },
+    }
+
+
+@router.get("/api-usage")
+def api_usage_stats(
+    request: Request,
+    _auth=Depends(_require_admin_key),
+):
+    """API usage analytics — call counts and error rates per endpoint."""
+    # Sort by call count descending
+    sorted_endpoints = sorted(
+        api_call_counts.items(), key=lambda x: x[1], reverse=True,
+    )
+
+    total_calls = sum(api_call_counts.values())
+    total_errors = sum(api_error_counts.values())
+
+    return {
+        "total_calls": total_calls,
+        "total_errors": total_errors,
+        "error_rate": (
+            f"{total_errors / total_calls * 100:.1f}%"
+            if total_calls > 0 else "0%"
+        ),
+        "endpoints": [
+            {
+                "path": path,
+                "calls": count,
+                "errors": api_error_counts.get(path, 0),
+            }
+            for path, count in sorted_endpoints
+        ],
+        "note": "Counters reset on process restart",
     }

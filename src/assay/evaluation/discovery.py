@@ -4,6 +4,9 @@ from __future__ import annotations
 
 import argparse
 import json
+import logging
+from datetime import datetime, timezone
+from pathlib import Path
 
 from assay.database import SessionLocal, init_db
 from assay.models import Category, Package
@@ -168,15 +171,34 @@ def _guess_category(description: str | None, topics: list[str], name: str) -> st
     return best_slug
 
 
-def _compute_priority(stars: int) -> str:
-    """Compute priority tier based on star count.
+def _compute_priority(pkg: DiscoveredPackage) -> str:
+    """Compute priority tier based on quality signals.
 
-    Tier 1 (high): stars >= 50
-    Tier 2 (low): stars >= 25 OR stars unknown (0 from registry)
-    Tier 3 (low): everything else
+    Signals: stars, recent activity, multi-source presence.
+    high: stars >= 50, or recently active (last 90 days) with stars >= 10
+    medium: stars >= 10, or recently active
+    low: everything else
     """
+    stars = pkg.stars
+    # Check recency (last_active within 90 days)
+    recent = False
+    if pkg.last_active:
+        try:
+            from datetime import datetime, timezone
+            active_date = datetime.fromisoformat(
+                pkg.last_active.replace("Z", "+00:00"),
+            )
+            days_old = (datetime.now(timezone.utc) - active_date).days
+            recent = days_old <= 90
+        except (ValueError, TypeError):
+            pass
+
     if stars >= 50:
         return "high"
+    if stars >= 10 and recent:
+        return "high"
+    if stars >= 10 or recent:
+        return "medium"
     return "low"
 
 
@@ -188,6 +210,35 @@ def _normalize_repo_url(url: str | None) -> str | None:
     if url.endswith(".git"):
         url = url[:-4]
     return url
+
+
+logger = logging.getLogger(__name__)
+
+LOG_DIR = Path(__file__).parent.parent.parent.parent / "logs" / "discovery"
+
+
+def _log_discovery_run(
+    sources: list[str],
+    discovered: int,
+    inserted: int,
+    total_db: int,
+) -> None:
+    """Append a JSON line to the discovery run log."""
+    try:
+        LOG_DIR.mkdir(parents=True, exist_ok=True)
+        log_file = LOG_DIR / "runs.jsonl"
+        entry = {
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "sources": sources,
+            "discovered": discovered,
+            "inserted": inserted,
+            "duplicates_skipped": discovered - inserted,
+            "total_db": total_db,
+        }
+        with open(log_file, "a") as f:
+            f.write(json.dumps(entry) + "\n")
+    except OSError as exc:
+        logger.warning("Could not write discovery log: %s", exc)
 
 
 class DiscoveryAgent:
@@ -278,7 +329,7 @@ class DiscoveryAgent:
                 continue
 
             category_slug = _guess_category(pkg.description, pkg.topics, pkg.name)
-            priority = _compute_priority(pkg.stars)
+            priority = _compute_priority(pkg)
 
             db_pkg = Package(
                 id=pkg.id,
@@ -337,6 +388,14 @@ class DiscoveryAgent:
             print("\n=== Done ===")
             print(f"  New packages inserted: {inserted}")
             print(f"  Total packages in DB:  {total}")
+
+            # Log discovery run
+            _log_discovery_run(
+                sources=[s.source_name for s in self.sources],
+                discovered=len(packages),
+                inserted=inserted,
+                total_db=total,
+            )
 
         finally:
             db.close()

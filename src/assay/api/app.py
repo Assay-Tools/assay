@@ -1,5 +1,7 @@
 """Main FastAPI application for Assay."""
 
+import logging
+import time
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -17,7 +19,10 @@ from .payments import router as payments_router
 from .rate_limit import limiter
 from .routes import router
 from .submission_routes import router as submission_router
+from .usage import api_call_counts, api_error_counts
 from .web_routes import router as web_router
+
+api_logger = logging.getLogger("assay.api_usage")
 
 app = FastAPI(
     title="Assay",
@@ -72,6 +77,35 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         return response
 
 
+class APIUsageMiddleware(BaseHTTPMiddleware):
+    """Track API call volume, response times, and errors."""
+
+    async def dispatch(self, request, call_next):
+        path = request.url.path
+        # Only track /v1/ API endpoints (not web pages or static files)
+        if not path.startswith("/v1/"):
+            return await call_next(request)
+
+        start = time.monotonic()
+        response = await call_next(request)
+        elapsed = time.monotonic() - start
+
+        # Track counters
+        api_call_counts[path] += 1
+        if response.status_code >= 400:
+            api_error_counts[path] += 1
+
+        # Log slow requests
+        if elapsed > 2.0:
+            api_logger.warning(
+                "Slow API: %s %s %.2fs status=%d",
+                request.method, path, elapsed, response.status_code,
+            )
+
+        return response
+
+
+app.add_middleware(APIUsageMiddleware)
 app.add_middleware(SecurityHeadersMiddleware)
 
 # API routes
