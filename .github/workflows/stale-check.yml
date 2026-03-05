@@ -1,0 +1,58 @@
+name: Stale Evaluation Check
+
+on:
+  schedule:
+    # Run weekly on Monday at 09:00 UTC
+    - cron: '0 9 * * 1'
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  check-stale:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Check for stale evaluations
+        id: check
+        run: |
+          python scripts/check_stale.py --limit 100 | tee stale-report.txt
+          python scripts/check_stale.py --limit 100 --json > stale-report.json
+
+      - name: Create summary
+        run: |
+          echo "## Stale Evaluation Report" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          cat stale-report.txt >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Create issue if stale packages found
+        if: ${{ hashFiles('stale-report.json') != '' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          COUNT=$(python -c "import json; d=json.load(open('stale-report.json')); print(d.get('count', 0))")
+          if [ "$COUNT" -gt 0 ]; then
+            BODY="$(cat stale-report.txt)"
+            # Check if an open issue already exists
+            EXISTING=$(gh issue list --state open --label "stale-evaluations" --json number --jq '.[0].number // empty' 2>/dev/null || true)
+            if [ -n "$EXISTING" ]; then
+              gh issue comment "$EXISTING" --body "Updated stale check ($(date -u +%Y-%m-%d)):
+          \`\`\`
+          $BODY
+          \`\`\`"
+            else
+              gh issue create \
+                --title "Re-evaluation needed: $COUNT stale packages" \
+                --label "stale-evaluations" \
+                --body "Weekly stale evaluation check found packages needing attention:
+          \`\`\`
+          $BODY
+          \`\`\`
+
+          Run \`/evaluate <package-id>\` in Claude Code to re-evaluate."
+            fi
+          fi
