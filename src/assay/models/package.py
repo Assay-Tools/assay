@@ -40,8 +40,9 @@ class Package(Base):
     legacy_id: Mapped[str | None] = mapped_column(String(255))  # Old-format slug for dedup
     # mcp_server, skill, api
     package_type: Mapped[str] = mapped_column(String(50), default="mcp_server")
-    # github, mcp_registry, skills_sh, github_awesome, openclaw, community
-    discovery_source: Mapped[str | None] = mapped_column(String(100))
+    # JSON list of sources that discovered this package, e.g. '["github","npm"]'
+    # Legacy records may have a plain string like "github" — use discovery_sources_list property.
+    discovery_source: Mapped[str | None] = mapped_column(Text)
     priority: Mapped[str] = mapped_column(String(10), default="low")  # high, low
     stars: Mapped[int | None] = mapped_column(Integer)  # GitHub star count
 
@@ -90,6 +91,16 @@ class Package(Base):
         return json.loads(val) if isinstance(val, str) else val
 
     @property
+    def discovery_sources_list(self) -> list[str]:
+        """Return discovery sources as a list, normalizing legacy plain-string format."""
+        val = self.discovery_source
+        if not val:
+            return []
+        if val.startswith("["):
+            return json.loads(val)
+        return [val]
+
+    @property
     def use_cases_list(self) -> list[str]:
         return self._json_field("use_cases") or []
 
@@ -129,7 +140,7 @@ class Package(Base):
             "security_score": self.security_score,
             "reliability_score": self.reliability_score,
             "package_type": self.package_type,
-            "discovery_source": self.discovery_source,
+            "discovery_source": self.discovery_sources_list,
             "priority": self.priority,
             "status": self.status,
             "version_evaluated": self.version_evaluated,
@@ -539,6 +550,32 @@ class Feedback(Base):
     submitted_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc),
     )
+
+
+class Contributor(Base):
+    """Community contributors who submit evaluations via GitHub OAuth."""
+
+    __tablename__ = "contributors"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)  # UUID
+    github_id: Mapped[int] = mapped_column(Integer, unique=True, nullable=False)
+    github_username: Mapped[str] = mapped_column(String(255), nullable=False)
+    github_avatar_url: Mapped[str | None] = mapped_column(String(512))
+    github_created_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    email: Mapped[str | None] = mapped_column(String(255))
+    api_key_hash: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)  # SHA-256
+
+    # Trust & rate limiting
+    trust_tier: Mapped[str] = mapped_column(String(20), default="new")  # new/established/trusted
+    is_admin: Mapped[bool] = mapped_column(Boolean, default=False)
+    submissions_count: Mapped[int] = mapped_column(Integer, default=0)
+    approved_count: Mapped[int] = mapped_column(Integer, default=0)
+    rejected_count: Mapped[int] = mapped_column(Integer, default=0)
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc),
+    )
+    last_submission_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
 class ScoreSnapshot(Base):

@@ -437,7 +437,11 @@ def embed_compare(
 
 
 @router.get("/contribute", response_class=HTMLResponse)
-def contribute(request: Request, db: Session = Depends(get_db)):
+def contribute(
+    request: Request,
+    error: str = Query(None, description="OAuth error code"),
+    db: Session = Depends(get_db),
+):
     """Community contribution page with evaluation queue."""
     # Packages needing evaluation (status = discovered, no af_score)
     needs_eval_count = (
@@ -537,6 +541,7 @@ def contribute(request: Request, db: Session = Depends(get_db)):
             "queue_stats": queue_stats,
             "queue_packages": queue_packages,
             "community_stats": _community_stats(db),
+            "error": error,
         },
     )
 

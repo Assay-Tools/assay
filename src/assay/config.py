@@ -18,6 +18,10 @@ class Settings(BaseSettings):
     # Admin auth — comma-separated API keys for approve/reject and admin endpoints
     admin_api_keys: str = ""
 
+    # GitHub OAuth (for contributor auth)
+    github_client_id: str = ""
+    github_client_secret: str = ""
+
     # Stripe
     stripe_secret_key: str = ""
     stripe_webhook_secret: str = ""

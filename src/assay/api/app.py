@@ -15,6 +15,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from assay.database import init_db
 
 from .admin_routes import router as admin_router
+from .auth_routes import router as auth_router
 from .payments import router as payments_router
 from .rate_limit import limiter
 from .routes import router
@@ -114,6 +115,9 @@ app.include_router(submission_router)
 app.include_router(payments_router)
 app.include_router(admin_router)
 
+# Auth routes (GitHub OAuth)
+app.include_router(auth_router)
+
 # Web frontend routes
 app.include_router(web_router)
 
@@ -169,6 +173,10 @@ def _run_migrations():
         ("packages", "discovery_source", "VARCHAR(100)"),
         ("packages", "priority", "VARCHAR(10) DEFAULT 'low'"),
         ("packages", "stars", "INTEGER"),
+        ("packages", "legacy_id", "VARCHAR(255)"),
+        # Community evaluation columns (Phase 1+2)
+        ("evaluation_runs", "evaluator_engine", "VARCHAR(100)"),
+        ("evaluation_runs", "rubric_version", "VARCHAR(20)"),
     ]
 
     dialect = "sqlite" if "sqlite" in str(engine.url) else "postgresql"
@@ -196,6 +204,19 @@ def _run_migrations():
             WHERE discovery_source IS NULL
         """))
 
+        # Widen discovery_source to TEXT and convert plain strings to JSON lists
+        if dialect == "postgresql":
+            conn.execute(text(
+                "ALTER TABLE packages ALTER COLUMN discovery_source TYPE TEXT"
+            ))
+        # Convert legacy plain-string values to JSON list format
+        conn.execute(text("""
+            UPDATE packages
+            SET discovery_source = '["' || discovery_source || '"]'
+            WHERE discovery_source IS NOT NULL
+              AND discovery_source NOT LIKE '[%'
+        """))
+
         # Backfill security_score from legacy mcp_security_score
         conn.execute(text("""
             UPDATE package_agent_readiness
@@ -215,3 +236,13 @@ def _run_migrations():
                 FROM package_agent_readiness par
                 WHERE par.package_id = p.id AND p.security_score IS NULL
             """))
+
+        # Backfill evaluator_engine for existing evaluation runs
+        conn.execute(text("""
+            UPDATE evaluation_runs SET evaluator_engine = 'claude'
+            WHERE evaluator_engine IS NULL
+        """))
+        conn.execute(text("""
+            UPDATE evaluation_runs SET rubric_version = '1.0'
+            WHERE rubric_version IS NULL
+        """))
