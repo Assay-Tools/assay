@@ -699,12 +699,23 @@ finance, content-management, data-processing, social-media, agent-skills, and ot
 
 @router.get("/evaluate.md")
 def evaluation_guide():
-    """Portable evaluation guide for AI agents and human contributors."""
+    """Portable evaluation guide for AI agents and human contributors (latest version)."""
     guide_path = Path(__file__).parent.parent / "static" / "evaluate.md"
     return FileResponse(
         str(guide_path),
         media_type="text/markdown; charset=utf-8",
         headers={"Cache-Control": "public, max-age=3600"},
+    )
+
+
+@router.get("/evaluate-v1.md")
+def evaluation_guide_v1():
+    """Archived v1 evaluation guide."""
+    guide_path = Path(__file__).parent.parent / "static" / "evaluate-v1.md"
+    return FileResponse(
+        str(guide_path),
+        media_type="text/markdown; charset=utf-8",
+        headers={"Cache-Control": "public, max-age=86400"},
     )
 
 

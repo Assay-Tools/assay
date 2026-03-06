@@ -159,6 +159,39 @@ class ReliabilityScoreComponentsSubmission(BaseModel):
     error_recovery: float = Field(ge=0, le=100)
 
 
+class SubComponentEvidence(BaseModel):
+    """Evidence for a single sub-component score."""
+    checkpoints: dict[str, bool] = Field(
+        description="Map of checkpoint_id -> met (true/false)",
+    )
+    notes: str | None = Field(None, description="Optional notes explaining the assessment")
+
+
+class EvaluationEvidence(BaseModel):
+    """Evidence checkpoints for rubric v2 submissions.
+
+    Keys are sub-component IDs (e.g., 'api_doc_score', 'tls_enforcement').
+    Only sub-components with scores need evidence entries.
+    """
+    # AF sub-components
+    mcp_score: SubComponentEvidence | None = None
+    api_doc_score: SubComponentEvidence | None = None
+    error_handling_score: SubComponentEvidence | None = None
+    auth_complexity_score: SubComponentEvidence | None = None
+    rate_limit_clarity_score: SubComponentEvidence | None = None
+    # Security sub-components
+    tls_enforcement: SubComponentEvidence | None = None
+    auth_strength: SubComponentEvidence | None = None
+    scope_granularity: SubComponentEvidence | None = None
+    dependency_hygiene: SubComponentEvidence | None = None
+    secret_handling: SubComponentEvidence | None = None
+    # Reliability sub-components
+    uptime_documented: SubComponentEvidence | None = None
+    version_stability: SubComponentEvidence | None = None
+    breaking_changes_history: SubComponentEvidence | None = None
+    error_recovery: SubComponentEvidence | None = None
+
+
 class EvaluationSubmission(BaseModel):
     """Full evaluation submission matching the loader's expected JSON."""
     id: str = Field(description="Package ID (slug, e.g. 'stripe')")
@@ -192,6 +225,10 @@ class EvaluationSubmission(BaseModel):
     af_score_components: AFScoreComponentsSubmission | None = None
     security_score_components: SecurityScoreComponentsSubmission | None = None
     reliability_score_components: ReliabilityScoreComponentsSubmission | None = None
+    evidence: EvaluationEvidence | None = Field(
+        None,
+        description="Evidence checkpoints (required for rubric_version 2.0+, optional for 1.0)",
+    )
 
 
 class EvaluationSubmissionResponse(BaseModel):

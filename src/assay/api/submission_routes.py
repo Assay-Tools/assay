@@ -146,6 +146,63 @@ def _validate_plausibility(submission: EvaluationSubmission) -> str | None:
     return None
 
 
+def _validate_evidence_consistency(submission: EvaluationSubmission) -> list[str]:
+    """Validate that scores fall within bands implied by evidence checkpoints.
+
+    Only applies to rubric_version 2.0+ submissions with evidence.
+    Returns a list of error messages (empty if all valid).
+    """
+    if submission.rubric_version < "2.0" or not submission.evidence:
+        return []
+
+    from assay.evaluation.rubric import ALL_RUBRICS, validate_score_against_evidence
+
+    errors = []
+
+    # Build a map of sub-component ID -> score from the submission
+    score_map: dict[str, float] = {}
+    if submission.af_score_components:
+        afc = submission.af_score_components
+        score_map.update({
+            "mcp_score": afc.mcp_score,
+            "api_doc_score": afc.api_doc_score,
+            "error_handling_score": afc.error_handling_score,
+            "auth_complexity_score": afc.auth_complexity_score,
+            "rate_limit_clarity_score": afc.rate_limit_clarity_score,
+        })
+    if submission.security_score_components:
+        sec = submission.security_score_components
+        score_map.update({
+            "tls_enforcement": sec.tls_enforcement,
+            "auth_strength": sec.auth_strength,
+            "scope_granularity": sec.scope_granularity,
+            "dependency_hygiene": sec.dependency_hygiene,
+            "secret_handling": sec.secret_handling,
+        })
+    if submission.reliability_score_components:
+        rel = submission.reliability_score_components
+        score_map.update({
+            "uptime_documented": rel.uptime_documented,
+            "version_stability": rel.version_stability,
+            "breaking_changes_history": rel.breaking_changes_history,
+            "error_recovery": rel.error_recovery,
+        })
+
+    # Check each sub-component that has both a score and evidence
+    evidence = submission.evidence
+    for sub_id, rubric in ALL_RUBRICS.items():
+        score = score_map.get(sub_id)
+        sub_evidence = getattr(evidence, sub_id, None)
+        if score is not None and sub_evidence is not None:
+            error = validate_score_against_evidence(
+                rubric, score, sub_evidence.checkpoints,
+            )
+            if error:
+                errors.append(error)
+
+    return errors
+
+
 # --- Submit evaluation ---
 
 
@@ -191,6 +248,19 @@ def submit_evaluation(
     plausibility_error = _validate_plausibility(submission)
     if plausibility_error:
         raise HTTPException(status_code=422, detail=plausibility_error)
+
+    # Evidence consistency validation (rubric v2+ only)
+    if submission.rubric_version >= "2.0" and not submission.evidence:
+        raise HTTPException(
+            status_code=422,
+            detail="Rubric version 2.0+ requires evidence checkpoints. Include an 'evidence' object.",
+        )
+    evidence_errors = _validate_evidence_consistency(submission)
+    if evidence_errors:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Score-evidence inconsistency: {'; '.join(evidence_errors)}",
+        )
 
     payload = submission.model_dump(mode="json")
 
