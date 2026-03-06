@@ -7,21 +7,24 @@
   "category": "database",
   "subcategories": ["cache", "messaging", "data-store"],
   "tags": ["redis", "cache", "in-memory", "pub-sub", "queue", "managed", "cloud"],
-  "what_it_does": "Managed Redis-as-a-service by Redis, Inc. — a blazing-fast in-memory data store for caching, session management, real-time messaging, and queues, with a REST management API and client library access.",
+  "what_it_does": "Redis Cloud is managed Redis-as-a-service by Redis, Inc., providing the blazing-fast in-memory data store for caching, session management, pub/sub messaging, rate limiting, distributed locks, and queue patterns. The Redis Cloud REST Management API (redislabs.com) handles the control plane: provisioning databases, configuring eviction policies, setting memory limits, and managing subscriptions. This is completely separate from the Redis data protocol (RESP) used for actual data operations. Agents interact with the management plane via REST and the data plane via standard Redis clients.",
   "use_cases": [
-    "Caching API responses to reduce latency and downstream costs for agents",
-    "Storing agent conversation state and session data with TTL expiry",
-    "Pub/sub messaging between agent workers (real-time coordination)",
-    "Rate limiter counters and distributed locks for agent orchestration",
-    "Storing vector embeddings with Redis Vector Library (RediSearch)"
+    "Caching LLM API responses with TTL-based expiry to reduce latency and upstream API costs for agents",
+    "Storing agent conversation state and session context with automatic TTL cleanup",
+    "Pub/sub messaging and coordination between agent workers in a multi-agent orchestration system",
+    "Distributed rate limiters and counters using atomic INCR/DECR for agent request throttling",
+    "Distributed locks (SET NX with expiry) for single-instance execution guarantees across agent replicas",
+    "Provisioning ephemeral Redis instances programmatically for isolated agent test environments",
+    "Vector similarity search with Redis Stack (RediSearch + vector fields) alongside operational data"
   ],
   "not_for": [
-    "Long-term persistent storage (Redis is in-memory; use a disk-backed DB for durable storage)",
-    "Complex relational queries requiring joins",
-    "Compliance workloads requiring ACID guarantees across operations"
+    "Long-term persistent storage — Redis is primarily in-memory; AOF/RDB persistence is available but not a replacement for a disk-backed primary store",
+    "Complex relational queries, full-text search, or aggregations that belong in a purpose-built database",
+    "Compliance workloads requiring ACID guarantees across multiple keys or data structures",
+    "Agents that conflate the REST Management API with the Redis data protocol — these are completely separate interfaces"
   ],
-  "best_when": "An agent needs sub-millisecond cache lookups, pub/sub coordination across workers, or session state that should evaporate after a period.",
-  "avoid_when": "You need full durability guarantees or complex querying — Redis is a complement to a primary database, not a replacement.",
+  "best_when": "An agent needs sub-millisecond cache lookups, pub/sub coordination across multiple agent processes, distributed locking, or short-lived session state with automatic TTL expiry.",
+  "avoid_when": "You need full durability guarantees, complex querying, or primary data storage — Redis is a complement to a primary database, not a replacement.",
   "alternatives": ["upstash-redis", "aws-elasticache", "dragonfly-api", "memcached-api"],
   "interface": {
     "has_rest_api": true,
@@ -74,11 +77,12 @@
     "pagination_style": "cursor",
     "retry_guidance_documented": true,
     "known_agent_gotchas": [
-      "TTL is set per-key; forgetting to set expiry on session keys causes memory growth",
-      "Pub/sub is fire-and-forget — messages are lost if no subscriber is connected",
-      "MULTI/EXEC transactions can't roll back on individual command errors",
-      "Redis Cloud management REST API is separate from the data plane (Redis protocol)",
-      "Connection limits per plan — agents that pool connections poorly may hit limits quickly"
+      "The Redis Cloud Management REST API (api.redislabs.com) and the Redis data protocol (RESP, port 6379) are completely separate interfaces with separate credentials — agents that confuse them will get 404 errors on data operations or connection refused on management calls",
+      "TTL is set per-key and not inherited — agents that cache data without SET EX or EXPIRE will cause unbounded memory growth until the eviction policy kicks in and silently drops keys, breaking caching assumptions",
+      "Pub/sub is fire-and-forget with no message persistence — messages published while no subscriber is connected are permanently lost; agents that need guaranteed delivery must use Redis Streams (XADD/XREAD) instead of PUBLISH/SUBSCRIBE",
+      "MULTI/EXEC transactions queue commands without executing them — if one command in the queue has a wrong type error, the entire transaction still executes and the failing command returns an error while others succeed; Redis transactions cannot roll back",
+      "Connection limits are enforced per database plan — agents that open a new connection per request (common in serverless agents) will hit the connection limit rapidly and receive 'max number of clients reached' errors; always use a connection pool or a pooling proxy like Envoy",
+      "Eviction policies (allkeys-lru, volatile-lru, noeviction, etc.) are set at the database level and affect ALL keys — an agent that provisions a database with noeviction for critical data and then stores large volumes of cache data in the same database will hit OOM errors"
     ]
   },
   "af_score_components": {

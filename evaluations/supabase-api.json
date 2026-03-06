@@ -7,21 +7,23 @@
   "category": "database",
   "subcategories": ["baas", "postgres", "auth", "realtime", "storage"],
   "tags": ["supabase", "postgres", "baas", "realtime", "auth", "storage", "open-source"],
-  "what_it_does": "Open-source Firebase alternative providing Postgres database, authentication, realtime subscriptions, object storage, and edge functions as a unified backend platform.",
+  "what_it_does": "Supabase is an open-source Firebase alternative that bundles four distinct APIs over a single Postgres database: the PostgREST auto-generated REST API (instant REST endpoints from your table schema), the Auth API (JWT-based user authentication with OAuth providers, magic links, and OTP), the Storage API (S3-compatible object storage with access policies tied to Row Level Security), and the Realtime API (Postgres CDC websocket subscriptions). Edge Functions (Deno Deploy) provide serverless compute. All APIs are governed by Row Level Security (RLS) policies defined in Postgres — the data access rules live in the database, not in application code.",
   "use_cases": [
-    "Full backend for AI agent apps: Postgres DB + auth + storage + realtime in one platform",
-    "Vector search for RAG systems using pgvector extension in Supabase Postgres",
-    "User authentication and session management with Row Level Security for multi-tenant agents",
-    "Realtime event subscriptions for agents to react to database changes via Postgres CDC",
-    "File storage with automatic image transforms and CDN delivery via Supabase Storage"
+    "Full backend for AI agent apps: Postgres DB + auth + storage + realtime in one platform with a single project",
+    "Auto-generated REST API from Postgres schema via PostgREST — instant CRUD endpoints without writing boilerplate",
+    "Vector search for RAG systems using pgvector extension alongside relational data in the same Postgres DB",
+    "User authentication and multi-tenant access control via JWT + Row Level Security policies",
+    "Realtime event subscriptions for agents to react to INSERT/UPDATE/DELETE changes via Postgres CDC websocket",
+    "File storage with access control that mirrors RLS policies — user can only read files they own",
+    "Edge Functions as agent action handlers — Deno-based serverless functions co-located with the database"
   ],
   "not_for": [
-    "Applications requiring databases other than Postgres",
-    "Workloads needing more than 500MB database on free tier without upgrading",
-    "Teams needing multi-region active-active database replication"
+    "Applications requiring databases other than Postgres (Supabase is Postgres-native, no NoSQL option)",
+    "Agents that need multi-region active-active replication with sub-10ms cross-region writes",
+    "High-concurrency workloads that need more than 500 direct Postgres connections on lower tiers"
   ],
-  "best_when": "Building full-stack AI applications that need a complete backend (auth + DB + storage + realtime) with Postgres flexibility and open-source self-hosting option.",
-  "avoid_when": "You only need a simple key-value store, or you require a proprietary DB like MongoDB or DynamoDB.",
+  "best_when": "Building AI applications that need a complete backend (auth + DB + storage + realtime) with Postgres flexibility, where agents can interact with data through an auto-generated REST API without managing schema-to-API mapping code.",
+  "avoid_when": "You only need a simple key-value store, need a non-Postgres database, or require multi-region active-active Postgres replication.",
   "alternatives": ["firebase-api", "neon-database-api", "planetscale-api", "appwrite-api"],
   "interface": {
     "has_rest_api": true,
@@ -74,11 +76,12 @@
     "pagination_style": "offset",
     "retry_guidance_documented": true,
     "known_agent_gotchas": [
-      "service_role key bypasses ALL RLS policies — using it client-side exposes your entire database; strictly server-side only",
-      "Free projects pause after 1 week inactivity — agents hitting paused project get 503; must un-pause in dashboard",
-      "Realtime CDC requires REPLICA IDENTITY FULL on tables for old record values in UPDATE events",
-      "supabase-js v1 to v2 migration was breaking — check client version in dependencies before using v2 docs",
-      "Row Level Security must be explicitly enabled per table — new tables default to no RLS (full access with anon key)"
+      "service_role key bypasses ALL Row Level Security policies — any agent using service_role can read, write, or delete every row in every table regardless of RLS rules; never use service_role in client-facing code or expose it in logs",
+      "Free projects auto-pause after 1 week of inactivity — agents hitting a paused project receive a 503 error that is indistinguishable from a server error; the project must be manually resumed in the Supabase dashboard, there is no API to un-pause",
+      "Row Level Security is opt-in per table — newly created tables have NO RLS and are fully accessible to anyone with the anon key; agents or humans who forget to enable RLS on a table containing user data expose it to all authenticated (and unauthenticated) callers",
+      "PostgREST auto-generates REST endpoints from the public schema by default — tables in other schemas are not exposed unless explicitly added to the API schema list; agents that create tables in custom schemas and then try to query them via REST will get 'relation does not exist' errors",
+      "Realtime CDC subscriptions require REPLICA IDENTITY FULL on the table to receive old record values in UPDATE events — without this, the 'old' field in update events is empty, which breaks agents that need to detect what changed",
+      "The anon key is safe to use in client-side code ONLY if RLS is correctly configured — the anon key is not truly anonymous auth, it is a JWT with the 'anon' role; any data accessible to anon role without RLS protection is publicly readable by anyone with the project URL"
     ]
   },
   "af_score_components": {
