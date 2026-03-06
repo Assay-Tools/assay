@@ -356,7 +356,11 @@ class DiscoveryAgent:
         return all_packages[:self.limit]
 
     def insert_packages(self, packages: list[DiscoveredPackage], db) -> int:
-        """Create stub Package records. Returns count of newly inserted packages."""
+        """Create stub Package records. Returns count of newly inserted packages.
+
+        For existing packages found via a new source, merges the source into
+        the discovery_source list and enriches empty metadata fields.
+        """
         existing_ids = {p.id for p in db.query(Package.id).all()}
         # Also collect legacy_ids so new-format slugs don't duplicate old packages
         legacy_ids = {
@@ -364,23 +368,34 @@ class DiscoveryAgent:
                 Package.legacy_id.isnot(None)
             ).all()
         }
-        # Build a set of existing repo URLs for extra dedup
-        existing_urls = {
-            _normalize_repo_url(p.repo_url)
-            for p in db.query(Package.repo_url).filter(
-                Package.repo_url.isnot(None)
-            ).all()
-        }
-        existing_urls.discard(None)
+        # Map normalized repo_url -> package id for URL-based dedup + merge
+        url_to_id: dict[str, str] = {}
+        for row in db.query(Package.id, Package.repo_url).filter(
+            Package.repo_url.isnot(None)
+        ).all():
+            norm = _normalize_repo_url(row.repo_url)
+            if norm:
+                url_to_id[norm] = row.id
 
         inserted = 0
+        merged = 0
 
         for pkg in packages:
-            if pkg.id in existing_ids or pkg.id in legacy_ids:
-                continue
-            # Check repo_url dedup against DB
             norm_url = _normalize_repo_url(pkg.repo_url)
-            if norm_url and norm_url in existing_urls:
+
+            # Check if this package already exists (by id, legacy_id, or repo_url)
+            existing_pkg_id = None
+            if pkg.id in existing_ids:
+                existing_pkg_id = pkg.id
+            elif pkg.id in legacy_ids:
+                existing_pkg_id = pkg.id  # will be caught by id match below
+            elif norm_url and norm_url in url_to_id:
+                existing_pkg_id = url_to_id[norm_url]
+
+            if existing_pkg_id:
+                # Merge: add source to discovery_source list + enrich empty fields
+                self._merge_existing(db, existing_pkg_id, pkg)
+                merged += 1
                 continue
 
             category_slug = _guess_category(pkg.description, pkg.topics, pkg.name)
@@ -395,7 +410,7 @@ class DiscoveryAgent:
                 what_it_does=pkg.description,
                 tags=json.dumps(pkg.topics) if pkg.topics else None,
                 package_type=pkg.package_type,
-                discovery_source=pkg.discovery_source,
+                discovery_source=json.dumps([pkg.discovery_source]),
                 priority=priority,
                 stars=pkg.stars,
                 status="discovered",
@@ -403,7 +418,7 @@ class DiscoveryAgent:
             db.add(db_pkg)
             existing_ids.add(pkg.id)
             if norm_url:
-                existing_urls.add(norm_url)
+                url_to_id[norm_url] = pkg.id
             inserted += 1
             print(
                 f"  ADD: {pkg.id:50s}  stars={pkg.stars:>6}  type={pkg.package_type:>12}  "
@@ -411,7 +426,35 @@ class DiscoveryAgent:
             )
 
         db.commit()
+        if merged:
+            print(f"  Merged source info into {merged} existing packages.")
         return inserted
+
+    @staticmethod
+    def _merge_existing(db, pkg_id: str, pkg: DiscoveredPackage) -> None:
+        """Merge new discovery data into an existing package record."""
+        existing = db.query(Package).get(pkg_id)
+        if not existing:
+            return
+
+        # Add source to discovery_source list if not already present
+        sources = existing.discovery_sources_list
+        if pkg.discovery_source not in sources:
+            sources.append(pkg.discovery_source)
+            existing.discovery_source = json.dumps(sources)
+
+        # Enrich empty fields with data from the new source
+        if not existing.repo_url and pkg.repo_url:
+            existing.repo_url = pkg.repo_url
+        if not existing.homepage and pkg.homepage:
+            existing.homepage = pkg.homepage
+        if not existing.what_it_does and pkg.description:
+            existing.what_it_does = pkg.description
+        if not existing.tags and pkg.topics:
+            existing.tags = json.dumps(pkg.topics)
+        # Upgrade stars if new source has higher count
+        if pkg.stars and (not existing.stars or pkg.stars > existing.stars):
+            existing.stars = pkg.stars
 
     def run(self) -> None:
         """Full discovery pipeline: search all sources, deduplicate, insert."""
