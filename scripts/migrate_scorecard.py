@@ -13,22 +13,8 @@ from sqlalchemy import create_engine, text
 
 
 def get_db_url():
-    """Get database URL from environment or .secrets file."""
-    url = os.getenv("DATABASE_URL")
-    if url:
-        return url
-
-    # Try .secrets file
-    secrets_path = os.path.join(os.path.dirname(__file__), "..", ".secrets")
-    if os.path.exists(secrets_path):
-        with open(secrets_path) as f:
-            for line in f:
-                line = line.strip()
-                if line.startswith("DATABASE_URL="):
-                    return line.split("=", 1)[1]
-
-    # Default to local SQLite
-    return "sqlite:///./assay.db"
+    """Get database URL from environment variable, or default to local SQLite."""
+    return os.getenv("DATABASE_URL", "sqlite:///./assay.db")
 
 
 def column_exists(conn, table: str, column: str, dialect: str) -> bool:

@@ -45,7 +45,7 @@ Items ready to be claimed. Roughly priority-ordered within each phase.
 - [x] **Refund policy** — Included in ToS: 14-day full refund for reports, cancel-anytime for subs (2026-03-04)
 
 **Security (sessions can claim)**:
-- [ ] **Rotate production credentials** — `.secrets` file on disk contains live DB password on publicly-accessible Postgres proxy. Rotate DB password in Railway, delete `.secrets`, use env vars exclusively. Also rotate Railway deploy token and Gmail app password. **CRITICAL**
+- [x] **Rotate production credentials** — DB password rotated via Railway CLI + ALTER USER (2026-03-06). `.secrets` file deleted. `migrate_scorecard.py` .secrets fallback removed. Railway token in old .secrets was already invalid (interactive login used). **Remaining**: Gmail app password rotation requires AJ to visit Google security settings manually.
 - [x] **Fix CORS configuration** — `allow_origins=["*"]` + `allow_credentials=True` is dangerous. Drop `allow_credentials` or set explicit origin. **File**: `src/assay/api/app.py` lines 48-55
 - [x] **Separate admin vs submitter API keys** — All keys have identical permissions — submitters can approve own evaluations. Split into `SUBMISSION_API_KEYS` / `ADMIN_API_KEYS`. **File**: `src/assay/api/submission_routes.py`
 - [x] **Sort field whitelist** — `getattr(Package, sort_field)` allows probing any model attribute. Add allowlist like leaderboard endpoint does. **File**: `src/assay/api/routes.py` line 124
