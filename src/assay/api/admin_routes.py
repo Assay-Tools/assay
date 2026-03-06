@@ -227,3 +227,27 @@ def api_usage_stats(
         ],
         "note": "Counters reset on process restart",
     }
+
+
+@router.post("/orders/{order_id}/generate-report")
+def retry_report_generation(
+    request: Request,
+    order_id: int,
+    db: Session = Depends(get_db),
+    _auth=Depends(_require_admin_key),
+):
+    """Retry report generation for a paid order with missing report."""
+    order = db.query(Order).filter(Order.id == order_id).first()
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    if order.status != "paid":
+        raise HTTPException(status_code=400, detail="Order is not paid")
+    if order.report_path:
+        return {"status": "already_generated", "report_path": order.report_path}
+
+    from assay.reports.delivery import generate_report_for_order
+    report_path = generate_report_for_order(order, db)
+
+    if report_path:
+        return {"status": "generated", "report_path": report_path}
+    return {"status": "failed", "detail": "Check server logs"}
