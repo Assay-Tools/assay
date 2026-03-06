@@ -1,6 +1,7 @@
 """Stripe payment routes for report purchases and monitoring subscriptions."""
 
 import logging
+import threading
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -10,7 +11,7 @@ from sqlalchemy.orm import Session
 from starlette.responses import FileResponse, Response
 
 from assay.config import settings
-from assay.database import get_db
+from assay.database import get_db, SessionLocal
 from assay.models import Order, Package
 
 from .rate_limit import limiter
@@ -80,6 +81,9 @@ def create_report_checkout(
                 "price": settings.stripe_price_report,
                 "quantity": 1,
             }],
+            payment_intent_data={
+                "description": f"Assay Evaluation Report — {pkg.name}",
+            },
             metadata={
                 "order_id": str(order.id),
                 "package_id": package_id,
@@ -240,13 +244,13 @@ def _handle_checkout_completed(session_data: dict, db: Session):
         order.id, order.order_type, order.package_id,
     )
 
-    # Generate report for report orders
+    # Send confirmation email immediately (non-blocking)
+    if order.customer_email:
+        _send_confirmation_async(order.id, order.customer_email, order.package_id, order.order_type)
+
+    # Generate report in background thread so webhook returns fast
     if order.order_type == "report":
-        try:
-            from assay.reports.delivery import generate_report_for_order
-            generate_report_for_order(order, db)
-        except Exception:
-            logger.exception("Report generation failed for order %d", order.id)
+        _generate_report_async(order.id)
 
 
 def _handle_subscription_cancelled(sub_data: dict, db: Session):
@@ -267,6 +271,188 @@ def _handle_subscription_updated(sub_data: dict, db: Session):
     sub_id = sub_data.get("id")
     status = sub_data.get("status")
     logger.info("Subscription %s updated: status=%s", sub_id, status)
+
+
+# --- Background tasks ---
+
+
+def _generate_report_async(order_id: int):
+    """Run report generation in a background thread with its own DB session."""
+    def _worker():
+        db = SessionLocal()
+        try:
+            order = db.query(Order).filter(Order.id == order_id).first()
+            if not order:
+                logger.error("Background report gen: order %d not found", order_id)
+                return
+            from assay.reports.delivery import generate_report_for_order
+            report_path = generate_report_for_order(order, db)
+            if report_path and order.customer_email:
+                _send_report_ready_email(order.customer_email, order.id, order.package_id)
+        except Exception:
+            logger.exception("Background report generation failed for order %d", order_id)
+        finally:
+            db.close()
+
+    thread = threading.Thread(target=_worker, daemon=True)
+    thread.start()
+
+
+def _send_confirmation_async(order_id: int, email: str, package_id: str, order_type: str):
+    """Send order confirmation email in background thread."""
+    def _worker():
+        try:
+            _send_order_confirmation(email, order_id, package_id, order_type)
+        except Exception:
+            logger.exception("Failed to send confirmation email for order %d", order_id)
+
+    thread = threading.Thread(target=_worker, daemon=True)
+    thread.start()
+
+
+def _send_order_confirmation(to_email: str, order_id: int, package_id: str, order_type: str):
+    """Send immediate order confirmation via SMTP."""
+    import smtplib
+    from email.mime.multipart import MIMEMultipart
+    from email.mime.text import MIMEText
+
+    smtp_user = settings.smtp_user
+    smtp_pass = settings.smtp_pass
+    if not smtp_user or not smtp_pass:
+        logger.warning("SMTP not configured — skipping confirmation email for order %d", order_id)
+        return
+
+    type_label = "Package Evaluation Report" if order_type == "report" else "Package Monitoring"
+    amount = "$99.00" if order_type == "report" else "$3.00/mo"
+
+    msg = MIMEMultipart("alternative")
+    msg["From"] = f"Assay Tools <{smtp_user}>"
+    msg["To"] = to_email
+    msg["Subject"] = f"Order #{order_id} confirmed — {package_id}"
+
+    text = f"""Thanks for your purchase!
+
+Order #{order_id}
+Product: {type_label}
+Package: {package_id}
+Amount: {amount}
+
+{"Your evaluation report is being generated now. You'll receive another email with the download link shortly, typically within a minute or two." if order_type == "report" else "Your monitoring subscription is now active. You'll receive alerts when this package's scores change significantly."}
+
+View your order: {settings.app_url}/orders/{order_id}/success
+
+Questions? Reply to this email.
+
+— Assay Tools
+https://assay.tools
+"""
+
+    html = f"""<!DOCTYPE html>
+<html>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 560px; margin: 0 auto; padding: 24px; color: #e5e7eb; background: #111827;">
+  <div style="border-bottom: 2px solid #6366f1; padding-bottom: 16px; margin-bottom: 24px;">
+    <h1 style="font-size: 20px; color: #fff; margin: 0;">Assay Tools</h1>
+  </div>
+
+  <p style="color: #9ca3af; margin-bottom: 24px;">Thanks for your purchase!</p>
+
+  <div style="background: #1f2937; border: 1px solid #374151; border-radius: 12px; padding: 20px; margin-bottom: 24px;">
+    <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+      <tr><td style="color: #9ca3af; padding: 6px 0;">Order</td><td style="color: #fff; text-align: right; padding: 6px 0; font-family: monospace;">#{order_id}</td></tr>
+      <tr><td style="color: #9ca3af; padding: 6px 0;">Product</td><td style="color: #fff; text-align: right; padding: 6px 0;">{type_label}</td></tr>
+      <tr><td style="color: #9ca3af; padding: 6px 0;">Package</td><td style="color: #fff; text-align: right; padding: 6px 0;">{package_id}</td></tr>
+      <tr style="border-top: 1px solid #374151;"><td style="color: #9ca3af; padding: 10px 0 6px;">Amount</td><td style="color: #fff; text-align: right; padding: 10px 0 6px; font-size: 18px; font-weight: 600;">{amount}</td></tr>
+    </table>
+  </div>
+
+  <p style="color: #d1d5db; font-size: 14px; line-height: 1.6;">
+    {"Your evaluation report is being generated now. You'll receive another email with the download link shortly — typically within a minute or two." if order_type == "report" else "Your monitoring subscription is now active. You'll receive alerts when this package's scores change significantly."}
+  </p>
+
+  <div style="text-align: center; margin: 28px 0;">
+    <a href="{settings.app_url}/orders/{order_id}/success"
+       style="background: #6366f1; color: #fff; text-decoration: none; padding: 12px 28px; border-radius: 8px; font-size: 14px; font-weight: 500; display: inline-block;">
+      View Order
+    </a>
+  </div>
+
+  <p style="color: #6b7280; font-size: 12px; margin-top: 32px; border-top: 1px solid #1f2937; padding-top: 16px;">
+    Questions? Reply to this email.<br>
+    <a href="https://assay.tools" style="color: #6366f1; text-decoration: none;">assay.tools</a>
+  </p>
+</body>
+</html>"""
+
+    msg.attach(MIMEText(text, "plain"))
+    msg.attach(MIMEText(html, "html"))
+
+    with smtplib.SMTP("smtp.gmail.com", 587) as server:
+        server.starttls()
+        server.login(smtp_user, smtp_pass)
+        server.sendmail(smtp_user, to_email, msg.as_string())
+
+    logger.info("Confirmation email sent for order %d to %s", order_id, to_email)
+
+
+def _send_report_ready_email(to_email: str, order_id: int, package_id: str):
+    """Send follow-up email when report is ready for download."""
+    import smtplib
+    from email.mime.multipart import MIMEMultipart
+    from email.mime.text import MIMEText
+
+    smtp_user = settings.smtp_user
+    smtp_pass = settings.smtp_pass
+    if not smtp_user or not smtp_pass:
+        logger.warning("SMTP not configured — skipping report-ready email for order %d", order_id)
+        return
+
+    download_url = f"{settings.app_url}/orders/{order_id}/success"
+
+    msg = MIMEMultipart("alternative")
+    msg["From"] = f"Assay Tools <{smtp_user}>"
+    msg["To"] = to_email
+    msg["Subject"] = f"Your report is ready — {package_id}"
+
+    text = f"""Your Assay evaluation report for {package_id} is ready!
+
+Download it here: {download_url}
+
+— Assay Tools
+https://assay.tools
+"""
+
+    html = f"""<!DOCTYPE html>
+<html>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 560px; margin: 0 auto; padding: 24px; color: #e5e7eb; background: #111827;">
+  <div style="border-bottom: 2px solid #6366f1; padding-bottom: 16px; margin-bottom: 24px;">
+    <h1 style="font-size: 20px; color: #fff; margin: 0;">Assay Tools</h1>
+  </div>
+
+  <p style="color: #d1d5db; font-size: 16px;">Your evaluation report for <strong style="color: #fff;">{package_id}</strong> is ready!</p>
+
+  <div style="text-align: center; margin: 28px 0;">
+    <a href="{download_url}"
+       style="background: #6366f1; color: #fff; text-decoration: none; padding: 12px 28px; border-radius: 8px; font-size: 14px; font-weight: 500; display: inline-block;">
+      Download Report
+    </a>
+  </div>
+
+  <p style="color: #6b7280; font-size: 12px; margin-top: 32px; border-top: 1px solid #1f2937; padding-top: 16px;">
+    Questions? Reply to this email.<br>
+    <a href="https://assay.tools" style="color: #6366f1; text-decoration: none;">assay.tools</a>
+  </p>
+</body>
+</html>"""
+
+    msg.attach(MIMEText(text, "plain"))
+    msg.attach(MIMEText(html, "html"))
+
+    with smtplib.SMTP("smtp.gmail.com", 587) as server:
+        server.starttls()
+        server.login(smtp_user, smtp_pass)
+        server.sendmail(smtp_user, to_email, msg.as_string())
+
+    logger.info("Report-ready email sent for order %d to %s", order_id, to_email)
 
 
 # --- Order status ---
