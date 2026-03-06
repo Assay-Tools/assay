@@ -12,11 +12,17 @@ from assay.database import SessionLocal, init_db
 from assay.models import Category, Package
 
 from .sources import (
+    CratesIoSource,
+    CursorDirectorySource,
     DiscoveredPackage,
     DiscoverySource,
+    DockerMCPSource,
     GitHubAwesomeListSource,
     GitHubSource,
+    GlamaSource,
     MCPRegistrySource,
+    MCPRunSource,
+    MCPSoSource,
     NpmSource,
     OpenClawSource,
     PyPISource,
@@ -146,6 +152,12 @@ SOURCE_CLASSES: dict[str, type[DiscoverySource]] = {
     "npm": NpmSource,
     "pypi": PyPISource,
     "smithery": SmitherySource,
+    "glama": GlamaSource,
+    "cursor_directory": CursorDirectorySource,
+    "docker_mcp": DockerMCPSource,
+    "mcp_run": MCPRunSource,
+    "mcp_so": MCPSoSource,
+    "crates_io": CratesIoSource,
 }
 
 
@@ -202,6 +214,17 @@ def _compute_priority(pkg: DiscoveredPackage) -> str:
     return "low"
 
 
+def _normalize_name(slug: str) -> str | None:
+    """Normalize a package slug for dedup — strips common prefixes like 'mcp-server-'."""
+    name = slug.lower().strip("-")
+    for prefix in ("mcp-server-", "mcp-", "server-", "modelcontextprotocol-"):
+        if name.startswith(prefix):
+            name = name[len(prefix):]
+            break
+    name = name.strip("-")
+    return name if name else None
+
+
 def _normalize_repo_url(url: str | None) -> str | None:
     """Normalize a repo URL for deduplication (lowercase, strip trailing slashes and .git)."""
     if not url:
@@ -246,7 +269,7 @@ class DiscoveryAgent:
 
     def __init__(
         self,
-        limit: int = 500,
+        limit: int = 50000,
         sources: list[DiscoverySource] | None = None,
         package_type_filter: str | None = None,
     ):
@@ -274,19 +297,25 @@ class DiscoveryAgent:
             print("  Categories already exist.")
 
     def discover_all(self) -> list[DiscoveredPackage]:
-        """Run all sources and return deduplicated results."""
+        """Run all sources and return deduplicated results.
+
+        Each source gets its own per-source limit (total limit / num sources,
+        with a generous minimum) so early sources don't starve later ones.
+        Final dedup happens after all sources have run.
+        """
         all_packages: list[DiscoveredPackage] = []
         seen_repo_urls: set[str] = set()
         seen_ids: set[str] = set()
+        seen_normalized_names: set[str] = set()
+
+        # Give each source its own limit instead of sharing a shrinking remainder.
+        # Use a generous per-source limit — dedup handles overlap.
+        per_source_limit = max(self.limit // max(len(self.sources), 1), 5000)
 
         for source in self.sources:
-            remaining = self.limit - len(all_packages)
-            if remaining <= 0:
-                break
-
-            print(f"\n--- Source: {source.source_name} ---")
+            print(f"\n--- Source: {source.source_name} (limit={per_source_limit}) ---")
             try:
-                discovered = source.discover(limit=remaining)
+                discovered = source.discover(limit=per_source_limit)
             except Exception as exc:
                 print(f"  ERROR: {source.source_name} failed: {exc}")
                 continue
@@ -298,34 +327,60 @@ class DiscoveryAgent:
                     if pkg.package_type != self.package_type_filter:
                         continue
 
-                # Deduplicate by normalized repo_url (primary) then by id (secondary)
+                # Deduplicate by normalized repo_url (primary)
                 norm_url = _normalize_repo_url(pkg.repo_url)
                 if norm_url and norm_url in seen_repo_urls:
                     continue
+
+                # Deduplicate by package id (secondary)
                 if pkg.id in seen_ids:
+                    continue
+
+                # Deduplicate by normalized name (tertiary) — catches
+                # "mcp-server-foo" vs "foo" from different sources
+                norm_name = _normalize_name(pkg.id)
+                if norm_name and norm_name in seen_normalized_names:
                     continue
 
                 if norm_url:
                     seen_repo_urls.add(norm_url)
                 seen_ids.add(pkg.id)
+                if norm_name:
+                    seen_normalized_names.add(norm_name)
                 all_packages.append(pkg)
                 added += 1
 
-                if len(all_packages) >= self.limit:
-                    break
-
             print(f"  Added {added} unique packages from {source.source_name}.")
 
+        print(f"\n  Total unique packages across all sources: {len(all_packages)}")
         return all_packages[:self.limit]
 
     def insert_packages(self, packages: list[DiscoveredPackage], db) -> int:
         """Create stub Package records. Returns count of newly inserted packages."""
         existing_ids = {p.id for p in db.query(Package.id).all()}
+        # Also collect legacy_ids so new-format slugs don't duplicate old packages
+        legacy_ids = {
+            p.legacy_id for p in db.query(Package.legacy_id).filter(
+                Package.legacy_id.isnot(None)
+            ).all()
+        }
+        # Build a set of existing repo URLs for extra dedup
+        existing_urls = {
+            _normalize_repo_url(p.repo_url)
+            for p in db.query(Package.repo_url).filter(
+                Package.repo_url.isnot(None)
+            ).all()
+        }
+        existing_urls.discard(None)
+
         inserted = 0
 
         for pkg in packages:
-            if pkg.id in existing_ids:
-                print(f"  SKIP (exists): {pkg.id}")
+            if pkg.id in existing_ids or pkg.id in legacy_ids:
+                continue
+            # Check repo_url dedup against DB
+            norm_url = _normalize_repo_url(pkg.repo_url)
+            if norm_url and norm_url in existing_urls:
                 continue
 
             category_slug = _guess_category(pkg.description, pkg.topics, pkg.name)
@@ -347,6 +402,8 @@ class DiscoveryAgent:
             )
             db.add(db_pkg)
             existing_ids.add(pkg.id)
+            if norm_url:
+                existing_urls.add(norm_url)
             inserted += 1
             print(
                 f"  ADD: {pkg.id:50s}  stars={pkg.stars:>6}  type={pkg.package_type:>12}  "
@@ -408,8 +465,8 @@ def main():
     parser.add_argument(
         "--limit",
         type=int,
-        default=500,
-        help="Maximum number of packages to discover (default: 500)",
+        default=50000,
+        help="Maximum number of packages to discover (default: 50000)",
     )
     parser.add_argument(
         "--source",

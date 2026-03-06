@@ -13,9 +13,17 @@ from .base import DiscoveredPackage, DiscoverySource
 
 
 def slug_from_repo(full_name: str) -> str:
-    """Generate a package ID slug from a GitHub repo full name (owner/repo)."""
-    repo_name = full_name.split("/")[-1]
-    slug = re.sub(r"[^a-z0-9-]", "-", repo_name.lower())
+    """Generate a package ID slug from a GitHub repo full name (owner/repo).
+
+    Uses 'owner--repo-name' format to avoid collisions between repos
+    with the same name under different owners.
+    """
+    parts = full_name.strip("/").split("/")
+    if len(parts) >= 2:
+        raw = f"{parts[-2]}--{parts[-1]}"
+    else:
+        raw = parts[-1]
+    slug = re.sub(r"[^a-z0-9-]", "-", raw.lower())
     slug = re.sub(r"-+", "-", slug).strip("-")
     return slug[:255]
 
@@ -32,6 +40,7 @@ class GitHubSource(DiscoverySource):
     """Discovers MCP server repositories from GitHub search."""
 
     SEARCH_QUERIES = [
+        # Core topic searches
         "topic:mcp-server",
         "topic:model-context-protocol",
         "mcp+server+in:name",
@@ -39,6 +48,20 @@ class GitHubSource(DiscoverySource):
         '"@modelcontextprotocol/sdk" in:file',
         "mcp-server in:path language:python",
         "mcp-server in:path language:typescript",
+        # Language-specific searches
+        "mcp-server in:name language:rust",
+        "mcp-server in:name language:go",
+        "mcp-server in:name language:java",
+        "mcp-server in:name language:csharp",
+        # Star-range partitioned queries (work around 1,000-result cap)
+        "topic:mcp-server stars:0..9",
+        "topic:mcp-server stars:10..49",
+        "topic:mcp-server stars:>=50",
+        # Recent MCP servers
+        "mcp server in:description created:>2024-06-01",
+        # SDK consumer searches
+        '"fastmcp" in:file language:python',
+        '"@modelcontextprotocol/sdk" in:file language:javascript',
     ]
 
     GITHUB_API = "https://api.github.com/search/repositories"

@@ -11,10 +11,18 @@ from .base import DiscoveredPackage, DiscoverySource
 
 
 def _slug_from_npm(name: str) -> str:
-    """Generate a package ID slug from an npm package name."""
-    # Strip scope (e.g., @scope/name -> name)
-    clean = name.split("/")[-1] if "/" in name else name
-    slug = re.sub(r"[^a-z0-9-]", "-", clean.lower())
+    """Generate a package ID slug from an npm package name.
+
+    Uses 'scope--package-name' format for scoped packages to avoid
+    collisions (e.g., @anthropic/mcp-server -> anthropic--mcp-server).
+    """
+    if "/" in name:
+        scope, pkg = name.split("/", 1)
+        scope = scope.lstrip("@")
+        raw = f"{scope}--{pkg}"
+    else:
+        raw = name
+    slug = re.sub(r"[^a-z0-9-]", "-", raw.lower())
     slug = re.sub(r"-+", "-", slug).strip("-")
     return slug[:255]
 
@@ -27,6 +35,12 @@ class NpmSource(DiscoverySource):
         "mcp server",
         "model-context-protocol",
         "@modelcontextprotocol",
+        "keywords:mcp-server",
+        "keywords:model-context-protocol",
+        "@anthropic mcp",
+        "fastmcp",
+        "mcp-tool",
+        "mcp plugin server",
     ]
 
     NPM_SEARCH = "https://registry.npmjs.org/-/v1/search"

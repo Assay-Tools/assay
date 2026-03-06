@@ -31,6 +31,10 @@ class PyPISource(DiscoverySource):
         "mcp-server-",
         "mcp-",
         "modelcontextprotocol-",
+        "fastmcp-",
+        "mcp-tool-",
+        "pymcp-",
+        "llm-mcp-",
     ]
 
     PYPI_JSON = "https://pypi.org/pypi"
@@ -75,6 +79,8 @@ class PyPISource(DiscoverySource):
                     mcp_names.append(name)
                 elif "mcp" in name_lower and "server" in name_lower:
                     mcp_names.append(name)
+                elif name_lower.startswith("fastmcp"):
+                    mcp_names.append(name)
 
             print(f"  [pypi] Found {len(mcp_names)} MCP-related packages.")
 
@@ -96,6 +102,17 @@ class PyPISource(DiscoverySource):
                     info = resp.json().get("info", {})
                 except httpx.HTTPError:
                     continue
+
+                # Post-filter: verify description mentions MCP for
+                # packages that matched only by loose name patterns
+                summary = (info.get("summary") or "").lower()
+                desc_long = (info.get("description") or "").lower()[:2000]
+                name_lower = name.lower()
+                is_prefix_match = any(name_lower.startswith(p) for p in self.SEARCH_PREFIXES)
+                if not is_prefix_match and "mcp" not in name_lower:
+                    # Loose match — require description confirmation
+                    if "mcp" not in summary and "model context protocol" not in desc_long:
+                        continue
 
                 # Extract repo URL from project URLs
                 project_urls = info.get("project_urls") or {}

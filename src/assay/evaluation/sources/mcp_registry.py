@@ -11,11 +11,16 @@ from .base import DiscoveredPackage, DiscoverySource
 
 
 def _slug_from_name(name: str) -> str:
-    """Generate a package ID slug from a registry server name."""
-    # Take the last segment if namespaced (e.g. "ai.foo/bar" -> "bar")
+    """Generate a package ID slug from a registry server name.
+
+    Includes namespace to avoid collisions (e.g. 'ai.foo/bar' -> 'ai-foo--bar').
+    """
     if "/" in name:
-        name = name.split("/")[-1]
-    slug = re.sub(r"[^a-z0-9-]", "-", name.lower())
+        parts = name.split("/", 1)
+        raw = f"{parts[0]}--{parts[1]}"
+    else:
+        raw = name
+    slug = re.sub(r"[^a-z0-9-]", "-", raw.lower())
     slug = re.sub(r"-+", "-", slug).strip("-")
     return slug[:255]
 

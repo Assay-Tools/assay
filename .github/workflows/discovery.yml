@@ -9,19 +9,38 @@ on:
       limit:
         description: 'Maximum packages to discover'
         required: false
-        default: '500'
+        default: '50000'
       source:
-        description: 'Discovery source (all, github, npm, pypi, mcp_registry, skills, openclaw, smithery)'
+        description: 'Discovery source'
         required: false
         default: 'all'
+        type: choice
+        options:
+          - all
+          - github
+          - npm
+          - pypi
+          - mcp_registry
+          - skills
+          - openclaw
+          - smithery
+          - glama
+          - cursor_directory
+          - docker_mcp
+          - mcp_run
+          - mcp_so
+          - crates_io
 
 jobs:
   discover:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     env:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
       GITHUB_TOKEN: ${{ secrets.GH_DISCOVERY_TOKEN }}
       SMITHERY_TOKEN: ${{ secrets.SMITHERY_TOKEN }}
+      GLAMA_TOKEN: ${{ secrets.GLAMA_TOKEN }}
+      DOCKER_HUB_TOKEN: ${{ secrets.DOCKER_HUB_TOKEN }}
 
     steps:
       - uses: actions/checkout@v4
@@ -35,7 +54,7 @@ jobs:
 
       - name: Run discovery
         run: |
-          LIMIT="${{ github.event.inputs.limit || '500' }}"
+          LIMIT="${{ github.event.inputs.limit || '50000' }}"
           SOURCE="${{ github.event.inputs.source || 'all' }}"
           echo "Running discovery: source=$SOURCE limit=$LIMIT"
           python -m assay.evaluation.discovery --limit "$LIMIT" --source "$SOURCE" 2>&1 | tee discovery-output.txt

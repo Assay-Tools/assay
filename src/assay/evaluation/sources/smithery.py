@@ -13,10 +13,17 @@ from .base import DiscoveredPackage, DiscoverySource
 
 
 def _slug_from_name(name: str) -> str:
-    """Generate a package ID slug from a Smithery server name."""
-    # Take last segment if namespaced (e.g., "@scope/name" -> "name")
-    clean = name.split("/")[-1] if "/" in name else name
-    slug = re.sub(r"[^a-z0-9-]", "-", clean.lower())
+    """Generate a package ID slug from a Smithery server name.
+
+    Includes scope to avoid collisions (e.g., '@scope/name' -> 'scope--name').
+    """
+    if "/" in name:
+        scope, pkg = name.split("/", 1)
+        scope = scope.lstrip("@")
+        raw = f"{scope}--{pkg}"
+    else:
+        raw = name
+    slug = re.sub(r"[^a-z0-9-]", "-", raw.lower())
     slug = re.sub(r"-+", "-", slug).strip("-")
     return slug[:255]
 

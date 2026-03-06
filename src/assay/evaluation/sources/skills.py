@@ -21,14 +21,16 @@ def _github_headers(accept: str = "application/vnd.github+json") -> dict[str, st
 
 
 def _slug_from_url(url: str) -> str:
-    """Generate a package ID slug from a URL."""
-    # Extract owner/repo from GitHub URL
-    match = re.search(r"github\.com/([^/]+/[^/]+)", url)
+    """Generate a package ID slug from a URL.
+
+    Uses 'owner--repo-name' format for GitHub URLs to avoid collisions.
+    """
+    match = re.search(r"github\.com/([^/]+)/([^/]+)", url)
     if match:
-        repo_part = match.group(1).split("/")[-1]
+        raw = f"{match.group(1)}--{match.group(2)}"
     else:
-        repo_part = url.rstrip("/").split("/")[-1]
-    slug = re.sub(r"[^a-z0-9-]", "-", repo_part.lower())
+        raw = url.rstrip("/").split("/")[-1]
+    slug = re.sub(r"[^a-z0-9-]", "-", raw.lower())
     slug = re.sub(r"-+", "-", slug).strip("-")
     return slug[:255]
 
@@ -47,6 +49,9 @@ class GitHubAwesomeListSource(DiscoverySource):
         "punkpeye/awesome-mcp-servers",
         "wong2/awesome-mcp-servers",
         "appcypher/awesome-mcp-servers",
+        "rohitg00/awesome-devops-mcp-servers",
+        "modelcontextprotocol/servers",
+        "lastmile-ai/awesome-mcp",
     ]
 
     @property
@@ -196,8 +201,12 @@ class OpenClawSource(DiscoverySource):
                     seen_urls.add(html_url)
 
                     full_name = repo.get("full_name", "")
-                    repo_name = full_name.split("/")[-1]
-                    slug = re.sub(r"[^a-z0-9-]", "-", repo_name.lower())
+                    parts = full_name.strip("/").split("/")
+                    if len(parts) >= 2:
+                        raw = f"{parts[-2]}--{parts[-1]}"
+                    else:
+                        raw = parts[-1]
+                    slug = re.sub(r"[^a-z0-9-]", "-", raw.lower())
                     slug = re.sub(r"-+", "-", slug).strip("-")[:255]
 
                     pkg = DiscoveredPackage(

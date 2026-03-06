@@ -28,6 +28,8 @@ class Settings(BaseSettings):
     # Discovery
     github_token: str = ""  # GitHub PAT for 5,000 req/hr (vs 60 unauthenticated)
     smithery_token: str = ""  # Smithery.ai API token for registry access
+    glama_token: str = ""  # Glama.ai API token (if required)
+    docker_hub_token: str = ""  # Docker Hub token for higher rate limits
 
     # Evaluation
     anthropic_api_key: str = ""
