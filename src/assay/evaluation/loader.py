@@ -251,7 +251,9 @@ def load_evaluation(data: dict, db) -> str:
     # Evaluation audit record
     eval_run = EvaluationRun(
         package_id=pkg_id,
-        model_used="claude-code-subscription",
+        model_used=data.get("evaluator_engine") or "claude-code-subscription",
+        evaluator_engine=data.get("evaluator_engine"),
+        rubric_version=data.get("rubric_version", "1.0"),
         raw_output=json.dumps(data),
         af_score_computed=pkg.af_score,
     )

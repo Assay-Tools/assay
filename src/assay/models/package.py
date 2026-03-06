@@ -37,6 +37,7 @@ class Package(Base):
     reliability_score: Mapped[float | None] = mapped_column(Float)  # Reliability (0-100)
 
     # Discovery metadata
+    legacy_id: Mapped[str | None] = mapped_column(String(255))  # Old-format slug for dedup
     # mcp_server, skill, api
     package_type: Mapped[str] = mapped_column(String(50), default="mcp_server")
     # github, mcp_registry, skills_sh, github_awesome, openclaw, community
@@ -459,6 +460,8 @@ class EvaluationRun(Base):
     cost_usd: Mapped[float | None] = mapped_column(Float)
     raw_output: Mapped[str | None] = mapped_column(Text)  # Full LLM response for audit
     af_score_computed: Mapped[float | None] = mapped_column(Float)
+    evaluator_engine: Mapped[str | None] = mapped_column(String(100))  # e.g. "claude", "gpt-4"
+    rubric_version: Mapped[str | None] = mapped_column(String(20))  # e.g. "1.0", "2.0"
 
     package: Mapped["Package"] = relationship(back_populates="evaluations")
 

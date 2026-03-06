@@ -630,6 +630,8 @@ class EvaluationAgent:
         eval_run = EvaluationRun(
             package_id=package.id,
             model_used=usage_info.get("model"),
+            evaluator_engine="claude",
+            rubric_version="1.0",
             input_tokens=usage_info.get("input_tokens"),
             output_tokens=usage_info.get("output_tokens"),
             cost_usd=self._estimate_cost(usage_info),

@@ -163,6 +163,12 @@ class EvaluationSubmission(BaseModel):
     """Full evaluation submission matching the loader's expected JSON."""
     id: str = Field(description="Package ID (slug, e.g. 'stripe')")
     name: str = Field(description="Display name")
+    evaluator_engine: str | None = Field(
+        None, description="AI engine used for evaluation (e.g. 'claude', 'gpt-4', 'gemini')",
+    )
+    rubric_version: str = Field(
+        "1.0", description="Rubric version used for this evaluation",
+    )
     homepage: str | None = None
     repo_url: str | None = None
     category: str | None = Field(
