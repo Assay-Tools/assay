@@ -25,8 +25,10 @@ class Settings(BaseSettings):
     # Stripe
     stripe_secret_key: str = ""
     stripe_webhook_secret: str = ""
-    stripe_price_report: str = ""  # Price ID for $99 one-time report
-    stripe_price_monitoring: str = ""  # Price ID for $3/mo recurring
+    stripe_price_report: str = ""  # Price ID for $99 Full Evaluation Report
+    stripe_price_brief: str = ""  # Price ID for $3 Package Brief
+    stripe_price_monitoring: str = ""  # Price ID for $3/mo recurring monitoring
+    stripe_price_support: str = ""  # Price ID for Support the Mission (custom amount)
     app_url: str = "https://assay.tools"  # For Stripe redirect URLs
 
     # Email (Migadu SMTP for transactional email)

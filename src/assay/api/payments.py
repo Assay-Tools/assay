@@ -104,6 +104,100 @@ def create_report_checkout(
     }
 
 
+@router.post("/v1/checkout/brief")
+@limiter.limit("50/day")
+def create_brief_checkout(
+    request: Request,
+    response: Response,
+    package_id: str,
+    db: Session = Depends(get_db),
+):
+    """Create a Stripe Checkout session for a $3 Package Brief."""
+    _ensure_stripe()
+
+    if not settings.stripe_price_brief:
+        raise HTTPException(status_code=503, detail="Brief pricing not configured")
+
+    pkg = db.query(Package).filter(Package.id == package_id).first()
+    if not pkg:
+        raise HTTPException(status_code=404, detail=f"Package '{package_id}' not found")
+
+    if pkg.af_score is None:
+        raise HTTPException(status_code=400, detail="Package has not been evaluated yet")
+
+    order = Order(
+        package_id=package_id,
+        order_type="brief",
+        amount_cents=300,
+    )
+    db.add(order)
+    db.flush()
+
+    try:
+        session = stripe.checkout.Session.create(
+            mode="payment",
+            line_items=[{"price": settings.stripe_price_brief, "quantity": 1}],
+            payment_intent_data={
+                "description": f"Assay Package Brief — {pkg.name}",
+            },
+            metadata={
+                "order_id": str(order.id),
+                "package_id": package_id,
+                "order_type": "brief",
+            },
+            success_url=f"{settings.app_url}/orders/{order.id}/success",
+            cancel_url=f"{settings.app_url}/packages/{package_id}",
+        )
+    except stripe.StripeError as e:
+        db.rollback()
+        logger.error("Stripe checkout creation failed: %s", e)
+        raise HTTPException(status_code=502, detail="Payment service error")
+
+    order.stripe_session_id = session.id
+    db.commit()
+
+    return {
+        "checkout_url": session.url,
+        "order_id": order.id,
+        "session_id": session.id,
+    }
+
+
+@router.post("/v1/checkout/support")
+@limiter.limit("20/day")
+def create_support_checkout(
+    request: Request,
+    response: Response,
+):
+    """Create a Stripe Checkout session for Support the Mission (custom amount)."""
+    _ensure_stripe()
+
+    if not settings.stripe_price_support:
+        raise HTTPException(status_code=503, detail="Support pricing not configured")
+
+    try:
+        session = stripe.checkout.Session.create(
+            mode="payment",
+            line_items=[{"price": settings.stripe_price_support, "quantity": 1}],
+            payment_intent_data={
+                "description": "Support Assay's Mission",
+            },
+            metadata={
+                "order_type": "support",
+            },
+            success_url=f"{settings.app_url}/support/thanks",
+            cancel_url=f"{settings.app_url}",
+        )
+    except stripe.StripeError as e:
+        logger.error("Stripe checkout creation failed: %s", e)
+        raise HTTPException(status_code=502, detail="Payment service error")
+
+    return {
+        "checkout_url": session.url,
+        "session_id": session.id,
+    }
+
+
 @router.post("/v1/checkout/monitoring")
 @limiter.limit("20/day")
 def create_monitoring_checkout(
@@ -246,7 +340,7 @@ def _handle_checkout_completed(session_data: dict, db: Session):
         _send_confirmation_async(order.id, order.customer_email, order.package_id, order.order_type)
 
     # Generate report in background thread so webhook returns fast
-    if order.order_type == "report":
+    if order.order_type in ("report", "brief"):
         _generate_report_async(order.id)
 
 
@@ -330,8 +424,18 @@ def _send_order_confirmation(to_email: str, order_id: int, package_id: str, orde
         logger.warning("SMTP not configured — skipping confirmation email for order %d", order_id)
         return
 
-    type_label = "Package Evaluation Report" if order_type == "report" else "Package Monitoring"
-    amount = "$99.00" if order_type == "report" else "$3.00/mo"
+    type_labels = {
+        "report": "Full Evaluation Report",
+        "brief": "Package Brief",
+        "monitoring_subscription": "Package Monitoring",
+    }
+    amount_labels = {
+        "report": "$99.00",
+        "brief": "$3.00",
+        "monitoring_subscription": "$3.00/mo",
+    }
+    type_label = type_labels.get(order_type, order_type)
+    amount = amount_labels.get(order_type, "—")
 
     msg = MIMEMultipart("alternative")
     msg["From"] = f"Assay Tools <{smtp_user}>"
@@ -345,7 +449,7 @@ Product: {type_label}
 Package: {package_id}
 Amount: {amount}
 
-{"Your evaluation report is being generated now. You'll receive another email with the download link shortly, typically within a minute or two." if order_type == "report" else "Your monitoring subscription is now active. You'll receive alerts when this package's scores change significantly."}
+{"Your report is being generated now. You'll receive another email with the download link shortly, typically within a minute or two." if order_type in ("report", "brief") else "Your monitoring subscription is now active. You'll receive alerts when this package's scores change significantly."}
 
 View your order: {settings.app_url}/orders/{order_id}/success
 
@@ -374,7 +478,7 @@ https://assay.tools
   </div>
 
   <p style="color: #d1d5db; font-size: 14px; line-height: 1.6;">
-    {"Your evaluation report is being generated now. You'll receive another email with the download link shortly — typically within a minute or two." if order_type == "report" else "Your monitoring subscription is now active. You'll receive alerts when this package's scores change significantly."}
+    {"Your report is being generated now. You'll receive another email with the download link shortly — typically within a minute or two." if order_type in ("report", "brief") else "Your monitoring subscription is now active. You'll receive alerts when this package's scores change significantly."}
   </p>
 
   <div style="text-align: center; margin: 28px 0;">
@@ -512,8 +616,29 @@ def download_report(
     if not report_file.exists():
         raise HTTPException(status_code=404, detail="Report file not found")
 
+    # Check if PDF is requested (via query param or Accept header)
+    fmt = request.query_params.get("format", "pdf")
+    suffix = "brief" if order.order_type == "brief" else "report"
+
+    if fmt == "md":
+        return FileResponse(
+            path=str(report_file),
+            filename=f"assay-{suffix}-{order.package_id}.md",
+            media_type="text/markdown",
+        )
+
+    # Default to PDF
+    pdf_file = report_file.with_suffix(".pdf")
+    if pdf_file.exists():
+        return FileResponse(
+            path=str(pdf_file),
+            filename=f"assay-{suffix}-{order.package_id}.pdf",
+            media_type="application/pdf",
+        )
+
+    # Fallback to markdown if PDF doesn't exist
     return FileResponse(
         path=str(report_file),
-        filename=f"assay-report-{order.package_id}.md",
+        filename=f"assay-{suffix}-{order.package_id}.md",
         media_type="text/markdown",
     )

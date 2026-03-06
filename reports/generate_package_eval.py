@@ -1,26 +1,33 @@
 #!/usr/bin/env python3
-"""Generate a Package Evaluation Report ($99 product).
+"""Generate Assay package reports (Brief $3 or Full Evaluation $99).
 
 Pulls data from the Assay API for a specific package, computes all metrics,
-and populates the template at reports/templates/package-evaluation.md.
+populates the appropriate template, and optionally generates AI narratives.
 
 Usage:
     python reports/generate_package_eval.py claude-api
+    python reports/generate_package_eval.py claude-api --type brief
     python reports/generate_package_eval.py sendbird-mcp --base-url http://localhost:8000
+    python reports/generate_package_eval.py claude-api --narratives  # AI-generated analysis
 """
 
 import argparse
 import json
+import re
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
-from urllib.request import urlopen, Request
-from urllib.error import URLError, HTTPError
-
+from urllib.error import HTTPError
+from urllib.request import Request, urlopen
 
 DEFAULT_BASE_URL = "https://assay.tools"
-TEMPLATE_PATH = Path(__file__).parent / "templates" / "package-evaluation.md"
+TEMPLATES_DIR = Path(__file__).parent / "templates"
 OUTPUT_DIR = Path(__file__).parent / "output" / "packages"
+
+TEMPLATE_FILES = {
+    "report": "package-evaluation.md",
+    "brief": "package-brief.md",
+}
 
 
 def api_get(base_url: str, path: str, params: dict | None = None) -> dict | None:
@@ -55,12 +62,12 @@ def score_to_rating(score: float | None) -> str:
 def fmt_score(score: float | None) -> str:
     """Format a score for display."""
     if score is None:
-        return "—"
+        return "\u2014"
     return f"{score:.1f}"
 
 
 def compute_report_data(base_url: str, package_id: str) -> dict:
-    """Compute all template variables for a package evaluation report."""
+    """Compute all template variables for a package report (both types)."""
     # --- Fetch package ---
     pkg = api_get(base_url, f"/packages/{package_id}")
     if not pkg:
@@ -126,7 +133,7 @@ def compute_report_data(base_url: str, package_id: str) -> dict:
         iface_rows.append(f"| OpenAPI Spec | {iface['openapi_spec_url']} |")
 
     interface_table = "| Interface | Details |\n|-----------|--------|\n"
-    interface_table += "\n".join(iface_rows) if iface_rows else "| — | No interface data available |"
+    interface_table += "\n".join(iface_rows) if iface_rows else "| \u2014 | No interface data available |"
 
     # --- Auth section ---
     auth_lines = []
@@ -177,10 +184,7 @@ def compute_report_data(base_url: str, package_id: str) -> dict:
 
     # --- Gotchas ---
     gotchas = ar.get("known_agent_gotchas") or []
-    if gotchas:
-        gotchas_md = "\n".join(f"- {g}" for g in gotchas)
-    else:
-        gotchas_md = "_No known gotchas documented._"
+    gotchas_md = "\n".join(f"- {g}" for g in gotchas) if gotchas else "_No known gotchas documented._"
 
     # --- Competitive positioning ---
     comp_lines = []
@@ -213,21 +217,52 @@ def compute_report_data(base_url: str, package_id: str) -> dict:
     sec_notes = ar.get("security_notes") or ""
     sec_notes_md = f"> {sec_notes}" if sec_notes else ""
 
-    # --- Narratives (placeholders for Claude to fill) ---
-    score_narrative = (
-        f"{{{{NARRATIVE: Summarize {pkg['name']}'s AF Score of {fmt_score(af)} in context. "
-        f"Compare to category average of {cat_avg:.1f}. Highlight strongest and weakest dimensions.}}}}"
-    )
-    security_narrative = (
-        f"{{{{NARRATIVE: Analyze {pkg['name']}'s security posture. "
-        f"Note any sub-components below 80 as improvement areas.}}}}"
-    )
-    reliability_narrative = (
-        f"{{{{NARRATIVE: Brief assessment of {pkg['name']}'s reliability profile.}}}}"
-    )
-    interface_narrative = (
-        f"{{{{NARRATIVE: Brief note on {pkg['name']}'s integration options and what they mean for agent adoption.}}}}"
-    )
+    # --- Dependency section ---
+    dep_lines = []
+    if reqs.get("compliance"):
+        compliance = reqs["compliance"]
+        if isinstance(compliance, str):
+            try:
+                compliance = json.loads(compliance)
+            except (json.JSONDecodeError, TypeError):
+                compliance = [compliance]
+        dep_lines.append(f"**Compliance**: {', '.join(compliance)}")
+    if reqs.get("data_residency"):
+        residency = reqs["data_residency"]
+        if isinstance(residency, str):
+            try:
+                residency = json.loads(residency)
+            except (json.JSONDecodeError, TypeError):
+                residency = [residency]
+        dep_lines.append(f"**Data Residency**: {', '.join(residency)}")
+    dep_lines.append(f"**Dependency Hygiene Score**: {fmt_score(ar.get('dependency_hygiene'))}/100")
+    dependency_section = "\n".join(dep_lines)
+
+    # --- Compliance section ---
+    compliance_lines = []
+    if reqs.get("compliance"):
+        compliance = reqs["compliance"]
+        if isinstance(compliance, str):
+            try:
+                compliance = json.loads(compliance)
+            except (json.JSONDecodeError, TypeError):
+                compliance = [compliance]
+        compliance_lines.append(f"**Certifications**: {', '.join(compliance)}")
+    if reqs.get("data_residency"):
+        residency = reqs["data_residency"]
+        if isinstance(residency, str):
+            try:
+                residency = json.loads(residency)
+            except (json.JSONDecodeError, TypeError):
+                residency = [residency]
+        compliance_lines.append(f"**Data Residency**: {', '.join(residency)}")
+    if reqs.get("requires_signup"):
+        compliance_lines.append("**Requires Signup**: Yes")
+    if reqs.get("domain_verification"):
+        compliance_lines.append("**Domain Verification**: Required")
+    if reqs.get("min_contract"):
+        compliance_lines.append(f"**Minimum Contract**: {reqs['min_contract']}")
+    compliance_section = "\n".join(compliance_lines) if compliance_lines else "_No compliance data available._"
 
     last_eval = pkg.get("last_evaluated") or "Unknown"
     if last_eval != "Unknown":
@@ -238,15 +273,17 @@ def compute_report_data(base_url: str, package_id: str) -> dict:
             pass
 
     return {
+        "package_id": package_id,
         "package_name": pkg["name"],
         "what_it_does": pkg.get("what_it_does") or "_No description available._",
         "category_name": category_display,
-        "homepage": pkg.get("homepage") or "—",
-        "repo_url": pkg.get("repo_url") or "—",
-        "package_type": pkg.get("package_type") or "—",
+        "homepage": pkg.get("homepage") or "\u2014",
+        "repo_url": pkg.get("repo_url") or "\u2014",
+        "package_type": pkg.get("package_type") or "\u2014",
         "last_evaluated": last_eval,
         "report_date": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
         "year": str(datetime.now(timezone.utc).year),
+        "cat_avg": f"{cat_avg:.1f}",
         # AF Score dimensions
         "af_score": fmt_score(af),
         "af_rating": score_to_rating(af),
@@ -300,23 +337,14 @@ def compute_report_data(base_url: str, package_id: str) -> dict:
         "competitive_section": "\n".join(comp_lines),
         "recommendations": "\n".join(recs),
         "roadmap": roadmap,
-        # Narratives
-        "score_summary_narrative": score_narrative,
-        "security_narrative": security_narrative,
-        "reliability_narrative": reliability_narrative,
-        "interface_narrative": interface_narrative,
+        "dependency_section": dependency_section,
+        "compliance_section": compliance_section,
     }
-
-
-def _cat_name(slug: str) -> str:
-    """Convert category slug to display name."""
-    return slug.replace("-", " ").title() if slug else "Uncategorized"
 
 
 def _generate_recommendations(pkg: dict, ar: dict, cat_avg: float) -> list[str]:
     """Generate prioritized improvement recommendations based on scores."""
     recs = []
-    af = pkg.get("af_score") or 0
 
     # Check each dimension for improvement opportunities
     dims = [
@@ -342,13 +370,14 @@ def _generate_recommendations(pkg: dict, ar: dict, cat_avg: float) -> list[str]:
     priority = 1
     for name, score, key in scored_dims:
         if score < 60:
-            recs.append(f"**P{priority} — {name} ({score:.0f}/100)**: "
+            recs.append(f"**P{priority} \u2014 {name} ({score:.0f}/100)**: "
                        f"{{{{RECOMMENDATION: Specific actionable improvement for {name.lower()} "
-                       f"based on score of {score:.0f}.}}}}")
+                       f"based on score of {score:.0f}. Include estimated effort and projected score impact.}}}}")
             priority += 1
         elif score < 80:
-            recs.append(f"**P{priority} — {name} ({score:.0f}/100)**: "
-                       f"{{{{RECOMMENDATION: Targeted improvement to reach Excellent tier for {name.lower()}.}}}}")
+            recs.append(f"**P{priority} \u2014 {name} ({score:.0f}/100)**: "
+                       f"{{{{RECOMMENDATION: Targeted improvement to reach Excellent tier for {name.lower()}. "
+                       f"Include specific steps and projected score impact.}}}}")
             priority += 1
 
     # Security recommendations
@@ -356,8 +385,9 @@ def _generate_recommendations(pkg: dict, ar: dict, cat_avg: float) -> list[str]:
     scored_sec.sort(key=lambda x: x[1])
     for name, score in scored_sec:
         if score < 70:
-            recs.append(f"**P{priority} — Security: {name} ({score:.0f}/100)**: "
-                       f"{{{{RECOMMENDATION: Security improvement for {name.lower()}.}}}}")
+            recs.append(f"**P{priority} \u2014 Security: {name} ({score:.0f}/100)**: "
+                       f"{{{{RECOMMENDATION: Security improvement for {name.lower()}. "
+                       f"Include specific action and risk if left unaddressed.}}}}")
             priority += 1
 
     if not recs:
@@ -373,23 +403,23 @@ def _generate_roadmap(pkg: dict, ar: dict, recs: list[str]) -> str:
     af = pkg.get("af_score") or 0
 
     if af >= 85:
-        phase = "**Current Status: Leader** — This package is among the top-rated in the ecosystem."
+        phase = "**Current Status: Leader** \u2014 This package is among the top-rated in the ecosystem."
         next_step = "Focus on maintaining quality across releases and expanding integration options."
     elif af >= 70:
-        phase = "**Current Status: Competitive** — This package performs above average but has clear room to improve."
+        phase = "**Current Status: Competitive** \u2014 This package performs above average but has clear room to improve."
         next_step = "Address the highest-priority recommendations above to break into the Excellent tier (80+)."
     elif af >= 55:
-        phase = "**Current Status: Developing** — This package meets basic agent-friendliness criteria but needs investment."
-        next_step = "Prioritize documentation accuracy and error message quality — these two dimensions have the highest impact on AF Score."
+        phase = "**Current Status: Developing** \u2014 This package meets basic agent-friendliness criteria but needs investment."
+        next_step = "Prioritize documentation accuracy and error message quality \u2014 these two dimensions have the highest impact on AF Score."
     else:
-        phase = "**Current Status: Early Stage** — Significant work needed to make this package reliably agent-friendly."
+        phase = "**Current Status: Early Stage** \u2014 Significant work needed to make this package reliably agent-friendly."
         next_step = "Start with documentation: ensure docs match actual API behavior. Then add structured error responses with actionable messages."
 
     return f"""{phase}
 
 {next_step}
 
-{{{{NARRATIVE: 3-5 bullet roadmap of specific next steps for this package to improve its AF Score, ordered by expected impact.}}}}"""
+{{{{NARRATIVE: Write a 5-7 bullet roadmap of specific next steps for this package to improve its AF Score, ordered by expected impact. For each step, include estimated effort and projected score improvement.}}}}"""
 
 
 def render_template(template: str, data: dict) -> str:
@@ -400,39 +430,94 @@ def render_template(template: str, data: dict) -> str:
     return result
 
 
-def main():
-    parser = argparse.ArgumentParser(description="Generate Assay Package Evaluation Report")
-    parser.add_argument("package_id", help="Package ID (e.g., claude-api, sendbird-mcp)")
-    parser.add_argument("--base-url", default=DEFAULT_BASE_URL, help="Assay API base URL")
-    parser.add_argument("--output", help="Output file path")
-    args = parser.parse_args()
+def generate_report(
+    package_id: str,
+    report_type: str = "report",
+    base_url: str = DEFAULT_BASE_URL,
+    output_path: Path | None = None,
+    with_narratives: bool = True,
+) -> Path:
+    """Generate a complete report — the main entry point for programmatic use.
 
+    Args:
+        package_id: The package to report on.
+        report_type: "report" (Full Evaluation $99) or "brief" (Package Brief $3).
+        base_url: Assay API base URL.
+        output_path: Where to write the report. Auto-generated if None.
+        with_narratives: Whether to run the Opus narrative generation pass.
+
+    Returns:
+        Path to the generated report file.
+    """
     # Load template
-    if not TEMPLATE_PATH.exists():
-        print(f"Template not found: {TEMPLATE_PATH}", file=sys.stderr)
-        sys.exit(1)
-    template = TEMPLATE_PATH.read_text()
+    template_file = TEMPLATES_DIR / TEMPLATE_FILES[report_type]
+    if not template_file.exists():
+        raise FileNotFoundError(f"Template not found: {template_file}")
+    template = template_file.read_text()
 
     # Gather data
-    print(f"Generating evaluation report for '{args.package_id}'...", file=sys.stderr)
-    data = compute_report_data(args.base_url, args.package_id)
+    data = compute_report_data(base_url, package_id)
 
-    # Render
+    # Pass 1: Render structured data into template
     report = render_template(template, data)
 
-    # Output
-    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-    out_path = Path(args.output) if args.output else OUTPUT_DIR / f"{args.package_id}.md"
-    out_path.write_text(report)
-    print(f"Report written to {out_path}", file=sys.stderr)
+    # Pass 2: Generate AI narratives (fills {{NARRATIVE}} and {{RECOMMENDATION}} placeholders)
+    if with_narratives:
+        try:
+            from assay.reports.narratives import generate_narratives
+            report = generate_narratives(report, report_type)
+        except ImportError:
+            print("Warning: narratives module not available, skipping AI generation", file=sys.stderr)
+        except Exception as e:
+            print(f"Warning: narrative generation failed ({e}), continuing without", file=sys.stderr)
 
-    # Show narrative placeholders
-    import re
-    narratives = re.findall(r"\{\{(?:NARRATIVE|RECOMMENDATION):.*?\}\}", report)
-    if narratives:
-        print(f"\n{len(narratives)} sections need narrative writing:", file=sys.stderr)
-        for n in narratives:
-            print(f"  - {n[:80]}...", file=sys.stderr)
+    # Write output
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    suffix = "-brief" if report_type == "brief" else ""
+    if output_path is None:
+        output_path = OUTPUT_DIR / f"{package_id}{suffix}.md"
+    output_path.write_text(report)
+
+    return output_path
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Generate Assay Package Report")
+    parser.add_argument("package_id", help="Package ID (e.g., claude-api, sendbird-mcp)")
+    parser.add_argument("--type", choices=["report", "brief"], default="report",
+                       help="Report type: 'report' (Full $99) or 'brief' (Brief $3)")
+    parser.add_argument("--base-url", default=DEFAULT_BASE_URL, help="Assay API base URL")
+    parser.add_argument("--output", help="Output file path")
+    parser.add_argument("--narratives", action="store_true",
+                       help="Generate AI narratives (requires ANTHROPIC_API_KEY)")
+    parser.add_argument("--no-narratives", action="store_true",
+                       help="Skip AI narrative generation")
+    args = parser.parse_args()
+
+    with_narratives = args.narratives and not args.no_narratives
+
+    print(f"Generating {args.type} for '{args.package_id}'...", file=sys.stderr)
+
+    output_path = Path(args.output) if args.output else None
+    result = generate_report(
+        args.package_id,
+        report_type=args.type,
+        base_url=args.base_url,
+        output_path=output_path,
+        with_narratives=with_narratives,
+    )
+
+    print(f"Report written to {result}", file=sys.stderr)
+
+    # Show remaining placeholders
+    report_text = result.read_text()
+    placeholders = re.findall(r"\{\{(?:NARRATIVE|RECOMMENDATION):.*?\}\}", report_text)
+    if placeholders:
+        print(f"\n{len(placeholders)} sections still have placeholders:", file=sys.stderr)
+        for p in placeholders:
+            print(f"  - {p[:80]}...", file=sys.stderr)
+    else:
+        print("\nAll narrative sections filled.", file=sys.stderr)
 
 
 if __name__ == "__main__":

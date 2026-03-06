@@ -87,23 +87,36 @@ For organizations that want third-party validation of their agent-readiness.
 
 **Rationale**: Free tier builds trust and distribution. Pro tier generates sustainable recurring revenue at low friction. Certified tier is a future premium offering that requires brand equity to justify.
 
-### 2. Knowledge Products — Package Evaluation Reports
+### 2. Knowledge Products — Reports
 
-One-time revenue from detailed, actionable reports delivered to package owners/maintainers.
+Two tiers of report products, both available to anyone (maintainers, developers, agent operators).
 
-| Product | Price | Audience | What They Get |
-|---------|-------|----------|---------------|
-| **Package Evaluation Report** | $99/one-time | Package maintainers | Full AF score breakdown, sub-component analysis, specific improvement recommendations, competitive positioning within category, agent-readiness roadmap |
+| Product | Price | Type | What They Get |
+|---------|-------|------|---------------|
+| **Package Brief** | $3/one-time | Impulse buy | Quick-read verdict, integration guide, cost projection, gotchas with workarounds, alternatives comparison |
+| **Full Evaluation Report** | $99/one-time | Deep-dive | Complete technical analysis: security/reliability deep-dives, competitive positioning, dependency analysis, prioritized improvement roadmap with projected score impact |
 
 **How it works**:
 - Assay already has evaluation data for 2,456+ packages
-- The report adds personalized narrative, prioritized recommendations, and competitive context
-- Agent-generated, human-reviewed before delivery
-- Marginal cost is near zero (data exists, report generation is agentic)
+- At purchase time, an Opus API call generates narrative analysis grounded in the package's structured data
+- Reports delivered as both markdown (agent-friendly) and branded PDF
+- Marginal cost per report: ~$0.10-0.20 (Opus API tokens)
 
-**Upsell path**: Report recipients become natural candidates for $3/mo monitoring (track their improvements) and eventually Certified ($299/mo) once that tier launches.
+**Package Brief ($3)** — Priced for impulse purchase. Low enough that a human would approve an agent making this purchase autonomously. Designed as a quick-read that answers "should I use this?" with actionable context beyond what's free on the site.
 
-### 3. Knowledge Products — Quarterly Ecosystem Reports
+**Full Evaluation Report ($99)** — The deep technical analysis. Especially valuable for maintainers wanting to improve their scores, but useful for anyone doing serious due diligence. The improvement roadmap section is the crown jewel — specific, prioritized actions with projected score impact.
+
+**Upsell path**: Brief buyers explore deeper with Full Reports. Report buyers become natural candidates for $3/mo monitoring (track improvements over time) and eventually Certified ($299/mo) once that tier launches.
+
+### 3. Support the Mission
+
+| Product | Price | Type | What They Get |
+|---------|-------|------|---------------|
+| **Support the Mission** | Customer chooses | One-time | Contribute to ongoing package discovery and analysis. No deliverable — pure support for the platform. |
+
+**Rationale**: Some people just want to support independent quality infrastructure. Low-friction way to accept contributions without a deliverable obligation.
+
+### 4. Knowledge Products — Quarterly Ecosystem Reports
 
 Free knowledge products that build authority and drive awareness.
 

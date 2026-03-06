@@ -2,8 +2,14 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-# Install system deps for psycopg2
-RUN apt-get update && apt-get install -y --no-install-recommends libpq-dev && rm -rf /var/lib/apt/lists/*
+# Install system deps for psycopg2 and WeasyPrint (PDF generation)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpq-dev \
+    libpango-1.0-0 \
+    libpangocairo-1.0-0 \
+    libgdk-pixbuf2.0-0 \
+    libffi-dev \
+    && rm -rf /var/lib/apt/lists/*
 
 # Install uv for fast dependency resolution
 RUN pip install uv

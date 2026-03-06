@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 
 def _find_project_root() -> Path:
-    """Find project root — works both in dev (source tree) and Docker (/app)."""
+    """Find project root - works both in dev (source tree) and Docker (/app)."""
     # Docker: WORKDIR is /app, reports/ is copied there
     docker_root = Path("/app")
     if docker_root.exists() and (docker_root / "reports").exists():
@@ -28,15 +28,15 @@ def _find_project_root() -> Path:
 
 PROJECT_ROOT = _find_project_root()
 REPORTS_DIR = PROJECT_ROOT / "reports" / "output" / "packages"
-TEMPLATE_PATH = PROJECT_ROOT / "reports" / "templates" / "package-evaluation.md"
 
 
 def generate_report_for_order(order: Order, db: Session) -> str | None:
-    """Generate a markdown report for a paid order.
+    """Generate a report for a paid order.
 
+    Supports both 'report' (Full Evaluation $99) and 'brief' (Package Brief $3).
     Returns the report file path (relative to project root) or None on failure.
     """
-    if order.order_type != "report":
+    if order.order_type not in ("report", "brief"):
         logger.warning("Order %d is not a report order (type=%s)", order.id, order.order_type)
         return None
 
@@ -51,24 +51,37 @@ def generate_report_for_order(order: Order, db: Session) -> str | None:
         if reports_script_dir not in sys.path:
             sys.path.insert(0, reports_script_dir)
 
-        from generate_package_eval import compute_report_data, render_template
+        from generate_package_eval import generate_report
 
         from assay.config import settings
         base_url = settings.app_url.rstrip("/")
 
-        data = compute_report_data(base_url, order.package_id)
-
-        if not TEMPLATE_PATH.exists():
-            logger.error("Report template not found: %s", TEMPLATE_PATH)
-            return None
-
-        template = TEMPLATE_PATH.read_text()
-        report_content = render_template(template, data)
+        report_type = order.order_type  # "report" or "brief"
+        suffix = "-brief" if report_type == "brief" else ""
+        filename = f"{order.package_id}{suffix}-order-{order.id}.md"
 
         REPORTS_DIR.mkdir(parents=True, exist_ok=True)
-        filename = f"{order.package_id}-order-{order.id}.md"
-        report_path = REPORTS_DIR / filename
-        report_path.write_text(report_content)
+        output_path = REPORTS_DIR / filename
+
+        generate_report(
+            package_id=order.package_id,
+            report_type=report_type,
+            base_url=base_url,
+            output_path=output_path,
+            with_narratives=bool(settings.anthropic_api_key),
+        )
+
+        # Generate PDF from the markdown
+        try:
+            from assay.reports.pdf import markdown_to_pdf
+            md_content = output_path.read_text()
+            pdf_path = markdown_to_pdf(md_content, output_path)
+            logger.info("PDF generated for order %d: %s", order.id, pdf_path)
+        except Exception:
+            logger.exception(
+                "PDF generation failed for order %d (markdown still available)",
+                order.id,
+            )
 
         rel_path = f"reports/output/packages/{filename}"
         order.report_path = rel_path
