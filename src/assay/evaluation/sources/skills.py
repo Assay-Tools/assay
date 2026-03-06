@@ -211,7 +211,7 @@ class OpenClawSource(DiscoverySource):
 
                     pkg = DiscoveredPackage(
                         id=slug,
-                        name=repo.get("name", repo_name),
+                        name=repo.get("name", parts[-1]),
                         repo_url=html_url,
                         homepage=repo.get("homepage") or None,
                         description=(repo.get("description") or "")[:500] or None,

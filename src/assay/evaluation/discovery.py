@@ -433,7 +433,7 @@ class DiscoveryAgent:
     @staticmethod
     def _merge_existing(db, pkg_id: str, pkg: DiscoveredPackage) -> None:
         """Merge new discovery data into an existing package record."""
-        existing = db.query(Package).get(pkg_id)
+        existing = db.get(Package, pkg_id)
         if not existing:
             return
 
