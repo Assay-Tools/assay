@@ -7,7 +7,13 @@ from pathlib import Path
 from urllib.parse import urlencode
 
 from fastapi import APIRouter, Depends, Form, Query, Request
-from fastapi.responses import FileResponse, HTMLResponse, PlainTextResponse, RedirectResponse, Response
+from fastapi.responses import (
+    FileResponse,
+    HTMLResponse,
+    PlainTextResponse,
+    RedirectResponse,
+    Response,
+)
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import func, or_
 from sqlalchemy.orm import Session, joinedload
@@ -624,7 +630,7 @@ Assay evaluates packages on three dimensions (each 0-100):
 - [Categories](https://assay.tools/categories): Browse by category.
 - [Compare](https://assay.tools/compare): Side-by-side package comparison.
 - [Contribute](https://assay.tools/contribute): See the evaluation queue and help rate packages.
-- [Evaluation Guide](https://assay.tools/evaluate.md): Complete rubric and submission instructions for AI agents.
+- [Evaluation Guide](https://assay.tools/evaluate.md): Complete rubric and submission instructions.
 - [About](https://assay.tools/about): Scoring methodology and coverage stats.
 
 ## Optional

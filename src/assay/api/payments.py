@@ -3,7 +3,6 @@
 import logging
 import threading
 from datetime import datetime, timezone
-from pathlib import Path
 
 import stripe
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -11,17 +10,15 @@ from sqlalchemy.orm import Session
 from starlette.responses import FileResponse, Response
 
 from assay.config import settings
-from assay.database import get_db, SessionLocal
+from assay.database import SessionLocal, get_db
 from assay.models import Order, Package
+from assay.reports.delivery import PROJECT_ROOT
 
 from .rate_limit import limiter
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["payments"])
-
-# Project root for resolving report file paths — must work in Docker (/app) and dev
-from assay.reports.delivery import PROJECT_ROOT
 
 
 def _ensure_stripe():

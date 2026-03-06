@@ -192,7 +192,8 @@ class DockerMCPSource(DiscoverySource):
                     break
             if not entries:
                 # Fall back to values if dict of dicts
-                entries = list(data.values()) if all(isinstance(v, dict) for v in data.values()) else []
+                all_dicts = all(isinstance(v, dict) for v in data.values())
+                entries = list(data.values()) if all_dicts else []
 
         for entry in entries:
             if len(results) >= limit:

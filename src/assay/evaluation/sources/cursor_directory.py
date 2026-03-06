@@ -78,7 +78,8 @@ class CursorDirectorySource(DiscoverySource):
 
                 # Build cursor.directory page URL
                 server_slug = server.get("slug") or server.get("id") or ""
-                homepage = f"https://cursor.directory/mcp/{server_slug}" if server_slug else self.PAGE_URL
+                base = "https://cursor.directory/mcp"
+                homepage = f"{base}/{server_slug}" if server_slug else self.PAGE_URL
 
                 description = (server.get("description") or "")[:500] or None
 

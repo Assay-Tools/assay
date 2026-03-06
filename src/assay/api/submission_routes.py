@@ -241,7 +241,10 @@ def submit_evaluation(
         if today_count >= daily_limit:
             raise HTTPException(
                 status_code=429,
-                detail=f"Daily submission limit reached ({daily_limit}/day for {contributor.trust_tier} tier)",
+                detail=(
+                    f"Daily submission limit reached"
+                    f" ({daily_limit}/day for {contributor.trust_tier} tier)"
+                ),
             )
 
     # Plausibility validation
@@ -253,7 +256,10 @@ def submit_evaluation(
     if submission.rubric_version >= "2.0" and not submission.evidence:
         raise HTTPException(
             status_code=422,
-            detail="Rubric version 2.0+ requires evidence checkpoints. Include an 'evidence' object.",
+            detail=(
+                "Rubric version 2.0+ requires evidence checkpoints."
+                " Include an 'evidence' object."
+            ),
         )
     evidence_errors = _validate_evidence_consistency(submission)
     if evidence_errors:
@@ -304,7 +310,8 @@ def submit_evaluation(
         status=status,
         package_id=submission.id,
         message=(
-            f"Evaluation for '{submission.id}' {'accepted and loaded' if status == 'accepted' else 'queued for review'}"
+            f"Evaluation for '{submission.id}'"
+            f" {'accepted and loaded' if status == 'accepted' else 'queued for review'}"
             f" (#{pending.id})"
         ),
     )
