@@ -1,7 +1,6 @@
 """Report generation and delivery after Stripe payment confirmation."""
 
 import logging
-import os
 from pathlib import Path
 
 from sqlalchemy.orm import Session
