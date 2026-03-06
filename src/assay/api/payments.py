@@ -19,8 +19,8 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["payments"])
 
-# Project root for resolving report file paths
-PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
+# Project root for resolving report file paths — must work in Docker (/app) and dev
+from assay.reports.delivery import PROJECT_ROOT
 
 
 def _ensure_stripe():

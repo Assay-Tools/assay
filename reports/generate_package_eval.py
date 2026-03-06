@@ -64,8 +64,7 @@ def compute_report_data(base_url: str, package_id: str) -> dict:
     # --- Fetch package ---
     pkg = api_get(base_url, f"/packages/{package_id}")
     if not pkg:
-        print(f"Package '{package_id}' not found", file=sys.stderr)
-        sys.exit(1)
+        raise ValueError(f"Package '{package_id}' not found")
 
     ar = pkg.get("agent_readiness") or {}
     iface = pkg.get("interface") or {}

@@ -1,6 +1,7 @@
 """Report generation and delivery after Stripe payment confirmation."""
 
 import logging
+import os
 from pathlib import Path
 
 from sqlalchemy.orm import Session
@@ -9,11 +10,26 @@ from assay.models import Order, Package
 
 logger = logging.getLogger(__name__)
 
-# Reports stored relative to project root
-REPORTS_DIR = Path(__file__).parent.parent.parent.parent / "reports" / "output" / "packages"
-TEMPLATE_PATH = (
-    Path(__file__).parent.parent.parent.parent / "reports" / "templates" / "package-evaluation.md"
-)
+
+def _find_project_root() -> Path:
+    """Find project root — works both in dev (source tree) and Docker (/app)."""
+    # Docker: WORKDIR is /app, reports/ is copied there
+    docker_root = Path("/app")
+    if docker_root.exists() and (docker_root / "reports").exists():
+        return docker_root
+    # Dev: walk up from this file to find reports/
+    candidate = Path(__file__).resolve()
+    for _ in range(6):
+        candidate = candidate.parent
+        if (candidate / "reports" / "templates").exists():
+            return candidate
+    # Fallback: cwd
+    return Path.cwd()
+
+
+PROJECT_ROOT = _find_project_root()
+REPORTS_DIR = PROJECT_ROOT / "reports" / "output" / "packages"
+TEMPLATE_PATH = PROJECT_ROOT / "reports" / "templates" / "package-evaluation.md"
 
 
 def generate_report_for_order(order: Order, db: Session) -> str | None:
@@ -31,21 +47,18 @@ def generate_report_for_order(order: Order, db: Session) -> str | None:
         return None
 
     try:
-        # Import the existing report generator
         import sys
-        reports_script_dir = str(Path(__file__).parent.parent.parent.parent / "reports")
+        reports_script_dir = str(PROJECT_ROOT / "reports")
         if reports_script_dir not in sys.path:
             sys.path.insert(0, reports_script_dir)
 
         from generate_package_eval import compute_report_data, render_template
 
-        # Generate report data via the API
         from assay.config import settings
         base_url = settings.app_url.rstrip("/")
 
         data = compute_report_data(base_url, order.package_id)
 
-        # Load and render template
         if not TEMPLATE_PATH.exists():
             logger.error("Report template not found: %s", TEMPLATE_PATH)
             return None
@@ -53,13 +66,11 @@ def generate_report_for_order(order: Order, db: Session) -> str | None:
         template = TEMPLATE_PATH.read_text()
         report_content = render_template(template, data)
 
-        # Write report file — use order ID for uniqueness
         REPORTS_DIR.mkdir(parents=True, exist_ok=True)
         filename = f"{order.package_id}-order-{order.id}.md"
         report_path = REPORTS_DIR / filename
         report_path.write_text(report_content)
 
-        # Store relative path on order
         rel_path = f"reports/output/packages/{filename}"
         order.report_path = rel_path
         db.commit()
@@ -67,6 +78,9 @@ def generate_report_for_order(order: Order, db: Session) -> str | None:
         logger.info("Report generated for order %d: %s", order.id, rel_path)
         return rel_path
 
+    except SystemExit:
+        logger.error("Report generator called sys.exit for order %d", order.id)
+        return None
     except Exception:
         logger.exception("Failed to generate report for order %d", order.id)
         return None
