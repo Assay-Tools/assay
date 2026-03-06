@@ -11,6 +11,7 @@ RUN pip install uv
 # Copy everything needed for install
 COPY pyproject.toml uv.lock README.md ./
 COPY src/ src/
+COPY reports/ reports/
 
 # Install as a proper package (not editable)
 RUN uv pip install --system .
