@@ -29,9 +29,11 @@ class Settings(BaseSettings):
     stripe_price_monitoring: str = ""  # Price ID for $3/mo recurring
     app_url: str = "https://assay.tools"  # For Stripe redirect URLs
 
-    # Email (Gmail SMTP for order confirmations)
-    smtp_user: str = ""  # e.g. assaytools@gmail.com
-    smtp_pass: str = ""  # Gmail App Password
+    # Email (Migadu SMTP for transactional email)
+    smtp_user: str = ""  # e.g. hello@assay.tools
+    smtp_pass: str = ""  # Migadu mailbox password
+    smtp_host: str = "smtp.migadu.com"
+    smtp_port: int = 465
 
     # Discovery
     github_token: str = ""  # GitHub PAT for 5,000 req/hr (vs 60 unauthenticated)

@@ -307,9 +307,20 @@ def _send_confirmation_async(order_id: int, email: str, package_id: str, order_t
     thread.start()
 
 
+def _smtp_send(smtp_user: str, smtp_pass: str, to_email: str, msg):
+    """Send an email via SMTP. Uses Migadu (SMTP_SSL on port 465)."""
+    import smtplib
+
+    smtp_host = settings.smtp_host or "smtp.migadu.com"
+    smtp_port = settings.smtp_port or 465
+
+    with smtplib.SMTP_SSL(smtp_host, smtp_port) as server:
+        server.login(smtp_user, smtp_pass)
+        server.sendmail(smtp_user, to_email, msg.as_string())
+
+
 def _send_order_confirmation(to_email: str, order_id: int, package_id: str, order_type: str):
     """Send immediate order confirmation via SMTP."""
-    import smtplib
     from email.mime.multipart import MIMEMultipart
     from email.mime.text import MIMEText
 
@@ -383,17 +394,13 @@ https://assay.tools
     msg.attach(MIMEText(text, "plain"))
     msg.attach(MIMEText(html, "html"))
 
-    with smtplib.SMTP("smtp.gmail.com", 587) as server:
-        server.starttls()
-        server.login(smtp_user, smtp_pass)
-        server.sendmail(smtp_user, to_email, msg.as_string())
+    _smtp_send(smtp_user, smtp_pass, to_email, msg)
 
     logger.info("Confirmation email sent for order %d to %s", order_id, to_email)
 
 
 def _send_report_ready_email(to_email: str, order_id: int, package_id: str):
     """Send follow-up email when report is ready for download."""
-    import smtplib
     from email.mime.multipart import MIMEMultipart
     from email.mime.text import MIMEText
 
@@ -444,10 +451,7 @@ https://assay.tools
     msg.attach(MIMEText(text, "plain"))
     msg.attach(MIMEText(html, "html"))
 
-    with smtplib.SMTP("smtp.gmail.com", 587) as server:
-        server.starttls()
-        server.login(smtp_user, smtp_pass)
-        server.sendmail(smtp_user, to_email, msg.as_string())
+    _smtp_send(smtp_user, smtp_pass, to_email, msg)
 
     logger.info("Report-ready email sent for order %d to %s", order_id, to_email)
 
