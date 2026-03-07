@@ -449,7 +449,7 @@ Product: {type_label}
 Package: {package_id}
 Amount: {amount}
 
-{"Your report is being generated now. You'll receive another email with the download link shortly, typically within a minute or two." if order_type in ("report", "brief") else "Your monitoring subscription is now active. You'll receive alerts when this package's scores change significantly."}
+{"Your report is being generated now. We'll email you the download link when it's ready — Full Evaluation Reports typically take 20-30 minutes, Package Briefs around 5 minutes." if order_type in ("report", "brief") else "Your monitoring subscription is now active. You'll receive alerts when this package's scores change significantly."}
 
 View your order: {settings.app_url}/orders/{order_id}/success
 
@@ -478,7 +478,7 @@ https://assay.tools
   </div>
 
   <p style="color: #d1d5db; font-size: 14px; line-height: 1.6;">
-    {"Your report is being generated now. You'll receive another email with the download link shortly — typically within a minute or two." if order_type in ("report", "brief") else "Your monitoring subscription is now active. You'll receive alerts when this package's scores change significantly."}
+    {"Your report is being generated now. We'll email you the download link when it's ready — Full Evaluation Reports typically take 20-30 minutes, Package Briefs around 5 minutes." if order_type in ("report", "brief") else "Your monitoring subscription is now active. You'll receive alerts when this package's scores change significantly."}
   </p>
 
   <div style="text-align: center; margin: 28px 0;">

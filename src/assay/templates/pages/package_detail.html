@@ -441,24 +441,61 @@
     </section>
     {% endif %}
 
-    {# ── Buy Report CTA ── #}
+    {# ── Products ── #}
     {% if package.af_score is not none %}
-    <section class="mb-10">
+    <section class="mb-10 space-y-4">
+
+        {# Full Evaluation Report — hero card #}
         <div class="bg-gradient-to-r from-accent/10 to-surface-raised border border-accent/30 rounded-xl p-6">
             <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
                     <h3 class="text-lg font-semibold text-white mb-1">Full Evaluation Report</h3>
-                    <p class="text-gray-400 text-sm">Detailed scoring breakdown, competitive positioning, security analysis, and improvement recommendations for <strong class="text-gray-300">{{ package.name }}</strong>.</p>
+                    <p class="text-gray-400 text-sm">Comprehensive deep-dive: security analysis, reliability audit, agent experience review, cost modeling, competitive positioning, and improvement roadmap for <strong class="text-gray-300">{{ package.name }}</strong>.</p>
+                    <p class="text-gray-500 text-xs mt-1">AI-powered analysis &middot; PDF + markdown &middot; Delivered within 30 minutes</p>
                 </div>
                 <div class="flex-shrink-0 text-center">
                     <div class="text-2xl font-bold text-white mb-1">$99</div>
-                    <button onclick="buyReport('{{ package.id }}', event)"
+                    <button onclick="buyProduct('report', '{{ package.id }}', event)"
                             class="bg-accent hover:bg-accent/80 text-white font-medium px-6 py-2.5 rounded-lg transition text-sm">
                         Buy Report
                     </button>
                 </div>
             </div>
         </div>
+
+        {# Package Brief + Monitoring — side by side #}
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="bg-surface-raised border border-gray-800 rounded-xl p-5">
+                <div class="flex items-start justify-between gap-3 mb-3">
+                    <div>
+                        <h3 class="text-base font-semibold text-white">Package Brief</h3>
+                        <p class="text-gray-400 text-xs mt-1">Quick verdict, integration guide, cost projections, gotchas with workarounds, and alternatives comparison.</p>
+                        <p class="text-gray-500 text-xs mt-1">Delivered within 10 minutes</p>
+                    </div>
+                    <div class="text-xl font-bold text-white flex-shrink-0">$3</div>
+                </div>
+                <button onclick="buyProduct('brief', '{{ package.id }}', event)"
+                        class="w-full bg-gray-700 hover:bg-gray-600 text-white font-medium px-4 py-2 rounded-lg transition text-sm">
+                    Buy Brief
+                </button>
+            </div>
+
+            <div class="bg-surface-raised border border-gray-800 rounded-xl p-5">
+                <div class="flex items-start justify-between gap-3 mb-3">
+                    <div>
+                        <h3 class="text-base font-semibold text-white">Score Monitoring</h3>
+                        <p class="text-gray-400 text-xs mt-1">Get alerted when this package's AF, security, or reliability scores change significantly. Stay ahead of regressions.</p>
+                        <p class="text-gray-500 text-xs mt-1">Continuous monitoring</p>
+                    </div>
+                    <div class="text-xl font-bold text-white flex-shrink-0">$3<span class="text-sm font-normal text-gray-400">/mo</span></div>
+                </div>
+                <button onclick="buyProduct('monitoring', '{{ package.id }}', event)"
+                        class="w-full bg-gray-700 hover:bg-gray-600 text-white font-medium px-4 py-2 rounded-lg transition text-sm">
+                    Subscribe
+                </button>
+            </div>
+        </div>
+
     </section>
     {% endif %}
 
@@ -483,24 +520,26 @@
 
 {% if package and package.af_score is not none %}
 <script>
-async function buyReport(packageId, event) {
+async function buyProduct(productType, packageId, event) {
     const btn = event.target;
+    const originalText = btn.textContent;
     btn.disabled = true;
     btn.textContent = 'Processing...';
     try {
-        const resp = await fetch('/v1/checkout/report?package_id=' + encodeURIComponent(packageId), {method: 'POST'});
+        const endpoint = '/v1/checkout/' + productType;
+        const resp = await fetch(endpoint + '?package_id=' + encodeURIComponent(packageId), {method: 'POST'});
         const data = await resp.json();
         if (resp.ok && data.checkout_url) {
             window.location.href = data.checkout_url;
         } else {
             alert(data.detail || 'Something went wrong. Please try again.');
             btn.disabled = false;
-            btn.textContent = 'Buy Report';
+            btn.textContent = originalText;
         }
     } catch (e) {
         alert('Network error. Please try again.');
         btn.disabled = false;
-        btn.textContent = 'Buy Report';
+        btn.textContent = originalText;
     }
 }
 </script>

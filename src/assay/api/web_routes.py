@@ -737,6 +737,15 @@ def llms_full_txt():
     return LLMS_TXT + LLMS_FULL_TXT_EXTRA
 
 
+# ── Support Thanks Page ───────────────────────────────────────────────────────
+
+
+@router.get("/support/thanks", response_class=HTMLResponse)
+def support_thanks(request: Request):
+    """Thank-you page after Support the Mission payment."""
+    return templates.TemplateResponse("pages/support_thanks.html", {"request": request})
+
+
 # ── Order Success Page ────────────────────────────────────────────────────────
 
 

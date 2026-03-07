@@ -41,7 +41,9 @@
                 <dt class="text-gray-400">Type</dt>
                 <dd class="text-white">
                     {% if order.order_type == 'report' %}
-                    Package Evaluation Report
+                    Full Evaluation Report
+                    {% elif order.order_type == 'brief' %}
+                    Package Brief
                     {% elif order.order_type == 'monitoring_subscription' %}
                     Package Monitoring Subscription
                     {% else %}
@@ -60,11 +62,11 @@
         </dl>
     </div>
 
-    {% if order.order_type == 'report' %}
+    {% if order.order_type in ('report', 'brief') %}
     <div class="bg-surface-raised border border-gray-800 rounded-xl p-6 mb-8">
         <h2 class="text-lg font-semibold text-white mb-4">Your Report</h2>
         {% if order.report_path %}
-        <p class="text-gray-400 mb-4">Your evaluation report is ready for download.</p>
+        <p class="text-gray-400 mb-4">Your {{ 'Full Evaluation Report' if order.order_type == 'report' else 'Package Brief' }} is ready for download.</p>
         <a href="/v1/orders/{{ order.id }}/download"
            class="inline-flex items-center gap-2 bg-accent hover:bg-accent/80 text-white font-medium px-6 py-3 rounded-lg transition">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -79,12 +81,19 @@
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
-                <p class="text-gray-400">Your report is being generated...</p>
+                <p class="text-white font-medium">Your {{ 'Full Evaluation Report' if order.order_type == 'report' else 'Package Brief' }} is being generated...</p>
             </div>
-            <p class="text-gray-500 text-sm">This page will update automatically when it's ready. You'll also receive an email at <span class="text-white">{{ order.customer_email }}</span>.</p>
+            <p class="text-gray-400 text-sm mt-4 mb-2">
+                {% if order.order_type == 'report' %}
+                Full Evaluation Reports include AI-powered deep-dive analysis across security, reliability, agent experience, cost modeling, and competitive positioning. This typically takes <strong class="text-white">up to 30 minutes</strong>.
+                {% else %}
+                Package Briefs include a quick verdict, integration guide, cost projections, and alternatives comparison. This typically takes <strong class="text-white">up to 10 minutes</strong>.
+                {% endif %}
+            </p>
+            <p class="text-gray-500 text-sm">This page will update automatically when it's ready. You'll also receive an email at <span class="text-white">{{ order.customer_email }}</span> — feel free to close this tab.</p>
         </div>
         <div id="report-ready" style="display: none;">
-            <p class="text-gray-400 mb-4">Your evaluation report is ready for download.</p>
+            <p class="text-gray-400 mb-4">Your {{ 'Full Evaluation Report' if order.order_type == 'report' else 'Package Brief' }} is ready for download.</p>
             <a href="/v1/orders/{{ order.id }}/download"
                class="inline-flex items-center gap-2 bg-accent hover:bg-accent/80 text-white font-medium px-6 py-3 rounded-lg transition">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -96,9 +105,14 @@
         <script>
         (function() {
             var attempts = 0;
-            var maxAttempts = 30;
+            // Poll for up to 45 minutes (270 attempts × 10s) for full reports, 15 min for briefs
+            var maxAttempts = {{ 270 if order.order_type == 'report' else 90 }};
             function checkReport() {
-                if (attempts++ >= maxAttempts) return;
+                if (attempts++ >= maxAttempts) {
+                    document.querySelector('#report-pending p:last-child').innerHTML =
+                        'This is taking longer than expected. We\'ll email you at <span class="text-white">{{ order.customer_email }}</span> when it\'s ready.';
+                    return;
+                }
                 fetch('/v1/orders/{{ order.id }}')
                     .then(function(r) { return r.json(); })
                     .then(function(data) {
@@ -106,12 +120,12 @@
                             document.getElementById('report-pending').style.display = 'none';
                             document.getElementById('report-ready').style.display = 'block';
                         } else {
-                            setTimeout(checkReport, 5000);
+                            setTimeout(checkReport, 10000);
                         }
                     })
-                    .catch(function() { setTimeout(checkReport, 5000); });
+                    .catch(function() { setTimeout(checkReport, 10000); });
             }
-            setTimeout(checkReport, 5000);
+            setTimeout(checkReport, 10000);
         })();
         </script>
         {% endif %}

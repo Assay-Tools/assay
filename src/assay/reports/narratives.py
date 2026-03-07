@@ -129,12 +129,19 @@ def generate_narratives(
     try:
         response = client.messages.create(
             model=REPORT_MODEL,
-            max_tokens=4096 if report_type == "report" else 2048,
+            max_tokens=16384 if report_type == "report" else 4096,
             system=system_prompt,
             messages=[{"role": "user", "content": user_prompt}],
         )
 
         raw_text = response.content[0].text.strip()
+
+        if response.stop_reason == "max_tokens":
+            logger.warning(
+                "Narrative response truncated (%d output tokens) — "
+                "trying to salvage partial JSON",
+                response.usage.output_tokens,
+            )
 
         # Parse JSON — handle markdown fences if present
         json_text = raw_text
@@ -143,7 +150,23 @@ def generate_narratives(
             json_text = re.sub(r"\s*```$", "", json_text)
 
         import json
-        narratives = json.loads(json_text)
+        try:
+            narratives = json.loads(json_text)
+        except json.JSONDecodeError:
+            # Truncated response — try to salvage by closing the JSON
+            # Find the last complete key-value pair
+            last_good = json_text.rfind('",\n')
+            if last_good == -1:
+                last_good = json_text.rfind('"\n')
+            if last_good > 0:
+                salvaged = json_text[:last_good + 1] + "\n}"
+                narratives = json.loads(salvaged)
+                logger.warning(
+                    "Salvaged %d narratives from truncated response",
+                    len(narratives),
+                )
+            else:
+                raise
 
         logger.info(
             "Narratives generated: %d sections, %d input tokens, %d output tokens",

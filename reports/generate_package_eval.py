@@ -105,12 +105,14 @@ def compute_report_data(base_url: str, package_id: str) -> dict:
         if comp_data:
             competitors = comp_data.get("packages", [])
 
-    # --- Category stats ---
-    peer_scores = [p["af_score"] for p in peers if p.get("af_score") and p["id"] != package_id]
+    # --- Category stats (evaluated packages only, matching website) ---
+    evaluated_peers = [p for p in peers if p.get("af_score") is not None]
+    peer_scores = [p["af_score"] for p in evaluated_peers if p["id"] != package_id]
     cat_avg = sum(peer_scores) / len(peer_scores) if peer_scores else 0
+    cat_evaluated_count = len(evaluated_peers)
     cat_rank = 1
-    for p in peers:
-        if p.get("af_score") and p["af_score"] > (af or 0) and p["id"] != package_id:
+    for p in evaluated_peers:
+        if p["af_score"] > (af or 0) and p["id"] != package_id:
             cat_rank += 1
 
     # --- Interface table ---
@@ -190,7 +192,7 @@ def compute_report_data(base_url: str, package_id: str) -> dict:
     comp_lines = []
     if competitors:
         comp_lines.append(f"### Category: {category_display}")
-        comp_lines.append(f"**Rank**: #{cat_rank} of {len(peers) + 1} evaluated packages")
+        comp_lines.append(f"**Rank**: #{cat_rank} of {cat_evaluated_count} evaluated packages")
         comp_lines.append(f"**Category Average AF Score**: {cat_avg:.1f}")
         comp_lines.append("")
         comp_lines.append("### Head-to-Head Comparison")
@@ -204,7 +206,7 @@ def compute_report_data(base_url: str, package_id: str) -> dict:
                 f"{fmt_score(c.get('security_score'))} | {fmt_score(c.get('reliability_score'))} |"
             )
     else:
-        comp_lines.append(f"**Category Rank**: #{cat_rank} of {len(peers) + 1} in {category_display}")
+        comp_lines.append(f"**Category Rank**: #{cat_rank} of {cat_evaluated_count} in {category_display}")
         comp_lines.append(f"**Category Average**: {cat_avg:.1f}")
 
     # --- Improvement recommendations ---
