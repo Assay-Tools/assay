@@ -1,9 +1,9 @@
 """API route handlers for Assay."""
 
-from datetime import datetime, timezone
+from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from sqlalchemy.orm import Session, joinedload
 from starlette.responses import Response
 
@@ -26,7 +26,6 @@ from .schemas import (
     HealthResponse,
     PackageListResponse,
     ScoreDistribution,
-    StatsResponse,
 )
 
 router = APIRouter()
@@ -82,7 +81,9 @@ def list_packages(
     type: str | None = Query(None, description="Filter by package type (mcp_server, skill)"),
     q: str | None = Query(
         None, description="Text search across name, description, and tags",
-        alias="q",
+    ),
+    search: str | None = Query(
+        None, description="Alias for q — text search across name, description, and tags",
     ),
     sort: str = Query("af_score:desc", description="Sort field:direction (e.g. name:asc)"),
     limit: int = Query(20, ge=1, le=100),
@@ -98,9 +99,10 @@ def list_packages(
     query = db.query(Package)
     query = _apply_eager(query)
 
-    # Text search
-    if q:
-        escaped = q.replace("%", r"\%").replace("_", r"\_")
+    # Text search (accept both q= and search= params)
+    search_query = q or search
+    if search_query:
+        escaped = search_query.replace("%", r"\%").replace("_", r"\_")
         search_term = f"%{escaped}%"
         query = query.filter(
             or_(
@@ -172,8 +174,11 @@ def list_packages(
 def packages_updated_since(
     request: Request,
     response: Response,
-    timestamp: str = Query(
-        ..., description="ISO 8601 timestamp (e.g. 2026-03-01T00:00:00Z)",
+    since: str | None = Query(
+        None, description="ISO 8601 timestamp (e.g. 2026-03-01T00:00:00Z)",
+    ),
+    timestamp: str | None = Query(
+        None, description="Deprecated alias for 'since'",
     ),
     limit: int = Query(100, ge=1, le=500),
     offset: int = Query(0, ge=0),
@@ -184,15 +189,21 @@ def packages_updated_since(
     Useful for syncing local caches or tracking new evaluations.
     Returns packages ordered by updated_at descending.
     """
+    ts_value = since or timestamp
+    if not ts_value:
+        raise HTTPException(
+            status_code=400,
+            detail="Required: 'since' param with ISO 8601 timestamp (e.g. 2026-03-01T00:00:00Z)",
+        )
     try:
-        since = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
+        since_dt = datetime.fromisoformat(ts_value.replace("Z", "+00:00"))
     except ValueError:
         raise HTTPException(
             status_code=400,
             detail="Invalid timestamp format. Use ISO 8601 (e.g. 2026-03-01T00:00:00Z)",
         )
 
-    q = db.query(Package).filter(Package.updated_at >= since)
+    q = db.query(Package).filter(Package.updated_at >= since_dt)
     q = _apply_eager(q)
     total = q.count()
     packages = (
@@ -425,7 +436,8 @@ def get_evaluation_queue(
       2. Never evaluated (high-priority and high-star first)
       3. Stale (>30 days, oldest first)
     """
-    from assay.evaluation.scheduler import get_evaluation_queue as scheduler_queue, get_evaluation_stats
+    from assay.evaluation.scheduler import get_evaluation_queue as scheduler_queue
+    from assay.evaluation.scheduler import get_evaluation_stats
 
     queue_items = scheduler_queue(
         db, limit=limit, package_type=package_type, priority=priority,

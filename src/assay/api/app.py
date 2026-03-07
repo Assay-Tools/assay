@@ -75,6 +75,11 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             "max-age=63072000; includeSubDomains"
         )
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        # Cache-Control for API responses (5 min for reads, scores update infrequently)
+        path = request.url.path
+        if path.startswith("/v1/") and request.method == "GET":
+            if "Cache-Control" not in response.headers:
+                response.headers["Cache-Control"] = "public, max-age=300"
         return response
 
 

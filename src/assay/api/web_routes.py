@@ -602,41 +602,67 @@ def methodology(request: Request):
 LLMS_TXT = """\
 # Assay
 
-> Assay is the quality layer for agentic software. It rates MCP servers, APIs, \
-and SDKs across agent friendliness, security, and reliability — so agents and \
-developers can choose the right tools.
+> Assay is the quality layer for agentic software. Agents are first-class citizens. \
+It rates MCP servers, APIs, and SDKs across agent friendliness, security, and \
+reliability — so agents and developers can choose the right tools.
 
 Assay evaluates packages on three dimensions (each 0-100):
 - **Agent Friendliness (AF)** — MCP quality, docs, error messages, auth simplicity, rate limits
 - **Security** — TLS, auth strength, scope granularity, dependency hygiene, secret handling
 - **Reliability** — uptime, version stability, breaking changes, error recovery
 
-## API
+## API (no auth required for reads, 100 requests/day per IP)
 
-- [Package list](/v1/packages): Browse and filter evaluated packages.
-- [Package detail](/v1/packages/{package_id}): Full evaluation data for a single package.
-- [Agent guide](/v1/packages/{id}/agent-guide): Agent-optimized view with scores.
-- [Categories](/v1/categories): List all categories with package counts.
-- [Category packages](/v1/categories/{slug}/packages): Packages in a category, by AF score.
-- [Compare](/v1/compare?ids=a,b,c): Side-by-side comparison of up to 10 packages.
-- [Stats](/v1/stats): Sitewide statistics and score distribution.
-- [Evaluation queue](/v1/queue): Packages needing evaluation or re-evaluation.
-- [Health](/v1/health): Health check endpoint.
+- [Search packages](/v1/packages?q=email): Text search via `q=` or `search=`.
+- [Filter packages](/v1/packages?category=ai-ml&has_mcp=true&min_af_score=70): \
+Filter by category, MCP, free tier, score thresholds. Paginate with limit/offset.
+- [Package detail](/v1/packages/{package_id}): Full evaluation data.
+- [Agent guide](/v1/packages/{id}/agent-guide): Compact view — scores, gotchas, auth.
+- [Score history](/v1/packages/{id}/score-history): Score changes over time.
+- [Categories](/v1/categories): All 16 categories with package counts.
+- [Category leaderboard](/v1/categories/{slug}/leaderboard): Top packages by dimension.
+- [Compare](/v1/compare?ids=a,b,c): Side-by-side comparison (up to 10).
+- [Change feed](/v1/packages/updated-since?since=ISO8601): Updated packages for cache sync.
+- [Stats](/v1/stats): Coverage, score distribution, freshness metrics.
+- [Queue](/v1/queue): Packages needing evaluation.
+- [OpenAPI spec](/openapi.json): Full API schema (OpenAPI 3.1).
+
+## MCP Server
+
+Assay has an MCP server with 6 tools: find_packages (search + filter), get_package, \
+compare_packages, list_categories, get_score_history, and get_stats.
+
+Install locally:
+```json
+{
+  "mcpServers": {
+    "assay": {
+      "command": "uvx",
+      "args": ["--from", "git+https://github.com/Assay-Tools/assay",
+               "python", "-m", "assay.mcp_server"]
+    }
+  }
+}
+```
+
+Or clone and run: `python -m assay.mcp_server`
+
+## CLI
+
+```
+pip install git+https://github.com/Assay-Tools/assay
+assay check stripe-api           # Quick score lookup
+assay check stripe-api --json    # JSON output for piping
+assay compare stripe-api,square-api  # Side-by-side comparison
+```
 
 ## Website
 
 - [Homepage](https://assay.tools/): Browse top-rated packages and categories.
 - [All packages](https://assay.tools/packages): Search and filter the full directory.
 - [Categories](https://assay.tools/categories): Browse by category.
-- [Compare](https://assay.tools/compare): Side-by-side package comparison.
-- [Contribute](https://assay.tools/contribute): See the evaluation queue and help rate packages.
-- [Evaluation Guide](https://assay.tools/evaluate.md): Complete rubric and submission instructions.
-- [About](https://assay.tools/about): Scoring methodology and coverage stats.
-
-## Optional
-
-- [OpenAPI spec](/openapi.json): Full API schema in OpenAPI 3.1 format.
-- [MCP server](https://github.com/Assay-Tools/assay): Assay's MCP server for agent integration.
+- [Methodology](https://assay.tools/methodology): Scoring methodology deep-dive.
+- [Developers](https://assay.tools/developers): API docs, MCP setup, badges, widgets.
 """
 
 LLMS_FULL_TXT_EXTRA = """
@@ -675,24 +701,40 @@ LLMS_FULL_TXT_EXTRA = """
 
 ## API Usage Examples
 
-Search for MCP servers with high AF scores:
+Search by keyword:
 ```
-GET /v1/packages?has_mcp=true&min_af_score=70&sort=af_score:desc
+GET /v1/packages?q=email&limit=10
+GET /v1/packages?search=vector+database&min_af_score=70
 ```
 
-Get agent-optimized guide for a package:
+Find MCP servers with high scores:
 ```
-GET /v1/packages/stripe/agent-guide
+GET /v1/packages?has_mcp=true&min_af_score=70&min_security_score=80&sort=af_score:desc
+```
+
+Get agent-optimized guide (compact — scores, gotchas, auth, pricing):
+```
+GET /v1/packages/stripe-api/agent-guide
 ```
 
 Compare alternatives:
 ```
-GET /v1/compare?ids=resend,sendgrid,postmark
+GET /v1/compare?ids=resend,sendgrid-api,postmark-api
 ```
 
-Filter by category:
+Check score trends over time:
 ```
-GET /v1/packages?category=ai-ml&sort=af_score:desc
+GET /v1/packages/stripe-api/score-history?limit=10
+```
+
+Category leaderboard:
+```
+GET /v1/categories/ai-ml/leaderboard?dimension=security_score&limit=5
+```
+
+Sync local cache (change feed):
+```
+GET /v1/packages/updated-since?since=2026-03-01T00:00:00Z&limit=100
 ```
 
 ## Categories

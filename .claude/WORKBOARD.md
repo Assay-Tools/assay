@@ -131,7 +131,7 @@ Items ready to be claimed. Roughly priority-ordered within each phase.
 - [ ] **Package monitoring subscriptions** — Authenticated users can subscribe to packages ($3/mo each via Stripe). Dashboard showing subscribed packages, current scores, trends. **Files**: new `src/assay/models/subscription.py`, new `src/assay/api/subscription_routes.py`, new `templates/dashboard.html`
 - [x] **Score history tracking** — ScoreSnapshot model + /v1/packages/{id}/score-history API + auto-snapshot in loader, 5 tests (2026-03-04)
 - [x] **Score change email notifications** — `send_score_change_alert()` in notifications/email.py, wired into loader.py. Captures old scores, compares after commit, emails active monitoring subscribers on any change. Deduplicates by email. (2026-03-07)
-- [ ] **Agent score change notifications** — Webhook callbacks or MCP push so agents can react to score changes programmatically (not just email). Explore: webhook registration endpoint, SSE on MCP server, or document existing `/v1/packages/updated-since` as agent-friendly polling
+- [ ] **Agent score change notifications** — Webhook subscription endpoint for agents to register callbacks for score changes. Gated behind paid monitoring subscription ($3/mo). Options: (1) `POST /v1/webhooks/subscribe` with package_id + callback_url, requires active Stripe subscription, (2) SSE on MCP server for real-time push, (3) document `/v1/packages/updated-since` as free polling alternative. Webhook payloads include old/new scores + deltas. **Files**: new `src/assay/api/webhook_routes.py`, new `src/assay/models/webhook.py`, update `src/assay/evaluation/loader.py` to dispatch webhook calls on score change
 
 ### Phase 3: Data Quality & Automation
 

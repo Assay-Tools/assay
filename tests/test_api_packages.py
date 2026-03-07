@@ -96,6 +96,29 @@ class TestListPackages:
         assert data["packages"][0]["name"] == "Top API"
 
 
+class TestSearchPackages:
+    def test_search_with_q(self, client, sample_packages):
+        resp = client.get("/v1/packages?q=Top")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["total"] >= 1
+        names = {p["name"] for p in data["packages"]}
+        assert "Top API" in names
+
+    def test_search_with_search_alias(self, client, sample_packages):
+        resp = client.get("/v1/packages?search=Top")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["total"] >= 1
+
+    def test_search_no_results(self, client, sample_packages):
+        resp = client.get("/v1/packages?q=zzzznonexistent")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["total"] == 0
+        assert data["packages"] == []
+
+
 class TestGetPackage:
     def test_get_existing_package(self, client, sample_packages):
         resp = client.get("/v1/packages/top-api")
@@ -216,4 +239,11 @@ class TestUpdatedSince:
 
     def test_updated_since_requires_timestamp(self, client):
         resp = client.get("/v1/packages/updated-since")
-        assert resp.status_code == 422  # FastAPI validation error
+        assert resp.status_code == 400  # Missing 'since' parameter
+
+    def test_updated_since_accepts_since_param(self, client, sample_packages):
+        resp = client.get(
+            "/v1/packages/updated-since?since=2020-01-01T00:00:00Z&limit=2"
+        )
+        assert resp.status_code == 200
+        assert len(resp.json()["packages"]) == 2
