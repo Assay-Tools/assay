@@ -170,23 +170,28 @@ https://assay.tools
 </body>
 </html>"""
 
-    # Build attachments list
+    # Build attachments list — require both markdown and PDF
     attachments = []
     if report_path:
         from assay.reports.delivery import PROJECT_ROOT
         md_path = PROJECT_ROOT / report_path
         pdf_path = md_path.with_suffix(".pdf")
 
-        if md_path.exists():
-            attachments.append({
-                "filename": md_path.name,
-                "content": list(md_path.read_bytes()),
-            })
-        if pdf_path.exists():
-            attachments.append({
-                "filename": pdf_path.name,
-                "content": list(pdf_path.read_bytes()),
-            })
+        if not md_path.exists() or not pdf_path.exists():
+            logger.error(
+                "Incomplete report for order %d: md=%s pdf=%s — not sending",
+                order_id, md_path.exists(), pdf_path.exists(),
+            )
+            return False
+
+        attachments.append({
+            "filename": md_path.name,
+            "content": list(md_path.read_bytes()),
+        })
+        attachments.append({
+            "filename": pdf_path.name,
+            "content": list(pdf_path.read_bytes()),
+        })
 
     params: dict = {
         "from": FROM_ADDRESS,

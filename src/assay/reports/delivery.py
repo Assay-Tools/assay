@@ -190,7 +190,7 @@ def generate_report_for_order(order: Order, db: Session) -> str | None:
             with_narratives=bool(settings.anthropic_api_key),
         )
 
-        # Generate PDF from the markdown
+        # Generate PDF from the markdown — required for delivery
         pdf_rel = None
         try:
             from assay.reports.pdf import markdown_to_pdf
@@ -200,9 +200,12 @@ def generate_report_for_order(order: Order, db: Session) -> str | None:
             logger.info("PDF generated for order %d: %s", order.id, pdf_result)
         except Exception:
             logger.exception(
-                "PDF generation failed for order %d (markdown still available)",
+                "PDF generation failed for order %d — blocking delivery",
                 order.id,
             )
+            # Don't deliver incomplete orders — leave report_path as None
+            # so the order shows as needing attention
+            return None
 
         # Archive any old cached reports for this package/type
         _archive_old_reports(order.package_id, report_type, db)
