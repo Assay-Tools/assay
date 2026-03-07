@@ -1,5 +1,7 @@
 """OAuth authentication routes — GitHub sign-in and API key issuance."""
 
+import hashlib
+import hmac
 import logging
 import secrets
 from pathlib import Path
@@ -25,6 +27,15 @@ templates = Jinja2Templates(directory=str(_templates_dir))
 
 router = APIRouter(tags=["auth"])
 
+# CSRF state cookie name and signing key derivation
+_STATE_COOKIE = "oauth_state"
+
+
+def _sign_state(state: str) -> str:
+    """Sign the OAuth state token using the app's secret key."""
+    key = (settings.github_client_secret or "fallback-key").encode()
+    return hmac.new(key, state.encode(), hashlib.sha256).hexdigest()
+
 
 @router.get("/auth/github")
 def auth_github_redirect():
@@ -33,22 +44,43 @@ def auth_github_redirect():
         return RedirectResponse("/contribute?error=oauth_not_configured", status_code=303)
 
     state = secrets.token_urlsafe(32)
-    # In production, state should be stored in a session cookie for CSRF protection.
-    # For now, we skip state validation since this is a low-risk read-only OAuth scope.
     url = get_authorize_url(state=state)
-    return RedirectResponse(url, status_code=302)
+    response = RedirectResponse(url, status_code=302)
+    # Store signed state in HttpOnly cookie for CSRF validation on callback
+    signed = _sign_state(state)
+    response.set_cookie(
+        _STATE_COOKIE,
+        f"{state}:{signed}",
+        max_age=600,  # 10 minutes
+        httponly=True,
+        secure=True,
+        samesite="lax",
+    )
+    return response
 
 
 @router.get("/auth/callback")
 def auth_callback(
     request: Request,
     code: str = Query(None),
+    state: str = Query(None),
     error: str = Query(None),
     db: Session = Depends(get_db),
 ):
     """Handle GitHub OAuth callback — exchange code, create/find contributor, issue key."""
     if error or not code:
         logger.warning("OAuth callback error: %s", error or "no code")
+        return RedirectResponse("/contribute?error=oauth_denied", status_code=303)
+
+    # Validate CSRF state
+    cookie_val = request.cookies.get(_STATE_COOKIE, "")
+    if ":" not in cookie_val or not state:
+        logger.warning("OAuth callback: missing state cookie or state param")
+        return RedirectResponse("/contribute?error=oauth_denied", status_code=303)
+    cookie_state, cookie_sig = cookie_val.rsplit(":", 1)
+    expected_sig = _sign_state(cookie_state)
+    if not hmac.compare_digest(cookie_sig, expected_sig) or not hmac.compare_digest(cookie_state, state):
+        logger.warning("OAuth callback: state mismatch (CSRF)")
         return RedirectResponse("/contribute?error=oauth_denied", status_code=303)
 
     if not settings.github_client_id or not settings.github_client_secret:
@@ -73,7 +105,7 @@ def auth_callback(
     if existing:
         # Existing contributor — regenerate their API key
         raw_key = regenerate_api_key(db, existing)
-        return templates.TemplateResponse(
+        resp = templates.TemplateResponse(
             "pages/api_key.html",
             {
                 "request": request,
@@ -82,6 +114,9 @@ def auth_callback(
                 "is_new": False,
             },
         )
+        resp.delete_cookie(_STATE_COOKIE)
+        resp.headers["Cache-Control"] = "no-store"
+        return resp
 
     # New contributor
     contributor, raw_key = create_contributor(
@@ -94,7 +129,7 @@ def auth_callback(
     )
     logger.info("New contributor registered: %s (GitHub #%d)", github_username, github_id)
 
-    return templates.TemplateResponse(
+    resp = templates.TemplateResponse(
         "pages/api_key.html",
         {
             "request": request,
@@ -103,3 +138,6 @@ def auth_callback(
             "is_new": True,
         },
     )
+    resp.delete_cookie(_STATE_COOKIE)
+    resp.headers["Cache-Control"] = "no-store"
+    return resp

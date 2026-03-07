@@ -18,6 +18,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy import func, or_
 from sqlalchemy.orm import Session, joinedload
 
+from assay.config import settings
 from assay.database import get_db
 from assay.models import (
     Category,
@@ -815,8 +816,18 @@ def order_success(request: Request, token: str, db: Session = Depends(get_db)):
 # ── Admin / Data Freshness ────────────────────────────────────────────────────
 
 
+def _check_admin_key(request: Request):
+    """Light admin auth — checks X-Api-Key header or ?key= query param."""
+    import hmac as _hmac
+    api_key = request.headers.get("X-Api-Key", "") or request.query_params.get("key", "")
+    admin_keys = [k.strip() for k in (settings.admin_api_keys or "").split(",") if k.strip()]
+    if not admin_keys or not any(_hmac.compare_digest(api_key, k) for k in admin_keys):
+        from fastapi import HTTPException
+        raise HTTPException(status_code=403, detail="Admin access required")
+
+
 @router.get("/admin/freshness", response_class=HTMLResponse)
-def admin_freshness(request: Request, db: Session = Depends(get_db)):
+def admin_freshness(request: Request, db: Session = Depends(get_db), _auth=Depends(_check_admin_key)):
     """Data freshness dashboard — evaluation coverage and staleness."""
     now = datetime.now(timezone.utc)
 
@@ -1020,9 +1031,9 @@ def rss_feed(db: Session = Depends(get_db)):
         items.append(
             f"    <item>\n"
             f"      <title>{_xml_escape(pkg.name)} — {score_text}</title>\n"
-            f"      <link>https://assay.tools/packages/{pkg.id}</link>\n"
+            f"      <link>https://assay.tools/packages/{_xml_escape(pkg.id)}</link>\n"
             f"      <description>{_xml_escape(desc)}</description>\n"
-            f"      <guid>https://assay.tools/packages/{pkg.id}</guid>\n"
+            f"      <guid>https://assay.tools/packages/{_xml_escape(pkg.id)}</guid>\n"
             f"      <pubDate>{last_eval}</pubDate>\n"
             f"    </item>"
         )
@@ -1278,7 +1289,7 @@ def sitemap_xml(db: Session = Depends(get_db)):
                 f"<lastmod>{last_eval.strftime('%Y-%m-%d')}</lastmod>"
             )
         urls.append(
-            f'  <url><loc>{base}/packages/{pkg_id}</loc>'
+            f'  <url><loc>{base}/packages/{_xml_escape(pkg_id)}</loc>'
             f'{lastmod}'
             f'<priority>0.6</priority>'
             f'<changefreq>monthly</changefreq></url>'

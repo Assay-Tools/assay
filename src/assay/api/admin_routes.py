@@ -1,6 +1,7 @@
 """Admin routes — bookkeeping, transaction export, and operational endpoints."""
 
 import csv
+import hmac
 import io
 import logging
 from datetime import datetime, timezone
@@ -24,12 +25,12 @@ router = APIRouter(prefix="/admin", tags=["admin"])
 
 
 def _require_admin_key(request: Request):
-    """Verify admin API key for protected endpoints."""
+    """Verify admin API key for protected endpoints (constant-time comparison)."""
     api_key = request.headers.get("X-Api-Key", "")
     admin_keys = [
         k.strip() for k in (settings.admin_api_keys or "").split(",") if k.strip()
     ]
-    if not admin_keys or api_key not in admin_keys:
+    if not admin_keys or not any(hmac.compare_digest(api_key, k) for k in admin_keys):
         raise HTTPException(status_code=403, detail="Admin access required")
 
 

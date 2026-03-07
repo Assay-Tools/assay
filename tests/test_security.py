@@ -70,12 +70,10 @@ class TestAdminKeySeparation:
         )
         assert resp.status_code == 200
 
-    def test_admin_falls_back_to_submission_keys(self, client, db, monkeypatch):
-        """When no ADMIN_API_KEYS set, submission keys work for admin."""
+    def test_admin_rejects_submission_keys(self, client, db, monkeypatch):
+        """When no ADMIN_API_KEYS set, submission keys should NOT grant admin access."""
         monkeypatch.setenv("SUBMISSION_API_KEYS", "shared-key-789")
         monkeypatch.delenv("ADMIN_API_KEYS", raising=False)
-        # Also clear the settings fallback (loaded from .secrets at import time)
-        # so _parse_keys doesn't use the real admin key as a default
         from assay.config import settings
         monkeypatch.setattr(settings, "admin_api_keys", "")
 
@@ -83,4 +81,4 @@ class TestAdminKeySeparation:
             "/v1/evaluations/pending",
             headers={"X-Api-Key": "shared-key-789"},
         )
-        assert resp.status_code == 200
+        assert resp.status_code == 403

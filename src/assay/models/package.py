@@ -89,7 +89,10 @@ class Package(Base):
         val = getattr(self, field_name)
         if val is None:
             return None
-        return json.loads(val) if isinstance(val, str) else val
+        try:
+            return json.loads(val) if isinstance(val, str) else val
+        except json.JSONDecodeError:
+            return None
 
     @property
     def discovery_sources_list(self) -> list[str]:
@@ -98,7 +101,10 @@ class Package(Base):
         if not val:
             return []
         if val.startswith("["):
-            return json.loads(val)
+            try:
+                return json.loads(val)
+            except json.JSONDecodeError:
+                return [val]
         return [val]
 
     @property

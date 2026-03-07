@@ -52,6 +52,25 @@ Items ready to be claimed. Roughly priority-ordered within each phase.
 - [x] **Sanitize LIKE wildcards** — Escape `%` and `_` in search input before ILIKE. **File**: `src/assay/api/web_routes.py` lines 153-160
 - [x] **Add security headers** — `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Strict-Transport-Security`
 - [x] **Fix IDOR on order endpoints** — Order success pages, status API, and report downloads used sequential integer IDs (`/orders/1/success`), trivially guessable. Added cryptographic `access_token` (secrets.token_urlsafe) to Order model. All public URLs now use unguessable token. Migration backfills existing orders. 5 new tests. (2026-03-07)
+- [x] **Comprehensive security audit — 20 findings fixed** (2026-03-07):
+  - **H1**: OAuth CSRF — state stored in signed HttpOnly cookie, validated on callback with `hmac.compare_digest`
+  - **H2**: Timing-safe API key comparison — all auth functions use `hmac.compare_digest()` instead of `in`
+  - **H3**: XML injection — `_xml_escape()` applied to package IDs in RSS feed and sitemap
+  - **M1**: `/admin/freshness` now requires admin API key (header or `?key=` param)
+  - **M3**: Path traversal protection on report download (`.resolve()` + `.is_relative_to()`)
+  - **M4**: `/embed/` routes exempted from `X-Frame-Options: DENY`
+  - **M5**: Admin key fallback to submission keys removed
+  - **M6**: Webhook endpoint rate-limited (120/min)
+  - **M7**: Race condition guard in background report generation
+  - **M8**: LIKE wildcard escaping in MCP server search
+  - **L1**: `report_path` removed from API response (replaced with `has_report` boolean)
+  - **L2**: Operator email moved to config setting
+  - **L3**: Content-Security-Policy header added
+  - **L4**: Customer emails masked in all log messages
+  - **L5**: API key page has `Cache-Control: no-store`
+  - **L7**: Tailwind CDN pinned to v3.4.17
+  - **L9**: `JSONDecodeError` handled in model properties
+  - Tests updated (200 passing), test for freshness auth + admin fallback removal
 
 **Code Quality (sessions can claim)**:
 - [x] **Fix AF weight mismatch** — Fixed llms-full.txt docs to match code weights (2026-03-04)

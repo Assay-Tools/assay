@@ -33,6 +33,7 @@ class Settings(BaseSettings):
 
     # Email (Resend for transactional/programmatic email)
     resend_api_key: str = ""
+    operator_email: str = "ajvanbeest@protonmail.com"
 
     # Legacy SMTP (Migadu — kept for backward compat, will remove after migration)
     smtp_user: str = ""

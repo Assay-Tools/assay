@@ -14,6 +14,7 @@ from sqlalchemy import or_
 from sqlalchemy.orm import joinedload
 
 from assay.database import SessionLocal, init_db
+from assay.security.prompt_injection import tag_provenance
 from assay.models.package import (
     Category,
     Package,
@@ -245,7 +246,8 @@ def _handle_find_packages(arguments: dict) -> str:
 
         # Text search
         if query_text:
-            search_term = f"%{query_text}%"
+            escaped = query_text.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+            search_term = f"%{escaped}%"
             query = query.filter(
                 or_(
                     Package.name.ilike(search_term),
@@ -284,7 +286,7 @@ def _handle_find_packages(arguments: dict) -> str:
             query = query.order_by(column.desc().nulls_last())
 
         packages = query.offset(offset).limit(limit).all()
-        results = [pkg.to_agent_guide() for pkg in packages]
+        results = [tag_provenance(pkg.to_agent_guide()) for pkg in packages]
 
     return json.dumps({
         "count": len(results),
@@ -310,7 +312,7 @@ def _handle_get_package(arguments: dict) -> str:
         if not pkg:
             return json.dumps({"error": f"Package '{pkg_id}' not found"})
 
-        return json.dumps(pkg.to_dict(), indent=2)
+        return json.dumps(tag_provenance(pkg.to_dict()), indent=2)
 
 
 def _handle_compare_packages(arguments: dict) -> str:
@@ -332,7 +334,7 @@ def _handle_compare_packages(arguments: dict) -> str:
         missing = [pid for pid in ids if pid not in found_ids]
 
         result = {
-            "packages": [pkg.to_agent_guide() for pkg in packages],
+            "packages": [tag_provenance(pkg.to_agent_guide()) for pkg in packages],
         }
         if missing:
             result["not_found"] = missing

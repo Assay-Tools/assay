@@ -1,5 +1,6 @@
 """Evaluation submission API — authenticated write endpoint."""
 
+import hmac
 import json
 import logging
 from datetime import datetime, timezone
@@ -17,6 +18,7 @@ from assay.config import settings
 from assay.database import get_db
 from assay.evaluation.loader import load_evaluation
 from assay.models import Contributor, PendingEvaluation
+from assay.security.prompt_injection import scan_submission
 
 from .rate_limit import limiter
 from .schemas import (
@@ -49,9 +51,8 @@ def _submission_keys() -> set[str]:
 
 
 def _admin_keys() -> set[str]:
-    """Admin keys. Falls back to submission keys if ADMIN_API_KEYS not set."""
-    keys = _parse_keys("ADMIN_API_KEYS", settings.admin_api_keys)
-    return keys if keys else _submission_keys()
+    """Admin keys. No fallback — admin keys must be explicitly configured."""
+    return _parse_keys("ADMIN_API_KEYS", settings.admin_api_keys)
 
 
 def _resolve_submitter(
@@ -70,9 +71,9 @@ def _resolve_submitter(
     if contributor:
         return contributor.github_username, contributor
 
-    # Fall back to legacy env-var keys
+    # Fall back to legacy env-var keys (constant-time comparison)
     keys = _submission_keys()
-    if keys and x_api_key in keys:
+    if keys and any(hmac.compare_digest(x_api_key, k) for k in keys):
         return f"admin:{x_api_key[:8]}...", None
 
     raise HTTPException(status_code=401, detail="Invalid API key")
@@ -86,9 +87,9 @@ def _require_admin_key(
 
     Accepts: env-var admin keys OR contributor keys with is_admin=True.
     """
-    # Check env-var admin keys
+    # Check env-var admin keys (constant-time comparison)
     keys = _admin_keys()
-    if keys and x_api_key in keys:
+    if keys and any(hmac.compare_digest(x_api_key, k) for k in keys):
         return x_api_key
 
     # Check DB-backed contributor with admin flag
@@ -251,6 +252,51 @@ def submit_evaluation(
     plausibility_error = _validate_plausibility(submission)
     if plausibility_error:
         raise HTTPException(status_code=422, detail=plausibility_error)
+
+    # Prompt injection scan on free-text fields
+    text_fields = {
+        "what_it_does": submission.what_it_does,
+        "best_when": submission.best_when,
+        "avoid_when": submission.avoid_when,
+    }
+    if submission.agent_readiness:
+        text_fields["error_message_notes"] = submission.agent_readiness.error_message_notes
+        text_fields["idempotency_notes"] = submission.agent_readiness.idempotency_notes
+    if submission.auth:
+        text_fields["auth_notes"] = submission.auth.notes
+    if submission.pricing:
+        text_fields["pricing_notes"] = submission.pricing.notes
+    if submission.security_score_components:
+        text_fields["security_notes"] = submission.security_score_components.security_notes
+
+    # Also scan list-type fields
+    list_fields = {}
+    if submission.use_cases:
+        list_fields["use_cases"] = " ".join(submission.use_cases)
+    if submission.not_for:
+        list_fields["not_for"] = " ".join(submission.not_for)
+    if submission.alternatives:
+        list_fields["alternatives"] = " ".join(submission.alternatives)
+    if submission.tags:
+        list_fields["tags"] = " ".join(submission.tags)
+    if submission.agent_readiness and submission.agent_readiness.known_agent_gotchas:
+        list_fields["known_agent_gotchas"] = " ".join(submission.agent_readiness.known_agent_gotchas)
+
+    injection_findings = scan_submission({**text_fields, **list_fields})
+    if injection_findings:
+        field_names = sorted({f["field"] for f in injection_findings})
+        logger.warning(
+            "Prompt injection detected in submission %s by %s: fields=%s",
+            submission.id, display_name, field_names,
+        )
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                f"Submission rejected: suspicious content detected in "
+                f"field(s) {', '.join(field_names)}. "
+                f"Text fields must not contain LLM prompt manipulation attempts."
+            ),
+        )
 
     # Evidence consistency validation (rubric v2+ only)
     if submission.rubric_version >= "2.0" and not submission.evidence:

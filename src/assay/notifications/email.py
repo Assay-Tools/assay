@@ -16,6 +16,14 @@ logger = logging.getLogger(__name__)
 FROM_ADDRESS = "Assay Tools <hello@assay.tools>"
 
 
+def _mask_email(email: str) -> str:
+    """Mask email for logging: user@domain.com -> u***@domain.com."""
+    if "@" not in email:
+        return "***"
+    local, domain = email.rsplit("@", 1)
+    return f"{local[0]}***@{domain}" if local else f"***@{domain}"
+
+
 def _ensure_resend():
     """Configure the Resend SDK. Returns True if configured, False otherwise."""
     if not settings.resend_api_key:
@@ -118,7 +126,7 @@ https://assay.tools
             "text": text,
             "html": html,
         })
-        logger.info("Confirmation email sent for order %d to %s", order_id, to_email)
+        logger.info("Confirmation email sent for order %d to %s", order_id, _mask_email(to_email))
         return True
     except Exception:
         logger.exception("Failed to send confirmation email for order %d", order_id)
@@ -206,14 +214,14 @@ https://assay.tools
 
     try:
         resend.Emails.send(params)
-        logger.info("Report-ready email sent for order %d to %s", order_id, to_email)
+        logger.info("Report-ready email sent for order %d to %s", order_id, _mask_email(to_email))
         return True
     except Exception:
         logger.exception("Failed to send report-ready email for order %d", order_id)
         return False
 
 
-OPERATOR_EMAIL = "ajvanbeest@protonmail.com"
+OPERATOR_EMAIL = settings.operator_email
 
 
 def send_report_failure_alert(
@@ -341,10 +349,10 @@ https://assay.tools
             "text": text,
             "html": html,
         })
-        logger.info("Score change alert sent for %s to %s", package_id, to_email)
+        logger.info("Score change alert sent for %s to %s", package_id, _mask_email(to_email))
         return True
     except Exception:
-        logger.exception("Failed to send score change alert for %s to %s", package_id, to_email)
+        logger.exception("Failed to send score change alert for %s to %s", package_id, _mask_email(to_email))
         return False
 
 
@@ -405,10 +413,10 @@ https://assay.tools
             "text": text_body,
             "html": html_body,
         })
-        logger.info("Confirmation email sent to %s", to_email)
+        logger.info("Confirmation email sent to %s", _mask_email(to_email))
         return True
     except Exception:
-        logger.exception("Failed to send confirmation email to %s", to_email)
+        logger.exception("Failed to send confirmation email to %s", _mask_email(to_email))
         return False
 
 
@@ -453,5 +461,5 @@ def send_newsletter(
         })
         return True
     except Exception:
-        logger.exception("Failed to send newsletter to %s", to_email)
+        logger.exception("Failed to send newsletter to %s", _mask_email(to_email))
         return False

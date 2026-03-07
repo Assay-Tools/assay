@@ -69,14 +69,29 @@ app.add_middleware(
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):
         response = await call_next(request)
+        path = request.url.path
         response.headers["X-Content-Type-Options"] = "nosniff"
-        response.headers["X-Frame-Options"] = "DENY"
+        # Allow embedding for /embed/ routes, DENY everywhere else
+        if path.startswith("/embed/"):
+            pass  # No X-Frame-Options for embeddable routes
+        else:
+            response.headers["X-Frame-Options"] = "DENY"
         response.headers["Strict-Transport-Security"] = (
             "max-age=63072000; includeSubDomains"
         )
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        # Content-Security-Policy
+        response.headers["Content-Security-Policy"] = (
+            "default-src 'self'; "
+            "script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://js.stripe.com; "
+            "style-src 'self' 'unsafe-inline'; "
+            "img-src 'self' data: https:; "
+            "font-src 'self'; "
+            "connect-src 'self' https://api.stripe.com; "
+            "frame-src https://js.stripe.com; "
+            "frame-ancestors 'none'"
+        )
         # Cache-Control for API responses (5 min for reads, scores update infrequently)
-        path = request.url.path
         if path.startswith("/v1/") and request.method == "GET":
             if "Cache-Control" not in response.headers:
                 response.headers["Cache-Control"] = "public, max-age=300"

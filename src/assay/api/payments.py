@@ -263,7 +263,8 @@ def create_monitoring_checkout(
 
 
 @router.post("/v1/webhooks/stripe")
-async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
+@limiter.limit("120/minute")
+async def stripe_webhook(request: Request, response: Response, db: Session = Depends(get_db)):
     """Handle Stripe webhook events."""
     if not settings.stripe_secret_key:
         raise HTTPException(status_code=503, detail="Not configured")
@@ -379,6 +380,9 @@ def _generate_report_async(order_id: int):
             if not order:
                 logger.error("Background report gen: order %d not found", order_id)
                 return
+            if order.report_path:
+                logger.info("Report already generated for order %d, skipping", order_id)
+                return
             from assay.reports.delivery import generate_report_for_order
             report_path = generate_report_for_order(order, db)
             if report_path and order.customer_email:
@@ -434,7 +438,7 @@ def get_order_status(
         "currency": order.currency,
         "created_at": order.created_at.isoformat() if order.created_at else None,
         "paid_at": order.paid_at.isoformat() if order.paid_at else None,
-        "report_path": order.report_path,
+        "has_report": bool(order.report_path),
     }
 
 
@@ -465,8 +469,10 @@ def download_report(
     suffix = "brief" if order.order_type == "brief" else "report"
     report_type = order.order_type
 
-    # Try local file first
-    report_file = PROJECT_ROOT / order.report_path
+    # Try local file first — with path traversal protection
+    report_file = (PROJECT_ROOT / order.report_path).resolve()
+    if not report_file.is_relative_to(PROJECT_ROOT.resolve()):
+        raise HTTPException(status_code=400, detail="Invalid report path")
     pdf_file = report_file.with_suffix(".pdf") if report_file.suffix == ".md" else None
 
     if fmt == "md" and report_file.exists():

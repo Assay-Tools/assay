@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 # --- Health ---
 
@@ -92,17 +92,24 @@ class EvaluationAuthSubmission(BaseModel):
     methods: list[str] = Field(default_factory=list)
     oauth: bool = False
     scopes: bool = False
-    notes: str | None = None
+    notes: str | None = Field(None, max_length=2000)
+
+    @field_validator("methods", mode="before")
+    @classmethod
+    def cap_methods_list(cls, v):
+        if not isinstance(v, list):
+            return v
+        return [str(item)[:200] for item in v[:20]]
 
 
 class EvaluationPricingSubmission(BaseModel):
-    model: str | None = None
+    model: str | None = Field(None, max_length=100)
     free_tier_exists: bool = False
     free_tier_limits: dict | None = None
     paid_tiers: list[dict] | None = None
     requires_credit_card: bool = False
     estimated_workload_costs: dict | None = None
-    notes: str | None = None
+    notes: str | None = Field(None, max_length=2000)
 
 
 class EvaluationPerformanceSubmission(BaseModel):
@@ -127,12 +134,19 @@ class EvaluationAgentReadinessSubmission(BaseModel):
     mcp_server_quality: float | None = None
     documentation_accuracy: float | None = None
     error_message_quality: float | None = None
-    error_message_notes: str | None = None
+    error_message_notes: str | None = Field(None, max_length=1000)
     idempotency_support: str | None = None
-    idempotency_notes: str | None = None
-    pagination_style: str | None = None
+    idempotency_notes: str | None = Field(None, max_length=1000)
+    pagination_style: str | None = Field(None, max_length=50)
     retry_guidance_documented: bool | None = None
     known_agent_gotchas: list[str] = Field(default_factory=list)
+
+    @field_validator("known_agent_gotchas", mode="before")
+    @classmethod
+    def cap_gotchas_list(cls, v):
+        if not isinstance(v, list):
+            return v
+        return [str(item)[:500] for item in v[:50]]
 
 
 class AFScoreComponentsSubmission(BaseModel):
@@ -149,7 +163,7 @@ class SecurityScoreComponentsSubmission(BaseModel):
     scope_granularity: float = Field(ge=0, le=100)
     dependency_hygiene: float = Field(ge=0, le=100)
     secret_handling: float = Field(ge=0, le=100)
-    security_notes: str | None = None
+    security_notes: str | None = Field(None, max_length=2000)
 
 
 class ReliabilityScoreComponentsSubmission(BaseModel):
@@ -164,7 +178,7 @@ class SubComponentEvidence(BaseModel):
     checkpoints: dict[str, bool] = Field(
         description="Map of checkpoint_id -> met (true/false)",
     )
-    notes: str | None = Field(None, description="Optional notes explaining the assessment")
+    notes: str | None = Field(None, max_length=2000, description="Optional notes explaining the assessment")
 
 
 class EvaluationEvidence(BaseModel):
@@ -194,28 +208,28 @@ class EvaluationEvidence(BaseModel):
 
 class EvaluationSubmission(BaseModel):
     """Full evaluation submission matching the loader's expected JSON."""
-    id: str = Field(description="Package ID (slug, e.g. 'stripe')")
-    name: str = Field(description="Display name")
+    id: str = Field(max_length=200, description="Package ID (slug, e.g. 'stripe')")
+    name: str = Field(max_length=200, description="Display name")
     evaluator_engine: str | None = Field(
-        None, description="AI engine used for evaluation (e.g. 'claude', 'gpt-4', 'gemini')",
+        None, max_length=100, description="AI engine used for evaluation (e.g. 'claude', 'gpt-4', 'gemini')",
     )
     rubric_version: str = Field(
-        "1.0", description="Rubric version used for this evaluation",
+        "1.0", max_length=20, description="Rubric version used for this evaluation",
     )
-    homepage: str | None = None
-    repo_url: str | None = None
+    homepage: str | None = Field(None, max_length=2000)
+    repo_url: str | None = Field(None, max_length=2000)
     category: str | None = Field(
-        None, description="Category slug (normalized to canonical list)",
+        None, max_length=100, description="Category slug (normalized to canonical list)",
     )
     subcategories: list[str] = Field(default_factory=list)
     tags: list[str] = Field(default_factory=list)
-    what_it_does: str | None = None
+    what_it_does: str | None = Field(None, max_length=2000)
     use_cases: list[str] = Field(default_factory=list)
     not_for: list[str] = Field(default_factory=list)
-    best_when: str | None = None
-    avoid_when: str | None = None
+    best_when: str | None = Field(None, max_length=1000)
+    avoid_when: str | None = Field(None, max_length=1000)
     alternatives: list[str] = Field(default_factory=list)
-    version_evaluated: str | None = None
+    version_evaluated: str | None = Field(None, max_length=100)
     interface: EvaluationInterfaceSubmission | None = None
     auth: EvaluationAuthSubmission | None = None
     pricing: EvaluationPricingSubmission | None = None
@@ -229,6 +243,13 @@ class EvaluationSubmission(BaseModel):
         None,
         description="Evidence checkpoints (required for rubric_version 2.0+, optional for 1.0)",
     )
+
+    @field_validator("use_cases", "not_for", "alternatives", "tags", "subcategories", mode="before")
+    @classmethod
+    def cap_string_lists(cls, v):
+        if not isinstance(v, list):
+            return v
+        return [str(item)[:500] for item in v[:50]]
 
 
 class EvaluationSubmissionResponse(BaseModel):
