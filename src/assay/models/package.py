@@ -599,3 +599,34 @@ class ScoreSnapshot(Base):
     )
 
     package: Mapped["Package"] = relationship()
+
+
+class ReportCache(Base):
+    """Cached generated reports to avoid regeneration for identical evaluation data."""
+
+    __tablename__ = "report_cache"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    package_id: Mapped[str] = mapped_column(
+        String(255), ForeignKey("packages.id"), nullable=False, index=True,
+    )
+    report_type: Mapped[str] = mapped_column(String(50), nullable=False)  # "report" or "brief"
+    # Evaluation date the report was built from
+    evaluation_date: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    generated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc),
+    )
+    # Local file paths (relative to project root)
+    md_path: Mapped[str] = mapped_column(String(500), nullable=False)
+    pdf_path: Mapped[str | None] = mapped_column(String(500))
+    # GCS paths for durable storage
+    gcs_md_path: Mapped[str | None] = mapped_column(String(500))
+    gcs_pdf_path: Mapped[str | None] = mapped_column(String(500))
+    # Scores at generation time — to detect staleness
+    af_score: Mapped[float | None] = mapped_column(Float)
+    security_score: Mapped[float | None] = mapped_column(Float)
+    reliability_score: Mapped[float | None] = mapped_column(Float)
+    # Whether this is the current (non-archived) version
+    is_current: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
+
+    package: Mapped["Package"] = relationship()

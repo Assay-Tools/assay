@@ -379,7 +379,7 @@ def _generate_report_async(order_id: int):
             from assay.reports.delivery import generate_report_for_order
             report_path = generate_report_for_order(order, db)
             if report_path and order.customer_email:
-                _send_report_ready_email(order.customer_email, order.id, order.package_id)
+                _send_report_ready_email(order.customer_email, order.id, order.package_id, report_path)
         except Exception:
             logger.exception("Background report generation failed for order %d", order_id)
         finally:
@@ -503,8 +503,11 @@ https://assay.tools
     logger.info("Confirmation email sent for order %d to %s", order_id, to_email)
 
 
-def _send_report_ready_email(to_email: str, order_id: int, package_id: str):
-    """Send follow-up email when report is ready for download."""
+def _send_report_ready_email(
+    to_email: str, order_id: int, package_id: str, report_path: str | None = None,
+):
+    """Send follow-up email when report is ready, with PDF and markdown attached."""
+    from email.mime.application import MIMEApplication
     from email.mime.multipart import MIMEMultipart
     from email.mime.text import MIMEText
 
@@ -516,14 +519,19 @@ def _send_report_ready_email(to_email: str, order_id: int, package_id: str):
 
     download_url = f"{settings.app_url}/orders/{order_id}/success"
 
-    msg = MIMEMultipart("alternative")
+    msg = MIMEMultipart("mixed")
     msg["From"] = f"Assay Tools <{smtp_user}>"
     msg["To"] = to_email
     msg["Subject"] = f"Your report is ready — {package_id}"
 
+    # HTML + text body in an alternative sub-part
+    body = MIMEMultipart("alternative")
+
     text = f"""Your Assay evaluation report for {package_id} is ready!
 
-Download it here: {download_url}
+Both the PDF and markdown versions are attached to this email.
+
+You can also download from: {download_url}
 
 — Assay Tools
 https://assay.tools
@@ -538,10 +546,12 @@ https://assay.tools
 
   <p style="color: #d1d5db; font-size: 16px;">Your evaluation report for <strong style="color: #fff;">{package_id}</strong> is ready!</p>
 
+  <p style="color: #9ca3af; font-size: 14px;">Both the branded PDF and agent-friendly markdown are attached to this email.</p>
+
   <div style="text-align: center; margin: 28px 0;">
     <a href="{download_url}"
        style="background: #6366f1; color: #fff; text-decoration: none; padding: 12px 28px; border-radius: 8px; font-size: 14px; font-weight: 500; display: inline-block;">
-      Download Report
+      View Order
     </a>
   </div>
 
@@ -552,8 +562,25 @@ https://assay.tools
 </body>
 </html>"""
 
-    msg.attach(MIMEText(text, "plain"))
-    msg.attach(MIMEText(html, "html"))
+    body.attach(MIMEText(text, "plain"))
+    body.attach(MIMEText(html, "html"))
+    msg.attach(body)
+
+    # Attach report files
+    if report_path:
+        from assay.reports.delivery import PROJECT_ROOT
+        md_path = PROJECT_ROOT / report_path
+        pdf_path = md_path.with_suffix(".pdf")
+
+        if md_path.exists():
+            md_attachment = MIMEApplication(md_path.read_bytes(), Name=md_path.name)
+            md_attachment["Content-Disposition"] = f'attachment; filename="{md_path.name}"'
+            msg.attach(md_attachment)
+
+        if pdf_path.exists():
+            pdf_attachment = MIMEApplication(pdf_path.read_bytes(), Name=pdf_path.name)
+            pdf_attachment["Content-Disposition"] = f'attachment; filename="{pdf_path.name}"'
+            msg.attach(pdf_attachment)
 
     _smtp_send(smtp_user, smtp_pass, to_email, msg)
 
