@@ -27,6 +27,7 @@ def _ensure_resend():
 
 def send_order_confirmation(
     to_email: str, order_id: int, package_id: str, order_type: str,
+    access_token: str = "",
 ) -> bool:
     """Send immediate order confirmation after payment."""
     if not _ensure_resend():
@@ -66,7 +67,7 @@ Amount: {amount}
 
 {status_msg}
 
-View your order: {settings.app_url}/orders/{order_id}/success
+View your order: {settings.app_url}/orders/{access_token}/success
 
 Questions? Reply to this email.
 
@@ -95,7 +96,7 @@ https://assay.tools
   <p style="color: #d1d5db; font-size: 14px; line-height: 1.6;">{status_msg}</p>
 
   <div style="text-align: center; margin: 28px 0;">
-    <a href="{settings.app_url}/orders/{order_id}/success"
+    <a href="{settings.app_url}/orders/{access_token}/success"
        style="background: #6366f1; color: #fff; text-decoration: none; padding: 12px 28px; border-radius: 8px; font-size: 14px; font-weight: 500; display: inline-block;">
       View Order
     </a>
@@ -126,12 +127,13 @@ https://assay.tools
 
 def send_report_ready(
     to_email: str, order_id: int, package_id: str, report_path: str | None = None,
+    access_token: str = "",
 ) -> bool:
     """Send notification when report is ready, with PDF and markdown attached."""
     if not _ensure_resend():
         return False
 
-    download_url = f"{settings.app_url}/orders/{order_id}/success"
+    download_url = f"{settings.app_url}/orders/{access_token}/success"
 
     text = f"""Your Assay evaluation report for {package_id} is ready!
 

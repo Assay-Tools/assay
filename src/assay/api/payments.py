@@ -339,6 +339,7 @@ def _handle_checkout_completed(session_data: dict, db: Session):
     if order.customer_email:
         _send_confirmation_async(
             order.id, order.customer_email, order.package_id, order.order_type,
+            order.access_token,
         )
 
     # Generate report in background thread so webhook returns fast
@@ -382,7 +383,7 @@ def _generate_report_async(order_id: int):
             report_path = generate_report_for_order(order, db)
             if report_path and order.customer_email:
                 from assay.notifications.email import send_report_ready
-                send_report_ready(order.customer_email, order.id, order.package_id, report_path)
+                send_report_ready(order.customer_email, order.id, order.package_id, report_path, order.access_token)
         except Exception:
             logger.exception("Background report generation failed for order %d", order_id)
         finally:
@@ -394,12 +395,13 @@ def _generate_report_async(order_id: int):
 
 def _send_confirmation_async(
     order_id: int, email: str, package_id: str, order_type: str,
+    access_token: str = "",
 ):
     """Send order confirmation email in background thread."""
     def _worker():
         try:
             from assay.notifications.email import send_order_confirmation
-            send_order_confirmation(email, order_id, package_id, order_type)
+            send_order_confirmation(email, order_id, package_id, order_type, access_token)
         except Exception:
             logger.exception("Failed to send confirmation email for order %d", order_id)
 
