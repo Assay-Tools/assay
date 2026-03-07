@@ -67,13 +67,11 @@ class TestMonitoringCheckout:
 
 class TestWebhook:
     @patch("assay.api.payments.stripe")
-    @patch("assay.reports.delivery.generate_report_for_order")
+    @patch("assay.api.payments._generate_report_async")
     def test_checkout_completed_webhook(
-        self, mock_generate, mock_stripe, client, sample_packages, db,
+        self, mock_report_async, mock_stripe, client, sample_packages, db,
     ):
         from assay.models import Order
-
-        mock_generate.return_value = "reports/output/packages/top-api-order-1.md"
 
         order = Order(
             package_id="top-api",
@@ -119,7 +117,9 @@ class TestWebhook:
         updated_order = db.query(Order).filter(Order.id == order_id).first()
         assert updated_order.status == "paid"
         assert updated_order.customer_email == "buyer@example.com"
-        mock_generate.assert_called_once()
+        # Report generation is dispatched to a background thread;
+        # verify the async launcher was called with the order ID
+        mock_report_async.assert_called_once_with(order_id)
 
     def test_webhook_rejects_missing_secret(self, client, _patch_settings):
         _patch_settings.stripe_webhook_secret = ""

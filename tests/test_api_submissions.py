@@ -46,10 +46,16 @@ def _eval_payload(**overrides):
 
 @pytest.fixture(autouse=True)
 def _set_api_key():
-    """Set a test API key for submission auth."""
+    """Set test API keys for submission and admin auth.
+
+    Both must be set to override any keys loaded from .env/.secrets at
+    import time by pydantic-settings (settings.admin_api_keys).
+    """
     os.environ["SUBMISSION_API_KEYS"] = "test-key-123,other-key-456"
+    os.environ["ADMIN_API_KEYS"] = "test-key-123,other-key-456"
     yield
     os.environ.pop("SUBMISSION_API_KEYS", None)
+    os.environ.pop("ADMIN_API_KEYS", None)
 
 
 # --- Auth tests ---
