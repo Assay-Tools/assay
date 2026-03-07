@@ -3,6 +3,10 @@
 Includes a caching layer: reports are generated once per evaluation cycle
 and served from cache for subsequent orders. When a package is re-evaluated,
 the old report is archived and a fresh one generated on next purchase.
+
+Cache invalidation triggers:
+- Package re-evaluated (last_evaluated newer than report)
+- Scores changed (af, security, or reliability)
 """
 
 import logging
@@ -77,19 +81,33 @@ def _get_cached_report(
         logger.info("Cache stale for %s/%s: scores changed", package_id, report_type)
         return None
 
-    # Verify files still exist on disk
+    # Verify files exist (on disk or in GCS)
     md_file = PROJECT_ROOT / cached.md_path
     if not md_file.exists():
-        logger.warning(
-            "Cache entry for %s/%s but file missing: %s", package_id, report_type, md_file,
-        )
-        return None
+        # Check GCS before declaring missing
+        try:
+            from assay.reports.storage import report_exists
+            if not report_exists(package_id, report_type):
+                logger.warning(
+                    "Cache entry for %s/%s but files missing locally and in GCS",
+                    package_id, report_type,
+                )
+                return None
+        except Exception:
+            logger.warning(
+                "Cache entry for %s/%s but file missing: %s", package_id, report_type, md_file,
+            )
+            return None
 
     return cached
 
 
 def _archive_old_reports(package_id: str, report_type: str, db: Session) -> None:
-    """Archive previous cached reports for this package/type."""
+    """Archive previous cached reports for this package/type.
+
+    Old versions are preserved in GCS under archive/ prefix with timestamp,
+    so they can be retrieved if needed.
+    """
     old_entries = (
         db.query(ReportCache)
         .filter(
@@ -102,14 +120,24 @@ def _archive_old_reports(package_id: str, report_type: str, db: Session) -> None
     ARCHIVE_DIR.mkdir(parents=True, exist_ok=True)
     for entry in old_entries:
         entry.is_current = False
-        # Move files to archive directory
+
+        # Archive to GCS with timestamp prefix for retrieval
+        timestamp = entry.generated_at.strftime("%Y%m%d") if entry.generated_at else "unknown"
+        try:
+            from assay.reports.storage import archive_report
+            archive_report(package_id, report_type, timestamp)
+            logger.info("Archived %s/%s (version %s) to GCS", package_id, report_type, timestamp)
+        except Exception:
+            logger.exception("GCS archive failed for %s/%s", package_id, report_type)
+
+        # Move local files to archive directory
         for rel_path in (entry.md_path, entry.pdf_path):
             if rel_path:
                 src = PROJECT_ROOT / rel_path
                 if src.exists():
                     dest = ARCHIVE_DIR / src.name
                     shutil.move(str(src), str(dest))
-                    logger.info("Archived %s -> %s", src.name, dest)
+                    logger.info("Archived local %s -> %s", src.name, dest)
     if old_entries:
         db.flush()
 

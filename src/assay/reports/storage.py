@@ -112,6 +112,43 @@ def download_report(package_id: str, report_type: str, fmt: str = "pdf") -> byte
         return None
 
 
+def archive_report(package_id: str, report_type: str, timestamp: str) -> bool:
+    """Copy current report to archive/ prefix in GCS before replacement.
+
+    Archived reports are stored at:
+      archive/{package_id}/{report_type}/{timestamp}.md
+      archive/{package_id}/{report_type}/{timestamp}.pdf
+
+    Args:
+        package_id: Package identifier.
+        report_type: "brief" or "report".
+        timestamp: Version identifier (typically YYYYMMDD).
+
+    Returns:
+        True if archive succeeded, False otherwise.
+    """
+    bucket = _bucket()
+    if not bucket:
+        return False
+
+    src_prefix = f"reports/{package_id}/{report_type}"
+    dst_prefix = f"archive/{package_id}/{report_type}/{timestamp}"
+
+    try:
+        archived = False
+        for ext in ("md", "pdf"):
+            src_blob = bucket.blob(f"{src_prefix}.{ext}")
+            if src_blob.exists():
+                bucket.copy_blob(src_blob, bucket, f"{dst_prefix}.{ext}")
+                archived = True
+                logger.info("Archived %s.%s -> %s.%s", src_prefix, ext, dst_prefix, ext)
+
+        return archived
+    except Exception:
+        logger.exception("Failed to archive %s to %s", src_prefix, dst_prefix)
+        return False
+
+
 def report_exists(package_id: str, report_type: str) -> bool:
     """Check if both markdown and PDF exist in GCS for this report."""
     bucket = _bucket()
