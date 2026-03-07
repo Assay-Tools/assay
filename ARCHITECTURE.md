@@ -72,6 +72,7 @@ echo -n "value" | gcloud secrets create SECRET_NAME --project=business-34-incuba
 | `ASSAY_ADMIN_API_KEY` | `ADMIN_API_KEYS` | Admin endpoint authentication |
 | `ASSAY_DATABASE_URL` | `DATABASE_URL` | Postgres connection string |
 | `ASSAY_SMTP_PASS` | `SMTP_PASS` | Migadu mailbox password (legacy, inbound email) |
+| `ASSAY_GCS_SA_KEY` | `GCS_SA_KEY` | GCS service account key JSON (report storage) |
 
 ### Other Railway Env Vars (not secret-managed)
 
@@ -84,6 +85,7 @@ echo -n "value" | gcloud secrets create SECRET_NAME --project=business-34-incuba
 | `STRIPE_PRICE_BRIEF` | `price_1T8Q3A...H2v8T` | Stripe Price ID: $3 brief (live) |
 | `STRIPE_PRICE_MONITORING` | `price_1T8Q3D...OKmF` | Stripe Price ID: $3/mo monitoring (live) |
 | `STRIPE_PRICE_SUPPORT` | `price_1T8Q3B...Xw9K` | Stripe Price ID: custom support (live) |
+| `GCS_BUCKET` | `assay-reports` | GCS bucket for durable report storage |
 
 ### Local Development
 
