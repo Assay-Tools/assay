@@ -337,7 +337,9 @@ def _handle_checkout_completed(session_data: dict, db: Session):
 
     # Send confirmation email immediately (non-blocking)
     if order.customer_email:
-        _send_confirmation_async(order.id, order.customer_email, order.package_id, order.order_type)
+        _send_confirmation_async(
+            order.id, order.customer_email, order.package_id, order.order_type,
+        )
 
     # Generate report in background thread so webhook returns fast
     if order.order_type in ("report", "brief"):
@@ -379,7 +381,8 @@ def _generate_report_async(order_id: int):
             from assay.reports.delivery import generate_report_for_order
             report_path = generate_report_for_order(order, db)
             if report_path and order.customer_email:
-                _send_report_ready_email(order.customer_email, order.id, order.package_id, report_path)
+                from assay.notifications.email import send_report_ready
+                send_report_ready(order.customer_email, order.id, order.package_id, report_path)
         except Exception:
             logger.exception("Background report generation failed for order %d", order_id)
         finally:
@@ -389,202 +392,19 @@ def _generate_report_async(order_id: int):
     thread.start()
 
 
-def _send_confirmation_async(order_id: int, email: str, package_id: str, order_type: str):
+def _send_confirmation_async(
+    order_id: int, email: str, package_id: str, order_type: str,
+):
     """Send order confirmation email in background thread."""
     def _worker():
         try:
-            _send_order_confirmation(email, order_id, package_id, order_type)
+            from assay.notifications.email import send_order_confirmation
+            send_order_confirmation(email, order_id, package_id, order_type)
         except Exception:
             logger.exception("Failed to send confirmation email for order %d", order_id)
 
     thread = threading.Thread(target=_worker, daemon=True)
     thread.start()
-
-
-def _smtp_send(smtp_user: str, smtp_pass: str, to_email: str, msg):
-    """Send an email via SMTP. Uses Migadu (SMTP_SSL on port 465)."""
-    import smtplib
-
-    smtp_host = settings.smtp_host or "smtp.migadu.com"
-    smtp_port = settings.smtp_port or 465
-
-    with smtplib.SMTP_SSL(smtp_host, smtp_port) as server:
-        server.login(smtp_user, smtp_pass)
-        server.sendmail(smtp_user, to_email, msg.as_string())
-
-
-def _send_order_confirmation(to_email: str, order_id: int, package_id: str, order_type: str):
-    """Send immediate order confirmation via SMTP."""
-    from email.mime.multipart import MIMEMultipart
-    from email.mime.text import MIMEText
-
-    smtp_user = settings.smtp_user
-    smtp_pass = settings.smtp_pass
-    if not smtp_user or not smtp_pass:
-        logger.warning("SMTP not configured — skipping confirmation email for order %d", order_id)
-        return
-
-    type_labels = {
-        "report": "Full Evaluation Report",
-        "brief": "Package Brief",
-        "monitoring_subscription": "Package Monitoring",
-    }
-    amount_labels = {
-        "report": "$99.00",
-        "brief": "$3.00",
-        "monitoring_subscription": "$3.00/mo",
-    }
-    type_label = type_labels.get(order_type, order_type)
-    amount = amount_labels.get(order_type, "—")
-
-    msg = MIMEMultipart("alternative")
-    msg["From"] = f"Assay Tools <{smtp_user}>"
-    msg["To"] = to_email
-    msg["Subject"] = f"Order #{order_id} confirmed — {package_id}"
-
-    text = f"""Thanks for your purchase!
-
-Order #{order_id}
-Product: {type_label}
-Package: {package_id}
-Amount: {amount}
-
-{"Your report is being generated now. We'll email you the download link when it's ready — Full Evaluation Reports typically take 20-30 minutes, Package Briefs around 5 minutes." if order_type in ("report", "brief") else "Your monitoring subscription is now active. You'll receive alerts when this package's scores change significantly."}
-
-View your order: {settings.app_url}/orders/{order_id}/success
-
-Questions? Reply to this email.
-
-— Assay Tools
-https://assay.tools
-"""
-
-    html = f"""<!DOCTYPE html>
-<html>
-<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 560px; margin: 0 auto; padding: 24px; color: #e5e7eb; background: #111827;">
-  <div style="border-bottom: 2px solid #6366f1; padding-bottom: 16px; margin-bottom: 24px;">
-    <h1 style="font-size: 20px; color: #fff; margin: 0;">Assay Tools</h1>
-  </div>
-
-  <p style="color: #9ca3af; margin-bottom: 24px;">Thanks for your purchase!</p>
-
-  <div style="background: #1f2937; border: 1px solid #374151; border-radius: 12px; padding: 20px; margin-bottom: 24px;">
-    <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
-      <tr><td style="color: #9ca3af; padding: 6px 0;">Order</td><td style="color: #fff; text-align: right; padding: 6px 0; font-family: monospace;">#{order_id}</td></tr>
-      <tr><td style="color: #9ca3af; padding: 6px 0;">Product</td><td style="color: #fff; text-align: right; padding: 6px 0;">{type_label}</td></tr>
-      <tr><td style="color: #9ca3af; padding: 6px 0;">Package</td><td style="color: #fff; text-align: right; padding: 6px 0;">{package_id}</td></tr>
-      <tr style="border-top: 1px solid #374151;"><td style="color: #9ca3af; padding: 10px 0 6px;">Amount</td><td style="color: #fff; text-align: right; padding: 10px 0 6px; font-size: 18px; font-weight: 600;">{amount}</td></tr>
-    </table>
-  </div>
-
-  <p style="color: #d1d5db; font-size: 14px; line-height: 1.6;">
-    {"Your report is being generated now. We'll email you the download link when it's ready — Full Evaluation Reports typically take 20-30 minutes, Package Briefs around 5 minutes." if order_type in ("report", "brief") else "Your monitoring subscription is now active. You'll receive alerts when this package's scores change significantly."}
-  </p>
-
-  <div style="text-align: center; margin: 28px 0;">
-    <a href="{settings.app_url}/orders/{order_id}/success"
-       style="background: #6366f1; color: #fff; text-decoration: none; padding: 12px 28px; border-radius: 8px; font-size: 14px; font-weight: 500; display: inline-block;">
-      View Order
-    </a>
-  </div>
-
-  <p style="color: #6b7280; font-size: 12px; margin-top: 32px; border-top: 1px solid #1f2937; padding-top: 16px;">
-    Questions? Reply to this email.<br>
-    <a href="https://assay.tools" style="color: #6366f1; text-decoration: none;">assay.tools</a>
-  </p>
-</body>
-</html>"""
-
-    msg.attach(MIMEText(text, "plain"))
-    msg.attach(MIMEText(html, "html"))
-
-    _smtp_send(smtp_user, smtp_pass, to_email, msg)
-
-    logger.info("Confirmation email sent for order %d to %s", order_id, to_email)
-
-
-def _send_report_ready_email(
-    to_email: str, order_id: int, package_id: str, report_path: str | None = None,
-):
-    """Send follow-up email when report is ready, with PDF and markdown attached."""
-    from email.mime.application import MIMEApplication
-    from email.mime.multipart import MIMEMultipart
-    from email.mime.text import MIMEText
-
-    smtp_user = settings.smtp_user
-    smtp_pass = settings.smtp_pass
-    if not smtp_user or not smtp_pass:
-        logger.warning("SMTP not configured — skipping report-ready email for order %d", order_id)
-        return
-
-    download_url = f"{settings.app_url}/orders/{order_id}/success"
-
-    msg = MIMEMultipart("mixed")
-    msg["From"] = f"Assay Tools <{smtp_user}>"
-    msg["To"] = to_email
-    msg["Subject"] = f"Your report is ready — {package_id}"
-
-    # HTML + text body in an alternative sub-part
-    body = MIMEMultipart("alternative")
-
-    text = f"""Your Assay evaluation report for {package_id} is ready!
-
-Both the PDF and markdown versions are attached to this email.
-
-You can also download from: {download_url}
-
-— Assay Tools
-https://assay.tools
-"""
-
-    html = f"""<!DOCTYPE html>
-<html>
-<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 560px; margin: 0 auto; padding: 24px; color: #e5e7eb; background: #111827;">
-  <div style="border-bottom: 2px solid #6366f1; padding-bottom: 16px; margin-bottom: 24px;">
-    <h1 style="font-size: 20px; color: #fff; margin: 0;">Assay Tools</h1>
-  </div>
-
-  <p style="color: #d1d5db; font-size: 16px;">Your evaluation report for <strong style="color: #fff;">{package_id}</strong> is ready!</p>
-
-  <p style="color: #9ca3af; font-size: 14px;">Both the branded PDF and agent-friendly markdown are attached to this email.</p>
-
-  <div style="text-align: center; margin: 28px 0;">
-    <a href="{download_url}"
-       style="background: #6366f1; color: #fff; text-decoration: none; padding: 12px 28px; border-radius: 8px; font-size: 14px; font-weight: 500; display: inline-block;">
-      View Order
-    </a>
-  </div>
-
-  <p style="color: #6b7280; font-size: 12px; margin-top: 32px; border-top: 1px solid #1f2937; padding-top: 16px;">
-    Questions? Reply to this email.<br>
-    <a href="https://assay.tools" style="color: #6366f1; text-decoration: none;">assay.tools</a>
-  </p>
-</body>
-</html>"""
-
-    body.attach(MIMEText(text, "plain"))
-    body.attach(MIMEText(html, "html"))
-    msg.attach(body)
-
-    # Attach report files
-    if report_path:
-        from assay.reports.delivery import PROJECT_ROOT
-        md_path = PROJECT_ROOT / report_path
-        pdf_path = md_path.with_suffix(".pdf")
-
-        if md_path.exists():
-            md_attachment = MIMEApplication(md_path.read_bytes(), Name=md_path.name)
-            md_attachment["Content-Disposition"] = f'attachment; filename="{md_path.name}"'
-            msg.attach(md_attachment)
-
-        if pdf_path.exists():
-            pdf_attachment = MIMEApplication(pdf_path.read_bytes(), Name=pdf_path.name)
-            pdf_attachment["Content-Disposition"] = f'attachment; filename="{pdf_path.name}"'
-            msg.attach(pdf_attachment)
-
-    _smtp_send(smtp_user, smtp_pass, to_email, msg)
-
-    logger.info("Report-ready email sent for order %d to %s", order_id, to_email)
 
 
 # --- Order status ---

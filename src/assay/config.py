@@ -31,9 +31,12 @@ class Settings(BaseSettings):
     stripe_price_support: str = ""  # Price ID for Support the Mission (custom amount)
     app_url: str = "https://assay.tools"  # For Stripe redirect URLs
 
-    # Email (Migadu SMTP for transactional email)
-    smtp_user: str = ""  # e.g. hello@assay.tools
-    smtp_pass: str = ""  # Migadu mailbox password
+    # Email (Resend for transactional/programmatic email)
+    resend_api_key: str = ""
+
+    # Legacy SMTP (Migadu — kept for backward compat, will remove after migration)
+    smtp_user: str = ""
+    smtp_pass: str = ""
     smtp_host: str = "smtp.migadu.com"
     smtp_port: int = 465
 

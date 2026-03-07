@@ -1,6 +1,6 @@
 # Assay — Project Status
 
-**Last Updated**: 2026-03-05 03:10
+**Last Updated**: 2026-03-07 13:17
 **URL**: https://assay.tools
 **Repo**: ~/git/assay (github.com/Assay-Tools/assay)
 **Hosting**: Railway (auto-deploys from main)
@@ -21,7 +21,7 @@ All technical work for Phase 0 and Phase 1 is complete. The product can accept p
 | Packages evaluated (with AF scores) | ~2,456+ |
 | MCP servers tracked | ~300 |
 | Avg AF Score | ~61 |
-| Tests | 167 passing |
+| Tests | 168 passing |
 | Commits (Mar 4-5 alone) | 100+ |
 | Monthly operating cost | ~$23 |
 
@@ -66,7 +66,7 @@ All technical work for Phase 0 and Phase 1 is complete. The product can accept p
 - "Report inaccuracy" links on every package page
 
 **Infrastructure**:
-- 167 tests (all passing), CI/CD via GitHub Actions (lint + test)
+- 168 tests (all passing), CI/CD via GitHub Actions (lint + test)
 - Rate limiting: 100/day API, 20/day submissions
 - Admin/submitter API key separation
 - Score history tracking (ScoreSnapshot model)
@@ -114,11 +114,11 @@ All technical work for Phase 0 and Phase 1 is complete. The product can accept p
   - Copy signing secret → set `STRIPE_WEBHOOK_SECRET` in Railway
 - Test with Stripe test mode first (sk_test_xxx keys) before going live
 
-**4. Pick Email Sending Service (THIS WEEK)**
-- Recommendation: Resend (developer-friendly, generous free tier)
-- Alternative: Postmark
-- Create account, get API key, set as Railway env var
-- Needed for: report delivery emails, payment confirmations, future notifications
+**4. ~~Pick Email Sending Service~~ DONE**
+- Resend integrated (2026-03-07). API key in GCP Secret Manager. Domain verified with DKIM/SPF/MX.
+- `src/assay/notifications/email.py` handles order confirmations and report delivery (with attachments)
+- Migadu stays for inbound/conversational email (mailbox, MCP server, 1:1 replies)
+- **Remaining**: Set `RESEND_API_KEY` env var in Railway production
 
 **5. Review Legal Docs**
 - ToS at /terms and Privacy Policy at /privacy are DRAFTS
@@ -190,9 +190,8 @@ All technical work for Phase 0 and Phase 1 is complete. The product can accept p
 - LinkedIn presence
 - Content calendar + newsletter
 
-### Future (4 items)
+### Future (3 items)
 - Score backfill (old evals missing sub-components)
-- Email sending infrastructure
 - Certified Agent-Ready program ($299/mo)
 - Community evaluation network
 

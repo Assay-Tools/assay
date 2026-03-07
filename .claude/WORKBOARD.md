@@ -123,7 +123,7 @@ Items ready to be claimed. Roughly priority-ordered within each phase.
 - [x] **Fix orphan order creation** — Use db.flush()/rollback pattern: get order ID for success URL, only commit after Stripe session succeeds (2026-03-05)
 - [x] **Fix buyReport() JS event handling** — Pass event as explicit parameter instead of implicit global (2026-03-05)
 - [x] **Add Stripe vars to .env.example** — Added STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, STRIPE_PRICE_REPORT, STRIPE_PRICE_MONITORING (2026-03-05)
-- [ ] **Email sending infrastructure** — Transactional email for report delivery, payment confirmations, and future score-change notifications. Use Resend or Postmark (not raw SMTP). **Files**: new `src/assay/notifications/email.py`. **Note**: AJ must approve the sending service choice and create the account
+- [x] **Email sending infrastructure** — Resend integrated (2026-03-07). `src/assay/notifications/email.py` with order confirmations + report delivery (PDF/markdown attachments). Resend for transactional outbound, Migadu stays for inbound/conversational. Domain verified (DKIM/SPF/MX on `send` subdomain, no conflict with Migadu). API key in GCP Secret Manager. **Remaining**: Set RESEND_API_KEY in Railway env vars.
 
 ### Phase 2: Monitoring Product (enables $3/mo recurring revenue)
 
