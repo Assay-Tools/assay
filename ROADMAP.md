@@ -59,9 +59,9 @@ Everything below is live at assay.tools and deployed on Railway.
 - [ ] Privacy-respecting consent mechanism for enhanced tracking
 
 ### Phase 2: Monitoring Product ($3/mo recurring)
+- [x] Score change email notifications (email via Resend when monitored package scores change ≥5 points)
+- [ ] Agent score change notifications (webhook callbacks or MCP push so agents can react to score changes programmatically — not just email)
 - [ ] User accounts (registration + login, email/password or magic link)
-- [ ] Package monitoring subscriptions (per-package via Stripe)
-- [ ] Score change notifications (email via Resend when monitored package scores change)
 - [ ] Subscriber dashboard (subscribed packages, current scores, trends)
 
 ### Data Quality

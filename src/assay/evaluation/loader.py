@@ -17,6 +17,7 @@ Usage:
 
 import argparse
 import json
+import logging
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -42,6 +43,8 @@ from assay.models import (
     ScoreSnapshot,
 )
 
+logger = logging.getLogger(__name__)
+
 
 def load_evaluation(data: dict, db) -> str:
     """Load a single evaluation record into the database.
@@ -62,7 +65,15 @@ def load_evaluation(data: dict, db) -> str:
 
     # Create or update package
     pkg = db.query(Package).filter_by(id=pkg_id).first()
-    if not pkg:
+    is_new = pkg is None
+    old_scores = {}
+    if not is_new:
+        old_scores = {
+            "af": pkg.af_score,
+            "security": pkg.security_score,
+            "reliability": pkg.reliability_score,
+        }
+    if is_new:
         pkg = Package(id=pkg_id, name=data.get("name", pkg_id), created_at=now)
         db.add(pkg)
 
@@ -272,7 +283,72 @@ def load_evaluation(data: dict, db) -> str:
         db.add(snapshot)
 
     db.commit()
+
+    # Notify monitoring subscribers if scores changed significantly
+    if not is_new and old_scores:
+        new_scores = {
+            "af": pkg.af_score,
+            "security": pkg.security_score,
+            "reliability": pkg.reliability_score,
+        }
+        _notify_monitoring_subscribers(pkg_id, old_scores, new_scores, db)
+
     return pkg_id
+
+
+# Minimum point change on any dimension to trigger an alert
+SCORE_CHANGE_THRESHOLD = 5
+
+
+def _notify_monitoring_subscribers(
+    package_id: str, old_scores: dict, new_scores: dict, db,
+):
+    """Send score change alerts to active monitoring subscribers."""
+    # Check if any score changed enough to warrant notification
+    dominated = False
+    for key in ("af", "security", "reliability"):
+        old_val = old_scores.get(key)
+        new_val = new_scores.get(key)
+        if old_val is not None and new_val is not None:
+            if abs(new_val - old_val) >= SCORE_CHANGE_THRESHOLD:
+                dominated = True
+                break
+
+    if not dominated:
+        return
+
+    from assay.models import Order
+
+    orders = db.query(Order).filter(
+        Order.package_id == package_id,
+        Order.order_type == "monitoring_subscription",
+        Order.status == "paid",
+        Order.customer_email.isnot(None),
+    ).all()
+
+    if not orders:
+        return
+
+    from assay.notifications.email import send_score_change_alert
+
+    # Deduplicate by email (same person might have multiple orders)
+    seen_emails: set[str] = set()
+    sent = 0
+    for order in orders:
+        email = order.customer_email
+        if email in seen_emails:
+            continue
+        seen_emails.add(email)
+        if send_score_change_alert(email, package_id, old_scores, new_scores):
+            sent += 1
+
+    logger.info(
+        "Score change for %s: notified %d subscriber(s) (AF: %s→%s, Sec: %s→%s, Rel: %s→%s)",
+        package_id, sent,
+        old_scores.get("af"), new_scores.get("af"),
+        old_scores.get("security"), new_scores.get("security"),
+        old_scores.get("reliability"), new_scores.get("reliability"),
+    )
 
 
 def load_file(filepath: Path, db) -> tuple[int, int]:
