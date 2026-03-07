@@ -138,6 +138,28 @@ Items ready to be claimed. Roughly priority-ordered within each phase.
 - [x] **Automated re-evaluation pipeline** — Weekly GitHub Action + check_stale.py script, creates/updates issue with stale packages (2026-03-04)
 - [x] **Data freshness dashboard** — Admin view showing evaluation coverage, staleness distribution, queue depth, and re-evaluation velocity
 
+### Overnight Evaluation Sessions (PAUSED 2026-03-07)
+
+**Status**: Both launchd jobs unloaded. Plist files still on disk for re-enabling.
+
+**What they are**:
+- `com.assay.session1.plist` — runs at 22:31, prompt: `scripts/session-1-business.md` (Sonnet)
+- `com.assay.session2.plist` — runs at 03:32, prompt: `scripts/session-2-polish.md` (Sonnet)
+- Both use `scripts/run-session.sh` to launch a Claude Code session with a prompt file
+
+**Why paused**:
+- `run-session.sh` does a broad `git add .` which sweeps in unrelated uncommitted work from interactive sessions (e.g., the Resend integration got committed inside an evaluation batch commit `294e44e`)
+- This creates messy commit history and can push half-finished work to production
+
+**Before re-enabling, fix**:
+- [ ] `run-session.sh` must only stage evaluation-related files (`git add evaluations/ logs/` or explicit paths), NOT `git add .`
+- [ ] Consider running in a worktree to fully isolate overnight work from interactive sessions
+- [ ] Review both prompt files (`session-1-business.md`, `session-2-polish.md`) for scope creep
+
+**To re-enable**: `launchctl load ~/Library/LaunchAgents/com.assay.session1.plist` (and session2)
+
+---
+
 ### Automated Discovery System (continuous package pipeline)
 
 **Current state**: 7 sources (was 4), GitHub auth support, expanded search queries, ~7,000 packages. Needs scheduled runs and quality scoring.
