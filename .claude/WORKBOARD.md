@@ -51,6 +51,7 @@ Items ready to be claimed. Roughly priority-ordered within each phase.
 - [x] **Sort field whitelist** — `getattr(Package, sort_field)` allows probing any model attribute. Add allowlist like leaderboard endpoint does. **File**: `src/assay/api/routes.py` line 124
 - [x] **Sanitize LIKE wildcards** — Escape `%` and `_` in search input before ILIKE. **File**: `src/assay/api/web_routes.py` lines 153-160
 - [x] **Add security headers** — `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Strict-Transport-Security`
+- [x] **Fix IDOR on order endpoints** — Order success pages, status API, and report downloads used sequential integer IDs (`/orders/1/success`), trivially guessable. Added cryptographic `access_token` (secrets.token_urlsafe) to Order model. All public URLs now use unguessable token. Migration backfills existing orders. 5 new tests. (2026-03-07)
 
 **Code Quality (sessions can claim)**:
 - [x] **Fix AF weight mismatch** — Fixed llms-full.txt docs to match code weights (2026-03-04)
