@@ -213,6 +213,48 @@ https://assay.tools
         return False
 
 
+OPERATOR_EMAIL = "ajvanbeest@protonmail.com"
+
+
+def send_report_failure_alert(
+    order_id: int, package_id: str, order_type: str,
+    customer_email: str, error: str,
+) -> bool:
+    """Alert the operator when report generation fails after all retries."""
+    if not _ensure_resend():
+        return False
+
+    subject = f"[ASSAY ALERT] Report generation failed — Order #{order_id}"
+
+    text = f"""Report generation failed after 3 attempts.
+
+Order: #{order_id}
+Package: {package_id}
+Type: {order_type}
+Customer: {customer_email}
+Error: {error}
+
+The customer has been charged but has NOT received their report.
+The order is in status=paid with report_path=NULL.
+
+Action needed: troubleshoot and manually regenerate.
+"""
+
+    try:
+        resend.Emails.send({
+            "from": FROM_ADDRESS,
+            "to": [OPERATOR_EMAIL],
+            "reply_to": "hello@assay.tools",
+            "subject": subject,
+            "text": text,
+        })
+        logger.info("Failure alert sent for order %d", order_id)
+        return True
+    except Exception:
+        logger.exception("Failed to send failure alert for order %d", order_id)
+        return False
+
+
 def send_score_change_alert(
     to_email: str,
     package_id: str,

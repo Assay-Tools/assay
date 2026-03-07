@@ -191,20 +191,38 @@ def generate_report_for_order(order: Order, db: Session) -> str | None:
         )
 
         # Generate PDF from the markdown — required for delivery
+        # Retry up to 3 attempts, then alert the operator
         pdf_rel = None
-        try:
-            from assay.reports.pdf import markdown_to_pdf
-            md_content = cache_path.read_text()
-            pdf_result = markdown_to_pdf(md_content, cache_path)
-            pdf_rel = f"reports/output/packages/{pdf_result.name}"
-            logger.info("PDF generated for order %d: %s", order.id, pdf_result)
-        except Exception:
-            logger.exception(
-                "PDF generation failed for order %d — blocking delivery",
-                order.id,
-            )
-            # Don't deliver incomplete orders — leave report_path as None
-            # so the order shows as needing attention
+        last_error = None
+        for attempt in range(1, 4):
+            try:
+                from assay.reports.pdf import markdown_to_pdf
+                md_content = cache_path.read_text()
+                pdf_result = markdown_to_pdf(md_content, cache_path)
+                pdf_rel = f"reports/output/packages/{pdf_result.name}"
+                logger.info("PDF generated for order %d (attempt %d): %s", order.id, attempt, pdf_result)
+                last_error = None
+                break
+            except Exception as exc:
+                last_error = exc
+                logger.warning(
+                    "PDF generation attempt %d/3 failed for order %d: %s",
+                    attempt, order.id, exc,
+                )
+
+        if last_error:
+            logger.error("PDF generation failed after 3 attempts for order %d", order.id)
+            try:
+                from assay.notifications.email import send_report_failure_alert
+                send_report_failure_alert(
+                    order_id=order.id,
+                    package_id=order.package_id,
+                    order_type=report_type,
+                    customer_email=order.customer_email or "unknown",
+                    error=str(last_error),
+                )
+            except Exception:
+                logger.exception("Failed to send failure alert for order %d", order.id)
             return None
 
         # Archive any old cached reports for this package/type
