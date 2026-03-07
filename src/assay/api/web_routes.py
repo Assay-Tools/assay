@@ -791,10 +791,10 @@ def support_thanks(request: Request):
 # ── Order Success Page ────────────────────────────────────────────────────────
 
 
-@router.get("/orders/{order_id}/success", response_class=HTMLResponse)
-def order_success(request: Request, order_id: int, db: Session = Depends(get_db)):
+@router.get("/orders/{token}/success", response_class=HTMLResponse)
+def order_success(request: Request, token: str, db: Session = Depends(get_db)):
     """Post-checkout success page showing order status and download link."""
-    order = db.query(Order).filter(Order.id == order_id).first()
+    order = db.query(Order).filter(Order.access_token == token).first()
     if not order:
         return templates.TemplateResponse("pages/order_success.html", {
             "request": request,

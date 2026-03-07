@@ -182,6 +182,8 @@ def _run_migrations():
         # Community evaluation columns (Phase 1+2)
         ("evaluation_runs", "evaluator_engine", "VARCHAR(100)"),
         ("evaluation_runs", "rubric_version", "VARCHAR(20)"),
+        # Order security — unguessable access tokens
+        ("orders", "access_token", "VARCHAR(64)"),
     ]
 
     dialect = "sqlite" if "sqlite" in str(engine.url) else "postgresql"
@@ -251,3 +253,14 @@ def _run_migrations():
             UPDATE evaluation_runs SET rubric_version = '1.0'
             WHERE rubric_version IS NULL
         """))
+
+        # Backfill access_token for existing orders
+        import secrets as _secrets
+        result = conn.execute(text(
+            "SELECT id FROM orders WHERE access_token IS NULL"
+        ))
+        for row in result:
+            conn.execute(
+                text("UPDATE orders SET access_token = :token WHERE id = :id"),
+                {"token": _secrets.token_urlsafe(32), "id": row[0]},
+            )

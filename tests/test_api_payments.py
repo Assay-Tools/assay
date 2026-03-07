@@ -39,6 +39,28 @@ class TestReportCheckout:
         assert data["session_id"] == "cs_test_123"
         assert "order_id" in data
 
+    @patch("assay.api.payments.stripe")
+    def test_checkout_success_url_uses_token(self, mock_stripe, client, sample_packages):
+        """Verify Stripe success URL uses access_token, not integer ID."""
+        mock_session = MagicMock()
+        mock_session.id = "cs_test_token"
+        mock_session.url = "https://checkout.stripe.com/test"
+        mock_stripe.checkout.Session.create.return_value = mock_session
+
+        resp = client.post("/v1/checkout/report?package_id=top-api")
+        assert resp.status_code == 200
+
+        # Check that success_url contains a token, not a plain integer
+        call_kwargs = mock_stripe.checkout.Session.create.call_args
+        success_url = call_kwargs.kwargs.get("success_url") or call_kwargs[1].get("success_url")
+        # The URL should end with /orders/<token>/success where token is a long random string
+        assert "/orders/" in success_url
+        assert "/success" in success_url
+        # Extract the token part — it should NOT be a plain integer
+        token_part = success_url.split("/orders/")[1].split("/success")[0]
+        assert not token_part.isdigit(), "success_url should use access_token, not integer ID"
+        assert len(token_part) > 20, "access_token should be a long random string"
+
     def test_checkout_package_not_found(self, client):
         resp = client.post("/v1/checkout/report?package_id=nonexistent")
         assert resp.status_code == 404
@@ -143,7 +165,27 @@ class TestWebhook:
 
 
 class TestOrderStatus:
-    def test_get_order(self, client, sample_packages, db):
+    def test_get_order_by_token(self, client, sample_packages, db):
+        from assay.models import Order
+
+        order = Order(
+            package_id="top-api",
+            order_type="report",
+            amount_cents=9900,
+            status="paid",
+        )
+        db.add(order)
+        db.commit()
+
+        resp = client.get(f"/v1/orders/{order.access_token}")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["package_id"] == "top-api"
+        assert data["status"] == "paid"
+        assert data["amount_cents"] == 9900
+
+    def test_get_order_by_guessed_id_fails(self, client, sample_packages, db):
+        """Sequential integer IDs should not work — only tokens."""
         from assay.models import Order
 
         order = Order(
@@ -156,14 +198,10 @@ class TestOrderStatus:
         db.commit()
 
         resp = client.get(f"/v1/orders/{order.id}")
-        assert resp.status_code == 200
-        data = resp.json()
-        assert data["package_id"] == "top-api"
-        assert data["status"] == "paid"
-        assert data["amount_cents"] == 9900
+        assert resp.status_code == 404
 
     def test_get_nonexistent_order(self, client):
-        resp = client.get("/v1/orders/9999")
+        resp = client.get("/v1/orders/bogus-token-that-does-not-exist")
         assert resp.status_code == 404
 
 
@@ -187,8 +225,30 @@ class TestReportDownload:
         db.commit()
 
         with patch("assay.api.payments.PROJECT_ROOT", tmp_path):
-            resp = client.get(f"/v1/orders/{order.id}/download")
+            resp = client.get(f"/v1/orders/{order.access_token}/download")
             assert resp.status_code == 200
+
+    def test_download_by_guessed_id_fails(self, client, db, tmp_path):
+        """Cannot download report by guessing sequential order ID."""
+        from assay.models import Order
+
+        report_file = tmp_path / "reports" / "output" / "packages" / "top-api-order-2.md"
+        report_file.parent.mkdir(parents=True)
+        report_file.write_text("# Test Report")
+
+        order = Order(
+            package_id="top-api",
+            order_type="report",
+            amount_cents=9900,
+            status="paid",
+            report_path="reports/output/packages/top-api-order-2.md",
+        )
+        db.add(order)
+        db.commit()
+
+        with patch("assay.api.payments.PROJECT_ROOT", tmp_path):
+            resp = client.get(f"/v1/orders/{order.id}/download")
+            assert resp.status_code == 404
 
     def test_download_unpaid_order(self, client, db):
         from assay.models import Order
@@ -202,7 +262,7 @@ class TestReportDownload:
         db.add(order)
         db.commit()
 
-        resp = client.get(f"/v1/orders/{order.id}/download")
+        resp = client.get(f"/v1/orders/{order.access_token}/download")
         assert resp.status_code == 402
 
     def test_download_no_report(self, client, db):
@@ -218,11 +278,11 @@ class TestReportDownload:
         db.add(order)
         db.commit()
 
-        resp = client.get(f"/v1/orders/{order.id}/download")
+        resp = client.get(f"/v1/orders/{order.access_token}/download")
         assert resp.status_code == 404
 
     def test_download_nonexistent_order(self, client):
-        resp = client.get("/v1/orders/9999/download")
+        resp = client.get("/v1/orders/nonexistent-token/download")
         assert resp.status_code == 404
 
 
@@ -240,7 +300,7 @@ class TestOrderSuccessPage:
         db.add(order)
         db.commit()
 
-        resp = client.get(f"/orders/{order.id}/success")
+        resp = client.get(f"/orders/{order.access_token}/success")
         assert resp.status_code == 200
         assert "Payment Successful" in resp.text
         assert "buyer@example.com" in resp.text
@@ -257,12 +317,30 @@ class TestOrderSuccessPage:
         db.add(order)
         db.commit()
 
-        resp = client.get(f"/orders/{order.id}/success")
+        resp = client.get(f"/orders/{order.access_token}/success")
         assert resp.status_code == 200
         assert "Payment Processing" in resp.text
 
     def test_success_page_not_found(self, client):
-        resp = client.get("/orders/9999/success")
+        resp = client.get("/orders/nonexistent-token/success")
+        assert resp.status_code == 200
+        assert "Order Not Found" in resp.text
+
+    def test_success_page_by_id_fails(self, client, sample_packages, db):
+        """Cannot access success page by guessing sequential order ID."""
+        from assay.models import Order
+
+        order = Order(
+            package_id="top-api",
+            order_type="report",
+            amount_cents=9900,
+            status="paid",
+            customer_email="buyer@example.com",
+        )
+        db.add(order)
+        db.commit()
+
+        resp = client.get(f"/orders/{order.id}/success")
         assert resp.status_code == 200
         assert "Order Not Found" in resp.text
 

@@ -86,7 +86,7 @@ def create_report_checkout(
                 "package_id": package_id,
                 "order_type": "report",
             },
-            success_url=f"{settings.app_url}/orders/{order.id}/success",
+            success_url=f"{settings.app_url}/orders/{order.access_token}/success",
             cancel_url=f"{settings.app_url}/packages/{package_id}",
         )
     except stripe.StripeError as e:
@@ -145,7 +145,7 @@ def create_brief_checkout(
                 "package_id": package_id,
                 "order_type": "brief",
             },
-            success_url=f"{settings.app_url}/orders/{order.id}/success",
+            success_url=f"{settings.app_url}/orders/{order.access_token}/success",
             cancel_url=f"{settings.app_url}/packages/{package_id}",
         )
     except stripe.StripeError as e:
@@ -241,7 +241,7 @@ def create_monitoring_checkout(
                 "package_id": package_id,
                 "order_type": "monitoring_subscription",
             },
-            success_url=f"{settings.app_url}/orders/{order.id}/success",
+            success_url=f"{settings.app_url}/orders/{order.access_token}/success",
             cancel_url=f"{settings.app_url}/packages/{package_id}",
         )
     except stripe.StripeError as e:
@@ -410,16 +410,16 @@ def _send_confirmation_async(
 # --- Order status ---
 
 
-@router.get("/v1/orders/{order_id}")
+@router.get("/v1/orders/{token}")
 @limiter.limit("100/day")
 def get_order_status(
     request: Request,
     response: Response,
-    order_id: int,
+    token: str,
     db: Session = Depends(get_db),
 ):
-    """Check the status of an order."""
-    order = db.query(Order).filter(Order.id == order_id).first()
+    """Check the status of an order (by access token)."""
+    order = db.query(Order).filter(Order.access_token == token).first()
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
 
@@ -439,16 +439,16 @@ def get_order_status(
 # --- Report download ---
 
 
-@router.get("/v1/orders/{order_id}/download")
+@router.get("/v1/orders/{token}/download")
 @limiter.limit("50/day")
 def download_report(
     request: Request,
     response: Response,
-    order_id: int,
+    token: str,
     db: Session = Depends(get_db),
 ):
-    """Download the generated report for a paid order."""
-    order = db.query(Order).filter(Order.id == order_id).first()
+    """Download the generated report for a paid order (by access token)."""
+    order = db.query(Order).filter(Order.access_token == token).first()
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
 

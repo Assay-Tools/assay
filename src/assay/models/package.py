@@ -1,6 +1,7 @@
 """Package data models — the core of Assay."""
 
 import json
+import secrets
 from datetime import datetime, timezone
 
 from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, Text, func, select
@@ -500,6 +501,10 @@ class Order(Base):
     __tablename__ = "orders"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    access_token: Mapped[str] = mapped_column(
+        String(64), unique=True, nullable=False,
+        default=lambda: secrets.token_urlsafe(32),
+    )
     package_id: Mapped[str | None] = mapped_column(
         String(255), ForeignKey("packages.id"), nullable=True,
     )
