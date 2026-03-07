@@ -296,25 +296,20 @@ def load_evaluation(data: dict, db) -> str:
     return pkg_id
 
 
-# Minimum point change on any dimension to trigger an alert
-SCORE_CHANGE_THRESHOLD = 5
-
-
 def _notify_monitoring_subscribers(
     package_id: str, old_scores: dict, new_scores: dict, db,
 ):
     """Send score change alerts to active monitoring subscribers."""
-    # Check if any score changed enough to warrant notification
-    dominated = False
+    # Check if any score changed at all
+    changed = False
     for key in ("af", "security", "reliability"):
         old_val = old_scores.get(key)
         new_val = new_scores.get(key)
-        if old_val is not None and new_val is not None:
-            if abs(new_val - old_val) >= SCORE_CHANGE_THRESHOLD:
-                dominated = True
-                break
+        if old_val is not None and new_val is not None and old_val != new_val:
+            changed = True
+            break
 
-    if not dominated:
+    if not changed:
         return
 
     from assay.models import Order
