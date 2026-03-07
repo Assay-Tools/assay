@@ -72,7 +72,7 @@ All items below are built, tested, and deployed to production.
 
 - [ ] User accounts (for monitoring subscriptions)
 - [ ] Package monitoring dashboard (subscriber view of tracked packages)
-- [ ] Score change email notifications
+- [x] Score change email notifications
 - [ ] Privacy-first analytics (Umami or Plausible)
 - [ ] Certified Agent-Ready program ($299/mo)
 - [ ] Community evaluation network (external contributors)
@@ -86,7 +86,7 @@ All items below are built, tested, and deployed to production.
 | Directory + API | Free (100 calls/day) | Live |
 | Package Brief | $3 one-time | Built, awaiting Stripe live |
 | Full Evaluation Report | $99 one-time | Built, awaiting Stripe live |
-| Package Monitoring | $3/mo per package | Needs user accounts |
+| Package Monitoring | $3/mo per package | Built, awaiting Stripe live |
 | Support the Mission | Custom (min $1) | Built, awaiting Stripe live |
 | Certified Agent-Ready | $299/mo | Future (Q3+) |
 

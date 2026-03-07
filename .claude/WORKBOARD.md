@@ -130,7 +130,8 @@ Items ready to be claimed. Roughly priority-ordered within each phase.
 - [ ] **User accounts** — Registration + login for package monitoring subscribers. Email/password or magic link auth. Store in DB. JWT or session-based. **Files**: new `src/assay/models/user.py`, new `src/assay/api/auth_routes.py`, new templates for login/register
 - [ ] **Package monitoring subscriptions** — Authenticated users can subscribe to packages ($3/mo each via Stripe). Dashboard showing subscribed packages, current scores, trends. **Files**: new `src/assay/models/subscription.py`, new `src/assay/api/subscription_routes.py`, new `templates/dashboard.html`
 - [x] **Score history tracking** — ScoreSnapshot model + /v1/packages/{id}/score-history API + auto-snapshot in loader, 5 tests (2026-03-04)
-- [ ] **Score change notifications** — When a monitored package's score changes, email the subscriber with old→new scores and explanation. Depends on: email infrastructure, score history, user accounts. **Files**: update `src/assay/notifications/email.py`
+- [x] **Score change email notifications** — `send_score_change_alert()` in notifications/email.py, wired into loader.py. Captures old scores, compares after commit, emails active monitoring subscribers on any change. Deduplicates by email. (2026-03-07)
+- [ ] **Agent score change notifications** — Webhook callbacks or MCP push so agents can react to score changes programmatically (not just email). Explore: webhook registration endpoint, SSE on MCP server, or document existing `/v1/packages/updated-since` as agent-friendly polling
 
 ### Phase 3: Data Quality & Automation
 
