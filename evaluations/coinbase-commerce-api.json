@@ -1,0 +1,103 @@
+{
+  "id": "coinbase-commerce-api",
+  "name": "Coinbase Commerce API",
+  "version_evaluated": "current",
+  "homepage": "https://commerce.coinbase.com",
+  "repo_url": "https://github.com/coinbase/coinbase-commerce-node",
+  "category": "finance",
+  "subcategories": ["crypto-payments", "merchant-payments", "checkout"],
+  "tags": ["crypto", "payments", "bitcoin", "ethereum", "usdc", "non-custodial", "webhooks", "checkout", "merchant"],
+  "what_it_does": "Provides a REST API and hosted checkout for merchants to accept crypto payments (BTC, ETH, USDC, and others) non-custodially, with funds going directly to the merchant's wallet.",
+  "use_cases": [
+    "Create payment charges programmatically and redirect customers to a hosted Coinbase Commerce checkout page",
+    "Detect confirmed crypto payments via webhooks and automatically fulfill digital orders or unlock content",
+    "Build a custom crypto checkout UI using the charges API to generate payment addresses without using hosted pages",
+    "Accept USDC stablecoin payments to avoid crypto volatility while still enabling permissionless settlement",
+    "Integrate crypto payment options alongside fiat (Stripe) for global customers who prefer on-chain payments"
+  ],
+  "not_for": [
+    "Custodial payment processing where you need to hold, convert, or refund funds programmatically — Commerce is non-custodial and does not support refunds via API",
+    "High-frequency microtransactions where per-transaction blockchain confirmation times and fees are prohibitive"
+  ],
+  "best_when": "Best when you want to accept crypto payments with minimal infrastructure, zero monthly cost, and funds settling directly to your own wallet without a custodial intermediary.",
+  "avoid_when": "Avoid when you need automated refunds, fiat conversion, or settlement speed guarantees — blockchain confirmation times and non-custodial design make these impossible without additional layers.",
+  "alternatives": ["bitpay-api", "nowpayments-api", "stripe-crypto"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["node", "python", "ruby"],
+    "openapi_spec_url": null,
+    "webhooks": true
+  },
+  "auth": {
+    "methods": ["api_key"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Single API key passed in the X-CC-Api-Key header. Webhook payloads include an HMAC-SHA256 signature in X-CC-Webhook-Signature header that must be verified to prevent spoofed payment events."
+  },
+  "pricing": {
+    "model": "usage_based",
+    "free_tier_exists": false,
+    "free_tier_limits": null,
+    "paid_tiers": "1% transaction fee on all payments; no monthly subscription cost",
+    "requires_credit_card": false,
+    "notes": "No monthly fee makes it accessible for low-volume merchants. 1% fee is competitive with traditional payment processors for crypto. Distinct from Coinbase Advanced Trade API (trading) and Coinbase Prime (institutional)."
+  },
+  "performance": {
+    "latency_p50_ms": 100,
+    "latency_p99_ms": 350,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "100 requests per second per API key; documented in API reference",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["US"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 83,
+    "error_message_quality": 78,
+    "error_message_notes": "REST errors return standard HTTP status codes with JSON body containing error type and message. Webhook error scenarios (underpayment, expired charge) are well-documented with distinct event types.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Charge creation supports an idempotency key header (Idempotency-Key) to prevent duplicate charges on network retry. Not all endpoints support idempotency keys.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Charges expire after a configurable window (default 60 minutes) — agents must handle CHARGE:EXPIRED webhook events and create new charges rather than retrying expired ones",
+      "Webhook signature verification is critical: spoofed CHARGE:CONFIRMED events without verification would trigger false fulfillment in automated workflows",
+      "Underpayments (user sends less than the charge amount) generate a separate CHARGE:UNRESOLVED event — agents must decide whether to accept partial payment or request top-up",
+      "Blockchain confirmation times vary widely by network and congestion — agents should treat CHARGE:PENDING as unconfirmed and only fulfill on CHARGE:CONFIRMED"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": null,
+    "api_doc_score": 83,
+    "error_handling_score": 78,
+    "auth_complexity_score": 85,
+    "rate_limit_clarity_score": 80
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 82,
+    "scope_granularity": 60,
+    "dependency_hygiene": 80,
+    "secret_handling": 85,
+    "security_notes": "Webhook HMAC verification is essential and well-documented. API key has full account access with no scope restrictions — a compromised key can create and manage charges. Non-custodial design limits blast radius of API compromise."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 82,
+    "version_stability": 80,
+    "breaking_changes_history": 78,
+    "error_recovery": 78
+  }
+}

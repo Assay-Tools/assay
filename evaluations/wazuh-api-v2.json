@@ -1,0 +1,107 @@
+{
+  "id": "wazuh-api-v2",
+  "name": "Wazuh REST API v2",
+  "version_evaluated": "current",
+  "homepage": "https://documentation.wazuh.com/current/user-manual/api/",
+  "repo_url": "https://github.com/wazuh/wazuh",
+  "category": "security",
+  "subcategories": ["siem", "edr", "security-monitoring", "log-management", "compliance", "threat-detection"],
+  "tags": ["wazuh", "siem", "edr", "xdr", "security-monitoring", "open-source", "rest-api", "jwt", "threat-detection", "compliance", "incident-response"],
+  "what_it_does": "Wazuh is the leading open-source SIEM, XDR, and security monitoring platform. Its REST API (v2, introduced in Wazuh 4.x) is a full-featured management and query interface running on the Wazuh manager node (default port 55000, HTTPS). The API covers five primary domains: security alerts (query, filter, aggregate by rule, severity, agent, time window), agent management (inventory, status, OS details, installed packages, network interfaces), rule and decoder management (read, add, enable/disable rules), compliance reporting (PCI-DSS, CIS, GDPR, HIPAA, NIST 800-53), and cluster management (node status, health, configuration). Authentication uses JWT tokens obtained by POST /security/user/authenticate with username/password (default expiry: 900 seconds / 15 minutes). Wazuh's query API supports rich filtering using q= parameter syntax (field:operator:value with AND/OR logic), enabling complex alert correlation queries. Security agents use the Wazuh API to build automated threat detection, SOC alert triage, incident investigation, compliance posture reporting, and response automation workflows without requiring direct Wazuh dashboard access.",
+  "use_cases": [
+    "Querying security alerts by rule ID, severity, and time window to feed automated SOC triage workflows",
+    "Correlating alerts across multiple endpoints by agent group or OS type for incident investigation",
+    "Fetching agent vulnerability inventory to identify exposed endpoints before patching",
+    "Generating PCI-DSS and CIS compliance posture reports automatically on a schedule",
+    "Monitoring Wazuh agent health and connectivity status for infrastructure assurance workflows",
+    "Querying file integrity monitoring (FIM) events to detect unauthorized file changes across the fleet",
+    "Extracting MITRE ATT&CK technique mappings from alerts for threat intelligence enrichment workflows"
+  ],
+  "not_for": [
+    "Teams not running Wazuh — the API only surfaces data from Wazuh-monitored endpoints",
+    "Real-time streaming alert consumption — the API is pull-based; use Wazuh's Kafka/Logstash integration for streaming",
+    "Splunk, Elastic SIEM, or Microsoft Sentinel environments — use their respective APIs",
+    "Organizations requiring a vendor-supported cloud SIEM SLA — consider Wazuh Cloud or alternatives like Elastic SIEM"
+  ],
+  "best_when": "A security operations team runs Wazuh for endpoint monitoring and needs to build automated SOC workflows — alert triage, compliance reporting, threat hunting, or incident response playbooks — without the cost of commercial SIEM platforms like Splunk or Microsoft Sentinel.",
+  "avoid_when": "You use a different SIEM, need real-time event streaming via API (not polling), or require a fully managed cloud SIEM with no self-hosted infrastructure.",
+  "alternatives": [
+    {"id": "splunk-api", "reason": "Commercial SIEM with richer analytics and marketplace integrations — justified for large enterprises with existing Splunk investment"},
+    {"id": "elastic-api", "reason": "Elastic SIEM (ECS + Security) is a strong open-source alternative with better scalability for high-volume log environments"},
+    {"id": "microsoft-sentinel-api", "reason": "Better for organizations on Azure/M365 — native cloud SIEM with managed infrastructure and deep Microsoft integration"}
+  ],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": true,
+    "mcp_server_url": "https://github.com/socfortress/wazuh-mcp-server",
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": "https://documentation.wazuh.com/current/user-manual/api/reference.html",
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["jwt", "username_password", "api_key"],
+    "oauth": false,
+    "scopes": true,
+    "notes": "JWT-based authentication: POST /security/user/authenticate with username/password returns a JWT token in the 'token' response field. Include in subsequent requests as Authorization: Bearer <token>. Default JWT TTL is 900 seconds (15 minutes) — configurable in /var/ossec/api/configuration/api.yaml. Wazuh 4.3+ supports API keys (long-lived tokens) for agent/automation use. RBAC (role-based access control) introduced in Wazuh 4.0 — roles grant fine-grained access to API resources (agents:read, rules:read, alerts:read, etc.). For agents, create a dedicated Wazuh user with a custom role that grants only the API endpoints the agent needs. The default 'wazuh-wui' user (used by the Wazuh dashboard) has full access and should NOT be used for agent automation. SSL/TLS is configured on the Wazuh manager API — use the Wazuh-generated CA cert or your own PKI; by default, self-signed certs require certificate verification to be disabled."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Fully free — GPL v2 open-source license, no agent count limits on self-hosted",
+    "paid_tiers": ["Wazuh Cloud: from $300/month for 50 agents (includes infrastructure, support, updates)", "Enterprise support: available for self-hosted deployments"],
+    "requires_credit_card": false,
+    "notes": "Self-hosted Wazuh is completely free with no commercial license required. Wazuh Cloud is a managed SaaS offering that removes the operational burden. The Wazuh community is large and active — strong open-source support without a commercial contract."
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted", "configurable"],
+    "compliance": ["GDPR", "HIPAA", "PCI-DSS", "NIST-800-53", "TSC", "CIS"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": 70,
+    "documentation_accuracy": 80,
+    "error_message_quality": 72,
+    "error_message_notes": "API errors return JSON with 'title', 'detail', and 'remediation' fields in most cases — the 'remediation' field is a distinctive feature that actively helps agents self-correct (e.g., 'Change the API settings: max_request_per_minute parameter'). HTTP status codes follow REST conventions. However, error quality is inconsistent — some endpoints return HTML error pages when the Wazuh manager service is degraded rather than the configured JSON format. JWT expiry returns 401 with 'Expired signature' in the detail field, which is clear. Agent connectivity errors (agent offline, agent not found) return 400 with a message, but the distinction between 'agent never registered' and 'agent registered but offline' requires checking the agent status separately.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "GET operations are fully idempotent. Alert queries return point-in-time snapshots — re-querying the same time window returns the same results. POST operations for creating rules or groups are not idempotent — creating the same rule twice creates a duplicate. Agent restart (PUT /agents/{id}/restart) is idempotent — restarting an already-running agent is safe.",
+    "pagination_style": "offset",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "JWT tokens expire after 900 seconds (15 minutes) by default — agents making long-running bulk queries must proactively refresh tokens; token expiry mid-workflow returns 401 with 'Expired signature' which must be caught and re-authenticated; implement token refresh 60 seconds before expiry to avoid gaps",
+      "Alert query results are indexed in Wazuh's internal Elasticsearch/OpenSearch store — queries against large time windows (>24 hours) can take 30-120 seconds and may trigger the API's request timeout (default 10 seconds); agents must configure timeout and use narrower time windows with pagination for bulk alert extraction",
+      "The q= filter parameter uses a custom syntax (field:operator:value) that differs from SQL, Lucene, and FQL — operators include =, !=, <, >, ~(contains), operators must be URL-encoded, and compound conditions use AND/OR logic; agents generating dynamic queries must validate q= syntax before submission",
+      "Wazuh API is only available on the Wazuh manager node — in clustered deployments (master + worker nodes), API calls go to the master and are forwarded to workers; agents querying a worker node directly will receive connection errors",
+      "Self-signed TLS certificates are used by default — agents must either pass the Wazuh CA certificate for verification or set verify=False (insecure) in HTTPS clients; production deployments should replace with organization CA certs",
+      "API rate limiting is configurable but not enforced by default — the default configuration has no rate limits; if a rate limit is configured by the admin, agents receive 429 with a remediation message specifying the limit; agents must check the /security/config endpoint to discover the current rate limit setting",
+      "Wazuh API RBAC permissions are defined per HTTP method and resource — a role with 'agents:read' allows GET /agents but not PUT /agents/{id}/restart; agent developers must map every API call their agent makes to the correct RBAC permission to avoid privilege creep or insufficient access errors",
+      "Alert query results are limited to 100,000 entries per paginated window — extracting all alerts for a high-traffic environment requires careful time windowing and offset pagination; the total_affected_items field in the response indicates total matches, not the number returned in the current page"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 70,
+    "api_doc_score": 80,
+    "error_handling_score": 72,
+    "auth_complexity_score": 70,
+    "rate_limit_clarity_score": 68
+  },
+  "security_score_components": {
+    "tls_enforcement": 88,
+    "auth_strength": 82,
+    "scope_granularity": 80,
+    "dependency_hygiene": 80,
+    "secret_handling": 78,
+    "security_notes": "HTTPS is used for the Wazuh API by default but with self-signed certificates — organizations must replace with proper CA-signed certs for production. JWT-based auth with configurable TTL. RBAC system provides fine-grained per-resource, per-method access control. Create dedicated read-only API users for agent automation. Wazuh handles highly sensitive security telemetry (alerts, agent inventory, vulnerability data) — API access must be strictly controlled. Python SDK (Wazuh API Python package) available. Wazuh is GPL v2 with active community security review. API port (55000) should be firewall-restricted to known agent IPs only."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 78,
+    "version_stability": 80,
+    "breaking_changes_history": 75,
+    "error_recovery": 75
+  }
+}

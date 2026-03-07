@@ -1,0 +1,110 @@
+{
+  "id": "steam-web-api",
+  "name": "Steam Web API (Valve) — Deep Evaluation",
+  "version_evaluated": "current",
+  "homepage": "https://steamcommunity.com/dev",
+  "repo_url": null,
+  "category": "developer-tools",
+  "subcategories": ["game-api", "gaming", "game-ownership", "achievements", "economy", "workshop"],
+  "tags": ["steam", "valve", "gaming", "game-ownership", "achievements", "workshop", "economy", "rest-api", "isteamuser", "isteamuserstats"],
+  "what_it_does": "Valve's Steam Web API providing access to the Steam gaming platform's data: player profiles, game ownership and playtime, achievements, global stats, game news, item economies (TF2, CS2, Dota 2), Steam Workshop content, app metadata, review data, and the Steam store catalog. Uses a service-oriented interface design (IPlayerService, ISteamUserStats, IEconItems, etc.). This deep evaluation covers advanced endpoints, gotchas, and agent-readiness details not covered in the basic steam-api entry.",
+  "use_cases": [
+    "Building game recommendation engines using owned game and playtime data",
+    "Achievement trackers and completion percentage dashboards",
+    "Steam economy item price monitoring and trading analytics (TF2, CS2, Dota 2)",
+    "Workshop content discovery and statistics aggregation",
+    "Game metadata pipelines: fetching app details, review sentiment, and tag data",
+    "User review analysis and aggregated game sentiment scoring",
+    "Automated game catalog auditing and cross-referencing with store data"
+  ],
+  "not_for": [
+    "Making Steam purchases or managing wallet/transactions",
+    "Accessing private player profiles without user consent",
+    "Real-time in-game event data or match telemetry",
+    "Non-Steam platforms or games without Steam integration",
+    "Reading VAC ban appeal data or account moderation details"
+  ],
+  "best_when": "Building PC gaming analytics, recommendation tools, or community platforms where Steam library, achievement, and economy data is the core dataset and high rate limits are needed.",
+  "avoid_when": "You need transactional commerce, real-time game events, or must access private player data — Steam's data API is read-only and privacy-gated.",
+  "alternatives": ["roblox-open-cloud-api", "epic-games-store-api", "riot-games-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": false,
+    "sdk_languages": [],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["api_key"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Single API key obtained from steamcommunity.com/dev/apikey. Key passed as 'key' query parameter — no header-based auth option. One key per Steam account with no scopes or per-key permission controls. OpenID 2.0 available for user login flows (Steam's 'Sign in with Steam') but does not gate the data API itself. All keys have identical read access to public data."
+  },
+  "pricing": {
+    "model": "free",
+    "free_tier_exists": true,
+    "free_tier_limits": "Free with Steam account. Rate limits not officially published; estimated 100,000 requests/day.",
+    "paid_tiers": [],
+    "requires_credit_card": false,
+    "notes": "Completely free. Requires a Steam account that has made at least one purchase (to prevent abuse). Commercial applications must review Valve's API terms of service. No paid tiers or SLA offered."
+  },
+  "performance": {
+    "latency_p50_ms": 150,
+    "latency_p99_ms": 600,
+    "uptime_sla_percent": 99.0,
+    "rate_limits": "Estimated 100k requests/day; no official documentation. Bursting behavior undocumented.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["US"],
+    "compliance": ["GDPR"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": 0,
+    "documentation_accuracy": 58,
+    "error_message_quality": 48,
+    "error_message_notes": "Error responses are inconsistent across interfaces — some return HTTP 4xx with plain-text bodies, others return JSON with a minimal 'result' field. 401 and 403 are often returned interchangeably for auth issues. Rate limit errors (429) are inconsistently returned; Valve sometimes silently returns empty responses instead of rate limit signals.",
+    "idempotency_support": "full",
+    "idempotency_notes": "All public endpoints are GET-based and read-only. Fully idempotent. No write operations exposed in the public API.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "API key is passed as a query parameter ('key=...'), which will appear in server access logs — agents should use HTTPS and log-scrubbing practices",
+      "Steam IDs are 64-bit integers; JavaScript agents using JSON.parse() will silently lose precision unless the value is treated as a string",
+      "Many endpoints silently return empty data (not 403) when a profile is private — agents must distinguish between 'user has no data' and 'profile is private'",
+      "The /ISteamApps/GetAppList endpoint returns the full Steam catalog (100k+ apps) as a single JSON blob — agents should cache aggressively rather than fetching repeatedly",
+      "GetPlayerAchievements requires the target game to have explicitly published its achievement schema — not all games do, and the error is not always clear",
+      "App details endpoint (store.steampowered.com/api/appdetails) is a separate undocumented endpoint from the official Web API and has lower rate limits and different response format",
+      "No official SDK exists — community libraries (steamio, python-steam, node-steamapi) vary in maintenance quality and may not cover all interfaces"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 58,
+    "error_handling_score": 48,
+    "auth_complexity_score": 75,
+    "rate_limit_clarity_score": 42
+  },
+  "security_score_components": {
+    "tls_enforcement": 90,
+    "auth_strength": 55,
+    "scope_granularity": 20,
+    "dependency_hygiene": 65,
+    "secret_handling": 50,
+    "security_notes": "HTTPS available and recommended but historically some Valve endpoints also accepted HTTP. API key passed in query string risks log exposure. No scope or permission model — all keys have identical access. No key rotation mechanism (must manually delete and re-create). No IP allowlisting. Simplicity of auth model is also its primary security weakness."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 55,
+    "version_stability": 72,
+    "breaking_changes_history": 68,
+    "error_recovery": 50
+  }
+}

@@ -1,0 +1,97 @@
+{
+  "id": "veriff-api",
+  "name": "Veriff Identity Verification API",
+  "version_evaluated": "current",
+  "homepage": "https://veriff.com",
+  "repo_url": null,
+  "category": "security",
+  "subcategories": ["identity-verification", "kyc", "compliance"],
+  "tags": ["kyc", "identity-verification", "selfie", "document-verification", "fintech", "compliance", "gdpr", "webhook", "async", "fraud-prevention"],
+  "what_it_does": "Provides video/selfie-based biometric identity verification and document verification for KYC (Know Your Customer) compliance. Agents initiate a verification session via REST API, redirect the user to a hosted Veriff verification flow, then receive a decision via webhook or polling. Returns structured decision objects (approved/declined/resubmission required) with reason codes and extracted document data.",
+  "use_cases": [
+    "Initiate KYC verification sessions for new user onboarding in fintech or crypto exchange applications",
+    "Trigger identity re-verification for high-risk transactions detected by a fraud detection agent",
+    "Poll or receive webhooks for verification decisions and update user account status accordingly",
+    "Extract verified personal data (name, DOB, document number) from approved sessions to pre-fill application forms",
+    "Build compliance workflows where agent orchestrates document collection, verification, and approval gating"
+  ],
+  "not_for": [
+    "Real-time identity checks with sub-second latency — verification decisions can take minutes to hours",
+    "Non-KYC authentication use cases (use OAuth/passkeys instead)",
+    "Self-service identity verification without a human in the loop on the end-user side — Veriff requires real users to complete the flow"
+  ],
+  "best_when": "You need regulated KYC/AML compliance with biometric liveness detection and document verification, and your workflow can accommodate an asynchronous user-facing verification step.",
+  "avoid_when": "You need instant identity verification or your users cannot complete a selfie/video verification flow on their device.",
+  "alternatives": ["onfido-api", "persona-api", "jumio-api", "stripe-identity-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["javascript", "python", "php", "java", "ios", "android"],
+    "openapi_spec_url": null,
+    "webhooks": true
+  },
+  "auth": {
+    "methods": ["api_key", "hmac"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "REST API authenticated with API key and secret via HMAC-SHA256 request signing. Each request requires a generated X-AUTH-CLIENT header and a signature digest. Webhook payloads are signed with HMAC-SHA256 for payload verification. Auth setup is more complex than simple bearer tokens — agents must implement the signing scheme correctly."
+  },
+  "pricing": {
+    "model": "paid",
+    "free_tier_exists": false,
+    "free_tier_limits": "No public free tier. Sandbox/test environment available for development.",
+    "paid_tiers": "Enterprise pricing only — custom contracts based on verification volume. Typical range $1.50-$5+ per verification. Volume discounts apply.",
+    "requires_credit_card": false,
+    "notes": "Pricing is contract-based and not published publicly. Sales engagement required to get production access. A sandbox environment is provided for integration testing without production contract."
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": false,
+    "domain_verification": true,
+    "data_residency": ["EU", "US"],
+    "compliance": ["GDPR", "SOC2", "ISO27001"],
+    "min_contract": "enterprise"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": 0,
+    "documentation_accuracy": 82,
+    "error_message_quality": 72,
+    "error_message_notes": "API errors return structured JSON with code and message fields. Verification decision reasons are documented with reason codes but are sometimes ambiguous (e.g., 'DOCUMENT_DAMAGED' vs 'DOCUMENT_NOT_SUPPORTED'). HMAC auth errors can be opaque — incorrect signature produces a 401 with minimal debug info.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Session creation is not idempotent — each call creates a new session. Agents should store session IDs and check existing sessions before creating new ones to avoid duplicate verification requests for the same user.",
+    "pagination_style": "offset",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Webhook delivery is not guaranteed to be in order — verification decisions can arrive out of sequence; agents must handle idempotent webhook processing and check session status via polling if a webhook is missed",
+      "HMAC request signing requires precise timestamp handling — requests are rejected if the timestamp drift exceeds a few minutes; agents must use NTP-synced clocks",
+      "Sessions expire after a configurable window (default 7 days) — agents must track session expiry and re-initiate verification if the user does not complete the flow in time",
+      "PII data from verified documents (name, DOB, address) is only available for a limited retention window after decision — agents must fetch and store data promptly or it will be purged per GDPR policies"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 80,
+    "error_handling_score": 70,
+    "auth_complexity_score": 58,
+    "rate_limit_clarity_score": 68
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 92,
+    "scope_granularity": 70,
+    "dependency_hygiene": 85,
+    "secret_handling": 88,
+    "security_notes": "HMAC-SHA256 request signing provides strong authentication — significantly more secure than bare API keys. Webhook payloads are signed for integrity verification. GDPR compliance is core to the product. ISO 27001 and SOC2 certified. Handles extremely sensitive PII — data retention policies must be carefully implemented by integrators."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 85,
+    "version_stability": 82,
+    "breaking_changes_history": 80,
+    "error_recovery": 75
+  },
+  "last_evaluated": "2026-03-06"
+}

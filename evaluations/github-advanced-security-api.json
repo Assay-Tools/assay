@@ -1,0 +1,107 @@
+{
+  "id": "github-advanced-security-api",
+  "name": "GitHub Advanced Security API",
+  "version_evaluated": "current",
+  "homepage": "https://docs.github.com/en/rest/code-scanning",
+  "repo_url": "https://github.com/github/codeql",
+  "category": "security",
+  "subcategories": ["sast", "secret-scanning", "dependency-scanning", "code-security", "supply-chain-security"],
+  "tags": ["github", "ghas", "code-scanning", "codeql", "secret-scanning", "dependabot", "sast", "rest-api", "graphql", "supply-chain", "sarif"],
+  "what_it_does": "GitHub Advanced Security (GHAS) exposes a comprehensive REST and GraphQL API surface for three integrated security products: Code Scanning (CodeQL SAST plus third-party SARIF-based scanners), Secret Scanning (detection of 200+ secret types across commits and PRs), and the Dependency Review API / Dependabot Alerts (SCA for known CVEs in package manifests). The Code Scanning API allows querying alerts (with CodeQL rule details, CWE, severity, location, state), uploading SARIF results from any scanner, and managing alert dismissal state. The Secret Scanning API surfaces detected secrets (with secret type, validity status for live/active secrets, commit/PR source), manages alert triage, and exposes push protection bypass events. The Dependency Review API shows vulnerable dependencies introduced by a specific PR diff, and the Dependabot Alerts API exposes all known CVE alerts across a repository with CVSS scores, fix versions, and auto-fix status. All three APIs use the standard GitHub REST auth model (GitHub Apps, OAuth Apps, or PATs) and return well-documented JSON with consistent pagination using link headers. GHAS is included free for public repositories and requires a paid GHAS license for private repositories.",
+  "use_cases": [
+    "Fetching all open Code Scanning alerts across an organization's private repos to build a security posture dashboard",
+    "Polling for new secret scanning detections and triggering automatic credential rotation when a live secret is found",
+    "Checking the Dependency Review API on every PR to block merges that introduce new critical CVEs",
+    "Uploading SARIF results from Semgrep, Trivy, or Checkov via the Code Scanning upload API to centralize all findings in GitHub",
+    "Querying Dependabot alerts by CVSS score to prioritize patching order across hundreds of repositories",
+    "Building a secret scanning bypass dashboard to track when developers override push protection and validate the justification",
+    "Automating code scanning alert dismissal for known false-positive patterns using the alert state update API"
+  ],
+  "not_for": [
+    "Non-GitHub repositories (GitLab, Bitbucket, Azure DevOps) — GHAS is GitHub-only",
+    "Runtime application security monitoring or DAST",
+    "Organizations wanting a vendor-neutral security data platform — all data is GitHub-resident",
+    "Binary analysis, container runtime security, or SIEM event correlation"
+  ],
+  "best_when": "Your organization hosts code on GitHub (particularly GitHub Enterprise) and wants a tightly integrated security pipeline with no additional SaaS vendors — GHAS provides free SAST (CodeQL), secret scanning, and Dependabot alerts natively within GitHub Actions and the GitHub UI.",
+  "avoid_when": "Your code is hosted on GitLab, Bitbucket, or Azure DevOps, or you need runtime security beyond static analysis and dependency scanning.",
+  "alternatives": [
+    {"id": "snyk-api-v2", "reason": "Better for multi-platform code hosting (GitLab, Bitbucket, Azure DevOps) and richer developer workflow integrations with fix PRs and exploitability prioritization"},
+    {"id": "semgrep-cloud-api", "reason": "Better for custom SAST rule authoring across polyglot codebases with platform-agnostic CI/CD integration"},
+    {"id": "socket-api", "reason": "Better for proactive supply chain risk detection (malicious packages, behavior analysis) beyond CVE-based Dependabot alerts"}
+  ],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": true,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["javascript", "python", "go", "ruby", "java", "csharp"],
+    "openapi_spec_url": "https://github.com/github/rest-api-description",
+    "webhooks": true
+  },
+  "auth": {
+    "methods": ["github_app", "oauth2", "pat"],
+    "oauth": true,
+    "scopes": true,
+    "notes": "Three auth patterns: Personal Access Tokens (PATs) — classic PATs require 'security_events' scope; fine-grained PATs (preferred) allow per-repo/per-org access with explicit 'Code scanning alerts: read/write', 'Secret scanning alerts: read/write', and 'Dependabot alerts: read' permissions. OAuth Apps use 'security_events' scope. GitHub Apps (preferred for automation) use installation tokens with repository-specific permissions — more secure than PATs because tokens are short-lived (1 hour), installation-scoped, and auditable. For agents, use a GitHub App with the minimum required permissions: 'Code scanning alerts: read', 'Secret scanning alerts: read', 'Dependabot alerts: read'. SARIF upload requires 'security_events: write'. Organization-level APIs for bulk queries require 'Organization code scanning alerts: read' or owner-level access."
+  },
+  "pricing": {
+    "model": "freemium",
+    "free_tier_exists": true,
+    "free_tier_limits": "GHAS features (Code Scanning, Secret Scanning, Dependabot) are FREE for all public repositories with no limits",
+    "paid_tiers": ["GitHub Advanced Security add-on for private repos: $49/active committer/month (billed annually) on GitHub Enterprise Cloud", "GitHub Enterprise Server (self-hosted): GHAS license included or add-on depending on tier"],
+    "requires_credit_card": false,
+    "notes": "For public repositories, the full GHAS API is free — this is a significant advantage for open-source security automation. Private repository GHAS requires GitHub Enterprise licensing. Dependabot alerts are free for all repositories (public and private) even without GHAS license — only Code Scanning and Secret Scanning require GHAS for private repos."
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["US", "EU"],
+    "compliance": ["SOC2-Type-II", "ISO27001", "GDPR", "FedRAMP-Moderate", "CCPA"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": 0,
+    "documentation_accuracy": 95,
+    "error_message_quality": 90,
+    "error_message_notes": "GitHub REST API errors are consistently structured with 'message' and 'documentation_url' fields — the documentation_url directly links to the relevant API docs for the failing operation. HTTP status codes follow REST conventions precisely. Rate limit errors (403/429) include X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset, and X-RateLimit-Used headers on every response — not just error responses. Secondary rate limit errors (abuse detection) return 403 with a 'Retry-After' header. SARIF upload validation errors include detailed field-level messages indicating exactly which SARIF schema violations were found. Scope/permission errors clearly state the missing permission name.",
+    "idempotency_support": "full",
+    "idempotency_notes": "GET operations are fully idempotent. Alert state updates (PATCH) are idempotent — setting the same state/dismissal reason twice is safe. SARIF uploads are idempotent for the same commit SHA and tool name — re-uploading the same SARIF replaces existing alerts rather than duplicating them (controlled by the sarif_id). Webhook deliveries are at-least-once — agents consuming webhooks must handle duplicate event delivery by tracking processed alert IDs.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Code Scanning API requires GHAS to be enabled for the repository — making API calls against a repository without GHAS returns 404 (not 403), which can be misinterpreted as the repository not existing; agents must handle 404 on /repos/{owner}/{repo}/code-scanning/alerts by checking GHAS enablement separately",
+      "SARIF upload is asynchronous — POST /repos/{owner}/{repo}/code-scanning/sarifs returns a sarif_id immediately, but alerts are not available until processing completes; poll GET /repos/{owner}/{repo}/code-scanning/sarifs/{sarif_id} for 'complete' status before querying alerts, typically 10-120 seconds depending on SARIF size",
+      "GitHub Apps installation tokens expire after 1 hour — agents using GitHub Apps for auth must track token expiry and request a new installation token before the current one expires; the token does not return an expiry header on each response, so agents must track the issue_time + 3600 seconds",
+      "Secondary rate limits (abuse detection) are separate from the primary rate limit and not reflected in X-RateLimit headers — they trigger when an agent makes too many requests in a short burst or makes many mutation requests; secondary rate limit errors return 403 with 'You have exceeded a secondary rate limit' and require backing off for the duration specified in the Retry-After header",
+      "Secret scanning alerts include a 'validity' field (active, inactive, unknown) for supported secret types where GitHub has verified the secret against the issuing provider — agents should prioritize 'active' secrets for immediate rotation; however, 'unknown' validity does NOT mean the secret is invalid, only that GitHub cannot verify it",
+      "The Dependency Review API (GET /repos/{owner}/{repo}/dependency-graph/compare/{basehead}) requires the dependency graph to be enabled for the repository — this is a repository-level setting, not an org-level setting; agents performing org-wide PR security checks must handle per-repo dependency graph enablement status",
+      "Organization-level code scanning alerts API (GET /orgs/{org}/code-scanning/alerts) requires the authenticating identity to have 'security manager' role or owner access to the organization — standard member PATs/Apps cannot query org-wide alerts even with 'security_events' scope; agents must request elevated organization permissions",
+      "Alert dismissal via API accepts 'won't fix', 'false positive', and 'used in tests' as dismissal reasons — these are free-text enums that are case-sensitive; agents generating dismissal reasons from LLM output must validate the exact string against the enum before submission to avoid 422 validation errors"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 95,
+    "error_handling_score": 90,
+    "auth_complexity_score": 82,
+    "rate_limit_clarity_score": 92
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 90,
+    "scope_granularity": 92,
+    "dependency_hygiene": 92,
+    "secret_handling": 90,
+    "security_notes": "HTTPS enforced everywhere. Fine-grained PATs and GitHub Apps provide repository-specific, permission-scoped access — significantly better than classic PATs. GitHub Apps are the gold standard: short-lived installation tokens (1 hour), auditable, revocable per installation. Security data (code vulnerabilities, exposed secrets, CVEs) is highly sensitive — use minimum required permission scopes. Webhook payloads are HMAC-SHA256 signed. SOC2 Type II, ISO27001, FedRAMP Moderate certified. Secret scanning validity checking actively contacts secret issuers (Stripe, AWS, GitHub itself) to verify liveness — a powerful feature that requires careful handling as it confirms attacker-controlled secrets are live."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 95,
+    "version_stability": 92,
+    "breaking_changes_history": 90,
+    "error_recovery": 92
+  }
+}

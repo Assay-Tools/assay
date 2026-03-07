@@ -1,0 +1,108 @@
+{
+  "id": "semgrep-cloud-api",
+  "name": "Semgrep Cloud Platform API",
+  "version_evaluated": "current",
+  "homepage": "https://semgrep.dev/api/v1/docs/",
+  "repo_url": "https://github.com/semgrep/semgrep",
+  "category": "security",
+  "subcategories": ["sast", "static-analysis", "code-security", "supply-chain-security", "secrets-detection"],
+  "tags": ["semgrep", "sast", "static-analysis", "security", "code-scanning", "devsecops", "owasp", "secrets", "supply-chain", "sarif", "openapi"],
+  "what_it_does": "The Semgrep Cloud Platform REST API provides programmatic access to the Semgrep AppSec Platform — the SaaS layer above the open-source Semgrep CLI engine. The API enables querying SAST findings (Semgrep Code), dependency vulnerability alerts (Semgrep Supply Chain), secrets detection results (Semgrep Secrets), and managing deployments, projects, and rule policies. Findings are the primary entity: each finding has a rule ID, severity, CWE, location (file + line), triage status (open/ignored/fixed/reviewing), and for supply chain findings, the CVE, package, and fix version. Agents use this API to build automated triage workflows (bulk-close false positives by rule or file path), feed findings into ticketing systems, generate security posture metrics, and enforce policy gates in CI/CD. Note: scan triggering is NOT available via the API — scans run through the Semgrep CLI in CI/CD pipelines; the API is purely for reading results and managing finding state.",
+  "use_cases": [
+    "Querying all open SAST findings across a deployment for security dashboard reporting",
+    "Bulk-triaging false positives — bulk-ignore findings matching specific rule IDs or file path patterns",
+    "Fetching supply chain vulnerability alerts for a specific package ecosystem (npm, PyPI) to drive automated dependency updates",
+    "Integrating Semgrep findings into Jira, Linear, or PagerDuty via webhook or polling",
+    "Generating weekly security posture metrics by project — tracking open findings over time",
+    "Fetching secrets detection findings for immediate credential rotation workflows",
+    "Monitoring new high-severity findings introduced in the last 24 hours across all projects"
+  ],
+  "not_for": [
+    "Triggering new scans on demand — scans only run via CLI/CI; the API reads existing results",
+    "Teams on the Free plan — API access requires Teams or Enterprise subscription",
+    "DAST, runtime security monitoring, or container image scanning",
+    "Binary analysis or languages with minimal Semgrep rule coverage (Perl, COBOL, etc.)",
+    "Teams wanting self-hosted results storage without Semgrep Cloud subscription"
+  ],
+  "best_when": "A security engineering team runs Semgrep in CI/CD at scale and needs to build automated triage, reporting, or remediation workflows on top of SAST findings across dozens or hundreds of repositories.",
+  "avoid_when": "You are on the Free plan (no API), need to trigger scans programmatically, or want runtime/DAST capabilities rather than static source analysis.",
+  "alternatives": [
+    {"id": "snyk-api-v2", "reason": "Better for dependency/container/IaC scanning with a more mature API; includes scan-trigger capability; stronger per-vulnerability fix guidance"},
+    {"id": "github-advanced-security-api", "reason": "Free for GitHub users, natively integrated with CodeQL and secret scanning — no additional vendor needed if already on GitHub"},
+    {"id": "socket-api", "reason": "Better for supply chain attack detection based on package behavior (not just CVE matching); catches malicious packages proactively"}
+  ],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python"],
+    "openapi_spec_url": "https://semgrep.dev/api/v1/docs/",
+    "webhooks": true
+  },
+  "auth": {
+    "methods": ["api_key"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Bearer token authentication using API tokens generated in Semgrep AppSec Platform settings (Settings → Tokens). Token is organization-scoped — it inherits the role of the creating user. No fine-grained permission scopes on tokens: a token created by an admin gets admin access; one created by a member gets member access. For agents, create a dedicated API token from a service account or lowest-privilege role. Token expiry: tokens do not expire by default — rotate them manually. No machine-to-machine OAuth2 flow. Webhook payloads are signed with HMAC-SHA256 using a shared secret configured per webhook endpoint."
+  },
+  "pricing": {
+    "model": "freemium",
+    "free_tier_exists": true,
+    "free_tier_limits": "Free for up to 10 contributors — includes CLI, CI/CD integration, Code and Supply Chain scanning; NO REST API access on Free",
+    "paid_tiers": ["Teams: $35/contributor/month per product (Code, Supply Chain, or Secrets individually)", "Enterprise: custom — full platform bundle, SSO, advanced RBAC, SLA, data residency, dedicated support"],
+    "requires_credit_card": false,
+    "notes": "Each Semgrep product (Code, Supply Chain, Secrets) is priced separately on Teams tier — full coverage requires purchasing all three. Enterprise bundles everything. API access is gated behind paid plans — free-tier agents will receive 403 errors."
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["US", "EU"],
+    "compliance": ["SOC2-Type-II", "GDPR"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": 0,
+    "documentation_accuracy": 82,
+    "error_message_quality": 76,
+    "error_message_notes": "REST API errors return JSON with error type and message. OpenAPI spec is published and up-to-date which aids agent schema generation. Cursor-based pagination is well-documented. HTTP 403 errors for free-tier access don't include upgrade guidance in the error body. Some filter parameters have undocumented interaction effects that require experimentation — for example, combining 'since' with 'status' filters can return unexpected result counts. Rate limit responses (429) do not consistently include Retry-After headers.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "GET operations are fully idempotent. Finding triage updates (PATCH /findings/{id}) are idempotent — setting the same status twice is safe. Bulk triage operations via POST are not idempotent — re-submitting the same bulk-ignore request may return a 'no changes made' response rather than an error. Webhook configuration creates duplicate endpoints if the same URL is registered twice.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Scan triggering via API is not supported — scans only run through the Semgrep CLI in CI/CD pipelines; agents querying for fresh results after a code push must wait for the CI scan to complete and results to sync to the platform (typically 5-15 minutes) before the API reflects updated findings",
+      "API access is gated behind Teams or Enterprise subscription — agents on Free accounts will receive 403 errors; the error response does not include an upgrade link or indicate the plan restriction",
+      "Deployment ID (not org name or slug) is required as a path parameter for most findings and project endpoints — fetch it once from GET /deployments and cache it; the deployment ID is a stable UUID that does not change",
+      "Findings have a 4-state triage machine (open, ignored, fixed, reviewing) — agents must understand valid state transitions; attempting to move a 'fixed' finding back to 'open' via PUT will fail; use 'reviewing' as intermediate state",
+      "Supply Chain findings (from Semgrep Supply Chain) and Code findings (from Semgrep Code) use different response schemas under the same /findings endpoint — agents must branch logic on the 'source_type' field or use separate endpoint filters to avoid schema mismatches",
+      "Rule IDs are composite dot-separated strings (e.g., 'p/javascript.lang.security.audit.path-traversal.path-join-resolve-traversal') — they must be URL-encoded when used as query parameters; unencoded dots in rule IDs may cause 400 errors or incorrect filter matches",
+      "Webhooks deliver findings in near-real-time but may arrive out of order for bulk scan completions — agents consuming webhooks must handle deduplication by finding ID and treat repeated delivery of the same finding as idempotent",
+      "The 'since' timestamp filter uses ISO 8601 format but is compared against the finding's 'first_seen' timestamp, not 'last_seen' or 'updated_at' — agents polling for 'new' findings since last check must use 'first_seen_at' not 'updated_at'"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 82,
+    "error_handling_score": 76,
+    "auth_complexity_score": 82,
+    "rate_limit_clarity_score": 68
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 80,
+    "scope_granularity": 72,
+    "dependency_hygiene": 85,
+    "secret_handling": 80,
+    "security_notes": "HTTPS enforced everywhere. API tokens inherit user role permissions — no fine-grained scopes per operation. Tokens do not expire by default (manual rotation required). Source code is uploaded to Semgrep Cloud for scanning — consider self-hosted Semgrep deployment for sensitive IP. Webhook payloads signed with HMAC-SHA256. SOC2 Type II certified. EU data residency available. Scan results contain first-party code vulnerability details — restrict API token access carefully."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 85,
+    "version_stability": 83,
+    "breaking_changes_history": 80,
+    "error_recovery": 80
+  }
+}

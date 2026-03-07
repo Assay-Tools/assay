@@ -1,0 +1,107 @@
+{
+  "id": "hashicorp-vault-api-v2",
+  "name": "HashiCorp Vault HTTP API (Deep)",
+  "version_evaluated": "current",
+  "homepage": "https://developer.hashicorp.com/vault/api-docs",
+  "repo_url": "https://github.com/hashicorp/vault",
+  "category": "security",
+  "subcategories": ["secrets-management", "identity", "encryption-as-a-service", "pki", "dynamic-secrets"],
+  "tags": ["vault", "hashicorp", "secrets", "approle", "kubernetes-auth", "dynamic-secrets", "pki", "encryption", "self-hosted", "hcp-vault"],
+  "what_it_does": "HashiCorp Vault is the industry-standard open-source secrets management platform. Its HTTP API is the sole interface for all Vault operations: authenticating workloads (token, AppRole, Kubernetes, AWS IAM, LDAP, OIDC, and 15+ other auth methods), reading and writing secrets (KV v1/v2, database credentials, cloud IAM keys, SSH certificates, PKI certificates), managing leases and TTLs, configuring policies, and administering Vault clusters. For agents, Vault is uniquely powerful because it generates dynamic, short-lived credentials on demand — an agent asks for a Postgres password, Vault creates a dedicated DB user with a 1-hour TTL, returns the credentials, and automatically revokes them when the lease expires. This eliminates long-lived static secrets from agent workflows entirely. AppRole is the canonical machine auth method: a RoleID (public, embedded in config) plus a SecretID (private, injected at runtime) produces a Vault token with specific policies. Kubernetes auth allows pods to authenticate using their ServiceAccount JWT without any pre-shared secrets. The API is entirely REST-over-HTTPS with JSON request/response bodies and uses the X-Vault-Token header for authenticated requests.",
+  "use_cases": [
+    "Agent fetches short-lived database credentials at runtime via dynamic secrets engine — credentials auto-expire after task completion",
+    "Authenticating an agent running in Kubernetes using the pod's ServiceAccount JWT via the K8s auth method — zero pre-shared secrets required",
+    "Reading application API keys and third-party credentials from KV v2 engine with versioned secret history",
+    "Issuing short-lived TLS certificates on demand via the PKI secrets engine for mTLS between agent-orchestrated microservices",
+    "Rotating AWS IAM credentials automatically using the AWS secrets engine — agent gets fresh STS tokens per task",
+    "Encrypting sensitive data at rest using Vault's Transit engine without exposing encryption keys to the agent",
+    "Auditing all secret access across agent workflows via Vault's audit log (file, syslog, or socket backends)"
+  ],
+  "not_for": [
+    "Storing large binary files or blob data — Vault secrets are optimized for small structured key-value data",
+    "Teams without ops capacity to deploy and maintain Vault — significant Day 2 operational burden unless using HCP Vault (managed)",
+    "Simple single-app secret injection where AWS Secrets Manager, GCP Secret Manager, or Azure Key Vault is the native cloud option",
+    "Real-time push-based secret delivery — Vault is pull-based; agents must fetch secrets on demand"
+  ],
+  "best_when": "An agent needs to broker credentials across multiple systems with zero static secrets, fine-grained auditable access control, and short-lived dynamic credential generation — particularly in Kubernetes or multi-cloud environments.",
+  "avoid_when": "Your team runs in a single cloud and can use the native secrets manager (AWS Secrets Manager, Azure Key Vault) without multi-cloud secret brokering, or cannot absorb the operational cost of self-hosting Vault.",
+  "alternatives": [
+    {"id": "aws-secrets-manager-api", "reason": "Better for AWS-native workloads — fully managed, no ops burden, native IAM integration, but no dynamic secret generation"},
+    {"id": "azure-key-vault-api", "reason": "Better for Azure-native workloads — managed, integrated with Azure AD/RBAC, but limited to Azure ecosystem"},
+    {"id": "doppler-api", "reason": "Better for developer-facing secret management with a simple UI and GitHub/Vercel integrations — not for dynamic credentials or PKI"}
+  ],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": true,
+    "mcp_server_url": "https://github.com/hashicorp/vault-mcp",
+    "has_sdk": true,
+    "sdk_languages": ["python", "go", "javascript", "ruby", "java", "csharp", "rust"],
+    "openapi_spec_url": "https://developer.hashicorp.com/vault/api-docs",
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["token", "approle", "kubernetes", "aws-iam", "gcp-iam", "azure", "ldap", "oidc", "github", "jwt", "radius"],
+    "oauth": false,
+    "scopes": true,
+    "notes": "Vault uses its own token system rather than OAuth. Every authenticated request includes X-Vault-Token or Authorization: Bearer <vault_token>. For agents: AppRole is the canonical method — RoleID is baked into agent config, SecretID is injected at runtime (via CI/CD or orchestrator) and is single-use by default (use_limit=1). Kubernetes auth is superior for K8s-hosted agents — the pod's ServiceAccount JWT is exchanged for a Vault token with no pre-shared secrets. AWS IAM auth works for agents running in EC2/ECS/Lambda. Tokens have TTLs (default 32 days for service tokens, configurable) and can be renewable. Token policies (HCL) define allowed paths and operations with glob support. Vault Enterprise adds namespaces which prefix all API paths — agents must know whether they're targeting OSS or Enterprise."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Open-source Vault: completely free, self-hosted, full feature set for core use cases",
+    "paid_tiers": ["HCP Vault Dedicated (Dev): $0.03/hr (~$22/mo) — single node, not HA", "HCP Vault Dedicated (Standard): $0.15/hr (~$108/mo) — 3-node HA cluster", "HCP Vault Dedicated (Plus): $0.95/hr (~$684/mo) — performance replication, DR", "Vault Enterprise: custom pricing — namespaces, HSM integration, Sentinel policies, FIPS 140-2"],
+    "requires_credit_card": false,
+    "notes": "OSS Vault is production-ready and used by thousands of organizations at scale. HCP Vault removes the ops burden of running Vault infrastructure. Enterprise adds multi-datacenter replication, namespace isolation for multi-tenant deployments, HSM seal/unseal support, and advanced compliance features."
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted", "US", "EU", "APAC"],
+    "compliance": ["SOC2-Type-II", "FIPS-140-2", "PCI-DSS", "HIPAA", "FedRAMP-Moderate"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": 68,
+    "documentation_accuracy": 92,
+    "error_message_quality": 88,
+    "error_message_notes": "Vault returns structured JSON error objects with a top-level 'errors' array containing human-readable strings. Permission denied errors are specific: 'permission denied' with the token policy missing the required capability on the exact path. 403 on a valid path with wrong capability says exactly which capability is needed. 503 means Vault is sealed — clearly actionable. Token TTL expiry returns 403 with 'permission denied' (not 401) which can mislead agents into thinking it's a policy issue rather than an expired token. Missing namespace prefix returns 404 rather than a namespace-specific error.",
+    "idempotency_support": "full",
+    "idempotency_notes": "KV v2 writes are idempotent by default (overwrite) and support CAS (Check-And-Set) for optimistic locking — PUT with cas=N only succeeds if the current version is N. KV v1 writes are always idempotent overwrites. Dynamic secret generation is intentionally NOT idempotent — each request creates a new credential with a new lease. Token renewal is idempotent. Policy writes are idempotent (upsert). Auth method mounts are idempotent on re-enable.",
+    "pagination_style": "list",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Token TTL expiry causes 403 'permission denied' errors — identical to a missing policy error — agents must proactively renew tokens before expiry using POST /auth/token/renew-self and track the token's creation_time and ttl fields, not assume a static lifetime",
+      "AppRole SecretID is single-use by default (use_limit=1) — after one login, the SecretID is consumed; agents that restart or retry authentication will fail; set use_limit to 0 for unlimited use or generate a fresh SecretID per agent invocation via POST /auth/approle/role/{name}/secret-id",
+      "KV v1 and KV v2 engines have completely different API paths: KV v1 is GET /secret/{path}, KV v2 is GET /secret/data/{path} for the secret value and /secret/metadata/{path} for version history; mounting the same engine name on different versions causes silent data misrouting",
+      "Vault Enterprise namespaces prepend to all API paths (/v1/{namespace}/secret/data/{path}) — agents developed against OSS Vault will fail against Enterprise without namespace-aware path construction; check X-Vault-Namespace header handling in your SDK",
+      "Dynamic secrets (database, AWS, PKI) produce leases that must be tracked and renewed separately from the auth token — a Postgres credential from the database engine has its own lease_id with its own TTL; letting it expire without renewal or explicit revocation causes the DB user to be dropped mid-operation",
+      "Vault seal/unseal state is not automatically managed — a Vault restart (or auto-unseal failure) causes all API requests to return 503; agents must handle 503 as a distinct non-retryable error requiring operator intervention, not a transient failure",
+      "The /v1/sys/health endpoint returns 200 only when unsealed and initialized; sealed returns 503 and standby returns 429 — agents performing health checks must treat 429 as 'healthy but standby', not a rate limit",
+      "Policy glob patterns use * for prefix matching — a policy granting secret/data/* does NOT cover secret/data/subpath/* unless explicitly written; agents adding new secret paths must verify their policy covers the exact path"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 68,
+    "api_doc_score": 92,
+    "error_handling_score": 85,
+    "auth_complexity_score": 68,
+    "rate_limit_clarity_score": 80
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 98,
+    "scope_granularity": 98,
+    "dependency_hygiene": 90,
+    "secret_handling": 100,
+    "security_notes": "Vault is purpose-built for secrets security. TLS is mandatory in production (enforced by default config). Fine-grained HCL policies control read/write/list/delete/create/patch per path with glob support. Audit logging captures every request and response (with secret values redacted) to file, syslog, or socket — required for PCI-DSS and SOC2. Seal/unseal with cloud KMS (AWS KMS, GCP KMS, Azure Key Vault) or HSM prevents cold-start secret exposure. Dynamic secrets ensure no long-lived credentials exist — revocation on breach is instant. AppRole/K8s auth eliminates pre-shared secrets from agent deployments. FIPS 140-2 mode available for Vault Enterprise with compliant crypto primitives."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 92,
+    "version_stability": 90,
+    "breaking_changes_history": 85,
+    "error_recovery": 88
+  }
+}

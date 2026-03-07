@@ -1,0 +1,109 @@
+{
+  "id": "snyk-api-v2",
+  "name": "Snyk REST API v2",
+  "version_evaluated": "current",
+  "homepage": "https://apidocs.snyk.io/",
+  "repo_url": "https://github.com/snyk/snyk",
+  "category": "security",
+  "subcategories": ["vulnerability-scanning", "sca", "sast", "sbom", "container-security", "iac-security"],
+  "tags": ["snyk", "security", "dependency-scanning", "sast", "container-security", "iac-security", "rest-api", "sbom", "devSecOps", "openapi"],
+  "what_it_does": "Snyk REST API v2 is the new-generation OpenAPI-compliant REST API replacing the legacy v1 API. It provides programmatic access to Snyk's full developer security platform: Snyk Open Source (SCA across 20+ package ecosystems including npm, PyPI, Maven, Go, Ruby, .NET), Snyk Code (AI-powered SAST with dataflow analysis), Snyk Container (image and Dockerfile scanning with base image recommendations), and Snyk IaC (Terraform, CloudFormation, Kubernetes, ARM template security). The v2 API uses versioned endpoints (YYYY-MM-DD~beta/experimental/ga), cursor-based pagination, standardized JSON:API response envelopes, and consistent error schemas. Key agent use cases include fetching vulnerability findings for projects, generating and exporting SBOMs in SPDX/CycloneDX format, querying SBOM artifacts, managing projects and targets, and retrieving fix advisories. The vulnerability database is one of the largest proprietary databases, combining NVD/CVE data with Snyk's own research, ecosystem-specific advisories, and exploitability intelligence.",
+  "use_cases": [
+    "Fetching vulnerability findings for all projects in an org to build security posture dashboards",
+    "Generating SBOM artifacts (SPDX 2.3 or CycloneDX 1.4) for supply chain compliance workflows",
+    "Querying aggregated issues with priority scores and reachability data to drive automated triage",
+    "Monitoring new critical CVEs introduced in open-source dependencies across an organization",
+    "Importing new targets (GitHub repos, container images) into monitoring and triggering baseline scans",
+    "Retrieving fix upgrade paths for vulnerabilities to feed into automated PR-creation agents",
+    "Querying license compliance status across all dependencies for legal review automation"
+  ],
+  "not_for": [
+    "Runtime application security monitoring — Snyk is point-in-time and CI/CD focused",
+    "Penetration testing or dynamic analysis (DAST) — static analysis only",
+    "Free tier agent workflows — meaningful API access requires Team or Business plan",
+    "Network security, endpoint detection, or SIEM use cases",
+    "Teams wanting a fully self-hosted scanner — Snyk is SaaS-first"
+  ],
+  "best_when": "An agent needs to programmatically query, triage, and act on developer security findings (CVEs, SAST, IaC misconfigs) across an organization's entire project portfolio, particularly when fix guidance and exploitability intelligence are needed beyond raw CVE data.",
+  "avoid_when": "You need to trigger on-demand scans via API (not currently supported in v2 — scans happen via CLI or CI integration), require runtime security data, or operate at the free tier where API quotas are severely constrained.",
+  "alternatives": [
+    {"id": "semgrep-cloud-api", "reason": "Better for custom SAST rule management and first-party code analysis without per-developer pricing model"},
+    {"id": "github-advanced-security-api", "reason": "Free for public repos, natively integrated with GitHub Actions; covers code scanning, secret scanning, and Dependabot alerts without an additional vendor"},
+    {"id": "socket-api", "reason": "Better for detecting malicious supply chain packages and behavior-based supply chain risk beyond CVE matching"},
+    {"id": "trivy-api-v2", "reason": "Free self-hosted scanning with no rate limits, SBOMs, and broad coverage for air-gapped or cost-sensitive environments"}
+  ],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": true,
+    "mcp_server_url": "https://github.com/snyk/snyk-mcp-server",
+    "has_sdk": true,
+    "sdk_languages": ["python", "javascript", "java", "go"],
+    "openapi_spec_url": "https://apidocs.snyk.io/",
+    "webhooks": true
+  },
+  "auth": {
+    "methods": ["api_key", "oauth2"],
+    "oauth": true,
+    "scopes": true,
+    "notes": "Personal API tokens for individual use; service account tokens for automated/agent use. OAuth2 client credentials flow available for app integrations and partner platforms. All requests use Authorization: token <value> header (not Bearer). Tokens are organization-scoped — org_id is required for most endpoints. Service accounts can have specific roles assigned (viewer, developer, org-admin). OAuth2 apps support fine-grained scopes (org.read, project.read, vuln.read, sbom.read, etc.). For agents, prefer service account tokens with minimum required role. Rate limits are per-token, so use dedicated service account tokens for agents to avoid sharing quotas with human users."
+  },
+  "pricing": {
+    "model": "freemium",
+    "free_tier_exists": true,
+    "free_tier_limits": "Free: 200 open-source tests/month, 100 container tests/month, limited SAST; API rate limit 60 req/min",
+    "paid_tiers": ["Team: $25/developer/month — 300 tests/type/month, 1200 req/min API limit", "Business: $67/developer/month — unlimited tests, priority support, advanced features", "Enterprise: custom — unlimited, dedicated SLAs, data residency, SSO, custom roles"],
+    "requires_credit_card": false,
+    "notes": "Pricing is per developer seat. Test counts reset monthly. SBOM generation and project import are separate from test quotas. Enterprise contracts often include unlimited API access. Free tier's 60 req/min limit makes agent workflows impractical beyond small-scale use."
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["US", "EU"],
+    "compliance": ["SOC2-Type-II", "ISO27001", "GDPR", "CCPA"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": 62,
+    "documentation_accuracy": 88,
+    "error_message_quality": 82,
+    "error_message_notes": "REST v2 errors follow a consistent JSON:API error schema with id, status, code, title, detail, and meta fields. Error codes are stable and machine-readable (e.g., SNYK-0001 for authentication errors). HTTP 429 rate limit responses include Retry-After header. However, some experimental endpoints return less structured errors, and the distinction between 401 (bad token) and 403 (insufficient scope) is sometimes blurry with non-obvious resolution paths.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "GET operations are fully idempotent. Project import (POST) is idempotent for the same target — re-importing an already-monitored target returns the existing project. SBOM generation jobs are async — the same request creates a new job each time. No idempotency key header support on mutation endpoints.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Two API generations coexist: legacy v1 (/v1/ prefix) and new REST v2 (/rest/ prefix with YYYY-MM-DD versioning) — they use different auth headers, response shapes, and org ID formats; agents must use v2 exclusively for new integrations",
+      "SBOM generation is asynchronous — POST /orgs/{org}/sbom-export-jobs returns a job ID; agents must poll GET /orgs/{org}/sbom-export-jobs/{id} until status is 'finished' before fetching the artifact, typically 30-120 seconds",
+      "Org ID (UUID format) is required for virtually every endpoint — fetch it once from GET /orgs and cache it; using the org slug instead of UUID causes 404 errors on most endpoints",
+      "The v2 API uses versioned endpoint paths with date-based versions (e.g., /rest/orgs/{id}/projects?version=2024-06-10) — omitting the version parameter or using an expired version returns 400 or 404 errors",
+      "Rate limits differ between free (60/min), Team (1200/min), and Enterprise tiers — agents on free accounts will hit 429s during bulk project scans; implement exponential backoff with Retry-After header",
+      "Test quotas (open source, container, code) are monthly caps, not rate limits — exhausting them returns 402 errors mid-workflow with no partial results; agents should check quota status before bulk operations",
+      "Scan triggering is not available via the REST API — agents cannot initiate fresh scans; they can only read results from scans that occurred via CLI, GitHub Actions, or IDE integration",
+      "Project target references (branch, commit SHA) can drift after repo rebase — agents relying on specific commit SHAs in results may encounter stale vulnerability data without any staleness signal"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 62,
+    "api_doc_score": 88,
+    "error_handling_score": 82,
+    "auth_complexity_score": 78,
+    "rate_limit_clarity_score": 80
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 85,
+    "scope_granularity": 82,
+    "dependency_hygiene": 88,
+    "secret_handling": 82,
+    "security_notes": "HTTPS enforced on all endpoints. Service account tokens scoped to organization with role-based access (viewer/developer/org-admin/group-admin). OAuth2 apps support fine-grained permission scopes. SOC2 Type II and ISO27001 certified. EU data residency available for GDPR compliance. Scan results contain sensitive vulnerability details — ensure token access is restricted to minimum required role. No token rotation API — tokens must be manually cycled in the Snyk console."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 92,
+    "version_stability": 85,
+    "breaking_changes_history": 83,
+    "error_recovery": 85
+  }
+}

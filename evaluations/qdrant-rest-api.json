@@ -1,0 +1,112 @@
+{
+  "id": "qdrant-rest-api",
+  "name": "Qdrant REST API",
+  "version_evaluated": "current",
+  "homepage": "https://qdrant.tech/documentation/",
+  "repo_url": "https://github.com/qdrant/qdrant",
+  "category": "databases",
+  "subcategories": ["vector-database", "similarity-search", "embedding-storage", "rag"],
+  "tags": ["qdrant", "vector-database", "embeddings", "similarity-search", "rag", "agent-memory", "openapi", "rust", "grpc", "rest", "payload-filtering"],
+  "what_it_does": "Qdrant is a high-performance vector database purpose-built for storing, indexing, and querying high-dimensional embeddings. Its REST API (and parallel gRPC API) supports collection management, vector upsert with arbitrary JSON payloads, approximate nearest neighbor (ANN) search with payload filtering, named vectors for multi-modal data, and sparse vectors for hybrid dense+sparse search. Available as self-hosted (Docker/Kubernetes) or Qdrant Cloud.",
+  "use_cases": [
+    "RAG (Retrieval-Augmented Generation) memory: store document chunk embeddings and retrieve top-k by semantic similarity",
+    "Agent long-term memory: upsert conversation summaries as vectors and recall relevant past context at inference time",
+    "Semantic deduplication: find near-duplicate content by vector distance before inserting into a primary store",
+    "Hybrid search combining dense embedding similarity with BM25 sparse vectors for keyword relevance",
+    "Recommendation systems: query by example vector with payload filters (e.g., 'similar items in category=shoes, price<100')",
+    "Image and multi-modal search using named vector fields for different modality embeddings per point",
+    "Clustering and anomaly detection over agent-generated data using collection snapshots"
+  ],
+  "not_for": [
+    "General-purpose relational or document storage — Qdrant payloads are metadata, not a primary data store",
+    "Exact-match key-value lookups where a hash table is simpler and cheaper",
+    "ACID transactional workloads requiring rollback semantics",
+    "Real-time streaming ingestion at millions of vectors/second without careful batch sizing"
+  ],
+  "best_when": "An agent needs semantic similarity search over embeddings with flexible payload filtering, especially in RAG pipelines or memory systems where results must be ranked by relevance AND filtered by metadata attributes simultaneously.",
+  "avoid_when": "You only need exact-match retrieval, or your vector dimensionality and dataset size fit comfortably in an in-process library like FAISS without the operational overhead of a separate service.",
+  "alternatives": ["pinecone-api", "weaviate-api", "milvus-api", "chroma-api", "pgvector-supabase", "elasticsearch-rest-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": true,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "typescript", "rust", "go", "java", "csharp"],
+    "openapi_spec_url": "https://api.qdrant.tech/api-reference",
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["api_key", "none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Self-hosted Qdrant has no auth by default — the API is open on port 6333. API key auth must be explicitly enabled via config (api_key field in config.yaml or QDRANT__SERVICE__API_KEY env var). Qdrant Cloud enforces API key auth with per-cluster keys; a read-only key variant is available. There are no fine-grained permission scopes beyond read-only vs. read-write. For production self-hosted deployments, TLS + API key + network-level isolation are all required because the API key is the only credential layer."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Self-hosted is fully free and open-source. Qdrant Cloud free tier: 1 cluster, 1GB RAM, 4GB disk, 1 vCPU.",
+    "paid_tiers": [
+      "Qdrant Cloud Starter: $0.014/hr per GB RAM (~$10/month for 1GB)",
+      "Qdrant Cloud production clusters: custom sizing, multi-node HA, from ~$50/month",
+      "Enterprise: custom pricing, dedicated support, private deployments"
+    ],
+    "requires_credit_card": false,
+    "notes": "Self-hosted Docker is the fastest path to zero-cost evaluation. Qdrant Cloud free cluster is useful for development without infrastructure management. Production HA requires at minimum 3-node cluster for replication factor >= 2."
+  },
+  "performance": {
+    "latency_p50_ms": 5,
+    "latency_p99_ms": 40,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "No hard rate limits on self-hosted. Qdrant Cloud rate limits are not published; governed by cluster resource limits (RAM, CPU). Batch upsert recommended over single-point upsert for throughput.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["US", "EU", "self-hosted-anywhere"],
+    "compliance": ["SOC2"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": 0,
+    "documentation_accuracy": 92,
+    "error_message_quality": 88,
+    "error_message_notes": "Qdrant REST errors are well-structured JSON with 'status' (string description) and 'time' fields. Error messages are specific and actionable: wrong vector dimension, missing required field, collection already exists, etc. HTTP status codes are semantically correct. gRPC errors include gRPC status codes with readable descriptions. The OpenAPI spec is comprehensive and accurate, which makes agent-generated requests reliable. One weak area: index-not-ready errors during ANN search after upsert look like success (200 with 0 results) rather than an explicit error.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Upsert operations are idempotent by design: upserting a point with an existing ID replaces the point atomically. Collection creation returns 200 if collection already exists with identical parameters (no error). DELETE operations are idempotent (deleting a non-existent point or collection returns success). This makes Qdrant exceptionally agent-friendly for retry logic.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Self-hosted Qdrant has NO authentication by default — any unauthenticated request succeeds; agents must verify API key is configured before treating the instance as secure",
+      "Vector dimensions must exactly match the collection's configured size at creation time; inserting a 1536-dim vector into a 768-dim collection returns a cryptic 'Wrong input: Vector inserting error' with no mention of dimensionality mismatch",
+      "HNSW index is built asynchronously after upsert — immediately searching after bulk upsert may return 0 results or incomplete results; agents should check collection 'indexed_vectors_count' before querying or use the 'wait=true' parameter on upsert",
+      "Payload filters use a different syntax from most query languages (match, range, geo_bounding_box objects) — agents generating filters from natural language frequently generate invalid filter objects that return 0 results instead of an error",
+      "Qdrant point IDs must be either unsigned 64-bit integers or UUIDs — string IDs like 'doc_abc' are not supported and cause a 400 error that is easy to encounter when porting from other vector stores",
+      "Scroll (full collection scan) vs. search (ANN query) are different endpoints with different pagination — agents that want to retrieve all points must use /collections/{name}/points/scroll, not /collections/{name}/points/search"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 92,
+    "error_handling_score": 85,
+    "auth_complexity_score": 78,
+    "rate_limit_clarity_score": 72
+  },
+  "security_score_components": {
+    "tls_enforcement": 75,
+    "auth_strength": 65,
+    "scope_granularity": 45,
+    "dependency_hygiene": 90,
+    "secret_handling": 72,
+    "security_notes": "Self-hosted Qdrant ships with no TLS and no auth — both must be explicitly configured, making misconfigured deployments a real risk. Qdrant Cloud enforces TLS and API key auth. API key scopes are binary (read-only vs. read-write) with no collection-level granularity. The Rust implementation has a strong memory safety profile and minimal CVE history. For production self-hosted: configure TLS termination at the load balancer, QDRANT__SERVICE__API_KEY env var, and network-level access restrictions. Read-only API keys should be used for agents that only need search, not upsert/delete."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 80,
+    "version_stability": 85,
+    "breaking_changes_history": 82,
+    "error_recovery": 88
+  }
+}

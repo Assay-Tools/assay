@@ -1,0 +1,97 @@
+{
+  "id": "e2b-code-interpreter",
+  "name": "E2B Code Interpreter",
+  "version_evaluated": "current",
+  "homepage": "https://e2b.dev",
+  "repo_url": "https://github.com/e2b-dev/code-interpreter",
+  "category": "developer-tools",
+  "subcategories": ["code-execution", "sandboxing", "ai-tools"],
+  "tags": ["code-execution", "sandbox", "python", "jupyter", "ai-agent", "e2b", "code-interpreter", "secure-execution", "open-source"],
+  "what_it_does": "Provides secure cloud sandboxes for executing AI-generated code. Each sandbox is an isolated microVM with a full filesystem, network access, and package installation support. Exposes a Jupyter-style code interpreter interface for Python and JavaScript. Agents can upload files, run code, capture stdout/stderr/charts, and download results. Purpose-built for AI code generation use cases.",
+  "use_cases": [
+    "Execute AI-generated Python code safely in an isolated sandbox without exposing host infrastructure",
+    "Build data analysis agents that write and run Pandas/NumPy code, capture outputs and charts, and return results",
+    "Implement AI coding assistants that can iteratively test generated code in a real Python environment",
+    "Run AI-generated shell scripts or CLI commands in a secure ephemeral environment",
+    "Handle file upload → process → download workflows where agents need a real filesystem to work with"
+  ],
+  "not_for": [
+    "Long-running persistent compute jobs — sandboxes have a timeout and are designed for short-lived execution",
+    "GPU-intensive workloads like model training or inference — sandboxes are CPU-only",
+    "Applications requiring persistent state between unrelated user sessions — sandboxes are ephemeral by default"
+  ],
+  "best_when": "An agent generates code that needs to be executed safely and its output fed back into the reasoning loop — E2B eliminates the need to build or maintain sandbox infrastructure.",
+  "avoid_when": "You need long-running background compute, GPU access, or a persistent development environment across sessions.",
+  "alternatives": ["modal-api", "replicate-api", "aws-lambda"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": true,
+    "mcp_server_url": "https://github.com/e2b-dev/mcp-server",
+    "has_sdk": true,
+    "sdk_languages": ["python", "typescript"],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["api_key"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "API key passed via E2B_API_KEY environment variable or SDK constructor. Single key grants full sandbox creation access. No scope granularity. Key must be server-side only — never expose in client code. Keys can be scoped to a team in the dashboard but not at the API call level."
+  },
+  "pricing": {
+    "model": "usage_based",
+    "free_tier_exists": true,
+    "free_tier_limits": "100 hours of sandbox compute time free per month on the Hobby plan",
+    "paid_tiers": "Pro: $20/month includes 200 compute hours; additional hours at $0.000125/second (~$0.45/hour). Enterprise: custom. Sandbox startup billed from first code execution.",
+    "requires_credit_card": false,
+    "notes": "Pricing is per compute-second of sandbox uptime. Idle sandboxes still accrue costs — always call sandbox.close() after use. Startup time is ~150ms for warm sandboxes. Very cost-effective for interactive agent use cases."
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["US"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": 82,
+    "documentation_accuracy": 88,
+    "error_message_quality": 84,
+    "error_message_notes": "Code execution errors include full stderr, exception type, and traceback — exactly what an agent needs to debug and retry. Sandbox lifecycle errors (timeout, resource limit) return structured exceptions with clear messages. SDK wraps most failure modes into typed exceptions.",
+    "idempotency_support": "none",
+    "idempotency_notes": "Each sandbox.run_code() call executes in stateful session context — prior execution state (variables, imports) persists within a sandbox session. Not idempotent. Agents performing retry logic should either restart the sandbox or account for accumulated state.",
+    "pagination_style": "none",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Sandboxes are stateful — variables and installed packages persist within a session; agents retrying failed code must account for state already set in previous cells (restarting the kernel may be necessary)",
+      "Sandboxes timeout after a configurable idle period (default 5 minutes) — long-running agents must extend the timeout or keep the sandbox alive with heartbeats",
+      "File paths inside the sandbox are different from the host; agents must use the sandbox filesystem API to upload/download files rather than using host paths",
+      "Chart/matplotlib output requires explicit plt.show() or savefig() calls; stdout capture works automatically but visual outputs need explicit handling to extract as base64 or file"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 82,
+    "api_doc_score": 88,
+    "error_handling_score": 84,
+    "auth_complexity_score": 85,
+    "rate_limit_clarity_score": 80
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 80,
+    "scope_granularity": 65,
+    "dependency_hygiene": 85,
+    "secret_handling": 82,
+    "security_notes": "Each sandbox runs in a gVisor-based microVM providing strong isolation. Sandboxes have network access by default — consider disabling for untrusted code execution scenarios. API keys have no scope granularity. User-generated code runs inside the sandbox, not on the host, which is the key security property."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 80,
+    "version_stability": 82,
+    "breaking_changes_history": 78,
+    "error_recovery": 83
+  },
+  "last_evaluated": "2026-03-06"
+}

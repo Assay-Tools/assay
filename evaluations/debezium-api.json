@@ -1,0 +1,105 @@
+{
+  "id": "debezium-api",
+  "name": "Debezium",
+  "version_evaluated": "current",
+  "homepage": "https://debezium.io",
+  "repo_url": "https://github.com/debezium/debezium",
+  "category": "data-processing",
+  "subcategories": ["change-data-capture", "event-streaming", "database-integration"],
+  "tags": ["cdc", "change-data-capture", "kafka", "kafka-connect", "postgresql", "mysql", "mongodb", "oracle", "event-driven", "open-source", "real-time"],
+  "what_it_does": "Open-source Change Data Capture platform that monitors database transaction logs and streams row-level changes (inserts, updates, deletes) as events to Kafka or other messaging systems with sub-100ms latency.",
+  "use_cases": [
+    "Event-driven agent architectures where agents react to database changes in real-time without polling",
+    "Building audit trails and data lineage tracking by capturing every database mutation as an immutable event",
+    "Maintaining read replicas and search indexes (Elasticsearch, Redis) in sync with source databases via CDC events",
+    "Microservices decoupling: propagating state changes from a monolith database to downstream services without direct DB coupling"
+  ],
+  "not_for": [
+    "Teams that want a managed, zero-ops CDC service — Debezium requires Kafka, Kafka Connect, and connector deployment expertise",
+    "Simple one-time data migration tasks where a database dump is sufficient",
+    "Database systems not in the supported connector list (though coverage is broad: Postgres, MySQL, MongoDB, Oracle, SQL Server, Cassandra, Spanner)"
+  ],
+  "best_when": "Best when an event-driven architecture needs real-time, low-latency database change propagation with guaranteed delivery via Kafka, and the team has Kafka operational experience.",
+  "avoid_when": "Avoid when you don't already have Kafka infrastructure and operational expertise, or when eventual consistency is unacceptable and you need synchronous change propagation.",
+  "alternatives": ["aws-dms-api", "fivetran-api", "airbyte-api", "striim-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": false,
+    "sdk_languages": [],
+    "openapi_spec_url": null,
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["basic_auth", "token"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Kafka Connect REST API uses HTTP Basic Auth or no auth by default depending on deployment configuration. Database connectors authenticate to the source database using credentials configured in the connector JSON (stored in Kafka Connect config). Debezium Server HTTP Sink authenticates to downstream endpoints per connector config. Security configuration is entirely operator-managed."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Fully open-source under Apache 2.0 license — no feature restrictions, no usage limits.",
+    "paid_tiers": "Debezium is available as part of Red Hat's AMQ Streams (enterprise Kafka with support). Debezium Cloud (hosted CDC service by Red Hat/Instaclustr) available with enterprise pricing.",
+    "requires_credit_card": false,
+    "notes": "The open-source project is free. Costs come from infrastructure: Kafka cluster, Kafka Connect workers, and connector compute. Managed Kafka services (Confluent Cloud, Redpanda Cloud, MSK) each have their own pricing."
+  },
+  "performance": {
+    "latency_p50_ms": 50,
+    "latency_p99_ms": 200,
+    "uptime_sla_percent": null,
+    "rate_limits": "No software-imposed rate limits. Throughput is bounded by source database replication slot performance, Kafka Connect worker capacity, and Kafka broker throughput. High-volume PostgreSQL CDC can generate millions of events per minute.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["any"],
+    "compliance": [],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": null,
+    "mcp_security_score": null,
+    "documentation_accuracy": 85,
+    "error_message_quality": 70,
+    "error_message_notes": "Kafka Connect REST API returns structured JSON error responses. Connector startup failures and schema evolution errors are logged with detail in Kafka Connect logs but REST API error responses can be terse. Agents monitoring connector health must parse Kafka Connect status endpoints.",
+    "idempotency_support": "full",
+    "idempotency_notes": "CDC events include transaction IDs, LSNs (Log Sequence Numbers), and before/after state, making downstream idempotent processing straightforward. Kafka consumer group offsets enable exactly-once or at-least-once delivery semantics.",
+    "pagination_style": null,
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "PostgreSQL requires a replication slot — slots accumulate WAL files if consumers fall behind, which can fill disk and crash the database",
+      "Schema changes in the source database require careful coordination — some schema evolutions cause connector failures that require manual intervention",
+      "Connector offsets are stored in a Kafka topic — losing this topic means losing the CDC position and requiring a snapshot restart",
+      "Debezium emits a full table snapshot on first start before switching to incremental CDC — this can generate enormous event volumes for large tables",
+      "Each database connector has different configuration subtleties (e.g., MySQL binlog format, Postgres wal_level settings) that must be correct before Debezium will start",
+      "Kafka Connect REST API is for management only — agents consuming CDC events use Kafka consumer APIs, not HTTP"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": null,
+    "api_doc_score": 82,
+    "error_handling_score": 68,
+    "auth_complexity_score": 60,
+    "rate_limit_clarity_score": 85
+  },
+  "security_score_components": {
+    "tls_enforcement": 80,
+    "auth_strength": 65,
+    "scope_granularity": 55,
+    "dependency_hygiene": 82,
+    "secret_handling": 60,
+    "security_notes": "Database credentials and Kafka config stored in Kafka Connect connector configs in plaintext by default — external secrets management (Vault, Kubernetes Secrets) is strongly recommended. TLS for Kafka and REST API requires explicit configuration. Open-source codebase is fully auditable."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 55,
+    "version_stability": 82,
+    "breaking_changes_history": 78,
+    "error_recovery": 75
+  }
+}

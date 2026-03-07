@@ -1,0 +1,107 @@
+{
+  "id": "crowdstrike-falcon-api",
+  "name": "CrowdStrike Falcon API",
+  "version_evaluated": "current",
+  "homepage": "https://falcon.crowdstrike.com/documentation/46/crowdstrike-oauth2-based-apis",
+  "repo_url": "https://github.com/CrowdStrike/falconpy",
+  "category": "security",
+  "subcategories": ["edr", "xdr", "threat-intelligence", "endpoint-security", "security-monitoring", "identity-protection"],
+  "tags": ["crowdstrike", "falcon", "edr", "xdr", "endpoint-security", "threat-intelligence", "fql", "oauth2", "ioc", "mssp", "soar"],
+  "what_it_does": "CrowdStrike Falcon is the market-leading cloud-native endpoint detection and response (EDR/XDR) platform. Its comprehensive REST API spans 30+ service collections covering: Detections (alerts from the Falcon sensor on endpoints), Incidents (correlated detection chains), Hosts (device inventory, containment, remediation), Threat Intelligence (CrowdStrike Intel API for adversary profiles, indicators, reports), Real Time Response (RTR — live shell execution on endpoints via API), IOC Management (custom indicators of compromise), Prevention Policies (endpoint policy management), Discover (asset inventory and exposed credentials), and Spotlight (vulnerability exposure on endpoints). All API endpoints use OAuth 2.0 client credentials flow. Query operations use FQL (Falcon Query Language) — a CrowdStrike-proprietary filter syntax. Most list operations follow a two-step pattern: query IDs with GET /resource/v1/query, then fetch full entities with POST /resource/v1/entities/GET using those IDs. FalconPy is the official Python SDK. The API is used by MSSP/multi-tenant environments via the Flight Control parent/child CID model. Rate limits are enforced per service collection per OAuth client.",
+  "use_cases": [
+    "Querying endpoint detections and triaging alerts in automated SOC orchestration workflows",
+    "Enriching threat intelligence by correlating IOCs (IPs, hashes, domains) against CrowdStrike Intel API",
+    "Executing Real Time Response (RTR) scripts on endpoints for automated incident response and remediation",
+    "Containing a compromised endpoint (network isolation) via API when a high-severity detection fires",
+    "Exporting device vulnerability exposure data from Spotlight for security posture reporting",
+    "Managing custom IOC watchlists to block known-bad indicators across the entire fleet",
+    "Aggregating detections across MSSP customer CIDs using Flight Control for multi-tenant SOC workflows"
+  ],
+  "not_for": [
+    "Organizations without CrowdStrike Falcon deployed — the API value is entirely tied to having the platform and sensors running on endpoints",
+    "Network-level threat detection (NDR) — CrowdStrike is endpoint-focused; use Darktrace, Vectra, or Corelight for network",
+    "Budget-sensitive or SMB environments — CrowdStrike is enterprise-tier pricing requiring annual commitment",
+    "Container/Kubernetes security without the Falcon Container sensor — some API data requires sensor coverage"
+  ],
+  "best_when": "Your organization has CrowdStrike Falcon deployed at scale and needs to build security automation — SOC alert triage, incident response, threat hunting with FQL, or MSSP multi-tenant orchestration — on top of the platform's rich endpoint telemetry and threat intelligence.",
+  "avoid_when": "You are evaluating an EDR platform and haven't yet deployed it, or need a vendor-agnostic security orchestration layer that isn't dependent on a specific EDR.",
+  "alternatives": [
+    {"id": "sentinelone-api", "reason": "Competing EDR/XDR with similar API capabilities and a comparable SOAR integration story — choice depends on which endpoint agent is already deployed"},
+    {"id": "microsoft-defender-api", "reason": "Strong choice for Microsoft 365 / Azure environments with native integration to the Microsoft security ecosystem at lower cost for existing M365 licensees"},
+    {"id": "virustotal-api", "reason": "Better for file/URL/hash threat intelligence lookups without requiring an EDR deployment — pure intelligence API"}
+  ],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": true,
+    "mcp_server_url": "https://github.com/CrowdStrike/mcp-server",
+    "has_sdk": true,
+    "sdk_languages": ["python", "go", "powershell", "rust"],
+    "openapi_spec_url": "https://assets.falcon.crowdstrike.com/support/api/swagger.json",
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["oauth2"],
+    "oauth": true,
+    "scopes": true,
+    "notes": "OAuth 2.0 client credentials flow exclusively. POST /oauth2/token with client_id and client_secret returns a bearer token valid for 30 minutes. The token must be refreshed before expiry — FalconPy SDK handles this automatically. OAuth clients are created in the Falcon console with explicit permission scopes per service collection (e.g., Detections:Read, Hosts:Write, RTR:Execute). Scope selection is critical — agents should use least-privilege clients with only the scopes their workflow requires. MSSP/Flight Control operators use a parent CID token and pass child CID context via the X-CS-USERUUID header or member_cid parameter on applicable endpoints. There is no concept of long-lived API keys — all access is token-based with 30-minute TTLs."
+  },
+  "pricing": {
+    "model": "subscription",
+    "free_tier_exists": false,
+    "free_tier_limits": null,
+    "paid_tiers": ["Falcon Go: ~$8/endpoint/month — basic EPP", "Falcon Pro: ~$15/endpoint/month — EPP + EDR", "Falcon Enterprise: ~$20/endpoint/month — adds threat intel, overwatch", "Falcon Elite/Complete: ~$35+/endpoint/month — full XDR stack with MDR", "Custom enterprise contracts for 1000+ endpoints"],
+    "requires_credit_card": true,
+    "notes": "All tiers require annual commitment and contacting sales. API access is included in all paid tiers — there is no API-only tier. No public free trial for the API; CrowdStrike occasionally offers evaluation programs for qualifying organizations."
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": true,
+    "domain_verification": false,
+    "data_residency": ["US-1", "US-2", "EU-1", "US-GOV-1"],
+    "compliance": ["SOC2-Type-II", "FedRAMP-High", "GDPR", "ISO27001", "ITAR"],
+    "min_contract": "annual"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": 75,
+    "documentation_accuracy": 85,
+    "error_message_quality": 82,
+    "error_message_notes": "API errors use a structured JSON format with 'errors' array containing code, message, and id fields. FQL syntax errors include the offending token in the error message. HTTP status codes follow REST conventions. OAuth token errors clearly distinguish invalid client credentials (401) from insufficient scope (403). Rate limit errors (429) include retry guidance. The two-step ID-fetch pattern means errors can occur at either stage, requiring agents to handle errors from both query and entities endpoints separately. The swagger UI at falcon.crowdstrike.com/api-integrations provides interactive testing which aids agent development.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "All GET/query operations are idempotent. Host containment actions are idempotent — containing an already-contained host is a no-op. IOC creation is idempotent for the same IOC value+type combination. Detection status updates (update to 'in_progress') are idempotent. RTR session commands are NOT idempotent — executing the same script twice performs the action twice. Incident assignment updates are idempotent.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "The two-step query pattern is mandatory for most list operations — first POST /detects/queries/detects/v1 to get detection IDs, then POST /detects/entities/summaries/v1 with those IDs to get full detection data; agents that expect a single call to return full objects will find all query endpoints return only ID arrays",
+      "OAuth tokens expire after exactly 30 minutes — agents must refresh before expiry; FalconPy SDK handles this transparently, but raw HTTP clients must track token creation time and refresh at ~28 minutes; failing to refresh returns 401 which is identical to an invalid client credential error",
+      "FQL (Falcon Query Language) is a proprietary filter syntax distinct from SQL, OData, and Lucene — field names are CrowdStrike-specific (e.g., status, max_severity_displayname, device_id), comparison operators include: <, <=, >, >=, =, !=, and the IN operator uses square bracket syntax [value1, value2]; agents generating FQL from natural language require extensive few-shot prompting with FQL-specific examples",
+      "Rate limits are enforced per service collection per OAuth client, not globally — the Detections service collection has different limits than Hosts or Intel; limits are not publicly documented and vary by account tier; hitting a rate limit returns 429 with a Retry-After header in seconds; agents must implement per-collection rate limit tracking",
+      "The Falcon console CID (Customer ID with checksum) differs across data residency regions (US-1, US-2, EU-1, US-GOV-1) and the API base URL differs per region (api.crowdstrike.com, api.us-2.crowdstrike.com, api.eu-1.crowdstrike.com, api.laggar.gcw.crowdstrike.com for GovCloud); agents must be configured with the correct regional base URL or all requests will return 400 or 403",
+      "Real Time Response (RTR) sessions require a dedicated RTR:Execute scope and use a stateful session model — POST /real-time-response/entities/sessions/v1 to open a session, then issue commands within that session; sessions time out after 10 minutes of inactivity and must be explicitly closed with DELETE to avoid resource exhaustion",
+      "MSSP/Flight Control parent CID operators must pass child CID context via the member_cid query parameter on endpoints that support multi-tenant access; not all service collections support Flight Control delegation — some require direct authentication to the child CID",
+      "Detection IDs (beginning with 'ldt:') and Incident IDs (beginning with 'inc:') use different prefixed formats — mixing them in batch entity fetch calls causes 404 errors with minimal diagnostic information about which ID type was expected"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 75,
+    "api_doc_score": 85,
+    "error_handling_score": 82,
+    "auth_complexity_score": 72,
+    "rate_limit_clarity_score": 68
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 92,
+    "scope_granularity": 92,
+    "dependency_hygiene": 88,
+    "secret_handling": 88,
+    "security_notes": "HTTPS enforced on all endpoints. OAuth2 client credentials with per-service-collection permission scopes — fine-grained least-privilege possible. OAuth client secrets stored in Falcon console, not accessible after creation. SOC2 Type II, FedRAMP High (US-GOV-1 region), ISO27001 certified. Endpoint telemetry data is highly sensitive — restrict API client scopes to minimum required. FalconPy SDK is actively maintained by CrowdStrike with dependency security reviews. No webhooks — agents must poll, which is safer than exposing inbound webhook endpoints. Audit logging for all API calls available in Falcon's audit event stream."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 92,
+    "version_stability": 88,
+    "breaking_changes_history": 85,
+    "error_recovery": 88
+  }
+}

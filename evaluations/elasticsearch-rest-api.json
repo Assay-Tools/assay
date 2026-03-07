@@ -1,0 +1,112 @@
+{
+  "id": "elasticsearch-rest-api",
+  "name": "Elasticsearch REST API",
+  "version_evaluated": "current",
+  "homepage": "https://www.elastic.co/docs/api/doc/elasticsearch",
+  "repo_url": "https://github.com/elastic/elasticsearch",
+  "category": "databases",
+  "subcategories": ["search", "full-text-search", "vector-search", "analytics", "log-analytics"],
+  "tags": ["elasticsearch", "elastic", "search", "full-text", "aggregations", "knn", "vector-search", "rest-api", "json", "opensearch-compatible", "kibana"],
+  "what_it_does": "Elasticsearch is a distributed search and analytics engine built on Apache Lucene. Its REST API exposes comprehensive document indexing, full-text search with relevance scoring, structured field filtering, faceted aggregations, and (as of 8.x) native kNN vector search for semantic similarity. Agents can index arbitrary JSON documents, run complex boolean query DSL, execute multi-field aggregations, and perform hybrid dense+sparse retrieval — all over plain HTTPS with no special driver required.",
+  "use_cases": [
+    "Full-text search with relevance ranking over agent-ingested document corpora (BM25 + custom scoring)",
+    "Hybrid RAG retrieval combining kNN vector similarity with BM25 keyword scoring via RRF (Reciprocal Rank Fusion)",
+    "Fuzzy and phonetic search for entity resolution (matching 'Johnsen' to 'Johnson' in knowledge bases)",
+    "Log and event analytics: ingest agent activity logs and run aggregations to detect patterns or anomalies",
+    "Aggregation pipelines: cardinality, percentiles, date histograms, nested facets over millions of documents",
+    "Autocomplete and prefix search via edge-ngram analyzers for agent-powered search UX",
+    "Percolator queries: register agent queries that trigger when new documents match them (reverse search)"
+  ],
+  "not_for": [
+    "Primary transactional data store — Elasticsearch is eventually consistent and not ACID compliant",
+    "Agents needing guaranteed document durability without a separate primary store",
+    "Simple key-value or low-cardinality lookups where the indexing overhead is unnecessary",
+    "Workloads where Elasticsearch operational complexity (cluster management, shard tuning, mapping migrations) outweighs benefits"
+  ],
+  "best_when": "An agent needs production-grade full-text search with relevance tuning, complex aggregations, or hybrid dense+sparse vector retrieval over a large document corpus, especially when integrating with the existing Elastic Stack (Kibana, Logstash, Beats).",
+  "avoid_when": "You only need approximate nearest neighbor search over embeddings — a purpose-built vector database like Qdrant will have lower operational overhead. Or if you need ACID transactions.",
+  "alternatives": ["qdrant-rest-api", "opensearch-api", "typesense-api", "meilisearch-api", "solr-api", "pinecone-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "javascript", "java", "go", "ruby", "php", "rust", "dotnet"],
+    "openapi_spec_url": "https://raw.githubusercontent.com/elastic/elasticsearch-specification/main/output/openapi/elasticsearch-serverless-openapi.json",
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["api_key", "basic_auth", "bearer_token", "pki"],
+    "oauth": false,
+    "scopes": true,
+    "notes": "Self-hosted Elasticsearch (8.x+): security is enabled by default with TLS and built-in users. API keys are the recommended approach for agents — created via the /_security/api_key endpoint, they can be scoped to specific index patterns and operations (indices privileges: read, write, manage, etc.). Elastic Cloud: API keys created in the console or via API. Basic auth with elastic superuser works but violates least-privilege. Legacy Elasticsearch 6.x/7.x had security disabled by default — a critical operational difference for self-hosted deployments. API keys encode permissions at creation time and cannot be modified after creation (must rotate)."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Self-hosted Elasticsearch is open source (SSPL/Elastic License 2.0). Elastic Cloud free trial: 14 days, then requires payment. Elasticsearch Serverless: pay-per-VCU with no free tier.",
+    "paid_tiers": [
+      "Elastic Cloud Hosted: from ~$16/month for 1GB RAM deployment",
+      "Elastic Cloud Serverless: pay-per-VCU (no cluster management)",
+      "Elastic Cloud Enterprise: on-premises Elastic Cloud, custom pricing"
+    ],
+    "requires_credit_card": true,
+    "notes": "Self-hosted is free but operationally complex. Elastic Cloud simplifies management but costs accumulate quickly with data volume and query load. OpenSearch is a free open-source fork with compatible APIs if licensing is a concern."
+  },
+  "performance": {
+    "latency_p50_ms": 20,
+    "latency_p99_ms": 200,
+    "uptime_sla_percent": 99.9,
+    "rate_limits": "No published rate limits for self-hosted or Elastic Cloud. Throughput governed by cluster shard count, replica count, and JVM heap. Bulk indexing API required for throughput above ~100 docs/second.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": true,
+    "domain_verification": false,
+    "data_residency": ["US", "EU", "APAC", "GovCloud", "self-hosted-anywhere"],
+    "compliance": ["SOC2", "ISO27001", "HIPAA", "PCI-DSS", "FedRAMP"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": 0,
+    "documentation_accuracy": 85,
+    "error_message_quality": 78,
+    "error_message_notes": "Elasticsearch error responses are JSON with 'error' object containing 'type', 'reason', and often 'root_cause' array. The reason field is human-readable and usually actionable. However, mapping conflicts (field type mismatch on dynamic indexing) produce errors that require understanding Elasticsearch mapping concepts to diagnose. Query DSL validation errors are verbose but accurate. Partial shard failures on search return HTTP 200 with '_shards.failed' > 0 and 'failures' array — agents that only check HTTP status will silently miss these. Bulk API responses also embed per-document errors inside a 200 response body.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Index document by ID (PUT /{index}/_doc/{id}) is idempotent — reinserting replaces the document. POST /{index}/_doc (auto-ID) is not idempotent — creates a new document with a new ID each call. Update by ID is idempotent if the update script is deterministic. Bulk API with explicit IDs is idempotent. Index creation is not idempotent by default (returns 400 if exists) unless the agent uses PUT with ignore_unavailable or checks existence first.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": true,
+    "known_agent_gotchas": [
+      "Dynamic mapping silently infers field types from the first document indexed — if an agent indexes doc1 with 'price': '10.99' (string) and then doc2 with 'price': 10.99 (number), doc2 indexing fails with a mapping conflict; always define explicit index mappings before ingesting heterogeneous agent-generated data",
+      "Bulk API and multi-search API return HTTP 200 even when individual items fail — agents must inspect the 'errors' boolean and iterate the 'items' array to detect per-document failures, not just check the HTTP status code",
+      "kNN vector search requires the field to be indexed as 'dense_vector' with 'index: true' at mapping time — adding vectors to an existing text-only index requires a reindex operation, not just a mapping update",
+      "The default search result limit is 10 documents — agents that don't explicitly set 'size' in the query body will silently miss results for any result set larger than 10",
+      "Index templates and component templates control mapping/settings for new indices — agents that create indices without a template may get unexpected analyzer, shard, or replica configurations that differ from production expectations",
+      "Search-After pagination (cursor-based) requires a 'sort' clause with at least one tiebreaker field (usually '_id') — agents using 'from+size' pagination beyond 10,000 documents will hit the 'index.max_result_window' limit and receive an error"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 85,
+    "error_handling_score": 72,
+    "auth_complexity_score": 70,
+    "rate_limit_clarity_score": 65
+  },
+  "security_score_components": {
+    "tls_enforcement": 90,
+    "auth_strength": 85,
+    "scope_granularity": 88,
+    "dependency_hygiene": 78,
+    "secret_handling": 80,
+    "security_notes": "Elasticsearch 8.x enables TLS and auth by default for self-hosted — a major improvement over 7.x where security was disabled by default (many historical data breaches resulted from this). API keys support index-pattern and operation-level scoping (read, write, manage, monitor) which is well-suited for least-privilege agent access. Field-level security and document-level security available on paid tiers. JVM memory and OS-level vulnerabilities are the primary attack surface for self-hosted. Elastic Cloud enforces TLS, manages certificates, and provides IP filtering. API keys cannot be retrieved after creation — if lost, rotate immediately."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 85,
+    "version_stability": 80,
+    "breaking_changes_history": 72,
+    "error_recovery": 80
+  }
+}

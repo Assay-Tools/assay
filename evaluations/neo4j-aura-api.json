@@ -1,0 +1,112 @@
+{
+  "id": "neo4j-aura-api",
+  "name": "Neo4j Aura REST API",
+  "version_evaluated": "current",
+  "homepage": "https://neo4j.com/docs/aura/",
+  "repo_url": "https://github.com/neo4j/neo4j",
+  "category": "databases",
+  "subcategories": ["graph-database", "cloud-management", "knowledge-graph", "cypher"],
+  "tags": ["neo4j", "graph-database", "aura", "cypher", "knowledge-graph", "entity-graph", "rest", "bolt", "relationship-traversal"],
+  "what_it_does": "Neo4j Aura is a fully managed graph database cloud service. It exposes two distinct API layers: the Aura Management REST API (create, pause, resume, delete database instances; manage users and billing) and the database query interfaces (HTTP API for Cypher queries, Bolt protocol for driver-based access). Graph databases store entities as nodes and relationships as first-class citizens, enabling traversal queries that are extremely efficient for highly connected data that would require complex multi-join SQL in relational databases.",
+  "use_cases": [
+    "Knowledge graphs for agents: store entities and their relationships, then traverse the graph to answer 'who is related to X and how'",
+    "Fraud detection and identity graphs: find circular ownership structures or shared credentials across accounts via graph traversal",
+    "Recommendation engines: 'users who interacted with A also interacted with B' queries via collaborative filtering patterns in Cypher",
+    "RAG enhancement: store document chunk relationships (part-of, references, authored-by) alongside vector embeddings for context-aware retrieval",
+    "Dependency analysis: model software package dependencies or infrastructure relationships and find transitive impact paths",
+    "Ontology and taxonomy management: store hierarchical and cross-referencing classifications that change shape over time",
+    "Supply chain and logistics graphs: model multi-hop supplier relationships and compute shortest paths"
+  ],
+  "not_for": [
+    "Agents that primarily need high-throughput OLTP record storage — a relational or document DB is simpler and cheaper",
+    "Pure key-value or time-series workloads with no relationship traversal requirements",
+    "Teams without willingness to learn Cypher — the query language has a steep learning curve and poorly formed Cypher is a common agent failure mode",
+    "Very large graph analytics (billions of edges) at interactive latency — use a dedicated graph analytics platform"
+  ],
+  "best_when": "Your data is fundamentally about relationships between entities, and you need to query patterns, paths, or neighborhoods in the graph — questions like 'find all paths of length <= 3 between A and B' are trivial in Cypher and painful in SQL.",
+  "avoid_when": "Your data is tabular with minimal relationships, or your primary access pattern is single-entity lookup rather than multi-hop traversal.",
+  "alternatives": ["amazon-neptune-api", "tigergraph-api", "dgraph-api", "memgraph-api", "arangodb-api"],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": false,
+    "mcp_server_url": null,
+    "has_sdk": true,
+    "sdk_languages": ["python", "java", "javascript", "dotnet", "go", "rust"],
+    "openapi_spec_url": "https://neo4j.com/docs/aura/platform/api/specification/",
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["oauth", "username_password", "bearer_token"],
+    "oauth": true,
+    "scopes": false,
+    "notes": "Aura Management API uses OAuth2 client credentials flow — agents POST to the token endpoint with client_id and client_secret to get a bearer token valid for 1 hour; the agent must handle token refresh. Database query access (HTTP API and Bolt) uses username/password credentials provisioned at instance creation. The initial password for a new Aura instance is shown exactly once at creation time and cannot be retrieved again — agents provisioning instances must capture and store it immediately or reset it via the Management API."
+  },
+  "pricing": {
+    "model": "freemium",
+    "free_tier_exists": true,
+    "free_tier_limits": "AuraDB Free: 1 database, 200,000 nodes, 400,000 relationships, 200MB storage, no SLA, auto-pauses after 3 days of inactivity",
+    "paid_tiers": [
+      "AuraDB Professional: from ~$65/month for 4GB RAM, production SLA",
+      "AuraDB Enterprise: custom pricing, VPC peering, advanced security, priority support",
+      "AuraDS (Data Science): includes Graph Data Science library, from ~$600+/month"
+    ],
+    "requires_credit_card": false,
+    "notes": "Free tier is useful for knowledge graph prototyping but auto-pauses are a gotcha for agents. Professional tier required for any production workload with SLA. Graph Data Science library (GDS) for centrality, community detection, ML pipelines is only available on AuraDS tier."
+  },
+  "performance": {
+    "latency_p50_ms": 15,
+    "latency_p99_ms": 150,
+    "uptime_sla_percent": 99.95,
+    "rate_limits": "No published rate limits for query execution. Management API: not published. Throughput governed by instance RAM tier.",
+    "data_source": "llm_estimated"
+  },
+  "requirements": {
+    "requires_signup": true,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["US", "EU", "APAC"],
+    "compliance": ["SOC2", "ISO27001", "GDPR"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": 0,
+    "documentation_accuracy": 80,
+    "error_message_quality": 72,
+    "error_message_notes": "Cypher syntax errors return detailed messages identifying the problematic clause and position — generally good for debugging. However, semantic errors (valid syntax, wrong logic) produce empty result sets with no error, which is the most dangerous failure mode for agents. HTTP API errors for auth issues return 401 with JSON body. Connection errors via Bolt surface as driver exceptions whose messages vary by driver language. Management API errors are structured JSON with 'message' fields but error codes are inconsistent.",
+    "idempotency_support": "partial",
+    "idempotency_notes": "Cypher MERGE is idempotent — it creates a node or relationship only if it doesn't exist, matching on specified properties. CREATE without MERGE is not idempotent and creates duplicate nodes. Management API instance creation is idempotent by name within a tenant. OAuth token requests are inherently idempotent. Agents should use MERGE instead of CREATE for all node/relationship writes to ensure safe retries.",
+    "pagination_style": "cursor",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Cypher's MERGE matches on ALL specified properties as a unit — if you MERGE on {name:'Alice'} and Alice already exists with {name:'Alice', age:30}, MERGE creates a SECOND node because {name:'Alice'} != {name:'Alice',age:30}; agents must MERGE on identifying properties only, then SET additional properties separately",
+      "AuraDB Free auto-pauses after 3 days of inactivity — agents hitting a paused instance get a connection refused error indistinguishable from a network failure; the instance must be manually resumed in the Aura console",
+      "The initial database password is shown ONCE at instance creation via the Management API response — if an agent provisions an instance without capturing the password field, it must rotate credentials via a separate API call; there is no way to retrieve the original password",
+      "OAuth2 bearer tokens for the Management API expire after 1 hour — agents making infrequent Management API calls must check token expiry and refresh before each request, or handle 401 responses with automatic re-authentication",
+      "Cartesian product queries in Cypher (MATCH without a connecting relationship between two node patterns) cause full cross-joins that are exponentially expensive; LLM-generated Cypher frequently produces cartesian products that time out or exhaust memory on any non-trivial dataset",
+      "The Aura HTTP API for Cypher is different from the Bolt protocol driver — the HTTP API has higher per-query overhead and does not support streaming; for production agents making many queries, use the official driver over Bolt rather than HTTP"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 0,
+    "api_doc_score": 80,
+    "error_handling_score": 68,
+    "auth_complexity_score": 62,
+    "rate_limit_clarity_score": 55
+  },
+  "security_score_components": {
+    "tls_enforcement": 100,
+    "auth_strength": 80,
+    "scope_granularity": 55,
+    "dependency_hygiene": 78,
+    "secret_handling": 68,
+    "security_notes": "Aura enforces TLS on all connections. OAuth2 client credentials for Management API is a solid auth pattern. Database credentials (username/password) have no built-in rotation mechanism — agents must implement rotation manually. No collection- or node-level permission scoping in Aura (all database users get full access unless roles are explicitly configured in the database). The one-time password display at instance creation is a significant operational risk if not handled properly by the provisioning agent. SOC2 Type II and ISO27001 certified."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 85,
+    "version_stability": 82,
+    "breaking_changes_history": 80,
+    "error_recovery": 72
+  }
+}

@@ -1,0 +1,107 @@
+{
+  "id": "trivy-api-v2",
+  "name": "Trivy Server REST API",
+  "version_evaluated": "current",
+  "homepage": "https://aquasecurity.github.io/trivy/latest/docs/references/modes/server/",
+  "repo_url": "https://github.com/aquasecurity/trivy",
+  "category": "security",
+  "subcategories": ["container-security", "vulnerability-scanning", "sbom", "iac-security", "sca"],
+  "tags": ["trivy", "aqua-security", "container-scanning", "vulnerability-scanning", "sbom", "iac-security", "trivy-server", "rest-api", "self-hosted", "open-source"],
+  "what_it_does": "Trivy Server mode runs the open-source Trivy scanner (from Aqua Security) as a persistent HTTP server, exposing a REST API for container image scanning, filesystem scanning, repository scanning, and SBOM generation. In server mode, the vulnerability database is loaded once into the server process and shared across all client requests — eliminating the cold-start DB download penalty (typically 150MB+) that affects CLI-per-scan workflows. The REST API accepts scan targets as JSON payloads and returns structured vulnerability findings in JSON or SARIF format. The server is a self-hosted component — there is no Aqua Security-hosted Trivy API. Agents must deploy and manage their own Trivy server instance, typically as a sidecar container or dedicated service in their infrastructure. The API surface is minimal (essentially one scan endpoint), but its coverage is comprehensive: OS packages, language-specific dependencies (npm, pip, gem, cargo, go.sum, etc.), secrets, misconfigurations, and SBOM generation in SPDX/CycloneDX formats. An optional token-based auth mechanism exists for securing the server endpoint.",
+  "use_cases": [
+    "Scanning container images from a CI/CD agent without per-scan DB download cost by sharing a central Trivy server",
+    "Bulk scanning multiple image tags in parallel via concurrent API requests to a single Trivy server instance",
+    "Generating SBOMs in CycloneDX or SPDX format for supply chain compliance without a SaaS dependency",
+    "Scanning filesystem paths or Git repository tarballs for vulnerability and secret detection in air-gapped environments",
+    "Integrating vulnerability data into custom security dashboards where agent controls the result storage and schema",
+    "Scanning private container registry images by passing registry credentials in the scan request without exposing them to a third-party SaaS"
+  ],
+  "not_for": [
+    "Organizations needing a centralized SaaS scanning dashboard — Trivy Server has no built-in result persistence or web UI",
+    "Runtime container threat detection — Trivy is point-in-time scanning only",
+    "Teams that cannot operate self-hosted infrastructure — managed alternatives like Snyk or GitHub Advanced Security are better fits",
+    "Windows-based container scanning at scale — Trivy Server runs on Linux; Windows container support is limited",
+    "DAST or dynamic application testing — static analysis only"
+  ],
+  "best_when": "An agent runs frequent container image scans in a CI/CD pipeline and needs to avoid per-scan vulnerability DB downloads while keeping all scan data on-premises in an air-gapped or compliance-sensitive environment.",
+  "avoid_when": "You need centralized SaaS vulnerability management with dashboards, ticketing integrations, and fix prioritization intelligence — use Snyk or GitHub Advanced Security instead.",
+  "alternatives": [
+    {"id": "snyk-api-v2", "reason": "Managed SaaS with REST API, richer fix guidance, exploitability data, and developer workflow integrations — at the cost of per-seat pricing and sending data to Snyk"},
+    {"id": "github-advanced-security-api", "reason": "Free for GitHub repos, natively integrated with Dependabot and CodeQL; no self-hosting required if already on GitHub"},
+    {"id": "grype-cli", "reason": "Anchore Grype is a simpler CLI-only vulnerability scanner with cleaner SBOM-driven output; no server mode but easier to integrate as a subprocess"}
+  ],
+  "interface": {
+    "has_rest_api": true,
+    "has_graphql": false,
+    "has_grpc": false,
+    "has_mcp_server": true,
+    "mcp_server_url": "https://github.com/aquasecurity/trivy-mcp",
+    "has_sdk": true,
+    "sdk_languages": ["go"],
+    "openapi_spec_url": "https://github.com/aquasecurity/trivy/blob/main/pkg/rpc/proto/trivy.proto",
+    "webhooks": false
+  },
+  "auth": {
+    "methods": ["token", "none"],
+    "oauth": false,
+    "scopes": false,
+    "notes": "Trivy Server supports optional token-based authentication via the --token flag at server startup. When enabled, clients must pass the token via the Trivy-Token HTTP header on every request. If not configured, the server accepts unauthenticated requests from any client — do NOT expose Trivy Server on a public network without token auth or network-level access controls. No user management, no RBAC, no scopes — it's a single shared token for all clients. For agent deployments, set a strong random token and inject it via environment variable. The server also supports a --token-header flag to customize the header name for environments where 'Trivy-Token' conflicts with other headers."
+  },
+  "pricing": {
+    "model": "open_source",
+    "free_tier_exists": true,
+    "free_tier_limits": "Completely free — Apache 2.0 license, no scan limits, no seat licensing",
+    "paid_tiers": ["Aqua Security commercial platform for centralized reporting, runtime protection, and enterprise support — contact Aqua for pricing"],
+    "requires_credit_card": false,
+    "notes": "Core Trivy (including Server mode) is entirely free and open source. Infrastructure costs for hosting the Trivy server are the only cost. Aqua Security's commercial Aqua Platform adds centralized management, policy enforcement, and runtime security on top of Trivy-compatible scanning."
+  },
+  "requirements": {
+    "requires_signup": false,
+    "requires_credit_card": false,
+    "domain_verification": false,
+    "data_residency": ["self-hosted"],
+    "compliance": ["CIS-Benchmarks", "NIST-800-53", "PCI-DSS", "HIPAA", "GDPR"],
+    "min_contract": "none"
+  },
+  "agent_readiness": {
+    "mcp_server_quality": 55,
+    "documentation_accuracy": 82,
+    "error_message_quality": 72,
+    "error_message_notes": "REST API error responses are JSON with a 'error' string field. Error messages are often terse — 'failed to scan image' without detailing whether it was a network issue, auth failure, or missing DB entry. HTTP status codes are used correctly (400 for bad request, 500 for server error, 401 for missing token). The server does not differentiate between 'image not found in registry' and 'registry auth failure' in error messages. Scan results use a well-documented JSON schema consistent with the CLI --format json output.",
+    "idempotency_support": "full",
+    "idempotency_notes": "Fully idempotent — scanning the same image:tag against the same vulnerability DB version always returns the same result. The server holds the DB in memory and all scan requests are stateless — no side effects. DB updates are applied by restarting the server or via the --download-db-only flag; DB updates change scan results without any version-change signal to clients.",
+    "pagination_style": "none",
+    "retry_guidance_documented": false,
+    "known_agent_gotchas": [
+      "Trivy Server has no built-in result persistence — every API call returns live scan results and nothing is stored; agents must save results to their own storage layer immediately, as there is no way to re-fetch a previous scan result from the server",
+      "The vulnerability database loaded into the server becomes stale daily — the server does NOT auto-update its DB; agents must implement a DB refresh schedule (restart or trivy server --download-db-only) and track the last DB update time; stale DB produces outdated results with no staleness signal in scan responses",
+      "Container image scanning requires the image to be accessible from the Trivy server's network — either via a reachable registry with credentials or by pre-pulling the image to a Docker daemon accessible to the server; agents that pass image references expecting Trivy to pull from their local daemon will fail if Trivy server runs as a separate process",
+      "Server cold start after DB refresh takes 30-120 seconds while the vulnerability DB loads into memory — agents must implement readiness polling (GET /healthz) before sending scan requests to a freshly started server",
+      "Java ecosystem scanning (scanning JARs/WARs inside container layers) is memory-intensive and can cause the Trivy server to consume 2-4GB RAM for complex enterprise images; agents must size the server appropriately and implement request timeouts for large images",
+      "The scan API accepts a JSON body with 'type', 'target', and 'options' fields — the 'type' field values ('image', 'filesystem', 'repo', 'sbom') are not fully validated; passing an unsupported type returns a 500 error rather than a 400 with a clear message about valid types",
+      "Token authentication uses a single shared token with no per-client identity — if the token is compromised, all clients must be reconfigured simultaneously; there is no token rotation API or per-client token management",
+      "SBOM generation and vulnerability scanning are separate API calls — POST /scan for vulnerabilities and POST /sbom for SBOM generation; results from both cannot be combined in a single request, requiring agents to make two sequential calls and merge results"
+    ]
+  },
+  "af_score_components": {
+    "mcp_score": 55,
+    "api_doc_score": 82,
+    "error_handling_score": 72,
+    "auth_complexity_score": 85,
+    "rate_limit_clarity_score": 90
+  },
+  "security_score_components": {
+    "tls_enforcement": 80,
+    "auth_strength": 65,
+    "scope_granularity": 50,
+    "dependency_hygiene": 90,
+    "secret_handling": 78,
+    "security_notes": "TLS is NOT enabled by default in Trivy Server — must be configured explicitly with --cert and --key flags; without TLS, scan requests (including registry credentials) are transmitted in plaintext. Single shared token auth with no RBAC or per-client identity. Never expose Trivy Server on a public network without both TLS and token auth. Registry credentials passed in scan request bodies should be transmitted only over TLS. Server binary has excellent dependency hygiene as an Aqua Security-maintained open-source project with regular security updates. Self-hosted means the organization controls all scan data — advantage for air-gapped and compliance-sensitive environments."
+  },
+  "reliability_score_components": {
+    "uptime_documented": 78,
+    "version_stability": 85,
+    "breaking_changes_history": 80,
+    "error_recovery": 75
+  }
+}
