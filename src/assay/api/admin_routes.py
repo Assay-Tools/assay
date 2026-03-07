@@ -14,7 +14,7 @@ from assay.database import get_db
 from assay.heartbeat.data import check_data_pipeline
 from assay.heartbeat.feedback import check_feedback
 from assay.heartbeat.health import check_site_health
-from assay.models import Order
+from assay.models import Order, Package
 
 from .usage import api_call_counts, api_error_counts
 
@@ -251,3 +251,68 @@ def retry_report_generation(
     if report_path:
         return {"status": "generated", "report_path": report_path}
     return {"status": "failed", "detail": "Check server logs"}
+
+
+@router.post("/reevaluate")
+def flag_for_reevaluation(
+    request: Request,
+    body: dict,
+    db: Session = Depends(get_db),
+    _auth=Depends(_require_admin_key),
+):
+    """Flag packages for priority re-evaluation.
+
+    Body options:
+      {"package_ids": ["id1", "id2"]}  — flag specific packages
+      {"filter": "stale"}              — bulk-flag all stale packages (>30 days)
+    """
+    from datetime import timedelta
+
+    from assay.evaluation.scheduler import FRESHNESS_DAYS
+
+    package_ids = body.get("package_ids")
+    filter_mode = body.get("filter")
+
+    if not package_ids and not filter_mode:
+        raise HTTPException(
+            status_code=400,
+            detail="Provide 'package_ids' (list) or 'filter' ('stale')",
+        )
+
+    flagged_count = 0
+
+    if package_ids:
+        packages = db.query(Package).filter(Package.id.in_(package_ids)).all()
+        found_ids = {p.id for p in packages}
+        missing = [pid for pid in package_ids if pid not in found_ids]
+        if missing:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Packages not found: {', '.join(missing)}",
+            )
+        for pkg in packages:
+            pkg.status = "reevaluate"
+            flagged_count += 1
+
+    elif filter_mode == "stale":
+        stale_cutoff = datetime.now(timezone.utc) - timedelta(days=FRESHNESS_DAYS)
+        stale_packages = (
+            db.query(Package)
+            .filter(
+                Package.af_score.isnot(None),
+                Package.last_evaluated < stale_cutoff,
+            )
+            .all()
+        )
+        for pkg in stale_packages:
+            pkg.status = "reevaluate"
+            flagged_count += 1
+    else:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unknown filter: '{filter_mode}'. Supported: 'stale'",
+        )
+
+    db.commit()
+    logger.info("Flagged %d packages for re-evaluation", flagged_count)
+    return {"status": "ok", "flagged_count": flagged_count}

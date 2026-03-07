@@ -1,9 +1,9 @@
 """API route handlers for Assay."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
-from sqlalchemy import func, or_
+from sqlalchemy import func
 from sqlalchemy.orm import Session, joinedload
 from starlette.responses import Response
 
@@ -11,7 +11,6 @@ from assay.database import get_db
 from assay.models import (
     Category,
     Package,
-    PackageAgentReadiness,
     PackageInterface,
     PackagePricing,
     PackageRequirements,
@@ -421,27 +420,28 @@ def get_evaluation_queue(
 ):
     """Get packages needing evaluation — for community contributors.
 
-    Ordered by priority (high first), then by created_at desc.
+    Returns packages in strategic priority order:
+      1. Flagged for re-evaluation (admin request)
+      2. Never evaluated (high-priority and high-star first)
+      3. Stale (>30 days, oldest first)
     """
-    # Unevaluated packages — high priority first, then by created_at
-    q = db.query(Package).filter(Package.af_score.is_(None))
-    if package_type:
-        q = q.filter(Package.package_type == package_type)
-    if priority:
-        q = q.filter(Package.priority == priority)
+    from assay.evaluation.scheduler import get_evaluation_queue as scheduler_queue, get_evaluation_stats
 
-    unevaluated = (
-        q.order_by(
-            # high priority first (h < l alphabetically)
-            Package.priority.asc(),
-            Package.created_at.desc(),
-        )
-        .limit(limit)
-        .all()
+    queue_items = scheduler_queue(
+        db, limit=limit, package_type=package_type, priority=priority,
     )
 
-    results = [
-        {
+    # Map tier to backward-compatible status values
+    tier_status_map = {
+        "flagged": "needs_reevaluation",
+        "unevaluated": "needs_evaluation",
+        "stale": "needs_reevaluation",
+    }
+
+    results = []
+    for item in queue_items:
+        p = item["package"]
+        entry = {
             "id": p.id,
             "name": p.name,
             "repo_url": p.repo_url,
@@ -449,96 +449,24 @@ def get_evaluation_queue(
             "package_type": p.package_type,
             "priority": p.priority,
             "stars": p.stars,
-            "status": "needs_evaluation",
+            "status": tier_status_map.get(item["tier"], "needs_evaluation"),
+            "tier": item["tier"],
+            "reason": item["reason"],
         }
-        for p in unevaluated
-    ]
+        if item["tier"] in ("flagged", "stale"):
+            entry["last_evaluated"] = p.last_evaluated.isoformat() if p.last_evaluated else None
+            entry["current_af_score"] = p.af_score
+        results.append(entry)
 
-    if include_stale and len(results) < limit:
-        # Packages with composite scores but missing security/reliability sub-components
-        remaining = limit - len(results)
-        iq = (
-            db.query(Package)
-            .join(
-                PackageAgentReadiness, Package.id == PackageAgentReadiness.package_id, isouter=True,
-            )
-            .filter(
-                Package.af_score.isnot(None),
-                or_(
-                    PackageAgentReadiness.tls_enforcement.is_(None),
-                    PackageAgentReadiness.package_id.is_(None),
-                ),
-            )
-        )
-        if package_type:
-            iq = iq.filter(Package.package_type == package_type)
-        if priority:
-            iq = iq.filter(Package.priority == priority)
+    stats = get_evaluation_stats(db)
 
-        incomplete = (
-            iq.order_by(Package.priority.asc(), Package.created_at.desc())
-            .limit(remaining)
-            .all()
-        )
-        results.extend([
-            {
-                "id": p.id,
-                "name": p.name,
-                "repo_url": p.repo_url,
-                "category": p.category_slug,
-                "package_type": p.package_type,
-                "priority": p.priority,
-                "stars": p.stars,
-                "status": "needs_reevaluation",
-                "reason": "missing_sub_components",
-                "last_evaluated": p.last_evaluated.isoformat() if p.last_evaluated else None,
-                "current_af_score": p.af_score,
-            }
-            for p in incomplete
-        ])
-
-    # Stale packages (evaluated > 90 days ago)
-    if include_stale and len(results) < limit:
-        stale_cutoff = datetime.now(timezone.utc) - timedelta(days=90)
-        remaining = limit - len(results)
-        sq = db.query(Package).filter(
-            Package.af_score.isnot(None),
-            Package.last_evaluated < stale_cutoff,
-        )
-        if package_type:
-            sq = sq.filter(Package.package_type == package_type)
-        if priority:
-            sq = sq.filter(Package.priority == priority)
-
-        stale = (
-            sq.order_by(Package.priority.asc(), Package.last_evaluated.asc())
-            .limit(remaining)
-            .all()
-        )
-        results.extend([
-            {
-                "id": p.id,
-                "name": p.name,
-                "repo_url": p.repo_url,
-                "category": p.category_slug,
-                "package_type": p.package_type,
-                "priority": p.priority,
-                "stars": p.stars,
-                "status": "needs_reevaluation",
-                "reason": "stale",
-                "last_evaluated": p.last_evaluated.isoformat() if p.last_evaluated else None,
-                "current_af_score": p.af_score,
-            }
-            for p in stale
-        ])
-
-    return {"count": len(results), "queue": results}
+    return {"count": len(results), "queue": results, "stats": stats}
 
 
 # --- Stats ---
 
 
-@router.get("/v1/stats", response_model=StatsResponse, tags=["stats"])
+@router.get("/v1/stats", tags=["stats"])
 @limiter.limit(API_RATE_LIMIT)
 def get_stats(request: Request, response: Response, db: Session = Depends(get_db)):
     """Get sitewide statistics and score distribution."""
@@ -570,16 +498,25 @@ def get_stats(request: Request, response: Response, db: Session = Depends(get_db
         db.query(func.count(Package.id)).filter(Package.af_score.is_(None)).scalar() or 0
     )
 
-    return StatsResponse(
-        total_packages=total_packages,
-        total_evaluated=total_evaluated,
-        total_categories=total_categories,
-        avg_af_score=round(avg_af, 2) if avg_af is not None else None,
-        score_distribution=ScoreDistribution(
+    # Freshness metrics from scheduler
+    from assay.evaluation.scheduler import get_evaluation_stats
+    eval_stats = get_evaluation_stats(db)
+
+    return {
+        "total_packages": total_packages,
+        "total_evaluated": total_evaluated,
+        "total_categories": total_categories,
+        "avg_af_score": round(avg_af, 2) if avg_af is not None else None,
+        "score_distribution": ScoreDistribution(
             excellent=excellent,
             good=good,
             fair=fair,
             poor=poor,
             unrated=unrated,
-        ),
-    )
+        ).model_dump(),
+        "evaluation_freshness_pct": eval_stats["evaluation_freshness_pct"],
+        "total_stale": eval_stats["total_stale"],
+        "total_unevaluated": eval_stats["total_unevaluated"],
+        "total_flagged": eval_stats["total_flagged"],
+        "freshness_target_days": eval_stats["freshness_target_days"],
+    }

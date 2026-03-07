@@ -46,8 +46,8 @@ class Package(Base):
     priority: Mapped[str] = mapped_column(String(10), default="low")  # high, low
     stars: Mapped[int | None] = mapped_column(Integer)  # GitHub star count
 
-    # Status
-    # discovered, evaluated, published
+    # Status: discovered, evaluated, published, reevaluate
+    # "reevaluate" = flagged for priority re-evaluation (admin/user request, broken sub-components)
     status: Mapped[str] = mapped_column(String(50), default="discovered")
     version_evaluated: Mapped[str | None] = mapped_column(String(100))
     last_evaluated: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

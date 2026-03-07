@@ -698,29 +698,63 @@ class EvaluationAgent:
         finally:
             db.close()
 
-    def evaluate_batch(self, status: str = "discovered", limit: int = 10) -> dict:
-        """Evaluate multiple packages. Returns summary stats."""
+    def evaluate_batch(
+        self,
+        status: str | None = None,
+        limit: int = 10,
+        package_type: str | None = None,
+        priority: str | None = None,
+    ) -> dict:
+        """Evaluate multiple packages using the strategic scheduler.
+
+        By default, uses the scheduler's priority queue (flagged → unevaluated → stale).
+        Pass --status to override with a raw status filter (legacy behavior).
+        """
+        from assay.evaluation.scheduler import get_evaluation_queue
+
         db = SessionLocal()
         try:
-            packages = (
-                db.query(Package)
-                .filter(Package.status == status)
-                .limit(limit)
-                .all()
-            )
-            logger.info("Found %d packages with status '%s'", len(packages), status)
+            if status:
+                # Legacy override: filter by raw status
+                packages = (
+                    db.query(Package)
+                    .filter(Package.status == status)
+                    .limit(limit)
+                    .all()
+                )
+                queue_items = [{"package": p, "tier": "manual", "reason": f"status={status}"} for p in packages]
+                logger.info("Legacy mode: found %d packages with status '%s'", len(packages), status)
+            else:
+                # Strategic scheduler
+                queue_items = get_evaluation_queue(
+                    db, limit=limit, package_type=package_type, priority=priority,
+                )
+                tier_counts = {}
+                for item in queue_items:
+                    tier_counts[item["tier"]] = tier_counts.get(item["tier"], 0) + 1
+                logger.info(
+                    "Scheduler queue: %d packages (%s)",
+                    len(queue_items),
+                    ", ".join(f"{t}: {c}" for t, c in tier_counts.items()),
+                )
+
+            # Extract package IDs for evaluation (close this DB session first)
+            package_ids = [(item["package"].id, item["tier"]) for item in queue_items]
         finally:
             db.close()
 
-        results = {"total": len(packages), "success": 0, "failed": 0, "scores": {}}
+        results = {"total": len(package_ids), "success": 0, "failed": 0, "scores": {}, "by_tier": {}}
 
-        for pkg in packages:
-            score = self.evaluate_package(pkg.id)
+        for pkg_id, tier in package_ids:
+            score = self.evaluate_package(pkg_id)
             if score is not None:
                 results["success"] += 1
-                results["scores"][pkg.id] = score
+                results["scores"][pkg_id] = score
             else:
                 results["failed"] += 1
+
+            results["by_tier"].setdefault(tier, {"success": 0, "failed": 0})
+            results["by_tier"][tier]["success" if score is not None else "failed"] += 1
 
             # Brief pause between evaluations to be kind to APIs
             time.sleep(1)
@@ -742,14 +776,26 @@ def main():
     parser.add_argument(
         "--status",
         type=str,
-        default="discovered",
-        help="Filter packages by status (for batch mode)",
+        default=None,
+        help="Override: filter by raw status instead of using scheduler (legacy)",
     )
     parser.add_argument(
         "--limit",
         type=int,
         default=10,
         help="Max packages to evaluate (for batch mode)",
+    )
+    parser.add_argument(
+        "--package-type",
+        type=str,
+        default=None,
+        help="Filter by package type (mcp_server, skill, api)",
+    )
+    parser.add_argument(
+        "--priority",
+        type=str,
+        default=None,
+        help="Filter by priority (high, low)",
     )
     parser.add_argument("--verbose", "-v", action="store_true", help="Verbose logging")
 
@@ -776,8 +822,17 @@ def main():
                 print(f"Evaluation failed for {args.package}", file=sys.stderr)
                 sys.exit(1)
         elif args.batch:
-            results = agent.evaluate_batch(status=args.status, limit=args.limit)
+            results = agent.evaluate_batch(
+                status=args.status,
+                limit=args.limit,
+                package_type=args.package_type,
+                priority=args.priority,
+            )
             print(f"Batch complete: {results['success']}/{results['total']} succeeded")
+            if results.get("by_tier"):
+                print("By tier:")
+                for tier, counts in results["by_tier"].items():
+                    print(f"  {tier}: {counts['success']} ok, {counts['failed']} failed")
             if results["scores"]:
                 print("Scores:")
                 for pkg_id, score in results["scores"].items():
