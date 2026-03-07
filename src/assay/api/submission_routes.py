@@ -280,7 +280,9 @@ def submit_evaluation(
     if submission.tags:
         list_fields["tags"] = " ".join(submission.tags)
     if submission.agent_readiness and submission.agent_readiness.known_agent_gotchas:
-        list_fields["known_agent_gotchas"] = " ".join(submission.agent_readiness.known_agent_gotchas)
+        list_fields["known_agent_gotchas"] = " ".join(
+            submission.agent_readiness.known_agent_gotchas,
+        )
 
     injection_findings = scan_submission({**text_fields, **list_fields})
     if injection_findings:

@@ -79,7 +79,9 @@ def auth_callback(
         return RedirectResponse("/contribute?error=oauth_denied", status_code=303)
     cookie_state, cookie_sig = cookie_val.rsplit(":", 1)
     expected_sig = _sign_state(cookie_state)
-    if not hmac.compare_digest(cookie_sig, expected_sig) or not hmac.compare_digest(cookie_state, state):
+    if not hmac.compare_digest(cookie_sig, expected_sig) or not hmac.compare_digest(
+        cookie_state, state
+    ):
         logger.warning("OAuth callback: state mismatch (CSRF)")
         return RedirectResponse("/contribute?error=oauth_denied", status_code=303)
 

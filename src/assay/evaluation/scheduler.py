@@ -58,7 +58,10 @@ def get_evaluation_queue(
         )
         for pkg in flagged:
             if pkg.id not in seen_ids:
-                results.append({"package": pkg, "tier": "flagged", "reason": "flagged_for_reevaluation"})
+                results.append({
+                    "package": pkg, "tier": "flagged",
+                    "reason": "flagged_for_reevaluation",
+                })
                 seen_ids.add(pkg.id)
 
     # --- Tier 2: Never evaluated ---

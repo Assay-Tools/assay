@@ -14,7 +14,6 @@ from sqlalchemy import or_
 from sqlalchemy.orm import joinedload
 
 from assay.database import SessionLocal, init_db
-from assay.security.prompt_injection import tag_provenance
 from assay.models.package import (
     Category,
     Package,
@@ -22,6 +21,7 @@ from assay.models.package import (
     PackagePricing,
     ScoreSnapshot,
 )
+from assay.security.prompt_injection import tag_provenance
 
 server = Server("assay")
 

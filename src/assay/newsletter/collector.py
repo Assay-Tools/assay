@@ -127,7 +127,6 @@ def collect_weekly_data(db: Session, as_of: datetime | None = None) -> WeeklyDig
 
     # -- Newly evaluated (first scores this week) --
     # Use a subquery to find packages whose earliest snapshot is within this week
-    from sqlalchemy import and_
     first_snap_sub = (
         db.query(
             ScoreSnapshot.package_id,
@@ -162,7 +161,7 @@ def collect_weekly_data(db: Session, as_of: datetime | None = None) -> WeeklyDig
     # -- Biggest score movers --
     # Find packages with 2+ snapshots where at least one is this week.
     # Use window functions to get latest and previous scores efficiently.
-    from sqlalchemy import literal_column, text as sa_text
+    from sqlalchemy import text as sa_text
     movers_query = sa_text("""
         WITH ranked AS (
             SELECT

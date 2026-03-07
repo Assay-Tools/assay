@@ -228,7 +228,9 @@ def generate_report_for_order(order: Order, db: Session) -> str | None:
                 md_content = cache_path.read_text()
                 pdf_result = markdown_to_pdf(md_content, cache_path)
                 pdf_rel = f"reports/output/packages/{pdf_result.name}"
-                logger.info("PDF generated for order %d (attempt %d): %s", order.id, attempt, pdf_result)
+                logger.info(
+                    "PDF generated for order %d (attempt %d): %s", order.id, attempt, pdf_result,
+                )
                 last_error = None
                 break
             except Exception as exc:

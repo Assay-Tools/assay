@@ -25,7 +25,6 @@ import httpx
 from pydantic import BaseModel, Field
 
 from assay.config import settings
-from assay.security.prompt_injection import wrap_untrusted
 from assay.database import SessionLocal
 from assay.models.package import (
     Category,
@@ -37,6 +36,7 @@ from assay.models.package import (
     PackagePricing,
     PackageRequirements,
 )
+from assay.security.prompt_injection import wrap_untrusted
 
 logger = logging.getLogger(__name__)
 
@@ -370,7 +370,8 @@ def build_user_prompt(
 
     if metadata:
         parts.append("## Repository Metadata")
-        parts.append(wrap_untrusted(json.dumps(metadata, indent=2), label="repository metadata from GitHub API"))
+        meta_json = json.dumps(metadata, indent=2)
+        parts.append(wrap_untrusted(meta_json, label="repository metadata from GitHub API"))
         parts.append("")
 
     if readme:
@@ -730,8 +731,14 @@ class EvaluationAgent:
                     .limit(limit)
                     .all()
                 )
-                queue_items = [{"package": p, "tier": "manual", "reason": f"status={status}"} for p in packages]
-                logger.info("Legacy mode: found %d packages with status '%s'", len(packages), status)
+                queue_items = [
+                    {"package": p, "tier": "manual", "reason": f"status={status}"}
+                    for p in packages
+                ]
+                logger.info(
+                    "Legacy mode: found %d packages with status '%s'",
+                    len(packages), status,
+                )
             else:
                 # Strategic scheduler
                 queue_items = get_evaluation_queue(
@@ -751,7 +758,10 @@ class EvaluationAgent:
         finally:
             db.close()
 
-        results = {"total": len(package_ids), "success": 0, "failed": 0, "scores": {}, "by_tier": {}}
+        results = {
+            "total": len(package_ids), "success": 0, "failed": 0,
+            "scores": {}, "by_tier": {},
+        }
 
         for pkg_id, tier in package_ids:
             score = self.evaluate_package(pkg_id)

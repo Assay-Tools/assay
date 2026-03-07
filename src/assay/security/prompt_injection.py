@@ -22,10 +22,14 @@ _INJECTION_PATTERNS: list[tuple[re.Pattern, str]] = [
      "Instruction override attempt"),
     (re.compile(r"ignore\s+(everything|anything)\s+(above|before|prior)", re.I),
      "Instruction override attempt"),
-    (re.compile(r"disregard\s+(all\s+)?(previous|prior|above|earlier)\s+(instructions|prompts|context)", re.I),
-     "Instruction override attempt"),
-    (re.compile(r"forget\s+(all\s+)?(previous|prior|above|earlier)\s+(instructions|prompts|context)", re.I),
-     "Instruction override attempt"),
+    (re.compile(
+        r"disregard\s+(all\s+)?(previous|prior|above|earlier)"
+        r"\s+(instructions|prompts|context)", re.I,
+    ), "Instruction override attempt"),
+    (re.compile(
+        r"forget\s+(all\s+)?(previous|prior|above|earlier)"
+        r"\s+(instructions|prompts|context)", re.I,
+    ), "Instruction override attempt"),
     (re.compile(r"you\s+are\s+now\s+(a|an|the)\s+", re.I),
      "Role reassignment attempt"),
     (re.compile(r"(new|updated|revised)\s+(system\s+)?instructions?:", re.I),
@@ -40,12 +44,14 @@ _INJECTION_PATTERNS: list[tuple[re.Pattern, str]] = [
      "Role reassignment attempt"),
     (re.compile(r"pretend\s+(that\s+)?(you\s+are|you\'re|to\s+be)", re.I),
      "Role reassignment attempt"),
-    (re.compile(r"(reveal|show|print|output|display)\s+(your\s+)?(system\s+)?(prompt|instructions)", re.I),
-     "System prompt extraction attempt"),
+    (re.compile(
+        r"(reveal|show|print|output|display)\s+(your\s+)?(system\s+)?(prompt|instructions)", re.I,
+    ), "System prompt extraction attempt"),
     (re.compile(r"what\s+(are|is)\s+your\s+(system\s+)?(prompt|instructions|rules)", re.I),
      "System prompt extraction attempt"),
-    (re.compile(r"give\s+(this|the)\s+package\s+(a\s+)?(perfect|100|maximum|highest)\s+score", re.I),
-     "Score manipulation attempt"),
+    (re.compile(
+        r"give\s+(this|the)\s+package\s+(a\s+)?(perfect|100|maximum|highest)\s+score", re.I,
+    ), "Score manipulation attempt"),
     (re.compile(r"(score|rate|evaluate)\s+(this|it)\s+(as\s+)?(100|perfect|excellent)", re.I),
      "Score manipulation attempt"),
     (re.compile(r"set\s+(all\s+)?scores?\s+to\s+\d+", re.I),

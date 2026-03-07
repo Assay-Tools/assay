@@ -6,7 +6,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from urllib.parse import urlencode
 
-from fastapi import APIRouter, Depends, Form, Query, Request
+from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request
 from fastapi.responses import (
     FileResponse,
     HTMLResponse,
@@ -271,11 +271,7 @@ def package_detail(request: Request, package_id: str, db: Session = Depends(get_
     )
 
     if not package:
-        return templates.TemplateResponse(
-            "pages/package_detail.html",
-            {"request": request, "package": None, "community_stats": _community_stats(db)},
-            status_code=404,
-        )
+        raise HTTPException(status_code=404, detail="Package not found")
 
     # Compute staleness for template
     now = datetime.now(timezone.utc)
@@ -827,7 +823,9 @@ def _check_admin_key(request: Request):
 
 
 @router.get("/admin/freshness", response_class=HTMLResponse)
-def admin_freshness(request: Request, db: Session = Depends(get_db), _auth=Depends(_check_admin_key)):
+def admin_freshness(
+    request: Request, db: Session = Depends(get_db), _auth=Depends(_check_admin_key),
+):
     """Data freshness dashboard — evaluation coverage and staleness."""
     now = datetime.now(timezone.utc)
 

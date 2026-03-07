@@ -11,7 +11,6 @@ Key structure:
 
 import json
 import logging
-import tempfile
 from pathlib import Path
 
 from google.cloud import storage
@@ -51,7 +50,9 @@ def _bucket():
     return client.bucket(settings.gcs_bucket)
 
 
-def upload_report(package_id: str, report_type: str, md_path: Path, pdf_path: Path | None = None) -> bool:
+def upload_report(
+    package_id: str, report_type: str, md_path: Path, pdf_path: Path | None = None,
+) -> bool:
     """Upload markdown and PDF report files to GCS.
 
     Args:

@@ -178,7 +178,9 @@ class SubComponentEvidence(BaseModel):
     checkpoints: dict[str, bool] = Field(
         description="Map of checkpoint_id -> met (true/false)",
     )
-    notes: str | None = Field(None, max_length=2000, description="Optional notes explaining the assessment")
+    notes: str | None = Field(
+        None, max_length=2000, description="Optional notes explaining the assessment",
+    )
 
 
 class EvaluationEvidence(BaseModel):
@@ -211,7 +213,9 @@ class EvaluationSubmission(BaseModel):
     id: str = Field(max_length=200, description="Package ID (slug, e.g. 'stripe')")
     name: str = Field(max_length=200, description="Display name")
     evaluator_engine: str | None = Field(
-        None, max_length=100, description="AI engine used for evaluation (e.g. 'claude', 'gpt-4', 'gemini')",
+        None,
+        max_length=100,
+        description="AI engine used for evaluation (e.g. 'claude', 'gpt-4', 'gemini')",
     )
     rubric_version: str = Field(
         "1.0", max_length=20, description="Rubric version used for this evaluation",
