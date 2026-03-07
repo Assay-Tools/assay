@@ -15,6 +15,19 @@ The business proves three things:
 2. **The pipeline is agentic** — agents can autonomously evaluate packages at scale
 3. **The product generates revenue** — paid reports, monitoring, and certifications
 
+### Core Philosophy: Agents Are First-Class Citizens
+
+Assay was built for agents first, humans second. Every interface, data format, and design decision treats AI agents as a primary audience — not an afterthought.
+
+**What this means in practice:**
+- **Agents discover tools through Assay** — an agent can query the API or MCP server to find the best package for a task, filtered by score, category, or capability
+- **Agents recommend tools to humans** — using Assay's structured ratings and evidence-based scoring, agents can make informed recommendations backed by solid data
+- **Agents consume Assay data natively** — JSON API, MCP server, OpenAPI spec, llms.txt, CLI with JSON output — all designed for programmatic consumption
+- **Agents evaluate packages autonomously** — the evaluation pipeline itself is agentic, proving the model end-to-end
+- **Humans get the same quality** — the web frontend, PDF reports, and human-readable formats are built on top of the same data, not a separate track
+
+The core use case: a developer asks their agent to find the best tool for a job. The agent queries Assay, evaluates options across AF/Security/Reliability dimensions, and recommends tools with confidence — because the scores are earned through real evaluation, not marketing copy.
+
 ---
 
 ## Current Goal: First Revenue

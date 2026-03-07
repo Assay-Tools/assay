@@ -15,9 +15,10 @@ Independent agent-friendliness ratings for MCP servers, APIs, and SDKs. Assay sc
 
 ## Principles
 
+- **Agents are first-class citizens** — every API, data format, and interface is designed for programmatic consumption by AI agents, not just humans
 - **Independent ratings** — vendors cannot buy influence over scores
 - **Trust is the product** — if the ratings aren't honest, they're worthless
-- **Built for builders** — solo developers and small shops are the core audience
+- **Built for everyone** — agents discovering tools, developers choosing dependencies, and teams evaluating vendors
 
 ## Quick start
 
