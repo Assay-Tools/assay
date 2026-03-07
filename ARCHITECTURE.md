@@ -66,7 +66,7 @@ echo -n "value" | gcloud secrets create SECRET_NAME --project=business-34-incuba
 | GCP Secret | Railway Env Var | Purpose |
 |-----------|----------------|---------|
 | `ASSAY_ANTHROPIC_API_KEY` | `ANTHROPIC_API_KEY` | Claude API for report narrative generation |
-| `ASSAY_STRIPE_SECRET_KEY` | `STRIPE_SECRET_KEY` | Stripe API (currently sandbox/test) |
+| `ASSAY_STRIPE_SECRET_KEY` | `STRIPE_SECRET_KEY` | Stripe API (live) |
 | `ASSAY_STRIPE_WEBHOOK_SECRET` | `STRIPE_WEBHOOK_SECRET` | Stripe webhook signature verification |
 | `ASSAY_RESEND_API_KEY` | `RESEND_API_KEY` | Resend transactional email API |
 | `ASSAY_ADMIN_API_KEY` | `ADMIN_API_KEYS` | Admin endpoint authentication |
@@ -80,10 +80,10 @@ echo -n "value" | gcloud secrets create SECRET_NAME --project=business-34-incuba
 | `SMTP_USER` | `hello@assay.tools` | Migadu sender identity |
 | `SMTP_HOST` | `smtp.migadu.com` | Migadu SMTP server |
 | `SMTP_PORT` | `465` | Migadu SMTP port (SSL) |
-| `STRIPE_PRICE_REPORT` | `price_1T83U1...` | Stripe Price ID: $99 report |
-| `STRIPE_PRICE_BRIEF` | `price_1T86jq...` | Stripe Price ID: $3 brief |
-| `STRIPE_PRICE_MONITORING` | `price_1T83U3...` | Stripe Price ID: $3/mo monitoring |
-| `STRIPE_PRICE_SUPPORT` | `price_1T86k1...` | Stripe Price ID: custom support |
+| `STRIPE_PRICE_REPORT` | `price_1T8Q3D...wiTP` | Stripe Price ID: $99 report (live) |
+| `STRIPE_PRICE_BRIEF` | `price_1T8Q3A...H2v8T` | Stripe Price ID: $3 brief (live) |
+| `STRIPE_PRICE_MONITORING` | `price_1T8Q3D...OKmF` | Stripe Price ID: $3/mo monitoring (live) |
+| `STRIPE_PRICE_SUPPORT` | `price_1T8Q3B...Xw9K` | Stripe Price ID: custom support (live) |
 
 ### Local Development
 
@@ -141,11 +141,26 @@ curl -s "https://api.cloudflare.com/client/v4/zones/08a7c326ad4b9fd8cffeb1acb7d8
 
 ---
 
+## GCS Report Storage
+
+**Bucket**: `gs://assay-reports` (us-central1)
+**Service account**: `assay-reports-rw@business-34-incubator.iam.gserviceaccount.com`
+**Key structure**: `reports/{package_id}/{report_type}.{md,pdf}`
+
+Reports are uploaded to GCS after generation and served from GCS when local files are missing (e.g., after container redeploy). Both brief and full report types are stored for cache reuse.
+
+| Railway Env Var | Purpose |
+|----------------|---------|
+| `GCS_BUCKET` | Bucket name (`assay-reports`) |
+| `GCS_SA_KEY` | Service account key JSON |
+
+---
+
 ## Stripe
 
 **Dashboard**: https://dashboard.stripe.com
 **Account email**: ajvanbeest@gmail.com
-**Mode**: Sandbox/test (live keys pending LLC + bank account)
+**Mode**: Live
 **Webhook endpoint**: `https://assay.tools/v1/webhooks/stripe`
 **Events subscribed**: `checkout.session.completed`, `customer.subscription.deleted`, `customer.subscription.updated`
 

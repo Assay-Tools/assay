@@ -40,6 +40,10 @@ class Settings(BaseSettings):
     smtp_host: str = "smtp.migadu.com"
     smtp_port: int = 465
 
+    # GCS report storage
+    gcs_bucket: str = ""  # GCS bucket name for report storage
+    gcs_sa_key: str = ""  # GCS service account key JSON
+
     # Discovery
     github_token: str = ""  # GitHub PAT for 5,000 req/hr (vs 60 unauthenticated)
     smithery_token: str = ""  # Smithery.ai API token for registry access

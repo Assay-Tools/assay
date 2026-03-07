@@ -460,34 +460,51 @@ def download_report(
     if not order.report_path:
         raise HTTPException(status_code=404, detail="Report not yet generated")
 
-    report_file = PROJECT_ROOT / order.report_path
-
-    if not report_file.exists():
-        raise HTTPException(status_code=404, detail="Report file not found")
-
     # Check if PDF is requested (via query param or Accept header)
     fmt = request.query_params.get("format", "pdf")
     suffix = "brief" if order.order_type == "brief" else "report"
+    report_type = order.order_type
 
-    if fmt == "md":
+    # Try local file first
+    report_file = PROJECT_ROOT / order.report_path
+    pdf_file = report_file.with_suffix(".pdf") if report_file.suffix == ".md" else None
+
+    if fmt == "md" and report_file.exists():
         return FileResponse(
             path=str(report_file),
             filename=f"assay-{suffix}-{order.package_id}.md",
             media_type="text/markdown",
         )
-
-    # Default to PDF
-    pdf_file = report_file.with_suffix(".pdf")
-    if pdf_file.exists():
+    if fmt == "pdf" and pdf_file and pdf_file.exists():
         return FileResponse(
             path=str(pdf_file),
             filename=f"assay-{suffix}-{order.package_id}.pdf",
             media_type="application/pdf",
         )
 
-    # Fallback to markdown if PDF doesn't exist
-    return FileResponse(
-        path=str(report_file),
-        filename=f"assay-{suffix}-{order.package_id}.md",
-        media_type="text/markdown",
-    )
+    # Fall back to GCS if local file not available
+    try:
+        from assay.reports.storage import download_report as gcs_download
+        content = gcs_download(order.package_id, report_type, fmt)
+        if content:
+            media = "application/pdf" if fmt == "pdf" else "text/markdown"
+            ext = "pdf" if fmt == "pdf" else "md"
+            return Response(
+                content=content,
+                media_type=media,
+                headers={
+                    "Content-Disposition": f'attachment; filename="assay-{suffix}-{order.package_id}.{ext}"',
+                },
+            )
+    except Exception:
+        logger.exception("GCS download failed for order %s", order.id)
+
+    # Last resort: serve whatever local file exists (md fallback for pdf request)
+    if report_file.exists():
+        return FileResponse(
+            path=str(report_file),
+            filename=f"assay-{suffix}-{order.package_id}.md",
+            media_type="text/markdown",
+        )
+
+    raise HTTPException(status_code=404, detail="Report file not found")

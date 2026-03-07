@@ -225,6 +225,14 @@ def generate_report_for_order(order: Order, db: Session) -> str | None:
                 logger.exception("Failed to send failure alert for order %d", order.id)
             return None
 
+        # Upload to GCS for durable storage
+        pdf_path = cache_path.with_suffix(".pdf") if pdf_rel else None
+        try:
+            from assay.reports.storage import upload_report
+            upload_report(order.package_id, report_type, cache_path, pdf_path)
+        except Exception:
+            logger.exception("GCS upload failed for order %d (continuing with local)", order.id)
+
         # Archive any old cached reports for this package/type
         _archive_old_reports(order.package_id, report_type, db)
 
