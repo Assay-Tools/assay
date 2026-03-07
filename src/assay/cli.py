@@ -189,6 +189,102 @@ def cmd_stale(args):
     print(f"\n  Total: {data.get('count', len(queue))} packages\n")
 
 
+def cmd_newsletter(args):
+    """Newsletter pipeline: collect data, or send a ready newsletter."""
+    from assay.database import SessionLocal, init_db
+
+    init_db()
+    db = SessionLocal()
+
+    try:
+        if args.action == "collect":
+            _newsletter_collect(db)
+        elif args.action == "send":
+            _newsletter_send(db, args.dry_run)
+        else:
+            print(f"Unknown action: {args.action}")
+            sys.exit(1)
+    finally:
+        db.close()
+
+
+def _newsletter_collect(db):
+    """Collect weekly data and save prompt for Claude Code session."""
+    from assay.newsletter.collector import collect_weekly_data
+    from assay.newsletter.writer import generate_subject, save_digest_for_session
+
+    print("Collecting weekly data...")
+    digest = collect_weekly_data(db)
+    print(
+        f"  {len(digest.new_packages)} new packages, "
+        f"{len(digest.score_movers)} movers, "
+        f"{len(digest.newly_evaluated)} newly evaluated"
+    )
+
+    subject = generate_subject(digest)
+    print(f"  Subject: {subject}")
+
+    prompt_path = save_digest_for_session(digest)
+    print(f"  Data + prompt saved to: {prompt_path.parent}")
+    print("  Claude Code session will write the newsletter content.")
+
+
+def _newsletter_send(db, dry_run: bool = False):
+    """Send the most recent ready newsletter to subscribers."""
+    from assay.newsletter.sender import get_active_subscribers, send_newsletter_issue
+    from assay.newsletter.writer import NEWSLETTER_DIR
+
+    ready_dir = NEWSLETTER_DIR / "ready"
+    if not ready_dir.exists():
+        print("No ready newsletters found. Run the newsletter session first.")
+        sys.exit(1)
+
+    # Find most recent newsletter
+    meta_files = sorted(ready_dir.glob("newsletter-*.json"), reverse=True)
+    if not meta_files:
+        print("No ready newsletters found.")
+        sys.exit(1)
+
+    import json
+    meta_path = meta_files[0]
+    meta = json.loads(meta_path.read_text())
+    date_str = meta["date"]
+    subject = meta["subject"]
+
+    html_path = ready_dir / f"newsletter-{date_str}.html"
+    text_path = ready_dir / f"newsletter-{date_str}.txt"
+
+    if not html_path.exists() or not text_path.exists():
+        print(f"Missing content files for {date_str}")
+        sys.exit(1)
+
+    html_content = html_path.read_text()
+    text_content = text_path.read_text()
+
+    print(f"Newsletter: {subject}")
+    print(f"  HTML: {len(html_content)} chars, Text: {len(text_content)} chars")
+
+    subscribers = get_active_subscribers(db)
+    print(f"  {len(subscribers)} confirmed subscribers")
+
+    if not subscribers:
+        print("  No confirmed subscribers. Saving issue without sending.")
+
+    issue = send_newsletter_issue(
+        db, subject, html_content, text_content, dry_run=dry_run,
+    )
+    print(f"  Issue #{issue.id}: {issue.recipients_count} recipients")
+    if dry_run:
+        print("  (dry run — no emails were actually sent)")
+
+    # Archive the sent newsletter
+    sent_dir = NEWSLETTER_DIR / "sent"
+    sent_dir.mkdir(parents=True, exist_ok=True)
+    for f in ready_dir.glob(f"newsletter-{date_str}.*"):
+        f.rename(sent_dir / f.name)
+    print(f"  Archived to {sent_dir}")
+
+
 def main():
     parser = argparse.ArgumentParser(
         prog="assay",
@@ -224,6 +320,20 @@ def main():
     )
     stale_p.add_argument("--json", action="store_true", help="Output raw JSON")
 
+    # newsletter
+    news_p = subparsers.add_parser(
+        "newsletter", help="Newsletter pipeline (collect data or send)",
+    )
+    news_p.add_argument(
+        "action",
+        choices=["collect", "send"],
+        help="collect: gather data + save prompt, send: deliver ready newsletter",
+    )
+    news_p.add_argument(
+        "--dry-run", action="store_true",
+        help="Record the issue but don't actually send emails",
+    )
+
     args = parser.parse_args()
 
     if args.command == "check":
@@ -232,6 +342,8 @@ def main():
         cmd_compare(args)
     elif args.command == "stale":
         cmd_stale(args)
+    elif args.command == "newsletter":
+        cmd_newsletter(args)
     else:
         parser.print_help()
         sys.exit(1)

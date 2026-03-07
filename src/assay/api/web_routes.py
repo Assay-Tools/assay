@@ -1051,19 +1051,84 @@ def subscribe_email(
     email: str = Form(...),
     db: Session = Depends(get_db),
 ):
-    """Subscribe an email to the Assay newsletter."""
+    """Subscribe an email to the Assay newsletter with double opt-in."""
+    from secrets import token_urlsafe
+
+    from assay.notifications.email import send_subscription_confirmation
+
     email = email.strip().lower()
     if not _EMAIL_RE.match(email) or len(email) > 255:
         return RedirectResponse("/?subscribed=invalid", status_code=303)
 
     existing = db.query(EmailSubscriber).filter_by(email=email).first()
     if existing:
-        return RedirectResponse("/?subscribed=already", status_code=303)
+        if existing.confirmed and not existing.unsubscribed_at:
+            return RedirectResponse("/?subscribed=already", status_code=303)
+        if existing.unsubscribed_at:
+            # Re-subscribing: reset and send new confirmation
+            existing.unsubscribed_at = None
+            existing.confirmed = False
+            existing.confirmed_at = None
+            existing.confirmation_token = token_urlsafe(32)
+            existing.unsubscribe_token = token_urlsafe(32)
+            db.commit()
+            send_subscription_confirmation(email, existing.confirmation_token)
+            return RedirectResponse("/?subscribed=ok", status_code=303)
+        # Not yet confirmed — resend confirmation
+        if not existing.confirmation_token:
+            existing.confirmation_token = token_urlsafe(32)
+        if not existing.unsubscribe_token:
+            existing.unsubscribe_token = token_urlsafe(32)
+        db.commit()
+        send_subscription_confirmation(email, existing.confirmation_token)
+        return RedirectResponse("/?subscribed=ok", status_code=303)
 
-    subscriber = EmailSubscriber(email=email)
+    confirmation_token = token_urlsafe(32)
+    unsubscribe_token = token_urlsafe(32)
+    subscriber = EmailSubscriber(
+        email=email,
+        confirmation_token=confirmation_token,
+        unsubscribe_token=unsubscribe_token,
+    )
     db.add(subscriber)
     db.commit()
+    send_subscription_confirmation(email, confirmation_token)
     return RedirectResponse("/?subscribed=ok", status_code=303)
+
+
+@router.get("/confirm")
+def confirm_subscription(
+    token: str = Query(...),
+    db: Session = Depends(get_db),
+):
+    """Confirm newsletter subscription via double opt-in token."""
+    subscriber = db.query(EmailSubscriber).filter_by(confirmation_token=token).first()
+    if not subscriber:
+        return RedirectResponse("/?subscribed=invalid_token", status_code=303)
+
+    if not subscriber.confirmed:
+        subscriber.confirmed = True
+        subscriber.confirmed_at = datetime.now(timezone.utc)
+        db.commit()
+
+    return RedirectResponse("/?subscribed=confirmed", status_code=303)
+
+
+@router.get("/unsubscribe")
+def unsubscribe(
+    token: str = Query(...),
+    db: Session = Depends(get_db),
+):
+    """Unsubscribe from newsletter via token."""
+    subscriber = db.query(EmailSubscriber).filter_by(unsubscribe_token=token).first()
+    if not subscriber:
+        return RedirectResponse("/?subscribed=invalid_token", status_code=303)
+
+    if not subscriber.unsubscribed_at:
+        subscriber.unsubscribed_at = datetime.now(timezone.utc)
+        db.commit()
+
+    return RedirectResponse("/?unsubscribed=ok", status_code=303)
 
 
 # ── Feedback ─────────────────────────────────────────────────────────────────

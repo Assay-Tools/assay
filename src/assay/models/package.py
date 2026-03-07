@@ -535,7 +535,26 @@ class EmailSubscriber(Base):
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc),
     )
     confirmed: Mapped[bool] = mapped_column(Boolean, default=False)
+    confirmed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     unsubscribed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    confirmation_token: Mapped[str | None] = mapped_column(String(64), unique=True)
+    unsubscribe_token: Mapped[str | None] = mapped_column(String(64), unique=True)
+
+
+class NewsletterIssue(Base):
+    """Track sent newsletter issues."""
+
+    __tablename__ = "newsletter_issues"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    subject: Mapped[str] = mapped_column(String(500), nullable=False)
+    content_html: Mapped[str] = mapped_column(Text, nullable=False)
+    content_text: Mapped[str] = mapped_column(Text, nullable=False)
+    recipients_count: Mapped[int] = mapped_column(Integer, default=0)
+    sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc),
+    )
 
 
 class Feedback(Base):

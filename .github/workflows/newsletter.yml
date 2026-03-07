@@ -1,0 +1,47 @@
+name: Newsletter Send
+
+# Manual trigger only — newsletter writing is done by Claude Code
+# session on MacPinky-2 (uses subscription, not API). This action
+# is a backup for sending a ready newsletter from the repo.
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run (no emails sent)'
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install dependencies
+        run: pip install -e .
+
+      - name: Send newsletter
+        run: |
+          DRY_RUN="${{ github.event.inputs.dry_run || 'false' }}"
+          ARGS=""
+          if [ "$DRY_RUN" = "true" ]; then
+            ARGS="--dry-run"
+          fi
+          python -m assay.cli newsletter send $ARGS 2>&1 | tee output.txt
+
+      - name: Summary
+        run: |
+          echo "## Newsletter Send" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          cat output.txt >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
