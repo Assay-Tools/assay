@@ -21,11 +21,18 @@ Assay is an agentic software quality platform that rates MCP servers, APIs, and 
 
 ## Key Architecture
 
+**Read `ARCHITECTURE.md` for full infrastructure reference** — secrets, services, DNS, Stripe, email architecture, source code layout, and how to access everything.
+
+Key source paths:
 - `src/assay/api/routes.py` — REST API (`/v1/...`)
 - `src/assay/api/web_routes.py` — Server-rendered HTML pages
+- `src/assay/api/payments.py` — Stripe checkout, webhooks, report delivery
 - `src/assay/models/package.py` — All SQLAlchemy models
 - `src/assay/evaluation/discovery.py` — Discovery agent + canonical CATEGORIES dict (16 categories)
+- `src/assay/evaluation/scheduler.py` — 3-tier priority scheduler (flagged → unevaluated → stale)
 - `src/assay/evaluation/loader.py` — Loads evaluation JSON into DB (normalizes categories to canonical list)
+- `src/assay/notifications/email.py` — Resend SDK: transactional email (confirmations, report delivery)
+- `src/assay/reports/` — Report generation (narratives via Claude Opus, PDF via WeasyPrint)
 - `src/assay/mcp_server/` — Assay's own MCP server
 - `src/assay/templates/` — Jinja2 templates
 - `reports/` — Report templates and generation scripts (quarterly, package eval)
