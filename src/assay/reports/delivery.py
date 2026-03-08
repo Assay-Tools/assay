@@ -143,24 +143,13 @@ def _archive_old_reports(package_id: str, report_type: str, db: Session) -> None
 
 
 def _copy_cached_to_order(cached: ReportCache, order: Order) -> str:
-    """Copy cached report files to order-specific filenames and return the path."""
-    suffix = "-brief" if cached.report_type == "brief" else ""
-    order_filename = f"{order.package_id}{suffix}-order-{order.id}.md"
-    order_md_path = REPORTS_DIR / order_filename
+    """Return the canonical cache path for this order's report.
 
-    REPORTS_DIR.mkdir(parents=True, exist_ok=True)
-
-    # Copy markdown
-    src_md = PROJECT_ROOT / cached.md_path
-    shutil.copy2(str(src_md), str(order_md_path))
-
-    # Copy PDF if it exists
-    if cached.pdf_path:
-        src_pdf = PROJECT_ROOT / cached.pdf_path
-        if src_pdf.exists():
-            shutil.copy2(str(src_pdf), str(order_md_path.with_suffix(".pdf")))
-
-    return f"reports/output/packages/{order_filename}"
+    No longer copies to order-specific filenames — all orders for the same
+    package/type share the cached file.  The returned path matches the GCS
+    structure so local lookup and GCS fallback use the same scheme.
+    """
+    return cached.md_path
 
 
 def generate_report_for_order(order: Order, db: Session) -> str | None:
@@ -241,19 +230,10 @@ def generate_report_for_order(order: Order, db: Session) -> str | None:
                 )
 
         if last_error:
-            logger.error("PDF generation failed after 3 attempts for order %d", order.id)
-            try:
-                from assay.notifications.email import send_report_failure_alert
-                send_report_failure_alert(
-                    order_id=order.id,
-                    package_id=order.package_id,
-                    order_type=report_type,
-                    customer_email=order.customer_email or "unknown",
-                    error=str(last_error),
-                )
-            except Exception:
-                logger.exception("Failed to send failure alert for order %d", order.id)
-            return None
+            logger.error(
+                "PDF generation failed after 3 attempts for order %d (continuing with markdown)",
+                order.id,
+            )
 
         # Upload to GCS for durable storage
         pdf_path = cache_path.with_suffix(".pdf") if pdf_rel else None
