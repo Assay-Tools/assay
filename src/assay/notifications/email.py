@@ -350,6 +350,12 @@ https://assay.tools
             "html": html,
         })
         logger.info("Score change alert sent for %s to %s", package_id, _mask_email(to_email))
+        # Log to CRM (fire-and-forget)
+        try:
+            from assay.integrations.crm import on_score_change_alert_sent
+            on_score_change_alert_sent(to_email, package_id)
+        except Exception:
+            pass  # CRM errors never block email delivery
         return True
     except Exception:
         logger.exception("Failed to send score change alert for %s to %s", package_id, _mask_email(to_email))

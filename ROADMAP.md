@@ -36,7 +36,7 @@ Everything below is live at assay.tools and deployed on Railway.
 
 ### Soft Launch (next)
 
-4. **Daniel Miessler outreach** — Personal DM for methodology gut-check before going public.
+4. ~~**Daniel Miessler outreach**~~ — Done 2026-03-07. Posted to his Discord (public), tagged him. Went with public post instead of private DM.
 5. **5-10 beta testers** — Personal invites from AJ's network with specific questions.
 6. **Beta fixes sprint** — Act on feedback before public launch.
 

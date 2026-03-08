@@ -1144,6 +1144,12 @@ def subscribe_email(
     db.add(subscriber)
     db.commit()
     send_subscription_confirmation(email, confirmation_token)
+    # Sync to CRM (fire-and-forget)
+    try:
+        from assay.integrations.crm import on_newsletter_signup
+        on_newsletter_signup(email)
+    except Exception:
+        pass
     return RedirectResponse("/?subscribed=ok", status_code=303)
 
 

@@ -342,6 +342,10 @@ def _handle_checkout_completed(session_data: dict, db: Session):
             order.id, order.customer_email, order.package_id, order.order_type,
             order.access_token,
         )
+        # Sync to CRM (fire-and-forget)
+        _crm_record_purchase_async(
+            order.customer_email, order.order_type, order.package_id, order.id,
+        )
 
     # Generate report in background thread so webhook returns fast
     if order.order_type in ("report", "brief"):
@@ -392,6 +396,21 @@ def _generate_report_async(order_id: int):
             logger.exception("Background report generation failed for order %d", order_id)
         finally:
             db.close()
+
+    thread = threading.Thread(target=_worker, daemon=True)
+    thread.start()
+
+
+def _crm_record_purchase_async(
+    email: str, order_type: str, package_id: str, order_id: int,
+):
+    """Record purchase in CRM in background thread."""
+    def _worker():
+        try:
+            from assay.integrations.crm import on_purchase
+            on_purchase(email, order_type, package_id, order_id)
+        except Exception:
+            logger.debug("CRM purchase sync skipped", exc_info=True)
 
     thread = threading.Thread(target=_worker, daemon=True)
     thread.start()
