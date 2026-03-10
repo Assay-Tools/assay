@@ -26,10 +26,11 @@ Assay scores software packages — MCP servers, APIs, SDKs — on how well they 
 
 | Stat | Value |
 |------|-------|
-| Packages evaluated | 242 |
-| Categories covered | 63 |
-| Average AF Score | 63.7 / 100 |
-| Top package score | 85.2 / 100 |
+| Packages evaluated | 4,039+ |
+| Packages cataloged | 7,959+ |
+| Categories covered | 16 |
+| Average AF Score | 62.4 / 100 |
+| MCP servers tracked | 750+ |
 | MCP servers in the wild | 17,977+ |
 | Independent quality ratings before Assay | 0 |
 
@@ -83,7 +84,7 @@ Assay scores software packages — MCP servers, APIs, SDKs — on how well they 
 ### Three Steps to Agent-Ready Intelligence
 
 **Step 1: Discover**
-Browse 242 evaluated packages across 63 categories, or query the REST API or MCP server to find tools matching your agent's needs. Filter by category, score range, or specific capability.
+Browse 4,039+ evaluated packages across 16 categories, or query the REST API or MCP server to find tools matching your agent's needs. Filter by category, score range, or specific capability.
 
 **Step 2: Evaluate**
 Every package is scored on five dimensions:
@@ -171,7 +172,7 @@ OpenAPI spec · MCP server available · No account required for read access
 ---
 
 ### For Developers
-242 packages evaluated. 63 categories. One score per package that tells you whether it's worth integrating.
+4,039+ packages evaluated. 16 categories. One score per package that tells you whether it's worth integrating.
 
 **[Browse Ratings →](/packages)**
 Free · No login · Updated regularly
@@ -194,4 +195,52 @@ $299/month · Cancel anytime · Badge displays on your docs and in Assay directo
 
 ---
 
-*Document version: 2026-02-28. Update stats section when evaluation count crosses 250 packages.*
+---
+
+## "For Agents" Code Snippet Section
+
+**Section headline**: Drop it into your agent in 30 seconds
+
+**Subhead**: Structured JSON. Sub-millisecond reads. No LLM at query time.
+
+### REST API Example
+```bash
+# Find the best payment tool for your agent
+curl "https://assay.tools/v1/packages?category=payments&min_score=70&limit=5"
+```
+
+```json
+{
+  "packages": [
+    {
+      "id": "stripe-mcp",
+      "name": "Stripe MCP",
+      "af_score": 82,
+      "security_score": 90,
+      "reliability_score": 88,
+      "has_mcp_server": true,
+      "gotchas": ["Webhook signature validation required for all events"],
+      "best_when": "Payments, subscriptions, invoicing in agent workflows"
+    }
+  ]
+}
+```
+
+### MCP Server Example
+```json
+// In your agent's MCP config:
+{
+  "mcpServers": {
+    "assay": {
+      "command": "npx",
+      "args": ["-y", "@assay-tools/mcp"]
+    }
+  }
+}
+```
+
+Then your agent calls `find_packages({ category: "database", min_af_score: 70 })` or `compare_packages({ ids: ["supabase", "planetscale", "neon"] })`.
+
+---
+
+*Document version: 2026-03-10. Stats current as of March 2026.*
