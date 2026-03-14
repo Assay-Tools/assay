@@ -29,6 +29,8 @@ from assay.models import (
     PackageAgentReadiness,
 )
 
+from .rate_limit import WEB_RATE_LIMIT, limiter
+
 _templates_dir = Path(__file__).parent.parent / "templates"
 templates = Jinja2Templates(directory=str(_templates_dir))
 
@@ -138,6 +140,7 @@ def index(request: Request, db: Session = Depends(get_db)):
 
 
 @router.get("/packages", response_class=HTMLResponse)
+@limiter.limit(WEB_RATE_LIMIT)
 def packages_list(
     request: Request,
     q: str = Query(None, description="Search query"),
@@ -253,6 +256,7 @@ def packages_list(
 
 
 @router.get("/packages/{package_id}", response_class=HTMLResponse)
+@limiter.limit(WEB_RATE_LIMIT)
 def package_detail(request: Request, package_id: str, db: Session = Depends(get_db)):
     """Full package detail page."""
     package = (
