@@ -22,7 +22,7 @@ import time
 from datetime import datetime, timezone
 
 import httpx
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from assay.config import settings
 from assay.database import SessionLocal
@@ -104,6 +104,14 @@ class AFScoreComponents(BaseModel):
     auth_complexity_score: float = 0  # Auth simplicity (100=api_key, 70=oauth, 40=complex)
     rate_limit_clarity_score: float = 0  # Rate limit documentation clarity
 
+    @field_validator(
+        "mcp_score", "api_doc_score", "error_handling_score",
+        "auth_complexity_score", "rate_limit_clarity_score", mode="before",
+    )
+    @classmethod
+    def coerce_none_to_zero(cls, v):
+        return 0.0 if v is None else v
+
 
 class SecurityScoreComponents(BaseModel):
     """Security sub-scores (0-100 each)."""
@@ -115,6 +123,14 @@ class SecurityScoreComponents(BaseModel):
     secret_handling: float = 0  # How secrets/credentials are managed
     security_notes: str | None = None
 
+    @field_validator(
+        "tls_enforcement", "auth_strength", "scope_granularity",
+        "dependency_hygiene", "secret_handling", mode="before",
+    )
+    @classmethod
+    def coerce_none_to_zero(cls, v):
+        return 0.0 if v is None else v
+
 
 class ReliabilityScoreComponents(BaseModel):
     """Reliability sub-scores (0-100 each)."""
@@ -123,6 +139,14 @@ class ReliabilityScoreComponents(BaseModel):
     version_stability: float = 0  # Stable releases, semver adherence
     breaking_changes_history: float = 0  # 100=no breaking changes, 0=frequent
     error_recovery: float = 0  # Retry guidance, graceful degradation
+
+    @field_validator(
+        "uptime_documented", "version_stability",
+        "breaking_changes_history", "error_recovery", mode="before",
+    )
+    @classmethod
+    def coerce_none_to_zero(cls, v):
+        return 0.0 if v is None else v
 
 
 class PackageEvaluation(BaseModel):
@@ -400,14 +424,14 @@ class EvaluationAgent:
     """Analyzes a software package and fills the complete Assay schema."""
 
     def __init__(self):
-        if not settings.anthropic_api_key:
+        if not settings.openai_api_key:
             raise RuntimeError(
-                "ANTHROPIC_API_KEY is not set. "
+                "OPENAI_API_KEY is not set. "
                 "Set it in .env or as an environment variable."
             )
-        from anthropic import Anthropic
+        from openai import OpenAI
 
-        self.client = Anthropic(api_key=settings.anthropic_api_key)
+        self.client = OpenAI(api_key=settings.openai_api_key)
         self.model = settings.eval_model
         self.http = httpx.Client(timeout=30, follow_redirects=True)
 
@@ -459,17 +483,20 @@ class EvaluationAgent:
             context["manifest"],
         )
 
-        response = self.client.messages.create(
+        response = self.client.chat.completions.create(
             model=self.model,
             max_tokens=4096,
-            system=SYSTEM_PROMPT,
-            messages=[{"role": "user", "content": user_prompt}],
+            temperature=0.0,
+            messages=[
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": user_prompt},
+            ],
         )
 
-        raw_text = response.content[0].text
+        raw_text = response.choices[0].message.content
         usage_info = {
-            "input_tokens": response.usage.input_tokens,
-            "output_tokens": response.usage.output_tokens,
+            "input_tokens": response.usage.prompt_tokens,
+            "output_tokens": response.usage.completion_tokens,
             "model": response.model,
             "raw_output": raw_text,
         }
@@ -654,13 +681,13 @@ class EvaluationAgent:
 
     @staticmethod
     def _estimate_cost(usage_info: dict) -> float | None:
-        """Rough cost estimate for Haiku calls."""
+        """Rough cost estimate for GPT-4o mini calls."""
         input_tokens = usage_info.get("input_tokens", 0)
         output_tokens = usage_info.get("output_tokens", 0)
         if not input_tokens and not output_tokens:
             return None
-        # Haiku pricing: $0.80/MTok input, $4.00/MTok output (as of 2025)
-        cost = (input_tokens * 0.80 / 1_000_000) + (output_tokens * 4.00 / 1_000_000)
+        # GPT-4o mini pricing: $0.15/MTok input, $0.60/MTok output
+        cost = (input_tokens * 0.15 / 1_000_000) + (output_tokens * 0.60 / 1_000_000)
         return round(cost, 6)
 
     # -- Main entry points --
@@ -825,8 +852,8 @@ def main():
         datefmt="%H:%M:%S",
     )
 
-    if not settings.anthropic_api_key:
-        print("ERROR: ANTHROPIC_API_KEY is not set.", file=sys.stderr)
+    if not settings.openai_api_key:
+        print("ERROR: OPENAI_API_KEY is not set.", file=sys.stderr)
         print("Set it in .env or as environment variable.", file=sys.stderr)
         sys.exit(1)
 

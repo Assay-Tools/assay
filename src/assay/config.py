@@ -53,7 +53,8 @@ class Settings(BaseSettings):
 
     # Evaluation
     anthropic_api_key: str = ""
-    eval_model: str = "claude-haiku-4-5-20251001"
+    openai_api_key: str = ""
+    eval_model: str = "gpt-4o-mini"
     eval_batch_size: int = 10
 
     # Paths
