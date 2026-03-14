@@ -637,7 +637,13 @@ class EvaluationAgent:
         # AF sub-components
         par.mcp_server_quality = ar.mcp_server_quality
         par.documentation_accuracy = ar.documentation_accuracy
-        par.error_message_quality = ar.error_message_quality
+        # DB column is Float; map string quality labels to numeric scores
+        _quality_map = {"good": 80.0, "poor": 20.0, "unknown": 0.0}
+        emq = ar.error_message_quality
+        if isinstance(emq, str):
+            par.error_message_quality = _quality_map.get(emq.lower().strip(), None)
+        else:
+            par.error_message_quality = emq
         par.error_message_notes = ar.error_message_notes
         par.auth_complexity = afc.auth_complexity_score
         par.rate_limit_clarity = afc.rate_limit_clarity_score
