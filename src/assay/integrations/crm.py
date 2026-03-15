@@ -167,6 +167,135 @@ def on_email_received(email: str, subject: str, body_snippet: str = ""):
         logger.warning("CRM: failed to log inbound email", exc_info=True)
 
 
+def get_contact(email: str) -> dict | None:
+    """Look up a contact by email and return their CRM context as a plain dict.
+
+    Returns None if the contact doesn't exist or CRM is unavailable.
+    Intended for agent use — call this before sending any email to check
+    do_not_contact status and understand relationship history.
+
+    Returns dict with:
+        found: True
+        id, email, status, tags, notes, source, next_followup
+        is_do_not_contact: bool — True if tagged do_not_contact or opted_out
+    """
+    store = _get_store()
+    if not store:
+        return None
+
+    try:
+        contact = store.find_by_email(email)
+        if not contact:
+            return None
+
+        return {
+            "found": True,
+            "id": contact.id,
+            "email": contact.email,
+            "status": contact.status.value if hasattr(contact.status, "value") else str(contact.status),
+            "tags": list(contact.tags or []),
+            "notes": contact.notes or "",
+            "source": contact.source or "",
+            "next_followup": contact.next_followup.isoformat() if contact.next_followup else None,
+            "is_do_not_contact": any(
+                t in (contact.tags or []) for t in ["do_not_contact", "opted_out"]
+            ),
+        }
+    except Exception:
+        logger.warning("CRM: get_contact failed", exc_info=True)
+        return None
+
+
+def log_email_sent(email: str, subject: str, body_snippet: str = ""):
+    """Log an outbound reply from the triage agent in the CRM.
+
+    Call after successfully sending a reply from hello@assay.tools.
+    Creates the contact if they don't exist yet (source=assay_outbound_email).
+    """
+    store = _get_store()
+    if not store:
+        return
+
+    try:
+        from incubator.crm.models import Contact, ContactStatus, Interaction, InteractionType
+
+        contact = store.find_by_email(email)
+        if not contact:
+            contact = store.add_contact(Contact(
+                email=email,
+                source="assay_outbound_email",
+                status=ContactStatus.NEW,
+                notes=f"First contact via outbound triage email: {subject}",
+            ))
+
+        store.add_interaction(Interaction(
+            contact_id=contact.id,
+            type=InteractionType.EMAIL_SENT,
+            direction="outbound",
+            subject=subject,
+            body=body_snippet[:500],
+            agent="assay_triage",
+        ))
+
+        logger.info("CRM: logged outbound triage email to %s", email[:3] + "***")
+    except Exception:
+        logger.warning("CRM: failed to log outbound triage email", exc_info=True)
+
+
+def mark_do_not_contact(email: str, reason: str = ""):
+    """Mark a contact as do_not_contact in the CRM.
+
+    Creates the contact if they don't exist. Adds 'do_not_contact' and
+    'opted_out' tags, sets status=DISQUALIFIED, appends reason to notes.
+    """
+    store = _get_store()
+    if not store:
+        return
+
+    try:
+        from incubator.crm.models import Contact, ContactStatus, Interaction, InteractionType
+
+        existing = store.find_by_email(email)
+        if existing:
+            tags = list(existing.tags or [])
+            for t in ["do_not_contact", "opted_out"]:
+                if t not in tags:
+                    tags.append(t)
+            notes = existing.notes or ""
+            if reason:
+                notes = f"{notes}\nOpt-out: {reason}".strip()
+            store.update_contact(
+                existing.id,
+                tags=tags,
+                status=ContactStatus.DISQUALIFIED.value,
+                notes=notes,
+            )
+            contact_id = existing.id
+        else:
+            contact = Contact(
+                email=email,
+                source="assay_opt_out",
+                status=ContactStatus.DISQUALIFIED,
+                tags=["do_not_contact", "opted_out"],
+                notes=f"Opt-out: {reason}" if reason else "Opted out",
+            )
+            contact = store.add_contact(contact)
+            contact_id = contact.id
+
+        store.add_interaction(Interaction(
+            contact_id=contact_id,
+            type=InteractionType.NOTE,
+            direction="inbound",
+            subject="Opt-out",
+            body=reason or "Contact marked do_not_contact",
+            agent="assay_triage",
+        ))
+
+        logger.info("CRM: marked %s as do_not_contact", email[:3] + "***")
+    except Exception:
+        logger.warning("CRM: failed to mark do_not_contact", exc_info=True)
+
+
 def on_newsletter_signup(email: str):
     """Record a newsletter signup in the CRM.
 
