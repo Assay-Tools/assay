@@ -385,9 +385,9 @@ class PackageAgentReadiness(Base):
 
     # --- Legacy / metadata ---
     mcp_security_score: Mapped[float | None] = mapped_column(Float)  # legacy, kept for compat
-    idempotency_support: Mapped[str | None] = mapped_column(String(50))
+    idempotency_support: Mapped[str | None] = mapped_column(Text)
     idempotency_notes: Mapped[str | None] = mapped_column(Text)
-    pagination_style: Mapped[str | None] = mapped_column(String(50))
+    pagination_style: Mapped[str | None] = mapped_column(Text)
     retry_guidance_documented: Mapped[bool | None] = mapped_column(Boolean)
     known_agent_gotchas: Mapped[str | None] = mapped_column(Text)  # JSON array
 
