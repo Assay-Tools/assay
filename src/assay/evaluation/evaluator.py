@@ -433,7 +433,10 @@ class EvaluationAgent:
 
         self.client = OpenAI(api_key=settings.openai_api_key)
         self.model = settings.eval_model
-        self.http = httpx.Client(timeout=30, follow_redirects=True)
+        http_headers = {}
+        if settings.github_token:
+            http_headers["Authorization"] = f"token {settings.github_token}"
+        self.http = httpx.Client(timeout=30, follow_redirects=True, headers=http_headers)
 
     def close(self):
         self.http.close()
