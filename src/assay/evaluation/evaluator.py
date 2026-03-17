@@ -153,7 +153,7 @@ class PackageEvaluation(BaseModel):
     """Complete evaluation result from LLM — one call, all fields."""
 
     # Descriptive
-    what_it_does: str
+    what_it_does: str = ""
     use_cases: list[str] = Field(default_factory=list)
     not_for: list[str] = Field(default_factory=list)
     best_when: str | None = None
