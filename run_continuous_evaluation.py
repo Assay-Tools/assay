@@ -70,8 +70,8 @@ def main():
     parser.add_argument(
         "--sleep",
         type=float,
-        default=2,
-        help="Seconds to sleep between batches (default: 2)",
+        default=90,
+        help="Seconds to sleep between batches (default: 90 to avoid GitHub rate limits)",
     )
     args = parser.parse_args()
 
