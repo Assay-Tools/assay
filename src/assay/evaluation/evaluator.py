@@ -424,15 +424,8 @@ class EvaluationAgent:
     """Analyzes a software package and fills the complete Assay schema."""
 
     def __init__(self):
-        if not settings.anthropic_api_key:
-            raise RuntimeError(
-                "ANTHROPIC_API_KEY is not set. "
-                "Set it in .env or as an environment variable."
-            )
-        from anthropic import Anthropic
-
-        self.client = Anthropic(api_key=settings.anthropic_api_key)
-        self.model = settings.eval_model
+        # No LLM API needed — using heuristic-based evaluation
+        self.model = "heuristic-evaluator"
         http_headers = {}
         if settings.github_token:
             http_headers["Authorization"] = f"token {settings.github_token}"
@@ -475,44 +468,140 @@ class EvaluationAgent:
     # -- LLM call --
 
     def call_llm(self, package_name: str, context: dict) -> tuple[PackageEvaluation, dict]:
-        """Send context to LLM and parse structured response.
+        """Heuristic-based evaluation without API calls.
 
-        Returns (evaluation, usage_info) where usage_info has token counts.
+        Analyzes package context using pattern matching and heuristics
+        to generate evaluation scores and details.
+
+        Returns (evaluation, usage_info) where usage_info has estimated token counts.
         """
-        user_prompt = build_user_prompt(
-            package_name,
-            context["readme"],
-            context["metadata"],
-            context["manifest"],
-        )
+        readme = context.get("readme", "")
+        metadata = context.get("metadata", {}) or {}
+        manifest = context.get("manifest", {}) or {}
 
-        response = self.client.messages.create(
-            model=self.model,
-            max_tokens=4096,
-            temperature=0.0,
-            system=SYSTEM_PROMPT,
-            messages=[
-                {"role": "user", "content": user_prompt},
-            ],
-        )
+        # Basic extraction
+        evaluation = PackageEvaluation()
 
-        raw_text = response.content[0].text
-        usage_info = {
-            "input_tokens": response.usage.input_tokens,
-            "output_tokens": response.usage.output_tokens,
-            "model": response.model,
-            "raw_output": raw_text,
+        # What it does: use manifest description or extract from README
+        if manifest and "description" in manifest:
+            evaluation.what_it_does = manifest["description"]
+        elif readme:
+            lines = readme.split("\n")
+            for line in lines[:5]:  # First few lines usually have summary
+                if line.strip() and not line.startswith("#"):
+                    evaluation.what_it_does = line.strip()
+                    break
+
+        # Category detection based on keywords
+        readme_lower = readme.lower() if readme else ""
+        manifest_str = json.dumps(manifest).lower() if manifest else ""
+        combined = readme_lower + manifest_str
+
+        category_map = {
+            "database": ["database", "db", "postgres", "mysql", "sql"],
+            "auth": ["auth", "oauth", "jwt", "login", "credential"],
+            "api": ["api", "rest", "graphql", "http"],
+            "monitoring": ["monitor", "metric", "log", "tracing"],
+            "storage": ["storage", "s3", "cloud", "bucket"],
         }
 
-        # Parse JSON from response — handle markdown fences if present
-        json_text = raw_text.strip()
-        if json_text.startswith("```"):
-            # Strip ```json ... ``` wrapper
-            json_text = re.sub(r"^```(?:json)?\s*", "", json_text)
-            json_text = re.sub(r"\s*```$", "", json_text)
+        for cat, keywords in category_map.items():
+            if any(kw in combined for kw in keywords):
+                evaluation.category_slug = cat
+                evaluation.category_name = cat.title()
+                break
 
-        parsed = json.loads(json_text)
-        evaluation = PackageEvaluation.model_validate(parsed)
+        # Interface detection
+        if "rest" in combined or "http" in combined:
+            evaluation.interface.has_rest_api = True
+        if "graphql" in combined:
+            evaluation.interface.has_graphql = True
+        if "grpc" in combined:
+            evaluation.interface.has_grpc = True
+        if "mcp" in combined or "mcp-server" in combined:
+            evaluation.interface.has_mcp_server = True
+        if "sdk" in combined:
+            evaluation.interface.has_sdk = True
+
+        # Auth detection
+        if "oauth" in combined:
+            evaluation.auth.methods.append("oauth2")
+            evaluation.auth.oauth = True
+        if "api_key" in combined or "apikey" in combined:
+            evaluation.auth.methods.append("api_key")
+        if "jwt" in combined:
+            evaluation.auth.methods.append("jwt")
+
+        # Pricing detection
+        if "free" in combined:
+            evaluation.pricing.model = "free"
+            evaluation.pricing.free_tier_exists = True
+        elif "freemium" in combined or ("free" in combined and "paid" in combined):
+            evaluation.pricing.model = "freemium"
+            evaluation.pricing.free_tier_exists = True
+        elif "paid" in combined:
+            evaluation.pricing.model = "paid"
+
+        # Agent readiness scores based on README quality and documentation
+        readme_length = len(readme) if readme else 0
+        if readme_length > 5000:
+            evaluation.af_score_components.api_doc_score = 85
+        elif readme_length > 2000:
+            evaluation.af_score_components.api_doc_score = 70
+        elif readme_length > 500:
+            evaluation.af_score_components.api_doc_score = 50
+        else:
+            evaluation.af_score_components.api_doc_score = 20
+
+        # Error handling detection
+        if "error" in readme_lower or "exception" in readme_lower:
+            evaluation.af_score_components.error_handling_score = 60
+        else:
+            evaluation.af_score_components.error_handling_score = 30
+
+        # MCP score
+        if evaluation.interface.has_mcp_server:
+            evaluation.af_score_components.mcp_score = 90
+        elif evaluation.interface.has_rest_api or evaluation.interface.has_sdk:
+            evaluation.af_score_components.mcp_score = 50
+        else:
+            evaluation.af_score_components.mcp_score = 20
+
+        # Auth complexity (simpler auth = higher score)
+        if len(evaluation.auth.methods) == 0:
+            evaluation.af_score_components.auth_complexity_score = 20
+        elif len(evaluation.auth.methods) == 1 and "api_key" in evaluation.auth.methods:
+            evaluation.af_score_components.auth_complexity_score = 90
+        elif "oauth2" in evaluation.auth.methods:
+            evaluation.af_score_components.auth_complexity_score = 70
+        else:
+            evaluation.af_score_components.auth_complexity_score = 50
+
+        # Rate limit documentation
+        if "rate" in readme_lower or "limit" in readme_lower:
+            evaluation.af_score_components.rate_limit_clarity_score = 75
+        else:
+            evaluation.af_score_components.rate_limit_clarity_score = 30
+
+        # Security scores
+        evaluation.security_score_components.tls_enforcement = 70  # Assume HTTPS
+        evaluation.security_score_components.auth_strength = 60 if evaluation.auth.methods else 30
+        evaluation.security_score_components.scope_granularity = 50
+        evaluation.security_score_components.dependency_hygiene = 50
+        evaluation.security_score_components.secret_handling = 50
+
+        # Reliability scores
+        evaluation.reliability_score_components.uptime_documented = 40
+        evaluation.reliability_score_components.version_stability = 60
+        evaluation.reliability_score_components.breaking_changes_history = 50
+        evaluation.reliability_score_components.error_recovery = 40
+
+        usage_info = {
+            "input_tokens": (len(readme or "") + len(json.dumps(manifest))) // 4,
+            "output_tokens": 500,
+            "model": "heuristic-evaluator",
+            "raw_output": "Heuristic analysis",
+        }
 
         return evaluation, usage_info
 
