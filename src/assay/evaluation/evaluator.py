@@ -424,14 +424,14 @@ class EvaluationAgent:
     """Analyzes a software package and fills the complete Assay schema."""
 
     def __init__(self):
-        if not settings.openai_api_key:
+        if not settings.anthropic_api_key:
             raise RuntimeError(
-                "OPENAI_API_KEY is not set. "
+                "ANTHROPIC_API_KEY is not set. "
                 "Set it in .env or as an environment variable."
             )
-        from openai import OpenAI
+        from anthropic import Anthropic
 
-        self.client = OpenAI(api_key=settings.openai_api_key)
+        self.client = Anthropic(api_key=settings.anthropic_api_key)
         self.model = settings.eval_model
         http_headers = {}
         if settings.github_token:
@@ -486,20 +486,20 @@ class EvaluationAgent:
             context["manifest"],
         )
 
-        response = self.client.chat.completions.create(
+        response = self.client.messages.create(
             model=self.model,
             max_tokens=4096,
             temperature=0.0,
+            system=SYSTEM_PROMPT,
             messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": user_prompt},
             ],
         )
 
-        raw_text = response.choices[0].message.content
+        raw_text = response.content[0].text
         usage_info = {
-            "input_tokens": response.usage.prompt_tokens,
-            "output_tokens": response.usage.completion_tokens,
+            "input_tokens": response.usage.input_tokens,
+            "output_tokens": response.usage.output_tokens,
             "model": response.model,
             "raw_output": raw_text,
         }

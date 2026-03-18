@@ -54,7 +54,7 @@ class Settings(BaseSettings):
     # Evaluation
     anthropic_api_key: str = ""
     openai_api_key: str = ""
-    eval_model: str = "gpt-4o-mini"
+    eval_model: str = "claude-opus-4-6"
     eval_batch_size: int = 10
 
     # Paths
