@@ -1,5 +1,6 @@
 """API route handlers for Assay."""
 
+import logging
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
@@ -57,6 +58,22 @@ def _apply_eager(q):
 def health():
     """Check API health and version."""
     return HealthResponse()
+
+
+_vitals_log = logging.getLogger("assay.vitals")
+
+
+@router.post("/v1/vitals", tags=["system"], status_code=204)
+async def receive_vitals(request: Request):
+    """Collect Core Web Vitals from real users. Logged to stdout for Cloud Logging."""
+    try:
+        data = await request.json()
+        _vitals_log.info(
+            "web_vital name=%s value=%s rating=%s path=%s",
+            data.get("name"), data.get("value"), data.get("rating"), data.get("path"),
+        )
+    except Exception:
+        pass
 
 
 # --- Packages ---
