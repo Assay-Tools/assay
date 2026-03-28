@@ -15,9 +15,11 @@ Before starting any work:
 
 Assay is an agentic software quality platform that rates MCP servers, APIs, and SDKs across three dimensions: Agent Friendliness (AF), Security, and Reliability.
 
-- **Stack**: Python 3.12+, FastAPI, SQLAlchemy, Jinja2 templates, SQLite (local) / Postgres (Railway production)
-- **Production**: Deployed on Railway, auto-deploys from main branch, domain: assay.tools
-- **DB access**: Railway Postgres via public proxy `interchange.proxy.rlwy.net:42133`
+- **Stack**: Python 3.12+, FastAPI, SQLAlchemy, Jinja2 templates, SQLite (local) / Postgres (Cloud SQL production)
+- **Production**: Deployed on GCP Cloud Run (us-central1), domain: assay.tools
+- **DB**: Cloud SQL Postgres instance `assay-db` (business-34-incubator:us-central1:assay-db), connected via Cloud SQL Auth Proxy
+- **Container**: `us-central1-docker.pkg.dev/business-34-incubator/assay/assay:latest`
+- **Backups**: Cloud SQL automated daily backups at 06:00 UTC, 7-day retention, point-in-time recovery
 
 ## Key Architecture
 
@@ -42,4 +44,4 @@ Key source paths:
 - Categories are canonical: 15 + "other", defined in `discovery.py:CATEGORIES`. The loader normalizes unknown slugs to "other". Never create ad-hoc categories.
 - `Category.package_count` returns **evaluated** packages only (af_score IS NOT NULL), not total cataloged.
 - Stats distinguish "evaluated" (has AF score) from "cataloged" (all packages in DB).
-- Railway auto-deploys on push to main. Be confident in your changes before pushing.
+- Deploys require building and pushing a container, then updating Cloud Run. See Dockerfile for build config.

@@ -19,11 +19,14 @@ COPY pyproject.toml uv.lock README.md ./
 COPY src/ src/
 COPY reports/ reports/
 
-# Install as a proper package (not editable)
-RUN uv pip install --system .
+# Install as a proper package (not editable), locked to uv.lock
+RUN uv sync --frozen --no-dev --no-editable
+
+# Ensure venv bin is on PATH
+ENV PATH="/app/.venv/bin:$PATH"
 
 # Expose port (Railway sets PORT env var)
 EXPOSE 8000
 
-# Run with uvicorn — Railway sets PORT
+# Run with uvicorn — Cloud Run / Railway sets PORT
 CMD ["sh", "-c", "uvicorn assay.api.app:app --host 0.0.0.0 --port ${PORT:-8000}"]
