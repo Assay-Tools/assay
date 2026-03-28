@@ -296,48 +296,63 @@ class DiscoveryAgent:
         else:
             print("  Categories already exist.")
 
+    @staticmethod
+    def _run_source(
+        source: DiscoverySource, limit: int,
+    ) -> tuple[str, list[DiscoveredPackage]]:
+        """Run a single discovery source. Designed for concurrent execution."""
+        print(f"\n--- Source: {source.source_name} (limit={limit}) ---")
+        try:
+            discovered = source.discover(limit=limit)
+        except Exception as exc:
+            print(f"  ERROR: {source.source_name} failed: {exc}")
+            return source.source_name, []
+        print(f"  {source.source_name}: discovered {len(discovered)} packages.")
+        return source.source_name, discovered
+
     def discover_all(self) -> list[DiscoveredPackage]:
-        """Run all sources and return deduplicated results.
+        """Run all sources in parallel and return deduplicated results.
 
         Each source gets its own per-source limit (total limit / num sources,
-        with a generous minimum) so early sources don't starve later ones.
-        Final dedup happens after all sources have run.
+        with a generous minimum). Sources run concurrently via ThreadPoolExecutor.
+        Final dedup happens after all sources have completed.
         """
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+
+        per_source_limit = max(self.limit // max(len(self.sources), 1), 5000)
+
+        # Run all sources in parallel — they hit independent APIs
+        source_results: dict[str, list[DiscoveredPackage]] = {}
+        with ThreadPoolExecutor(max_workers=len(self.sources)) as pool:
+            futures = {
+                pool.submit(self._run_source, source, per_source_limit): source
+                for source in self.sources
+            }
+            for future in as_completed(futures):
+                name, packages = future.result()
+                source_results[name] = packages
+                print(f"  {name} finished: {len(packages)} packages.")
+
+        # Deduplicate across all sources
         all_packages: list[DiscoveredPackage] = []
         seen_repo_urls: set[str] = set()
         seen_ids: set[str] = set()
         seen_normalized_names: set[str] = set()
 
-        # Give each source its own limit instead of sharing a shrinking remainder.
-        # Use a generous per-source limit — dedup handles overlap.
-        per_source_limit = max(self.limit // max(len(self.sources), 1), 5000)
-
-        for source in self.sources:
-            print(f"\n--- Source: {source.source_name} (limit={per_source_limit}) ---")
-            try:
-                discovered = source.discover(limit=per_source_limit)
-            except Exception as exc:
-                print(f"  ERROR: {source.source_name} failed: {exc}")
-                continue
-
+        for source_name, packages in source_results.items():
             added = 0
-            for pkg in discovered:
-                # Apply package_type filter if set
+            for pkg in packages:
                 if self.package_type_filter and self.package_type_filter != "all":
                     if pkg.package_type != self.package_type_filter:
                         continue
 
-                # Deduplicate by normalized repo_url (primary)
                 norm_url = _normalize_repo_url(pkg.repo_url)
                 if norm_url and norm_url in seen_repo_urls:
                     continue
 
-                # Deduplicate by package id (secondary)
                 if pkg.id in seen_ids:
                     continue
 
-                # Deduplicate by normalized name (tertiary) — catches
-                # "mcp-server-foo" vs "foo" from different sources
                 norm_name = _normalize_name(pkg.id)
                 if norm_name and norm_name in seen_normalized_names:
                     continue
@@ -350,7 +365,7 @@ class DiscoveryAgent:
                 all_packages.append(pkg)
                 added += 1
 
-            print(f"  Added {added} unique packages from {source.source_name}.")
+            print(f"  Added {added} unique packages from {source_name}.")
 
         print(f"\n  Total unique packages across all sources: {len(all_packages)}")
         return all_packages[:self.limit]
