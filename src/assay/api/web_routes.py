@@ -99,9 +99,23 @@ def index(request: Request, db: Session = Depends(get_db)):
         "avg_af_score": round(avg_af, 1) if avg_af is not None else None,
     }
 
-    # Categories with counts, sorted by count desc
-    categories = db.query(Category).all()
-    categories.sort(key=lambda c: c.package_count, reverse=True)
+    # Categories with counts — single query instead of N+1
+    cat_counts = (
+        db.query(
+            Category.slug,
+            Category.name,
+            Category.description,
+            func.count(Package.id).label("package_count"),
+        )
+        .outerjoin(Package, (Package.category_slug == Category.slug) & (Package.af_score.isnot(None)))
+        .group_by(Category.slug, Category.name, Category.description)
+        .order_by(func.count(Package.id).desc())
+        .all()
+    )
+    categories = [
+        type("Cat", (), {"slug": r.slug, "name": r.name, "description": r.description, "package_count": r.package_count})()
+        for r in cat_counts
+    ]
 
     # Top rated packages for showcase
     top_packages = (
@@ -306,21 +320,35 @@ def package_detail(request: Request, package_id: str, db: Session = Depends(get_
 @router.get("/categories", response_class=HTMLResponse)
 def categories_list(request: Request, db: Session = Depends(get_db)):
     """Category directory."""
-    categories = (
-        db.query(Category)
-        .options(joinedload(Category.packages).joinedload(Package.interface))
+    from assay.models import PackageInterface
+
+    cat_rows = (
+        db.query(
+            Category.slug,
+            Category.name,
+            Category.description,
+            func.count(Package.id).filter(Package.af_score.isnot(None)).label("package_count"),
+            func.avg(Package.af_score).filter(Package.af_score.isnot(None)).label("avg_af_score"),
+            func.count(Package.id).filter(
+                Package.af_score.isnot(None),
+                PackageInterface.has_mcp_server.is_(True),
+            ).label("mcp_count"),
+        )
+        .outerjoin(Package, Package.category_slug == Category.slug)
+        .outerjoin(PackageInterface, PackageInterface.package_id == Package.id)
+        .group_by(Category.slug, Category.name, Category.description)
+        .order_by(func.count(Package.id).filter(Package.af_score.isnot(None)).desc())
         .all()
     )
-    categories.sort(key=lambda c: c.package_count, reverse=True)
-
-    # Compute avg AF score and MCP count per category
-    for cat in categories:
-        scored = [p.af_score for p in cat.packages if p.af_score is not None]
-        cat.avg_af_score = round(sum(scored) / len(scored), 0) if scored else None
-        cat.mcp_count = sum(
-            1 for p in cat.packages
-            if p.interface and p.interface.has_mcp_server
-        )
+    categories = [
+        type("Cat", (), {
+            "slug": r.slug, "name": r.name, "description": r.description,
+            "package_count": r.package_count,
+            "avg_af_score": round(r.avg_af_score) if r.avg_af_score else None,
+            "mcp_count": r.mcp_count,
+        })()
+        for r in cat_rows
+    ]
 
     return templates.TemplateResponse(
         "pages/categories.html",
