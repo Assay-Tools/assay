@@ -26,6 +26,7 @@ class DiscoverySource(ABC):
     """Abstract base class for discovery sources."""
 
     known_ids: set[str] = set()
+    known_normalized_names: set[str] = set()
 
     @property
     @abstractmethod

@@ -493,8 +493,10 @@ class DiscoveryAgent:
         finally:
             db.close()
 
+        known_names = {_normalize_name(pid) for pid in known_ids} - {None}
         for source in self.sources:
             source.known_ids = known_ids
+            source.known_normalized_names = known_names
 
         # 3. Discover from all sources (no DB connection needed)
         print("\n[3/4] Running discovery sources ...")

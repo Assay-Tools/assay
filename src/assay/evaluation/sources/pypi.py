@@ -95,8 +95,12 @@ class PyPISource(DiscoverySource):
                     continue
                 seen_ids.add(pkg_id)
 
-                # Skip metadata fetch for packages already in DB
+                # Skip metadata fetch for packages already in DB (by ID or normalized name)
                 if pkg_id in self.known_ids:
+                    skipped += 1
+                    continue
+                norm = re.sub(r"^(mcp-server-|mcp-|server-|modelcontextprotocol-)", "", pkg_id).strip("-")
+                if norm and norm in self.known_normalized_names:
                     skipped += 1
                     continue
 
