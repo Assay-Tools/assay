@@ -491,6 +491,10 @@ class DiscoveryAgent:
 
             # 3. Discover from all sources
             print("\n[3/4] Running discovery sources ...")
+            known_ids = {p.id for p in db.query(Package.id).all()}
+            print(f"  {len(known_ids)} packages already in DB — sources will skip known IDs.")
+            for source in self.sources:
+                source.known_ids = known_ids
             packages = self.discover_all()
             print(f"\n  Total unique packages discovered: {len(packages)}")
 

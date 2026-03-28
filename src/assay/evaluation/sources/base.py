@@ -25,6 +25,8 @@ class DiscoveredPackage:
 class DiscoverySource(ABC):
     """Abstract base class for discovery sources."""
 
+    known_ids: set[str] = set()
+
     @property
     @abstractmethod
     def source_name(self) -> str:

@@ -84,7 +84,8 @@ class PyPISource(DiscoverySource):
 
             print(f"  [pypi] Found {len(mcp_names)} MCP-related packages.")
 
-            # Fetch metadata for each
+            # Fetch metadata only for packages not already in the DB
+            skipped = 0
             for name in mcp_names:
                 if len(results) >= limit:
                     break
@@ -93,6 +94,11 @@ class PyPISource(DiscoverySource):
                 if pkg_id in seen_ids:
                     continue
                 seen_ids.add(pkg_id)
+
+                # Skip metadata fetch for packages already in DB
+                if pkg_id in self.known_ids:
+                    skipped += 1
+                    continue
 
                 try:
                     resp = client.get(f"{self.PYPI_JSON}/{name}/json")
@@ -139,6 +145,9 @@ class PyPISource(DiscoverySource):
                 results.append(pkg)
 
                 time.sleep(self.REQUEST_DELAY_SECONDS)
+
+            if skipped:
+                print(f"  [pypi] Skipped {skipped} packages already in DB.")
 
         finally:
             client.close()
