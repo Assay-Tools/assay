@@ -483,23 +483,28 @@ class DiscoveryAgent:
         print("\n[1/4] Initializing database ...")
         init_db()
 
-        # 2. Seed categories
+        # 2. Seed categories + load known IDs (short-lived DB session)
         print("[2/4] Seeding categories ...")
         db = SessionLocal()
         try:
             self.seed_categories(db)
-
-            # 3. Discover from all sources
-            print("\n[3/4] Running discovery sources ...")
             known_ids = {p.id for p in db.query(Package.id).all()}
             print(f"  {len(known_ids)} packages already in DB — sources will skip known IDs.")
-            for source in self.sources:
-                source.known_ids = known_ids
-            packages = self.discover_all()
-            print(f"\n  Total unique packages discovered: {len(packages)}")
+        finally:
+            db.close()
 
-            # 4. Insert packages
-            print("\n[4/4] Inserting package stubs ...")
+        for source in self.sources:
+            source.known_ids = known_ids
+
+        # 3. Discover from all sources (no DB connection needed)
+        print("\n[3/4] Running discovery sources ...")
+        packages = self.discover_all()
+        print(f"\n  Total unique packages discovered: {len(packages)}")
+
+        # 4. Insert packages (fresh DB session)
+        print("\n[4/4] Inserting package stubs ...")
+        db = SessionLocal()
+        try:
             inserted = self.insert_packages(packages, db)
 
             # Summary
@@ -515,7 +520,6 @@ class DiscoveryAgent:
                 inserted=inserted,
                 total_db=total,
             )
-
         finally:
             db.close()
 
