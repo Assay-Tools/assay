@@ -113,7 +113,7 @@ def _validate_plausibility(submission: EvaluationSubmission) -> str | None:
     if submission.af_score_components:
         afc = submission.af_score_components
         scores.extend([
-            afc.mcp_score, afc.api_doc_score, afc.error_handling_score,
+            afc.integration_quality, afc.api_doc_score, afc.error_handling_score,
             afc.auth_complexity_score, afc.rate_limit_clarity_score,
         ])
 
@@ -165,7 +165,7 @@ def _validate_evidence_consistency(submission: EvaluationSubmission) -> list[str
     if submission.af_score_components:
         afc = submission.af_score_components
         score_map.update({
-            "mcp_score": afc.mcp_score,
+            "integration_quality": afc.integration_quality,
             "api_doc_score": afc.api_doc_score,
             "error_handling_score": afc.error_handling_score,
             "auth_complexity_score": afc.auth_complexity_score,

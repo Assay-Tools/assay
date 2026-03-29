@@ -197,7 +197,7 @@ def load_evaluation(data: dict, db) -> str:
     elif ar_data:
         # Legacy: build AF from old flat fields in agent_readiness
         afc = AFScoreComponents(
-            mcp_score=ar_data.get("mcp_server_quality") or 0,
+            integration_quality=ar_data.get("mcp_server_quality") or 0,
             api_doc_score=ar_data.get("documentation_accuracy") or 0,
             error_handling_score=ar_data.get("error_message_score") or 50,
             auth_complexity_score=ar_data.get("auth_complexity_score") or 50,

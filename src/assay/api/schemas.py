@@ -150,7 +150,7 @@ class EvaluationAgentReadinessSubmission(BaseModel):
 
 
 class AFScoreComponentsSubmission(BaseModel):
-    mcp_score: float = Field(ge=0, le=100)
+    integration_quality: float = Field(ge=0, le=100)
     api_doc_score: float = Field(ge=0, le=100)
     error_handling_score: float = Field(ge=0, le=100)
     auth_complexity_score: float = Field(ge=0, le=100)
@@ -190,7 +190,7 @@ class EvaluationEvidence(BaseModel):
     Only sub-components with scores need evidence entries.
     """
     # AF sub-components
-    mcp_score: SubComponentEvidence | None = None
+    integration_quality: SubComponentEvidence | None = None
     api_doc_score: SubComponentEvidence | None = None
     error_handling_score: SubComponentEvidence | None = None
     auth_complexity_score: SubComponentEvidence | None = None

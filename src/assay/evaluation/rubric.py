@@ -39,18 +39,18 @@ class SubComponentRubric:
 # Agent Friendliness (5 sub-components)
 # ---------------------------------------------------------------------------
 
-MCP_SCORE = SubComponentRubric(
-    id="mcp_score",
+INTEGRATION_QUALITY = SubComponentRubric(
+    id="integration_quality",
     dimension="af",
-    name="MCP Server Quality",
-    description="MCP server existence, maturity, and documentation",
+    name="Agent Integration Quality",
+    description="Quality of the best agent integration path (MCP, REST API, SDK, CLI, etc.)",
     unmet_max=10,
     checkpoints=[
-        Checkpoint("mcp_exists", "MCP server package exists (published or in repo)", 11, 35),
-        Checkpoint("mcp_installable", "MCP server can be installed and connects successfully", 36, 55),
-        Checkpoint("mcp_tools_documented", "MCP tools/resources are listed with descriptions", 56, 74),
-        Checkpoint("mcp_examples", "Working usage examples or integration guide exists", 75, 89),
-        Checkpoint("mcp_mature", "Stable releases, error handling, used in production", 90, 100),
+        Checkpoint("integration_exists", "A programmatic interface exists (MCP, REST, SDK, CLI, or library)", 11, 35),
+        Checkpoint("integration_usable", "Interface can be installed/accessed and works reliably", 36, 55),
+        Checkpoint("integration_documented", "Interface operations are documented with descriptions", 56, 74),
+        Checkpoint("integration_examples", "Working usage examples or integration guide exists", 75, 89),
+        Checkpoint("integration_mature", "Stable, well-designed, handles edge cases, production-ready", 90, 100),
     ],
 )
 
@@ -264,7 +264,7 @@ ERROR_RECOVERY = SubComponentRubric(
 ALL_RUBRICS: dict[str, SubComponentRubric] = {
     r.id: r for r in [
         # AF
-        MCP_SCORE, API_DOC_SCORE, ERROR_HANDLING_SCORE,
+        INTEGRATION_QUALITY, API_DOC_SCORE, ERROR_HANDLING_SCORE,
         AUTH_COMPLEXITY_SCORE, RATE_LIMIT_CLARITY_SCORE,
         # Security
         TLS_ENFORCEMENT, AUTH_STRENGTH, SCOPE_GRANULARITY,

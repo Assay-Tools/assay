@@ -67,10 +67,10 @@ class AuthEval(BaseModel):
 class PricingEval(BaseModel):
     model: str | None = None  # free, freemium, paid, usage_based, open_source
     free_tier_exists: bool = False
-    free_tier_limits: dict | None = None
-    paid_tiers: list[dict] = Field(default_factory=list)
+    free_tier_limits: str | None = None  # Description of free tier limits
+    paid_tiers: list[str] = Field(default_factory=list)  # Description of each tier
     requires_credit_card: bool = False
-    estimated_workload_costs: dict | None = None
+    estimated_workload_costs: str | None = None  # Description of costs
     notes: str | None = None
 
 
@@ -84,28 +84,33 @@ class RequirementsEval(BaseModel):
 
 
 class AgentReadinessEval(BaseModel):
-    mcp_server_quality: float | None = None  # 0-100
-    documentation_accuracy: float | None = None  # 0-100
-    error_message_quality: str | None = None  # "good", "poor", "unknown"
+    mcp_server_quality: float = 0  # 0-100
+    documentation_accuracy: float = 0  # 0-100
+    error_message_quality: str = "unknown"  # "good", "poor", "unknown"
     error_message_notes: str | None = None
-    idempotency_support: bool | None = None
+    idempotency_support: bool = False
     idempotency_notes: str | None = None
-    pagination_style: str | None = None  # "cursor", "offset", "none"
-    retry_guidance_documented: bool | None = None
+    pagination_style: str = "none"  # "cursor", "offset", "none"
+    retry_guidance_documented: bool = False
     known_agent_gotchas: list[str] = Field(default_factory=list)
+
+    @field_validator("mcp_server_quality", "documentation_accuracy", mode="before")
+    @classmethod
+    def coerce_none_to_zero(cls, v):
+        return 0.0 if v is None else v
 
 
 class AFScoreComponents(BaseModel):
     """Agent Friendliness sub-scores (0-100 each)."""
 
-    mcp_score: float = 0  # MCP server existence + quality
+    integration_quality: float = 0  # Agent integration path quality (MCP, API, SDK, etc.)
     api_doc_score: float = 0  # API documentation quality
     error_handling_score: float = 0  # Error handling quality
     auth_complexity_score: float = 0  # Auth simplicity (100=api_key, 70=oauth, 40=complex)
     rate_limit_clarity_score: float = 0  # Rate limit documentation clarity
 
     @field_validator(
-        "mcp_score", "api_doc_score", "error_handling_score",
+        "integration_quality", "api_doc_score", "error_handling_score",
         "auth_complexity_score", "rate_limit_clarity_score", mode="before",
     )
     @classmethod
@@ -185,7 +190,7 @@ class PackageEvaluation(BaseModel):
 # ---------------------------------------------------------------------------
 
 AF_WEIGHTS = {
-    "mcp_score": 0.25,
+    "integration_quality": 0.25,
     "api_doc_score": 0.25,
     "error_handling_score": 0.20,
     "auth_complexity_score": 0.15,
@@ -343,18 +348,34 @@ IMPORTANT: Return ONLY valid JSON matching the schema below. No markdown fences,
 no explanation text outside the JSON.
 
 ## AF Score Components (Agent Friendliness — can an agent use this effectively?)
-- mcp_score (0-100): MCP server existence + quality. \
-  0=no MCP, 30=mentioned but immature, 60=functional, 80-100=mature and well-documented.
-- api_doc_score (0-100): API documentation quality. \
+All scores are 0-100, NEVER null. Always provide a numeric value.
+
+- integration_quality (0-100): Agent integration quality — how easy is it for an AI agent to \
+  programmatically use this tool? Consider BOTH the integration path AND its design quality. \
+  Having an MCP server is a positive signal (the developer is actively enabling agent use), \
+  but a poorly designed MCP server (missing tool descriptions, no error handling, incomplete \
+  coverage) should score LOWER than a well-designed REST API with OpenAPI spec, structured \
+  errors, and good SDKs. Score the best available path on its actual quality: \
+  0=no programmatic interface, 20=exists but poorly designed/documented, \
+  40=functional but rough edges, 60=solid design with good docs, \
+  80=well-designed with clear contracts and good DX, \
+  100=exceptional — complete, well-documented, handles edge cases gracefully. \
+  MCP server with good tool descriptions and error handling: 70-100. \
+  MCP server that exists but is minimal/undocumented: 30-50. \
+  Excellent REST API with OpenAPI + SDKs but no MCP: 60-85. \
+  Basic REST API with minimal docs: 20-40.
+- api_doc_score (0-100): API/interface documentation quality. \
   0=none, 30=minimal, 60=adequate, 80=good, 100=excellent with examples.
 - error_handling_score (0-100): How well does the package communicate errors? \
   0=unknown/poor, 50=adequate, 80=good structured errors, 100=excellent with codes and guidance.
 - auth_complexity_score (0-100): How simple is authentication? \
-  100=simple API key, 70=OAuth2, 40=complex multi-step, 20=very complex.
+  100=simple API key or none needed, 70=OAuth2, 40=complex multi-step, 20=very complex.
 - rate_limit_clarity_score (0-100): How clearly are rate limits documented? \
   0=not mentioned, 50=mentioned but vague, 80=clear docs, 100=clear docs + headers.
 
 ## Security Score Components (is it safe for an agent to use?)
+All scores are 0-100, NEVER null. Always provide a numeric value.
+
 - tls_enforcement (0-100): 100=HTTPS required, 0=no TLS/allows HTTP.
 - auth_strength (0-100): 100=strong (API keys+scopes, OAuth2), 50=basic, 0=none.
 - scope_granularity (0-100): 100=fine-grained scopes, 50=coarse, 0=all-or-nothing.
@@ -363,6 +384,8 @@ no explanation text outside the JSON.
 - security_notes: Brief text on specific security concerns or strengths.
 
 ## Reliability Score Components (does it work consistently?)
+All scores are 0-100, NEVER null. Always provide a numeric value.
+
 - uptime_documented (0-100): 100=published SLA+status page, 50=mentioned, 0=none.
 - version_stability (0-100): 100=stable semver releases, 50=some stability, 0=unstable.
 - breaking_changes_history (0-100): 100=no breaking changes, 0=frequent breaking.
@@ -424,8 +447,10 @@ class EvaluationAgent:
     """Analyzes a software package and fills the complete Assay schema."""
 
     def __init__(self):
-        # No LLM API needed — using heuristic-based evaluation
-        self.model = "heuristic-evaluator"
+        from openai import OpenAI
+
+        self.model = "gpt-5.4-nano"
+        self.openai = OpenAI(api_key=settings.openai_api_key)
         http_headers = {}
         if settings.github_token:
             http_headers["Authorization"] = f"token {settings.github_token}"
@@ -468,139 +493,31 @@ class EvaluationAgent:
     # -- LLM call --
 
     def call_llm(self, package_name: str, context: dict) -> tuple[PackageEvaluation, dict]:
-        """Heuristic-based evaluation without API calls.
+        """Call OpenAI GPT-5.4-nano for structured package evaluation.
 
-        Analyzes package context using pattern matching and heuristics
-        to generate evaluation scores and details.
-
-        Returns (evaluation, usage_info) where usage_info has estimated token counts.
+        Returns (evaluation, usage_info) with actual token counts from the API.
         """
-        readme = context.get("readme", "")
-        metadata = context.get("metadata", {}) or {}
-        manifest = context.get("manifest", {}) or {}
+        user_prompt = build_user_prompt(
+            package_name,
+            context.get("readme"),
+            context.get("metadata"),
+            context.get("manifest"),
+        )
 
-        # Basic extraction
-        evaluation = PackageEvaluation()
+        response = self.openai.responses.parse(
+            model=self.model,
+            instructions=SYSTEM_PROMPT,
+            input=user_prompt,
+            text_format=PackageEvaluation,
+        )
 
-        # What it does: use manifest description or extract from README
-        if manifest and "description" in manifest:
-            evaluation.what_it_does = manifest["description"]
-        elif readme:
-            lines = readme.split("\n")
-            for line in lines[:5]:  # First few lines usually have summary
-                if line.strip() and not line.startswith("#"):
-                    evaluation.what_it_does = line.strip()
-                    break
-
-        # Category detection based on keywords
-        readme_lower = readme.lower() if readme else ""
-        manifest_str = json.dumps(manifest).lower() if manifest else ""
-        combined = readme_lower + manifest_str
-
-        category_map = {
-            "database": ["database", "db", "postgres", "mysql", "sql"],
-            "auth": ["auth", "oauth", "jwt", "login", "credential"],
-            "api": ["api", "rest", "graphql", "http"],
-            "monitoring": ["monitor", "metric", "log", "tracing"],
-            "storage": ["storage", "s3", "cloud", "bucket"],
-        }
-
-        for cat, keywords in category_map.items():
-            if any(kw in combined for kw in keywords):
-                evaluation.category_slug = cat
-                evaluation.category_name = cat.title()
-                break
-
-        # Interface detection
-        if "rest" in combined or "http" in combined:
-            evaluation.interface.has_rest_api = True
-        if "graphql" in combined:
-            evaluation.interface.has_graphql = True
-        if "grpc" in combined:
-            evaluation.interface.has_grpc = True
-        if "mcp" in combined or "mcp-server" in combined:
-            evaluation.interface.has_mcp_server = True
-        if "sdk" in combined:
-            evaluation.interface.has_sdk = True
-
-        # Auth detection
-        if "oauth" in combined:
-            evaluation.auth.methods.append("oauth2")
-            evaluation.auth.oauth = True
-        if "api_key" in combined or "apikey" in combined:
-            evaluation.auth.methods.append("api_key")
-        if "jwt" in combined:
-            evaluation.auth.methods.append("jwt")
-
-        # Pricing detection
-        if "free" in combined:
-            evaluation.pricing.model = "free"
-            evaluation.pricing.free_tier_exists = True
-        elif "freemium" in combined or ("free" in combined and "paid" in combined):
-            evaluation.pricing.model = "freemium"
-            evaluation.pricing.free_tier_exists = True
-        elif "paid" in combined:
-            evaluation.pricing.model = "paid"
-
-        # Agent readiness scores based on README quality and documentation
-        readme_length = len(readme) if readme else 0
-        if readme_length > 5000:
-            evaluation.af_score_components.api_doc_score = 85
-        elif readme_length > 2000:
-            evaluation.af_score_components.api_doc_score = 70
-        elif readme_length > 500:
-            evaluation.af_score_components.api_doc_score = 50
-        else:
-            evaluation.af_score_components.api_doc_score = 20
-
-        # Error handling detection
-        if "error" in readme_lower or "exception" in readme_lower:
-            evaluation.af_score_components.error_handling_score = 60
-        else:
-            evaluation.af_score_components.error_handling_score = 30
-
-        # MCP score
-        if evaluation.interface.has_mcp_server:
-            evaluation.af_score_components.mcp_score = 90
-        elif evaluation.interface.has_rest_api or evaluation.interface.has_sdk:
-            evaluation.af_score_components.mcp_score = 50
-        else:
-            evaluation.af_score_components.mcp_score = 20
-
-        # Auth complexity (simpler auth = higher score)
-        if len(evaluation.auth.methods) == 0:
-            evaluation.af_score_components.auth_complexity_score = 20
-        elif len(evaluation.auth.methods) == 1 and "api_key" in evaluation.auth.methods:
-            evaluation.af_score_components.auth_complexity_score = 90
-        elif "oauth2" in evaluation.auth.methods:
-            evaluation.af_score_components.auth_complexity_score = 70
-        else:
-            evaluation.af_score_components.auth_complexity_score = 50
-
-        # Rate limit documentation
-        if "rate" in readme_lower or "limit" in readme_lower:
-            evaluation.af_score_components.rate_limit_clarity_score = 75
-        else:
-            evaluation.af_score_components.rate_limit_clarity_score = 30
-
-        # Security scores
-        evaluation.security_score_components.tls_enforcement = 70  # Assume HTTPS
-        evaluation.security_score_components.auth_strength = 60 if evaluation.auth.methods else 30
-        evaluation.security_score_components.scope_granularity = 50
-        evaluation.security_score_components.dependency_hygiene = 50
-        evaluation.security_score_components.secret_handling = 50
-
-        # Reliability scores
-        evaluation.reliability_score_components.uptime_documented = 40
-        evaluation.reliability_score_components.version_stability = 60
-        evaluation.reliability_score_components.breaking_changes_history = 50
-        evaluation.reliability_score_components.error_recovery = 40
+        evaluation = response.output_parsed
 
         usage_info = {
-            "input_tokens": (len(readme or "") + len(json.dumps(manifest))) // 4,
-            "output_tokens": 500,
-            "model": "heuristic-evaluator",
-            "raw_output": "Heuristic analysis",
+            "input_tokens": response.usage.input_tokens if response.usage else 0,
+            "output_tokens": response.usage.output_tokens if response.usage else 0,
+            "model": self.model,
+            "raw_output": response.output_text,
         }
 
         return evaluation, usage_info
@@ -684,18 +601,12 @@ class EvaluationAgent:
         else:
             pp = PackagePricing(package_id=package.id)
             db.add(pp)
-        pp.model = pricing.model
+        pp.model = (pricing.model or "")[:50] or None
         pp.free_tier_exists = pricing.free_tier_exists
-        pp.free_tier_limits = (
-            json.dumps(pricing.free_tier_limits) if pricing.free_tier_limits else None
-        )
+        pp.free_tier_limits = pricing.free_tier_limits
         pp.paid_tiers = json.dumps(pricing.paid_tiers) if pricing.paid_tiers else None
         pp.requires_credit_card = pricing.requires_credit_card
-        pp.estimated_workload_costs = (
-            json.dumps(pricing.estimated_workload_costs)
-            if pricing.estimated_workload_costs
-            else None
-        )
+        pp.estimated_workload_costs = pricing.estimated_workload_costs
         pp.notes = pricing.notes
 
         # -- Requirements --
@@ -764,7 +675,7 @@ class EvaluationAgent:
         eval_run = EvaluationRun(
             package_id=package.id,
             model_used=usage_info.get("model"),
-            evaluator_engine="claude",
+            evaluator_engine="openai",
             rubric_version="1.0",
             input_tokens=usage_info.get("input_tokens"),
             output_tokens=usage_info.get("output_tokens"),
@@ -779,13 +690,13 @@ class EvaluationAgent:
 
     @staticmethod
     def _estimate_cost(usage_info: dict) -> float | None:
-        """Rough cost estimate for GPT-4o mini calls."""
+        """Rough cost estimate for OpenAI API calls."""
         input_tokens = usage_info.get("input_tokens", 0)
         output_tokens = usage_info.get("output_tokens", 0)
         if not input_tokens and not output_tokens:
             return None
-        # GPT-4o mini pricing: $0.15/MTok input, $0.60/MTok output
-        cost = (input_tokens * 0.15 / 1_000_000) + (output_tokens * 0.60 / 1_000_000)
+        # GPT-5.4-nano pricing: $0.20/MTok input, $1.25/MTok output
+        cost = (input_tokens * 0.20 / 1_000_000) + (output_tokens * 1.25 / 1_000_000)
         return round(cost, 6)
 
     # -- Main entry points --
