@@ -461,21 +461,20 @@ class EvaluationAgent:
 
     # -- Data gathering --
 
-    def gather_context(self, package: Package) -> dict:
-        """Gather all available context for a package from GitHub."""
+    def gather_context_by_url(self, repo_url: str | None) -> dict:
+        """Gather all available context from a GitHub repo URL (no DB needed)."""
         context: dict = {
             "readme": None,
             "metadata": None,
             "manifest": None,
         }
 
-        if not package.repo_url:
-            logger.warning("Package %s has no repo_url, skipping GitHub fetch", package.id)
+        if not repo_url:
             return context
 
-        parsed = parse_github_owner_repo(package.repo_url)
+        parsed = parse_github_owner_repo(repo_url)
         if not parsed:
-            logger.warning("Could not parse GitHub URL: %s", package.repo_url)
+            logger.warning("Could not parse GitHub URL: %s", repo_url)
             return context
 
         owner, repo = parsed
@@ -703,41 +702,54 @@ class EvaluationAgent:
 
     def evaluate_package(self, package_id: str) -> float | None:
         """Evaluate a single package by ID. Returns AF score or None on error."""
+        # 1. Short-lived DB read: load package info, then close
         db = SessionLocal()
         try:
             package = db.get(Package, package_id)
             if not package:
                 logger.error("Package not found: %s", package_id)
                 return None
+            # Capture what we need before closing the session
+            pkg_name = package.name
+            pkg_repo_url = package.repo_url
+            logger.info("Evaluating package: %s (%s)", pkg_name, package_id)
+        finally:
+            db.close()
 
-            logger.info("Evaluating package: %s (%s)", package.name, package.id)
-
-            # Gather context
-            context = self.gather_context(package)
+        # 2. Network I/O — no DB connection held open
+        try:
+            context = self.gather_context_by_url(pkg_repo_url)
             if not context["readme"] and not context["metadata"]:
                 logger.warning(
                     "No GitHub data available for %s, evaluating with minimal context",
-                    package.id,
+                    package_id,
                 )
 
-            # Call LLM
-            evaluation, usage_info = self.call_llm(package.name, context)
+            evaluation, usage_info = self.call_llm(pkg_name, context)
             logger.info(
                 "LLM response: %d input tokens, %d output tokens",
                 usage_info.get("input_tokens", 0),
                 usage_info.get("output_tokens", 0),
             )
-
-            # Persist
-            af_score = self.persist_evaluation(db, package, evaluation, usage_info)
-            logger.info("Package %s evaluated. AF Score: %.1f", package.id, af_score)
-            return af_score
-
         except json.JSONDecodeError as e:
             logger.error("Failed to parse LLM JSON for %s: %s", package_id, e)
             return None
         except Exception as e:
-            logger.error("Evaluation failed for %s: %s", package_id, e, exc_info=True)
+            logger.error("LLM/fetch failed for %s: %s", package_id, e)
+            return None
+
+        # 3. Short-lived DB write: persist results
+        db = SessionLocal()
+        try:
+            package = db.get(Package, package_id)
+            if not package:
+                logger.error("Package disappeared during eval: %s", package_id)
+                return None
+            af_score = self.persist_evaluation(db, package, evaluation, usage_info)
+            logger.info("Package %s evaluated. AF Score: %.1f", package_id, af_score)
+            return af_score
+        except Exception as e:
+            logger.error("Persist failed for %s: %s", package_id, e, exc_info=True)
             db.rollback()
             return None
         finally:
@@ -749,6 +761,7 @@ class EvaluationAgent:
         limit: int = 10,
         package_type: str | None = None,
         priority: str | None = None,
+        workers: int = 10,
     ) -> dict:
         """Evaluate multiple packages using the strategic scheduler.
 
@@ -799,19 +812,34 @@ class EvaluationAgent:
             "scores": {}, "by_tier": {},
         }
 
-        for pkg_id, tier in package_ids:
-            score = self.evaluate_package(pkg_id)
-            if score is not None:
-                results["success"] += 1
-                results["scores"][pkg_id] = score
-            else:
-                results["failed"] += 1
+        from concurrent.futures import ThreadPoolExecutor, as_completed
 
-            results["by_tier"].setdefault(tier, {"success": 0, "failed": 0})
-            results["by_tier"][tier]["success" if score is not None else "failed"] += 1
+        tier_by_id = {pkg_id: tier for pkg_id, tier in package_ids}
+        workers = min(workers, len(package_ids))
+        logger.info("Evaluating %d packages with %d parallel workers", len(package_ids), workers)
 
-            # Brief pause between evaluations to be kind to APIs
-            time.sleep(1)
+        with ThreadPoolExecutor(max_workers=workers) as pool:
+            futures = {
+                pool.submit(self.evaluate_package, pkg_id): pkg_id
+                for pkg_id, _ in package_ids
+            }
+            for future in as_completed(futures):
+                pkg_id = futures[future]
+                tier = tier_by_id[pkg_id]
+                try:
+                    score = future.result()
+                except Exception as exc:
+                    logger.error("Worker exception for %s: %s", pkg_id, exc)
+                    score = None
+
+                if score is not None:
+                    results["success"] += 1
+                    results["scores"][pkg_id] = score
+                else:
+                    results["failed"] += 1
+
+                results["by_tier"].setdefault(tier, {"success": 0, "failed": 0})
+                results["by_tier"][tier]["success" if score is not None else "failed"] += 1
 
         return results
 
@@ -851,6 +879,12 @@ def main():
         default=None,
         help="Filter by priority (high, low)",
     )
+    parser.add_argument(
+        "--workers",
+        type=int,
+        default=10,
+        help="Number of parallel evaluation workers (default: 10)",
+    )
     parser.add_argument("--verbose", "-v", action="store_true", help="Verbose logging")
 
     args = parser.parse_args()
@@ -881,6 +915,7 @@ def main():
                 limit=args.limit,
                 package_type=args.package_type,
                 priority=args.priority,
+                workers=args.workers,
             )
             print(f"Batch complete: {results['success']}/{results['total']} succeeded")
             if results.get("by_tier"):
