@@ -761,7 +761,7 @@ class EvaluationAgent:
         limit: int = 10,
         package_type: str | None = None,
         priority: str | None = None,
-        workers: int = 10,
+        workers: int = 3,
     ) -> dict:
         """Evaluate multiple packages using the strategic scheduler.
 
@@ -882,8 +882,8 @@ def main():
     parser.add_argument(
         "--workers",
         type=int,
-        default=10,
-        help="Number of parallel evaluation workers (default: 10)",
+        default=3,
+        help="Number of parallel evaluation workers (default: 3, limited by OpenAI 200K TPM)",
     )
     parser.add_argument("--verbose", "-v", action="store_true", help="Verbose logging")
 
