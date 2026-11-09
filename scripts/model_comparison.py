@@ -174,13 +174,13 @@ def call_gemini(model_id: str, package_name: str, context: dict) -> tuple[Packag
     )
     # Combine system prompt + user prompt (Gemini REST v1beta)
     combined_prompt = f"{SYSTEM_PROMPT}\n\n{user_prompt}"
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_id}:generateContent?key={api_key}"
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_id}:generateContent"
     payload = {
         "contents": [{"parts": [{"text": combined_prompt}]}],
         "generationConfig": {"maxOutputTokens": 4096, "temperature": 0.0},
     }
     with httpx.Client(timeout=60) as client:
-        resp = client.post(url, json=payload)
+        resp = client.post(url, json=payload, headers={"x-goog-api-key": api_key})
         resp.raise_for_status()
     data = resp.json()
     raw = data["candidates"][0]["content"]["parts"][0]["text"]
@@ -397,8 +397,5 @@ if __name__ == "__main__":
                 if line and not line.startswith("#") and "=" in line and not line.startswith("GCS_SA_KEY"):
                     key, _, val = line.partition("=")
                     os.environ.setdefault(key.strip(), val.strip())
-
-    # Inject Gemini key
-    os.environ.setdefault("GEMINI_API_KEY", "AIzaSyBuvokvlk4obRJ1_9vrm0JMV_vm1BsYE2k")
 
     run_comparison(output_csv=args.output)
